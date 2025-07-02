@@ -16,7 +16,7 @@ from polygon import RESTClient
 from polygon.rest.models import Agg
 
 from marketflow.marketflow_logger import get_logger
-from marketflow_config_manager import get_config_manager
+from marketflow.marketflow_config_manager import get_config_manager
 
 # Constants for error handling
 MAX_RETRIES = 3
