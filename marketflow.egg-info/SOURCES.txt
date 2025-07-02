@@ -1,0 +1,9 @@
+LICENSE
+README.md
+setup.py
+marketflow.egg-info/PKG-INFO
+marketflow.egg-info/SOURCES.txt
+marketflow.egg-info/dependency_links.txt
+marketflow.egg-info/requires.txt
+marketflow.egg-info/top_level.txt
+tests/test_data_provider.py
