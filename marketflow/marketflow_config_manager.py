@@ -1,12 +1,12 @@
 """
-Enhanced VPA Configuration Manager Module
+Enhanced Marketflow Configuration Manager Module
 
-This module provides centralized API key and configuration management for the VPA system.
+This module provides centralized API key and configuration management for the Marketflow system.
 It supports multiple sources for configuration values (environment variables, config files, etc.)
 with appropriate fallbacks and validation.
 
 Enhanced to support LLM model specification for fine-tuned model integration and comprehensive
-VPA system configuration including LLM providers, data sources, and application settings.
+Marketflow system configuration including LLM providers, data sources, and application settings.
 
 Merged functionality from config_manager_v1.py to provide a unified configuration interface.
 """
@@ -21,7 +21,7 @@ from marketflow.marketflow_logger import get_logger
 load_dotenv()
 
 class ConfigManager:
-    """Manages API keys and configuration for the VPA system."""
+    """Manages API keys and configuration for the Marketflow system."""
     
     # Default LLM model to use if not specified
     DEFAULT_LLM_MODEL = "gpt-3.5-turbo"
@@ -39,9 +39,9 @@ class ConfigManager:
         # Default config file locations to check
         self.config_file_paths = [
             config_file,  # User-provided path (if any)
-            os.path.join(r"C:\Users\Aspire5 15 i7 4G2050\vpa_modular_package\.vpa\config", "config.json"),  # Custom config path
-            os.path.expanduser("~/.vpa/config.json"),  # User home directory
-            os.path.join(os.getcwd(), "vpa_config.json"),  # Current working directory
+            os.path.join(r"C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\.marketflow\config", "config.json"),  # Custom config path
+            os.path.expanduser("~/.marketflow/config.json"),  # User home directory
+            os.path.join(os.getcwd(), "marketflow_config.json"),  # Current working directory
             os.path.join(os.path.dirname(__file__), "config.json"),  # Module directory
         ]
         
@@ -83,8 +83,8 @@ class ConfigManager:
         self.RAG_TOP_K = int(self.get_config_value("rag_top_k", os.getenv("RAG_TOP_K", "5")))
         
         # --- File Paths ---
-        self.LOG_FILE_PATH = self.get_config_value("log_file_path", ".vpa/logs/vpa_engine.log")
-        self.MEMORY_DB_PATH = self.get_config_value("memory_db_path", ".vpa/memory/vpa_chat_history.db")
+        self.LOG_FILE_PATH = self.get_config_value("log_file_path", ".marketflow/logs/marketflow_engine.log")
+        self.MEMORY_DB_PATH = self.get_config_value("memory_db_path", ".marketflow/memory/marketflow_chat_history.db")
     
     def get_api_key(self, service: str) -> str:
         """
@@ -185,8 +185,8 @@ class ConfigManager:
         Returns:
         - Configuration value or default
         """
-        # Try to get from environment variable (uppercase with prefix VPA_)
-        env_var_name = f"VPA_{key.upper()}"
+        # Try to get from environment variable (uppercase with prefix MARKETFLOW_)
+        env_var_name = f"MARKETFLOW_{key.upper()}"
         env_value = os.getenv(env_var_name)
         if env_value is not None:
             return env_value
@@ -215,7 +215,7 @@ class ConfigManager:
         
         if not config_file:
             # Default to current directory if no writable path found
-            config_file = os.path.join(os.getcwd(), "vpa_config.json")
+            config_file = os.path.join(os.getcwd(), "marketflow_config.json")
         
         try:
             # Ensure directory exists
@@ -298,10 +298,10 @@ class ConfigManager:
         Get the configured LLM model name with appropriate fallbacks.
         
         Returns:
-        - Model name string (e.g., 'gpt-3.5-turbo', 'ft:gpt-3.5-turbo:vpa:20250602')
+        - Model name string (e.g., 'gpt-3.5-turbo', 'ft:gpt-3.5-turbo:marketflow:20250602')
         """
         # Try to get from environment variable
-        model = os.getenv('VPA_LLM_MODEL')
+        model = os.getenv('MARKETFLOW_LLM_MODEL')
         
         # If not found in environment, try config file
         if not model:
@@ -324,7 +324,7 @@ class ConfigManager:
         Set the LLM model to use.
         
         Parameters:
-        - model_name: Model name (e.g., 'gpt-3.5-turbo', 'ft:gpt-3.5-turbo:vpa:20250602')
+        - model_name: Model name (e.g., 'gpt-3.5-turbo', 'ft:gpt-3.5-turbo:marketflow:20250602')
         """
         self.config_data['llm_model'] = model_name
         self.logger.info(f"LLM model set to: {model_name}")
@@ -420,21 +420,21 @@ class ConfigManager:
             return False
 
 
-# Backward compatibility class that mimics the original VPAConfigManager
-class VPAConfigManager(ConfigManager):
+# Backward compatibility class that mimics the original MARKETFLOWConfigManager
+class MARKETFLOWConfigManager(ConfigManager):
     """
-    Backward compatibility wrapper for the original VPAConfigManager interface.
+    Backward compatibility wrapper for the original MARKETFLOWConfigManager interface.
     This allows existing code to continue working without modification.
     """
     
     def __init__(self, config_file: Optional[str] = None):
         super().__init__(config_file)
-        self.logger.info("VPAConfigManager initialized with backward compatibility")
+        self.logger.info("MARKETFLOWConfigManager initialized with backward compatibility")
 
 
 # Create singleton instances for both interfaces
 _config_manager = None
-_vpa_config_manager = None
+_marketflow_config_manager = None
 
 def get_config_manager(config_file: Optional[str] = None) -> ConfigManager:
     """
@@ -451,21 +451,21 @@ def get_config_manager(config_file: Optional[str] = None) -> ConfigManager:
         _config_manager = ConfigManager(config_file)
     return _config_manager
 
-def get_vpa_config_manager(config_file: Optional[str] = None) -> VPAConfigManager:
+def get_marketflow_config_manager(config_file: Optional[str] = None) -> MARKETFLOWConfigManager:
     """
-    Get the singleton VPAConfigManager instance for backward compatibility.
+    Get the singleton MARKETFLOWConfigManager instance for backward compatibility.
     
     Parameters:
     - config_file: Optional path to a JSON configuration file
     
     Returns:
-    - VPAConfigManager instance
+    - MARKETFLOWConfigManager instance
     """
-    global _vpa_config_manager
-    if _vpa_config_manager is None:
-        _vpa_config_manager = VPAConfigManager(config_file)
-    return _vpa_config_manager
+    global _marketflow_config_manager
+    if _marketflow_config_manager is None:
+        _marketflow_config_manager = MARKETFLOWConfigManager(config_file)
+    return _marketflow_config_manager
 
 # Create the AppConfig singleton for backward compatibility
-AppConfig = get_vpa_config_manager()
+AppConfig = get_marketflow_config_manager()
 
