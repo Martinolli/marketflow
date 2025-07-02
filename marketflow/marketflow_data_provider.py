@@ -6,7 +6,7 @@ and a clear, extensible interface for future data providers.
 """
 
 import time
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Dict, List, Tuple, Optional, Any
 from pandas.tseries.offsets import DateOffset
 from abc import ABC, abstractmethod
@@ -139,7 +139,7 @@ class PolygonIOProvider(DataProvider):
         data = []
         for agg in aggs:
             data.append({
-                'timestamp': datetime.fromtimestamp(agg.timestamp / 1000),
+                'timestamp': datetime.fromtimestamp(agg.timestamp / 1000, tz=timezone.utc),
                 'open': agg.open,
                 'high': agg.high,
                 'low': agg.low,
@@ -151,7 +151,7 @@ class PolygonIOProvider(DataProvider):
         price_df = df[['open', 'high', 'low', 'close']]
         volume_series = df['volume']
         return price_df, volume_series
-    
+        
     def get_data(
         self,
         ticker: str,

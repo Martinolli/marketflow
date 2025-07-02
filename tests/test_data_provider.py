@@ -31,8 +31,8 @@ class DummyClient:
     """A mock client to simulate Polygon.io API responses."""
     def get_aggs(self, ticker, multiplier, timespan, from_, to, limit):
         return [
-            SimpleNamespace(timestamp=1609459200000, open=100, high=105, low=95, close=102, volume=10000),  # 2021-01-01
-            SimpleNamespace(timestamp=1609545600000, open=102, high=106, low=98, close=104, volume=12000),  # 2021-01-02
+            SimpleNamespace(timestamp=pd.Timestamp('2021-01-01').timestamp() * 1000, open=100, high=105, low=95, close=102, volume=10000),
+            SimpleNamespace(timestamp=pd.Timestamp('2021-01-02').timestamp() * 1000, open=102, high=106, low=98, close=104, volume=12000),
         ]
     logger.info("DummyClient initialized with mock data.")
 
@@ -114,55 +114,27 @@ def test_polygon_provider_get_data_success(mock_provider):
 
     # 4. Check index properties (robust to named index)
     logger.debug("Checking index properties of price_df and volume_series.")
-    expected_index = pd.to_datetime(['2021-01-01', '2021-01-02']).tz_localize('UTC')
+    expected_index = pd.date_range(start='2021-01-01', end='2021-01-02', freq='D').tz_localize('UTC')
+    expected_index.freq = None
+    expected_index = expected_index.rename('timestamp')
     logger.debug(f"Expected index: {expected_index}")
 
     # Ensure the index of the DataFrame matches the expected index
     logger.debug(f"Actual index: {price_df.index}")
-    expected_index = expected_index.rename(price_df.index.name)
-    logger.debug("Setting expected index name to match price_df index name.")
 
-    # Ensure the index of the price DataFrame matches the expected index
-    logger.debug("Localizing price_df index to UTC.")
-    assert price_df.index.equals(expected_index), "Index of price_df does not match expected index"
-    if price_df.index.name is not None:
-        expected_index.name = price_df.index.name
-        logger.debug(f"Expected index name set to: {expected_index.name}")
+    logger.debug("Comparing price_df index with expected index.")
+    pd.testing.assert_index_equal(price_df.index, expected_index, check_names=True)
     logger.debug("Price DataFrame index matches expected index.")
 
-    # Ensure the index of the volume series matches the expected index
+    # Update the volume series index check as well
     logger.debug(f"Volume series index: {volume_series.index}")
-    volume_series.index = pd.to_datetime(volume_series.index).tz_localize('UTC')
-    logger.debug("Localizing volume_series index to UTC.")
-
-    # Ensure the index of the volume series matches the expected index
-    logger.debug("Checking if volume_series index matches expected index.")
-    assert volume_series.index.equals(expected_index), "Index of volume_series does not match expected index"
+    pd.testing.assert_index_equal(volume_series.index, expected_index, check_names=True)
     logger.debug("Volume series index matches expected index.")
-
-
-    # Ensure the indices of price_df and volume_series match
-    logger.debug("Checking if indices of price_df and volume_series match.")
-    expected_index.name = price_df.index.name
-    logger.debug(f"Expected index name: {expected_index.name}, Actual index name: {price_df.index.name}")
 
     # Ensure the indices of price_df and volume_series match
     logger.debug("Asserting indices of price_df and volume_series match.")
-    assert price_df.index.equals(volume_series.index), "Indices of price_df and volume_series should match"
+    pd.testing.assert_index_equal(price_df.index, volume_series.index)
     logger.debug("Indices of price_df and volume_series match.")
-
-    # Ensure the index of the price DataFrame matches the expected index
-    logger.debug("Asserting index of price_df matches expected index.")
-    pd.testing.assert_index_equal(price_df.index, expected_index)
-    logger.debug("Price DataFrame index matches expected index.")
-
-    # Ensure the index of the volume series matches the expected index
-    logger.debug("Asserting index of volume_series matches expected index.")
-    try:
-        pd.testing.assert_index_equal(price_df.index, volume_series.index)
-    except AssertionError:
-        assert False, "Indices of price_df and volume_series should match"
-    logger.debug("Volume series index matches expected index.")
 
 def test_polygon_provider_no_data(monkeypatch):
     """
