@@ -133,7 +133,6 @@ setup(
     author="Your Name",
     author_email="joaoboscojbm@gmail.com",
     description="A modular, extensible Python framework for advanced Volume-Price Analysis (VPA) and Wyckoff Method analytics.",
-    long_description=open("README.md", encoding="utf-8").read(),
     long_description_content_type="text/markdown",
     url="https://github.com/Martinolli/marketflow",
     classifiers=[
