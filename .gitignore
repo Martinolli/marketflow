@@ -1,0 +1,42 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+*.env
+.env
+env/
+venv/
+ENV/
+venv.bak/
+*.sqlite3
+.ipynb_checkpoints/
+
+# VSCode
+.vscode/
+
+# Jupyter
+*.ipynb
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+.vpa/
+.vpa_memory.json
+
+# Environment/config data
+.env.*
+secrets/
+config.yaml
+config.json
+
+# Data
+*.csv
+*.parquet
+*.h5
+data/
+cache/
