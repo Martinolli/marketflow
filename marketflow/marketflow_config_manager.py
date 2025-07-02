@@ -33,18 +33,21 @@ class ConfigManager:
         Parameters:
         - config_file: Optional path to a JSON configuration file
         """
-        self.logger = get_logger(module_name="Config_Manager_Marketflow", log_level="DEBUG",log_file="marketflow_config.log")
+        self.logger = get_logger(
+            module_name="Config_Manager_Marketflow",
+            log_level="DEBUG",
+            log_file=r"C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\logs\marketflow_config.log"
+        )
         self.config_data = {}
         
         # Default config file locations to check
         self.config_file_paths = [
             config_file,  # User-provided path (if any)
-            os.path.join(r"C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\.marketflow\config", "config.json"),  # Custom config path
+            os.path.join(r"C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\config", "config.json"),  # Custom config path
             os.path.expanduser("~/.marketflow/config.json"),  # User home directory
             os.path.join(os.getcwd(), "marketflow_config.json"),  # Current working directory
             os.path.join(os.path.dirname(__file__), "config.json"),  # Module directory
         ]
-        
         # Load configuration from file
         self._load_config_from_file()
         
@@ -83,7 +86,7 @@ class ConfigManager:
         self.RAG_TOP_K = int(self.get_config_value("rag_top_k", os.getenv("RAG_TOP_K", "5")))
         
         # --- File Paths ---
-        self.LOG_FILE_PATH = self.get_config_value("log_file_path", ".marketflow/logs/marketflow_engine.log")
+        self.LOG_FILE_PATH = self.get_config_value("log_file_path", os.getenv("LOG_FILE_PATH", r".marketflow/logs/marketflow_engine.log"))
         self.MEMORY_DB_PATH = self.get_config_value("memory_db_path", ".marketflow/memory/marketflow_chat_history.db")
     
     def get_api_key(self, service: str) -> str:

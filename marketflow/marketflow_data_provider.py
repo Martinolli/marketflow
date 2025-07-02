@@ -1,14 +1,15 @@
 """
-VPA Data Module with Enhanced Error Handling
+Marketflow Data Provider Module with Enhanced Error Handling and Abstract Base Class
 
-This module provides data access for VPA analysis with robust error handling.
+This module provides data access for Marketflow analysis with robust error handling
+and a clear, extensible interface for future data providers.
 """
 
-import os
 import time
 from datetime import datetime, timedelta
-from typing import Dict, List, Tuple, Optional, Union, Any
+from typing import Dict, List, Tuple, Optional, Any
 from pandas.tseries.offsets import DateOffset
+from abc import ABC, abstractmethod
 
 import pandas as pd
 import numpy as np
@@ -33,9 +34,25 @@ class ErrorCategory:
     DATA_PROCESSING = "DATA_PROCESSING_ERROR"
     UNKNOWN = "UNKNOWN_ERROR"
 
-class PolygonIOProvider:
+class DataProvider(ABC):
+    """
+    Abstract base class for all Marketflow data providers.
+    Enforces implementation of the get_data interface.
+    """
+    @abstractmethod
+    def get_data(self, ticker: str, interval: str = "1d", period: str = "1y",
+                 start_date: Optional[str] = None, end_date: Optional[str] = None
+    ) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
+        """
+        Fetch price and volume data for a ticker.
+        Must be implemented by subclasses.
+        Returns a tuple of (price_df, volume_series), or None if data could not be fetched.
+        """
+        pass
+
+class PolygonIOProvider(DataProvider):
     """Data provider using Polygon.io API with enhanced error handling"""
-    
+
     def __init__(self):
         """Initialize the Polygon.io data provider"""
         self.logger = get_logger(module_name="PolygonIOProvider")
@@ -46,15 +63,10 @@ class PolygonIOProvider:
     def _initialize_client(self) -> None:
         """Initialize the Polygon.io REST client with error handling"""
         try:
-            # Get API key from config manager
             api_key = self.config_manager.get_api_key('polygon')
-            
-            # Validate API key
             if not api_key:
                 self.logger.error("Polygon.io API key not found")
                 raise ValueError("Polygon.io API key not found")
-            
-            # Initialize client
             self.client = RESTClient(api_key)
             self.logger.debug("Polygon.io client initialized successfully")
         except Exception as e:
@@ -66,26 +78,13 @@ class PolygonIOProvider:
         if self.client is None:
             self.logger.warning("Polygon.io client not initialized, attempting to initialize")
             self._initialize_client()
-        
         return self.client is not None
     
-    def _handle_error(self, error: Exception, ticker: str, interval: str, 
-                      attempt: int = 0) -> Tuple[ErrorCategory, str]:
-        """
-        Handle errors with categorization and logging
-        
-        Parameters:
-        - error: The exception that occurred
-        - ticker: Stock symbol
-        - interval: Timeframe interval
-        - attempt: Current retry attempt
-        
-        Returns:
-        - Tuple of (error_category, error_message)
-        """
+    def _handle_error(self, error: Exception, ticker: str, interval: str, attempt: int = 0) -> Tuple[str, str]:
+        """Handle errors with categorization and logging"""
         error_str = str(error)
         error_category = ErrorCategory.UNKNOWN
-        
+
         # Categorize error
         if "ConnectionError" in error_str or "timeout" in error_str.lower():
             error_category = ErrorCategory.NETWORK
@@ -112,75 +111,31 @@ class PolygonIOProvider:
             self.logger.error(message)
             if error_category == ErrorCategory.AUTHENTICATION:
                 self.logger.error("Please check your Polygon.io API key")
-        
         return error_category, message
-    
-    def _calculate_retry_delay(self, attempt: int, error_category: ErrorCategory) -> float:
-        """
-        Calculate retry delay with exponential backoff
-        
-        Parameters:
-        - attempt: Current retry attempt
-        - error_category: Category of the error
-        
-        Returns:
-        - Delay in seconds
-        """
-        # Base exponential backoff
+
+    def _calculate_retry_delay(self, attempt: int, error_category: str) -> float:
+        """Calculate retry delay with exponential backoff and jitter"""
         delay = min(INITIAL_RETRY_DELAY * (2 ** attempt), MAX_RETRY_DELAY)
-        
-        # Add jitter to prevent thundering herd
         delay = delay * (0.5 + 0.5 * np.random.random())
-        
-        # Increase delay for rate limiting
         if error_category == ErrorCategory.RATE_LIMIT:
             delay = delay * 2
-        
         return delay
-    
-    def _should_retry(self, error_category: ErrorCategory, attempt: int) -> bool:
-        """
-        Determine if a retry should be attempted
-        
-        Parameters:
-        - error_category: Category of the error
-        - attempt: Current retry attempt
-        
-        Returns:
-        - True if retry should be attempted, False otherwise
-        """
-        # Don't retry authentication errors
+
+    def _should_retry(self, error_category: str, attempt: int) -> bool:
+        """Determine if a retry should be attempted"""
         if error_category == ErrorCategory.AUTHENTICATION:
             return False
-        
-        # Don't retry if max attempts reached
         if attempt >= MAX_RETRIES - 1:
             return False
-        
-        # Always retry network and rate limit errors
         if error_category in [ErrorCategory.NETWORK, ErrorCategory.RATE_LIMIT]:
             return True
-        
-        # Retry API errors once
         if error_category == ErrorCategory.API and attempt == 0:
             return True
-        
         return False
-    
+
     def _process_aggregates(self, aggs: List[Agg]) -> Tuple[pd.DataFrame, pd.Series]:
-        """
-        Process aggregates into price and volume data
-        
-        Parameters:
-        - aggs: List of aggregate data from Polygon.io
-        
-        Returns:
-        - Tuple of (price_df, volume_series)
-        """
         if not aggs:
-            return pd.DataFrame(), pd.Series()
-        
-        # Extract data
+            return pd.DataFrame(), pd.Series(dtype=float)
         data = []
         for agg in aggs:
             data.append({
@@ -191,111 +146,88 @@ class PolygonIOProvider:
                 'close': agg.close,
                 'volume': agg.volume
             })
-        
-        # Create DataFrame
         df = pd.DataFrame(data)
         df.set_index('timestamp', inplace=True)
-        
-        # Extract price and volume data
         price_df = df[['open', 'high', 'low', 'close']]
         volume_series = df['volume']
-        
         return price_df, volume_series
     
-    def get_data(self, ticker: str, interval: str = "1d", period: str = "1y", start_date: Optional[str] = None, end_date: Optional[str] = None) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
+    def get_data(
+        self,
+        ticker: str,
+        interval: str = "1d",
+        period: str = "1y",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
         """
-        Get price and volume data for a ticker with robust error handling
-        
-        Parameters:
-        - ticker: Stock symbol
-        - interval: Timeframe interval (e.g., "1d", "1h")
-        - period: Period to fetch (e.g., "1d", "1m", "1y")
-        
-        Returns:
-        - Tuple of (price_df, volume_series) or None if data could not be fetched
+        Get price and volume data for a ticker with robust error handling.
+        Returns (price_df, volume_series) or None if data could not be fetched.
         """
-        # Validate client
         if not self._validate_client():
             self.logger.error("Cannot fetch data: Polygon.io client not initialized")
             return None
-        
-        # Parse interval
+
         multiplier, timespan = self._parse_interval(interval)
         if multiplier is None or timespan is None:
             self.logger.error(f"Unsupported interval format: {interval}")
             return None
-        
+
         # Calculate date range
         if end_date is None:
-            end_date = datetime.now()
+            end_date_dt = datetime.now()
         elif isinstance(end_date, str):
-            end_date = datetime.strptime(end_date, "%Y-%m-%d")
+            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
         elif isinstance(end_date, pd.Timestamp):
-            end_date = end_date.to_pydatetime()
-        
+            end_date_dt = end_date.to_pydatetime()
+        else:
+            end_date_dt = end_date
+
         if start_date is None:
-            start_date = self._calculate_start_date(end_date, period)
+            start_date_dt = self._calculate_start_date(end_date_dt, period)
         elif isinstance(start_date, str):
-            start_date = datetime.strptime(start_date, "%Y-%m-%d")
+            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
         elif isinstance(start_date, pd.Timestamp):
-            start_date = start_date.to_pydatetime()
-        
+            start_date_dt = start_date.to_pydatetime()
+        else:
+            start_date_dt = start_date
+
         # Fetch data with retry logic
         for attempt in range(MAX_RETRIES):
             try:
-                self.logger.debug(f"Fetching data for {ticker} at {interval} timeframe (Attempt {attempt + 1}/{MAX_RETRIES})")
-                
-                # Fetch aggregates
+                self.logger.debug(
+                    f"Fetching data for {ticker} at {interval} timeframe (Attempt {attempt + 1}/{MAX_RETRIES})"
+                )
                 aggs = self.client.get_aggs(
                     ticker=ticker,
                     multiplier=multiplier,
                     timespan=timespan,
-                    from_=start_date.strftime("%Y-%m-%d"),
-                    to=end_date.strftime("%Y-%m-%d"),
+                    from_=start_date_dt.strftime("%Y-%m-%d"),
+                    to=end_date_dt.strftime("%Y-%m-%d"),
                     limit=50000
                 )
-                
-                # Process aggregates
                 price_df, volume_series = self._process_aggregates(aggs)
-                
-                # Validate data
                 if price_df.empty:
                     self.logger.warning(f"No data returned for {ticker} at {interval} timeframe")
                     return None
-                
                 self.logger.debug(f"Successfully fetched {len(price_df)} data points for {ticker} at {interval} timeframe")
                 return price_df, volume_series
-            
             except Exception as e:
-                # Handle error
                 error_category, message = self._handle_error(e, ticker, interval, attempt)
-                
-                # Determine if retry should be attempted
                 if self._should_retry(error_category, attempt):
-                    # Calculate retry delay
                     delay = self._calculate_retry_delay(attempt, error_category)
-                    
                     self.logger.info(f"Retrying in {delay:.2f} seconds (Attempt {attempt + 1}/{MAX_RETRIES})")
                     time.sleep(delay)
                 else:
                     self.logger.error(f"Error fetching data for {ticker} at {interval} timeframe: {e}")
                     return None
-        
+
         self.logger.error(f"Failed to fetch data for {ticker} at {interval} timeframe after {MAX_RETRIES} attempts")
         return None
-    
+
     def _parse_interval(self, interval: str) -> Tuple[Optional[int], Optional[str]]:
-        """
-        Parse interval string into multiplier and timespan
-        
-        Parameters:
-        - interval: Interval string (e.g., "1d", "4h")
-        
-        Returns:
-        - Tuple of (multiplier, timespan)
-        """
+        """Parse interval string into multiplier and timespan"""
         try:
-            # Extract multiplier and timespan
             if interval.endswith('m'):
                 return int(interval[:-1]), 'minute'
             elif interval.endswith('h'):
@@ -310,20 +242,10 @@ class PolygonIOProvider:
         except Exception as e:
             self.logger.error(f"Error parsing interval {interval}: {e}")
             return None, None
-    
+
     def _calculate_start_date(self, end_date: datetime, period: str) -> datetime:
-        """
-        Calculate start date based on end date and period
-        
-        Parameters:
-        - end_date: End date
-        - period: Period string (e.g., "1d", "1m", "1y")
-        
-        Returns:
-        - Start date
-        """
+        """Calculate start date based on end date and period"""
         try:
-            # Parse period
             if period.endswith('d'):
                 days = int(period[:-1])
                 return end_date - timedelta(days=days)
@@ -332,58 +254,49 @@ class PolygonIOProvider:
                 return end_date - timedelta(weeks=weeks)
             elif period.endswith('m'):
                 months = int(period[:-1])
-                # return end_date - timedelta(days=months * 30)
                 return end_date - DateOffset(months=months)
             elif period.endswith('y'):
                 years = int(period[:-1])
                 return end_date - DateOffset(years=years)
-                # return end_date - timedelta(days=years * 365)
             else:
                 self.logger.warning(f"Unsupported period format: {period}, defaulting to 1 year")
                 return end_date - timedelta(days=365)
         except Exception as e:
             self.logger.error(f"Error calculating start date with period {period}: {e}")
-            # Default to 1 year
             return end_date - timedelta(days=365)
 
 class MultiTimeframeProvider:
-    """Provider for multiple timeframes"""
+    """Provider for multiple timeframes using a DataProvider instance"""
 
-    def __init__(self, data_provider):
-            self.data_provider = data_provider # This will now be an instance of PolygonIOProvider
+    def __init__(self, data_provider: DataProvider):
+        self.data_provider = data_provider
 
-    def get_multi_timeframe_data(self, ticker, timeframes):
+    def get_multi_timeframe_data(self, ticker: str, timeframes: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         timeframe_data = {}
-        
         for tf_config in timeframes:
             interval = tf_config['interval']
-            period = tf_config.get('period', '1y')  # Default to 1 year if not provided
+            period = tf_config.get('period', '1y')
             start_date = tf_config.get('start_date')
             end_date = tf_config.get('end_date')
-            
             tf_key = f"{interval}"
-            
             try:
-                price_data, volume_data = self.data_provider.get_data(
-                    ticker, 
-                    interval=interval, 
+                result = self.data_provider.get_data(
+                    ticker,
+                    interval=interval,
                     period=period,
                     start_date=start_date,
                     end_date=end_date
                 )
-                
-                if price_data.empty:
+                if result is None or result[0].empty:
                     print(f"Warning: No price data returned for {ticker} at {interval} timeframe. Skipping.")
                     continue
-
+                price_data, volume_data = result
                 timeframe_data[tf_key] = {
                     'price_data': price_data,
                     'volume_data': volume_data
                 }
             except Exception as e:
                 print(f"Error fetching data for {ticker} at {interval} timeframe: {e}")
-        
         if not timeframe_data:
             print(f"Warning: Could not fetch data for any requested timeframe for {ticker}")
-        
         return timeframe_data

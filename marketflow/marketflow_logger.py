@@ -18,7 +18,7 @@ def get_project_root():
     return Path(__file__).parent.parent
 
 # Default log directory
-DEFAULT_LOG_DIR = os.path.join(get_project_root(), ".Marketflow", ".marketflow", "logs")
+DEFAULT_LOG_DIR = os.path.join(get_project_root(),".marketflow", "logs")
 
 class MarketflowLogger:
     """Standardized logging framework for Marketflow system"""
