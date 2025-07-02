@@ -27,6 +27,7 @@ Thumbs.db
 logs/
 .vpa/
 .vpa_memory.json
+.marketflow/
 
 # Environment/config data
 .env.*
