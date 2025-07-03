@@ -8,7 +8,6 @@ with appropriate fallbacks and validation.
 Enhanced to support LLM model specification for fine-tuned model integration and comprehensive
 Marketflow system configuration including LLM providers, data sources, and application settings.
 
-Merged functionality from config_manager_v1.py to provide a unified configuration interface.
 """
 
 import os
