@@ -30,7 +30,7 @@ marketflow/
 │   ├── marketflow_wyc_module.py            # Wyckoff method analytics
 │   ├── marketflow_facade.py                # Orchestrator: unified API for analytics, charting, reporting
 │   ├── marketflow_logger.py                # Centralized logging
-│   ├── market_flow_llm_providers.py        # LLM abstraction layer
+│   ├── marketflow_llm_providers.py        # LLM abstraction layer
 │   ├── marketflow_memory_manager.py        # Conversation/session memory for LLMs
 │   ├── marketflow_llm_interface.py         # Human-friendly narrative/report generator for LLM
 │   ├── marketflow_llm_query_engine.py      # Orchestrates user query through LLM and backend
@@ -43,6 +43,8 @@ marketflow/
 │   ├── test_data_provider.py
 │   └── ...
 │
+│
+├── env                                     # (Not committed) Environment 
 ├── .env                                    # (Not committed) Your API keys and secrets
 ├── .gitignore                              # Standard ignore file
 ├── LICENSE                                 # MIT license
