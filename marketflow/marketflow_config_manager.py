@@ -8,16 +8,33 @@ with appropriate fallbacks and validation.
 Enhanced to support LLM model specification for fine-tuned model integration and comprehensive
 Marketflow system configuration including LLM providers, data sources, and application settings.
 
+Fixed version addressing compatibility issues:
+- Removed circular import dependency with logger
+- Fixed hardcoded Windows-specific paths
+- Improved cross-platform compatibility
+- Better error handling and validation
+- Dependency injection for logger
 """
 
 import os
 import json
 from typing import Dict, Any, Optional
 from dotenv import load_dotenv
-from marketflow.marketflow_logger import get_logger
+from pathlib import Path
 
 # Load .env file if it exists
 load_dotenv()
+
+def get_project_root():
+    """Get the project root directory in a cross-platform way"""
+    # Try to find the project root by looking for .marketflow directory
+    current_path = Path(__file__).resolve()
+    for parent in current_path.parents:
+        if (parent / ".marketflow").exists():
+            return parent
+    
+    # Fallback to parent directory of the module
+    return Path(__file__).parent.parent
 
 class ConfigManager:
     """Manages API keys and configuration for the Marketflow system."""
@@ -25,47 +42,63 @@ class ConfigManager:
     # Default LLM model to use if not specified
     DEFAULT_LLM_MODEL = "gpt-3.5-turbo"
     
-    def __init__(self, config_file: Optional[str] = None):
+    def __init__(self, config_file: Optional[str] = None, logger=None):
         """
         Initialize the configuration manager.
         
         Parameters:
         - config_file: Optional path to a JSON configuration file
+        - logger: Optional logger instance (dependency injection to avoid circular imports)
         """
-        self.logger = get_logger(
-            module_name="Config_Manager_Marketflow",
-            log_level="DEBUG",
-            log_file=r"C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\logs\marketflow_config.log"
-        )
+        self.logger = logger
         self.config_data = {}
         
-        # Default config file locations to check
+        # Get project root for cross-platform compatibility
+        self.project_root = get_project_root()
+        
+        # Default config file locations to check - cross-platform compatible
         self.config_file_paths = [
             config_file,  # User-provided path (if any)
-            os.path.join(r"C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\config", "config.json"),  # Custom config path
-            os.path.expanduser("~/.marketflow/config.json"),  # User home directory
-            os.path.join(os.getcwd(), "marketflow_config.json"),  # Current working directory
-            os.path.join(os.path.dirname(__file__), "config.json"),  # Module directory
+            self.project_root / ".marketflow" / "config" / "config.json",  # Custom config path
+            Path.home() / ".marketflow" / "config.json",  # User home directory
+            Path.cwd() / "marketflow_config.json",  # Current working directory
+            Path(__file__).parent / "config.json",  # Module directory
         ]
+        
+        # Convert Path objects to strings for compatibility
+        self.config_file_paths = [str(path) if path else None for path in self.config_file_paths]
+        
         # Load configuration from file
         self._load_config_from_file()
         
         # Initialize all configuration properties
         self._initialize_config_properties()
+        
+        if self.logger:
+            self.logger.info("ConfigManager initialized successfully")
+    
+    def _log(self, level: str, message: str):
+        """Internal logging method that works with or without logger"""
+        if self.logger:
+            getattr(self.logger, level.lower())(message)
+        else:
+            # Fallback to print for critical messages if no logger available
+            if level.upper() in ['ERROR', 'CRITICAL', 'WARNING']:
+                print(f"[{level.upper()}] ConfigManager: {message}")
     
     def _load_config_from_file(self) -> None:
         """Load configuration from the first available config file."""
         for file_path in self.config_file_paths:
             if file_path and os.path.isfile(file_path):
                 try:
-                    with open(file_path, 'r') as f:
+                    with open(file_path, 'r', encoding='utf-8') as f:
                         self.config_data = json.load(f)
-                    self.logger.info(f"Loaded configuration from {file_path}")
+                    self._log("info", f"Loaded configuration from {file_path}")
                     return
                 except Exception as e:
-                    self.logger.warning(f"Error loading config from {file_path}: {e}")
+                    self._log("warning", f"Error loading config from {file_path}: {e}")
         
-        self.logger.info("No configuration file found, using environment variables only")
+        self._log("info", "No configuration file found, using environment variables only")
     
     def _initialize_config_properties(self) -> None:
         """Initialize all configuration properties with defaults and environment variables."""
@@ -84,9 +117,12 @@ class ConfigManager:
         self.MAX_CONVERSATION_HISTORY = int(self.get_config_value("max_conversation_history", os.getenv("MAX_CONVERSATION_HISTORY", "10")))
         self.RAG_TOP_K = int(self.get_config_value("rag_top_k", os.getenv("RAG_TOP_K", "5")))
         
-        # --- File Paths ---
-        self.LOG_FILE_PATH = self.get_config_value("log_file_path", os.getenv("LOG_FILE_PATH", r".marketflow/logs/marketflow_engine.log"))
-        self.MEMORY_DB_PATH = self.get_config_value("memory_db_path", ".marketflow/memory/marketflow_chat_history.db")
+        # --- File Paths - Cross-platform compatible ---
+        default_log_path = str(self.project_root / ".marketflow" / "logs" / "marketflow_engine.log")
+        default_memory_path = str(self.project_root / ".marketflow" / "memory" / "marketflow_chat_history.db")
+        
+        self.LOG_FILE_PATH = self.get_config_value("log_file_path", os.getenv("LOG_FILE_PATH", default_log_path))
+        self.MEMORY_DB_PATH = self.get_config_value("memory_db_path", os.getenv("MEMORY_DB_PATH", default_memory_path))
     
     def get_api_key(self, service: str) -> str:
         """
@@ -209,7 +245,7 @@ class ConfigManager:
                 if path:
                     try:
                         # Ensure directory exists
-                        os.makedirs(os.path.dirname(path), exist_ok=True)
+                        Path(path).parent.mkdir(parents=True, exist_ok=True)
                         config_file = path
                         break
                     except Exception:
@@ -217,18 +253,18 @@ class ConfigManager:
         
         if not config_file:
             # Default to current directory if no writable path found
-            config_file = os.path.join(os.getcwd(), "marketflow_config.json")
+            config_file = str(Path.cwd() / "marketflow_config.json")
         
         try:
             # Ensure directory exists
-            os.makedirs(os.path.dirname(config_file), exist_ok=True)
+            Path(config_file).parent.mkdir(parents=True, exist_ok=True)
             
-            with open(config_file, 'w') as f:
+            with open(config_file, 'w', encoding='utf-8') as f:
                 json.dump(self.config_data, f, indent=4)
             
-            self.logger.info(f"Configuration saved to {config_file}")
+            self._log("info", f"Configuration saved to {config_file}")
         except Exception as e:
-            self.logger.error(f"Error saving configuration to {config_file}: {e}")
+            self._log("error", f"Error saving configuration to {config_file}: {e}")
             raise
     
     def set_config_value(self, key: str, value: Any) -> None:
@@ -317,7 +353,7 @@ class ConfigManager:
                 model = self.OLLAMA_MODEL_NAME
             else:
                 model = self.DEFAULT_LLM_MODEL
-            self.logger.info(f"No LLM model specified, using default: {model}")
+            self._log("info", f"No LLM model specified, using default: {model}")
         
         return model
     
@@ -329,7 +365,7 @@ class ConfigManager:
         - model_name: Model name (e.g., 'gpt-3.5-turbo', 'ft:gpt-3.5-turbo:marketflow:20250602')
         """
         self.config_data['llm_model'] = model_name
-        self.logger.info(f"LLM model set to: {model_name}")
+        self._log("info", f"LLM model set to: {model_name}")
     
     def get_available_models(self) -> list:
         """
@@ -414,10 +450,11 @@ class ConfigManager:
         - True if path is valid/accessible, False otherwise
         """
         try:
-            dir_path = os.path.dirname(file_path)
-            if create_dirs and not os.path.exists(dir_path):
-                os.makedirs(dir_path, exist_ok=True)
-            return os.path.exists(dir_path) or create_dirs
+            path_obj = Path(file_path)
+            dir_path = path_obj.parent
+            if create_dirs and not dir_path.exists():
+                dir_path.mkdir(parents=True, exist_ok=True)
+            return dir_path.exists() or create_dirs
         except Exception:
             return False
 
@@ -429,45 +466,60 @@ class MARKETFLOWConfigManager(ConfigManager):
     This allows existing code to continue working without modification.
     """
     
-    def __init__(self, config_file: Optional[str] = None):
-        super().__init__(config_file)
-        self.logger.info("MARKETFLOWConfigManager initialized with backward compatibility")
+    def __init__(self, config_file: Optional[str] = None, logger=None):
+        super().__init__(config_file, logger)
+        if self.logger:
+            self.logger.info("MARKETFLOWConfigManager initialized with backward compatibility")
 
 
 # Create singleton instances for both interfaces
 _config_manager = None
 _marketflow_config_manager = None
 
-def get_config_manager(config_file: Optional[str] = None) -> ConfigManager:
+def get_config_manager(config_file: Optional[str] = None, logger=None) -> ConfigManager:
     """
     Get the singleton ConfigManager instance.
     
     Parameters:
     - config_file: Optional path to a JSON configuration file
+    - logger: Optional logger instance
     
     Returns:
     - ConfigManager instance
     """
     global _config_manager
     if _config_manager is None:
-        _config_manager = ConfigManager(config_file)
+        _config_manager = ConfigManager(config_file, logger)
     return _config_manager
 
-def get_marketflow_config_manager(config_file: Optional[str] = None) -> MARKETFLOWConfigManager:
+def get_marketflow_config_manager(config_file: Optional[str] = None, logger=None) -> MARKETFLOWConfigManager:
     """
     Get the singleton MARKETFLOWConfigManager instance for backward compatibility.
     
     Parameters:
     - config_file: Optional path to a JSON configuration file
+    - logger: Optional logger instance
     
     Returns:
     - MARKETFLOWConfigManager instance
     """
     global _marketflow_config_manager
     if _marketflow_config_manager is None:
-        _marketflow_config_manager = MARKETFLOWConfigManager(config_file)
+        _marketflow_config_manager = MARKETFLOWConfigManager(config_file, logger)
     return _marketflow_config_manager
 
-# Create the AppConfig singleton for backward compatibility
-AppConfig = get_marketflow_config_manager()
+def create_app_config(logger=None):
+    """
+    Create the AppConfig singleton for backward compatibility.
+    
+    Parameters:
+    - logger: Optional logger instance
+    
+    Returns:
+    - MARKETFLOWConfigManager instance
+    """
+    return get_marketflow_config_manager(logger=logger)
+
+# Note: AppConfig should be initialized with a logger in the main application
+# Example: AppConfig = create_app_config(logger=get_logger("Config_Manager_Marketflow"))
 
