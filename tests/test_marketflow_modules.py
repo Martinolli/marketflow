@@ -27,9 +27,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import the modules to test
 try:
-    from marketflow_logger_fixed import get_logger, MarketflowLogger, clear_loggers
-    from marketflow_config_manager_fixed import ConfigManager, get_config_manager, create_app_config
-    from marketflow_integration_example import initialize_marketflow_system, create_module_specific_logger
+    from marketflow.marketflow_logger import get_logger, MarketflowLogger, clear_loggers
+    from marketflow.marketflow_config_manager import ConfigManager, get_config_manager, create_app_config
+    from marketflow.examples.integration_example import initialize_marketflow_system, create_module_specific_logger
     FIXED_MODULES_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Could not import fixed modules: {e}")
@@ -165,6 +165,10 @@ class TestMarketflowLogger(unittest.TestCase):
         self.assertIsInstance(logger, MarketflowLogger)
         logger.info("Test message")
         
+        # Close the logger
+        logger.handlers[0].close()
+        logger.handlers.clear()
+
         # Should still work with default level
         self.assertTrue(os.path.exists(self.test_log_file))
 
@@ -190,8 +194,19 @@ class TestMarketflowConfigManager(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test fixtures"""
-        if os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir)
+        clear_loggers()
+        logging.shutdown()
+        import time
+        for _ in range(15):  # Try up to 5 times
+            try:
+                time.sleep(0.2)
+                if os.path.exists(self.temp_dir):
+                    shutil.rmtree(self.temp_dir)
+                break
+            except PermissionError:
+                continue
+        else:
+            print(f"Warning: Unable to delete temporary directory: {self.temp_dir}")
     
     @unittest.skipUnless(FIXED_MODULES_AVAILABLE, "Fixed modules not available")
     def test_config_manager_initialization(self):
@@ -346,8 +361,8 @@ class TestMarketflowIntegration(unittest.TestCase):
         """Test that there are no circular import issues"""
         # This test passes if the imports work without raising ImportError
         try:
-            from marketflow_logger_fixed import get_logger
-            from marketflow_config_manager_fixed import ConfigManager
+            from marketflow.marketflow_logger import get_logger
+            from marketflow.marketflow_config_manager import ConfigManager
             
             # Create instances
             logger = get_logger("CircularTest")
