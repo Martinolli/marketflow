@@ -17,7 +17,7 @@ from polygon import RESTClient
 from polygon.rest.models import Agg
 
 from marketflow.marketflow_logger import get_logger
-from marketflow.marketflow_config_manager import get_config_manager
+from marketflow.marketflow_config_manager import create_app_config
 
 # Constants for error handling
 MAX_RETRIES = 3
@@ -55,8 +55,13 @@ class PolygonIOProvider(DataProvider):
 
     def __init__(self):
         """Initialize the Polygon.io data provider"""
+
+        # Initialize logger and configuration manager
         self.logger = get_logger(module_name="PolygonIOProvider")
-        self.config_manager = get_config_manager()
+
+        # Create configuration manager for API keys and settings
+        self.config_manager = create_app_config(self.logger)
+        
         self.client = None
         self._initialize_client()
     
