@@ -7,9 +7,10 @@ and a clear, extensible interface for future data providers.
 
 import time
 from datetime import datetime, timedelta, timezone
-from typing import Dict, List, Tuple, Optional, Any
+from typing import Coroutine, Dict, List, Tuple, Optional, Any
 from pandas.tseries.offsets import DateOffset
 from abc import ABC, abstractmethod
+import asyncio
 
 import pandas as pd
 import numpy as np
@@ -49,6 +50,16 @@ class DataProvider(ABC):
         Returns a tuple of (price_df, volume_series), or None if data could not be fetched.
         """
         pass
+    
+    @abstractmethod
+    async def get_data_async(self, ticker: str, interval: str = "1d", period: str = "1y",
+                 start_date: Optional[str] = None, end_date: Optional[str] = None
+    ) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
+        """
+        Asynchronously fetch price and volume data for a ticker.
+        Must be implemented by subclasses that support async operations.
+        """
+        pass
 
 class PolygonIOProvider(DataProvider):
     """Data provider using Polygon.io API with enhanced error handling"""
@@ -62,28 +73,32 @@ class PolygonIOProvider(DataProvider):
         # Create configuration manager for API keys and settings
         self.config_manager = create_app_config(self.logger)
         
-        self.client = None
+        self.client: Optional[RESTClient] = None
+        self.async_client: Optional[RESTClient] = None
         self._initialize_client()
     
     def _initialize_client(self) -> None:
-        """Initialize the Polygon.io REST client with error handling"""
+        """Initialize the Polygon.io REST clients (sync and async) with error handling"""
         try:
             api_key = self.config_manager.get_api_key('polygon')
             if not api_key:
                 self.logger.error("Polygon.io API key not found")
                 raise ValueError("Polygon.io API key not found")
             self.client = RESTClient(api_key)
-            self.logger.debug("Polygon.io client initialized successfully")
+            # The async client is instantiated from the same class with a boolean flag
+            self.async_client = RESTClient(api_key, True)
+            self.logger.debug("Polygon.io clients (sync & async) initialized successfully")
         except Exception as e:
-            self.logger.error(f"Failed to initialize Polygon.io client: {e}")
+            self.logger.error(f"Failed to initialize Polygon.io clients: {e}")
             self.client = None
+            self.async_client = None
     
     def _validate_client(self) -> bool:
-        """Validate that the client is initialized"""
-        if self.client is None:
-            self.logger.warning("Polygon.io client not initialized, attempting to initialize")
+        """Validate that the clients are initialized"""
+        if self.client is None or self.async_client is None:
+            self.logger.warning("Polygon.io client(s) not initialized, attempting to initialize")
             self._initialize_client()
-        return self.client is not None
+        return self.client is not None and self.async_client is not None
     
     def _handle_error(self, error: Exception, ticker: str, interval: str, attempt: int = 0) -> Tuple[str, str]:
         """Handle errors with categorization and logging"""
@@ -230,6 +245,73 @@ class PolygonIOProvider(DataProvider):
         self.logger.error(f"Failed to fetch data for {ticker} at {interval} timeframe after {MAX_RETRIES} attempts")
         return None
 
+    async def get_data_async(
+        self,
+        ticker: str,
+        interval: str = "1d",
+        period: str = "1y",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
+        """
+        Asynchronously get price and volume data for a ticker with robust error handling.
+        Returns (price_df, volume_series) or None if data could not be fetched.
+        """
+        if not self._validate_client() or self.async_client is None:
+            self.logger.error("Cannot fetch data: Polygon.io async client not initialized")
+            return None
+
+        multiplier, timespan = self._parse_interval(interval)
+        if multiplier is None or timespan is None:
+            self.logger.error(f"Unsupported interval format: {interval}")
+            return None
+
+        # Calculate date range
+        if end_date is None:
+            end_date_dt = datetime.now()
+        elif isinstance(end_date, str):
+            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
+        elif isinstance(end_date, pd.Timestamp):
+            end_date_dt = end_date.to_pydatetime()
+        else:
+            end_date_dt = end_date
+
+        if start_date is None:
+            start_date_dt = self._calculate_start_date(end_date_dt, period)
+        elif isinstance(start_date, str):
+            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
+        elif isinstance(start_date, pd.Timestamp):
+            start_date_dt = start_date.to_pydatetime()
+        else:
+            start_date_dt = start_date
+
+        # Fetch data with retry logic
+        for attempt in range(MAX_RETRIES):
+            try:
+                self.logger.debug(f"Fetching data for {ticker} at {interval} timeframe (Attempt {attempt + 1}/{MAX_RETRIES})")
+                aggs = await self.async_client.get_aggs(
+                    ticker=ticker, multiplier=multiplier, timespan=timespan,
+                    from_=start_date_dt.strftime("%Y-%m-%d"), to=end_date_dt.strftime("%Y-%m-%d"),
+                    limit=50000
+                )
+                price_df, volume_series = self._process_aggregates(aggs)
+                if price_df.empty:
+                    self.logger.warning(f"No data returned for {ticker} at {interval} timeframe")
+                    return None
+                self.logger.debug(f"Successfully fetched {len(price_df)} data points for {ticker} at {interval} timeframe")
+                return price_df, volume_series
+            except Exception as e:
+                error_category, message = self._handle_error(e, ticker, interval, attempt)
+                if self._should_retry(error_category, attempt):
+                    delay = self._calculate_retry_delay(attempt, error_category)
+                    self.logger.info(f"Retrying in {delay:.2f} seconds (Attempt {attempt + 1}/{MAX_RETRIES})")
+                    await asyncio.sleep(delay)
+                else:
+                    self.logger.error(f"Error fetching data for {ticker} at {interval} timeframe: {e}")
+                    return None
+        self.logger.error(f"Failed to fetch data for {ticker} at {interval} timeframe after {MAX_RETRIES} attempts")
+        return None
+
     def _parse_interval(self, interval: str) -> Tuple[Optional[int], Optional[str]]:
         """Parse interval string into multiplier and timespan"""
         try:
@@ -302,6 +384,48 @@ class MultiTimeframeProvider:
                 }
             except Exception as e:
                 print(f"Error fetching data for {ticker} at {interval} timeframe: {e}")
+        if not timeframe_data:
+            print(f"Warning: Could not fetch data for any requested timeframe for {ticker}")
+        return timeframe_data
+
+    async def get_multi_timeframe_data_async(self, ticker: str, timeframes: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+        """
+        Asynchronously fetches data for multiple timeframes concurrently.
+        """
+        if not hasattr(self.data_provider, 'get_data_async'):
+            print("Error: The provided data provider does not support asynchronous fetching.")
+            return {}
+
+        tasks: List[Tuple[str, Coroutine[Any, Any, Optional[Tuple[pd.DataFrame, pd.Series]]]]] = []
+        for tf_config in timeframes:
+            interval = tf_config['interval']
+            period = tf_config.get('period', '1y')
+            start_date = tf_config.get('start_date')
+            end_date = tf_config.get('end_date')
+            tf_key = f"{interval}"
+            
+            coro = self.data_provider.get_data_async(
+                ticker, interval=interval, period=period,
+                start_date=start_date, end_date=end_date
+            )
+            tasks.append((tf_key, coro))
+
+        # Gather results from all tasks, returning exceptions to handle them gracefully
+        results = await asyncio.gather(*[coro for _, coro in tasks], return_exceptions=True)
+
+        timeframe_data = {}
+        for (tf_key, _), result in zip(tasks, results):
+            if isinstance(result, Exception):
+                print(f"Error fetching data for {ticker} at {tf_key} timeframe: {result}")
+                continue
+            
+            if result is None or result[0].empty:
+                print(f"Warning: No price data returned for {ticker} at {tf_key} timeframe. Skipping.")
+                continue
+            
+            price_data, volume_data = result
+            timeframe_data[tf_key] = {'price_data': price_data, 'volume_data': volume_data}
+
         if not timeframe_data:
             print(f"Warning: Could not fetch data for any requested timeframe for {ticker}")
         return timeframe_data
