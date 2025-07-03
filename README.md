@@ -6,6 +6,7 @@
 |------------|----------|------------------------------------------------|
 | 2025-07-03 | v1.1     | `marketflow_config_manager.py`, `marketflow_logger.py` (refactor) |
 | 2025-07-03 | v1.1     | `marketflow_utils.py` (new module)              |
+| 2025-07-03 | v1.1     | `marketflow_data_provider.py` (async utility)   |
 | 2025-07-01 | v1.0     | Initial release: all core modules              |
 
 **MarketFlow** is a modular, extensible Python framework for advanced Volume-Price Analysis (VPA) and Wyckoff Method analytics. It integrates robust data collection, processing, and AI-driven narrative synthesis for modern stock market analysis. MarketFlow is designed for clarity, testability, and ease of extension.
