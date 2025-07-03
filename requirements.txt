@@ -116,3 +116,12 @@ wheel==0.45.1
 wrapt==1.17.2
 yfinance==0.2.55
 zipp==3.22.0
+# Core application dependencies
+pandas
+numpy
+python-dotenv
+polygon-api-client==1.14.6
+
+# Testing dependencies
+pytest
+anyio
