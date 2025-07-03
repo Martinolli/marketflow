@@ -9,8 +9,8 @@ This example shows the recommended pattern for dependency injection.
 """
 
 # Import the fixed modules
-from marketflow_logger_fixed import get_logger, MarketflowLogger
-from marketflow_config_manager_fixed import get_config_manager, create_app_config
+from marketflow.marketflow_logger import get_logger, MarketflowLogger
+from marketflow.marketflow_config_manager import get_config_manager, create_app_config
 
 def initialize_marketflow_system():
     """
