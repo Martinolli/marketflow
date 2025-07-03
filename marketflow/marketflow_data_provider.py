@@ -357,6 +357,7 @@ class MultiTimeframeProvider:
 
     def __init__(self, data_provider: DataProvider):
         self.data_provider = data_provider
+        self.logger = get_logger(module_name="MultiTimeframeProvider")
 
     def get_multi_timeframe_data(self, ticker: str, timeframes: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         timeframe_data = {}
@@ -375,7 +376,7 @@ class MultiTimeframeProvider:
                     end_date=end_date
                 )
                 if result is None or result[0].empty:
-                    print(f"Warning: No price data returned for {ticker} at {interval} timeframe. Skipping.")
+                    self.logger.warning(f"No price data returned for {ticker} at {interval} timeframe. Skipping.")
                     continue
                 price_data, volume_data = result
                 timeframe_data[tf_key] = {
@@ -383,9 +384,9 @@ class MultiTimeframeProvider:
                     'volume_data': volume_data
                 }
             except Exception as e:
-                print(f"Error fetching data for {ticker} at {interval} timeframe: {e}")
+                self.logger.error(f"Error fetching data for {ticker} at {interval} timeframe: {e}", exc_info=True)
         if not timeframe_data:
-            print(f"Warning: Could not fetch data for any requested timeframe for {ticker}")
+            self.logger.warning(f"Could not fetch data for any requested timeframe for {ticker}")
         return timeframe_data
 
     async def get_multi_timeframe_data_async(self, ticker: str, timeframes: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
@@ -393,7 +394,7 @@ class MultiTimeframeProvider:
         Asynchronously fetches data for multiple timeframes concurrently.
         """
         if not hasattr(self.data_provider, 'get_data_async'):
-            print("Error: The provided data provider does not support asynchronous fetching.")
+            self.logger.error("The provided data provider does not support asynchronous fetching.")
             return {}
 
         tasks: List[Tuple[str, Coroutine[Any, Any, Optional[Tuple[pd.DataFrame, pd.Series]]]]] = []
@@ -416,16 +417,16 @@ class MultiTimeframeProvider:
         timeframe_data = {}
         for (tf_key, _), result in zip(tasks, results):
             if isinstance(result, Exception):
-                print(f"Error fetching data for {ticker} at {tf_key} timeframe: {result}")
+                self.logger.error(f"Error fetching data for {ticker} at {tf_key} timeframe: {result}", exc_info=True)
                 continue
             
             if result is None or result[0].empty:
-                print(f"Warning: No price data returned for {ticker} at {tf_key} timeframe. Skipping.")
+                self.logger.warning(f"No price data returned for {ticker} at {tf_key} timeframe. Skipping.")
                 continue
             
             price_data, volume_data = result
             timeframe_data[tf_key] = {'price_data': price_data, 'volume_data': volume_data}
 
         if not timeframe_data:
-            print(f"Warning: Could not fetch data for any requested timeframe for {ticker}")
+            self.logger.warning(f"Could not fetch data for any requested timeframe for {ticker}")
         return timeframe_data
