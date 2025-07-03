@@ -28,8 +28,8 @@ def demonstrate_fixed_modules():
     
     try:
         # Import the fixed modules
-        from marketflow_logger_fixed import get_logger, clear_loggers
-        from marketflow_config_manager_fixed import ConfigManager
+        from marketflow.marketflow_logger import get_logger, clear_loggers
+        from marketflow.marketflow_config_manager import ConfigManager
         
         print("\\n✅ Successfully imported fixed modules (no circular import issues)")
         
