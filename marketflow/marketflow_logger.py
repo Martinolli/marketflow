@@ -20,10 +20,7 @@ from logging.handlers import RotatingFileHandler
 from pathlib import Path
 from typing import Optional, Dict, Any, Union
 
-def get_project_root():
-    """Get the project root directory in a cross-platform way"""
-    # Hardcoded project root for your environment
-    return Path(r"C:\Users\Aspire5 15 i7 4G2050\marketflow")
+from .marketflow_utils import get_project_root
 
 # Default log directory - cross-platform compatible
 DEFAULT_LOG_DIR = get_project_root() / ".marketflow" / "logs"
@@ -290,4 +287,3 @@ def clear_loggers():
     """Clear all cached logger instances - useful for testing"""
     global _loggers
     _loggers.clear()
-
