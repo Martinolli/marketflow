@@ -20,7 +20,7 @@
 ```bash
 marketflow/
 │
-├── marketflow/                  # Core Python package
+├── marketflow/                             # Core Python package
 │   ├── __init__.py
 │   ├── marketflow_config_manager.py        # Central config/env loader
 │   ├── marketflow_data_provider.py         # Abstract + provider-specific data fetchers
@@ -48,6 +48,11 @@ marketflow/
 ├── LICENSE                                 # MIT license
 ├── requirements.txt                        # Python dependencies
 ├── README.md                               # This file
+│
+├── .marketflow/
+│   ├── config                              # Config Files
+│   ├── logs                                # Central config/env loader
+│   ├── memory                              # Abstract + provider-specific data fetchers
 │
 │
 ├── marketflow_finetuning/                        # NEW: The home for all training activities
