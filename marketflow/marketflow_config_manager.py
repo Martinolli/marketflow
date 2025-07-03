@@ -22,19 +22,11 @@ from typing import Dict, Any, Optional
 from dotenv import load_dotenv
 from pathlib import Path
 
+# Import the shared utility function
+from .marketflow_utils import get_project_root
+
 # Load .env file if it exists
 load_dotenv()
-
-def get_project_root():
-    """Get the project root directory in a cross-platform way"""
-    # Try to find the project root by looking for .marketflow directory
-    current_path = Path(__file__).resolve()
-    for parent in current_path.parents:
-        if (parent / ".marketflow").exists():
-            return parent
-    
-    # Fallback to parent directory of the module
-    return Path(__file__).parent.parent
 
 class ConfigManager:
     """Manages API keys and configuration for the Marketflow system."""
@@ -522,4 +514,3 @@ def create_app_config(logger=None):
 
 # Note: AppConfig should be initialized with a logger in the main application
 # Example: AppConfig = create_app_config(logger=get_logger("Config_Manager_Marketflow"))
-
