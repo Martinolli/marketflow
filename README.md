@@ -24,33 +24,65 @@ marketflow/
 │   ├── __init__.py
 │   ├── marketflow_config_manager.py        # Central config/env loader
 │   ├── marketflow_data_provider.py         # Abstract + provider-specific data fetchers
-│   ├── marketflow_processor.py         # Data processing/cleaning
-│   ├── marketflow_analyzer.py          # Core VPA and Wyckoff analytics
-│   ├── marketflow_signals.py           # Signal detection algorithms
+│   ├── marketflow_processor.py             # Data processing/cleaning
+│   ├── marketflow_analyzer.py              # Core VPA and Wyckoff analytics
+│   ├── marketflow_signals.py               # Signal detection algorithms
 │   ├── marketflow_wyc_module.py            # Wyckoff method analytics
-│   ├── marketflow_facade.py            # Orchestrator: unified API for analytics, charting, reporting
-│   ├── marketflow_logger.py            # Centralized logging
-│   ├── market_flow_llm_providers.py         # LLM abstraction layer
+│   ├── marketflow_facade.py                # Orchestrator: unified API for analytics, charting, reporting
+│   ├── marketflow_logger.py                # Centralized logging
+│   ├── market_flow_llm_providers.py        # LLM abstraction layer
 │   ├── marketflow_memory_manager.py        # Conversation/session memory for LLMs
-│   ├── marketflow_llm_interface.py     # Human-friendly narrative/report generator for LLM
-│   ├── marketflow_llm_query_engine.py  # Orchestrates user query through LLM and backend
-│   └── ...                      # (Other modules as needed)
+│   ├── marketflow_llm_interface.py         # Human-friendly narrative/report generator for LLM
+│   ├── marketflow_llm_query_engine.py      # Orchestrates user query through LLM and backend
+│   └── ...                                 # (Other modules as needed)
 │
-├── scripts/                     # CLI, app entrypoints, notebooks, demos
-│   └── vpa_app.py
+├── scripts/                                # CLI, app entrypoints, notebooks, demos
+│   └── marketflow_app.py
 │
-├── tests/                       # Unit and integration tests
+├── tests/                                  # Unit and integration tests
 │   ├── test_data_provider.py
 │   └── ...
 │
-├── .env                         # (Not committed) Your API keys and secrets
-├── .gitignore                   # Standard ignore file
-├── LICENSE                      # MIT license
-├── requirements.txt             # Python dependencies
-└── README.md                    # This file
-```
+├── .env                                    # (Not committed) Your API keys and secrets
+├── .gitignore                              # Standard ignore file
+├── LICENSE                                 # MIT license
+├── requirements.txt                        # Python dependencies
+├── README.md                               # This file
+│
+│
+├── marketflow_finetuning/                        # NEW: The home for all training activities
+    │
+    ├── 1_data_generation/
+    │   ├── get_ticker_list.py                    # Script to fetch a diverse list of tickers
+    │   └── generate_dataset.py                   # Main script to run your VPA and Wyckoff data engine and create raw data
+    │
+    ├── 2_datasets/
+    │   ├── raw/                                  # Raw JSON outputs from your engine
+    │   │   ├── aapl_2023-01-15.json
+    │   │   └── ...
+    │   ├── formatted/                            # Data formatted for fine-tuning
+    │   │   ├── training_data.jsonl
+    │   │   └── validation_data.jsonl
+    │   └── golden_test_set.jsonl                 # A hold-out set for final model evaluation
+    │
+    ├── 3_training/
+    │   ├── configs/                              # Training configuration files (e.g., for Axolotl)
+    │   │   └── llama3_marketflow_tune.yml
+    │   ├── train.py                              # Script to launch the fine-tuning job (e.g., using OpenAI SDK or Hugging Face)
+    │   └── notebooks/                            # Jupyter notebooks for experimentation
+    │       └── 01_explore_data.ipynb
+    │
+    ├── 4_evaluation/
+    │   ├── evaluate_model.py                     # Script to compare model outputs against the golden_test_set
+    │   └── results/                              # Stored evaluation results
+    │       └── llama3_marketflow_v1_results.json
+    │
+    ├── 5_models/                                 # Directory to store model checkpoints (for open-source models)
+    │   └── llama3-8b-marketflow-v1/
+    │
+    └── management_ui.py                          # NEW: A Streamlit/Gradio app for managing the whole process
 
----
+```
 
 ## ⚡ Quickstart
 
@@ -77,7 +109,7 @@ marketflow/
 3. **Run the CLI app:**
 
     ```bash
-    python scripts/vpa_app.py --query "Analyze AAPL"
+    python scripts/marketflow_app.py --query "Analyze AAPL"
     ```
 
 ---
@@ -96,9 +128,9 @@ All configuration is managed by `config_manager.py` and environment variables.
 - **New data provider?**  
   Subclass `BaseDataProvider` in `data_provider.py`, and register it in the factory.
 - **New signal or analytics?**  
-  Add logic to `vpa_signals.py` or `vpa_analyzer.py`.
+  Add logic to `marketflow_signals.py` or `marketflow_analyzer.py`.
 - **Custom reporting/LLM tools?**  
-  Update `vpa_llm_interface.py` and `llm_providers.py`.
+  Update `marketflow_llm_interface.py` and `llm_providers.py`.
 - **Testing:**  
   Add new tests to the `tests/` folder using mocks for API calls.
 
