@@ -5,6 +5,7 @@
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
 | 2025-07-03 | v1.1     | `marketflow_config_manager.py`, `marketflow_logger.py` (refactor) |
+| 2025-07-03 | v1.1     | `marketflow_utils.py` (new module)              |
 | 2025-07-01 | v1.0     | Initial release: all core modules              |
 
 **MarketFlow** is a modular, extensible Python framework for advanced Volume-Price Analysis (VPA) and Wyckoff Method analytics. It integrates robust data collection, processing, and AI-driven narrative synthesis for modern stock market analysis. MarketFlow is designed for clarity, testability, and ease of extension.
@@ -53,6 +54,7 @@ marketflow/
 │   ├── marketflow_memory_manager.py                    # Conversation/session memory for LLMs
 │   ├── marketflow_llm_interface.py                     # Human-friendly narrative/report generator for LLM
 │   ├── marketflow_llm_query_engine.py                  # Orchestrates user query through LLM and backend
+│   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
 │   ├── examples/
 │   │    └── integration_example.py (✓ new)             # Integration example script
 │   ├──
@@ -119,6 +121,49 @@ marketflow/
     │
     └── management_ui.py                                # NEW: A Streamlit/Gradio app for managing the whole process
 
+```
+
+## Config Manager and Logger relationship support model
+
+```mermaid
+sequenceDiagram
+    participant MainApp as Main Application
+    participant Logger as marketflow_logger
+    participant Config as marketflow_config_manager
+    participant FutureModule as Future Module (e.g., Analyzer)
+
+    MainApp->>Logger: get_logger("Marketflow_System")
+    activate Logger
+    Logger-->>MainApp: system_logger
+    deactivate Logger
+
+    Note right of MainApp: The logger is created first, with no other dependencies.
+
+    MainApp->>Config: get_config_manager(logger=system_logger)
+    activate Config
+    Note left of Config: ConfigManager receives the logger instance.<br/>It can now use it for internal logging.
+    Config->>Logger: system_logger.info("Config initialized...")
+    Config-->>MainApp: config_manager
+    deactivate Config
+
+    Note right of MainApp: Now, create other modules that need configuration.
+
+    MainApp->>FutureModule: create_analyzer(config=config_manager)
+    activate FutureModule
+    FutureModule->>Config: config_manager.get_config_value("log_level")
+    activate Config
+    Config-->>FutureModule: "DEBUG"
+    deactivate Config
+
+    Note left of FutureModule: The module uses the config to get its<br/>specific log level, then creates its own logger.
+    FutureModule->>Logger: get_logger("Analyzer", log_level="DEBUG")
+    activate Logger
+    Logger-->>FutureModule: analyzer_logger
+    deactivate Logger
+
+    FutureModule->>Logger: analyzer_logger.info("Analysis started.")
+
+    deactivate FutureModule
 ```
 
 ## ⚡ Quickstart
