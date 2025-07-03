@@ -27,9 +27,9 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 # Import the modules to test
 try:
-    from marketflow.marketflow_logger import get_logger, MarketflowLogger, clear_loggers
-    from marketflow.marketflow_config_manager import ConfigManager, get_config_manager, create_app_config
-    from scripts.marketflow_integration_example import initialize_marketflow_system, create_module_specific_logger
+    from marketflow_logger_fixed import get_logger, MarketflowLogger, clear_loggers
+    from marketflow_config_manager_fixed import ConfigManager, get_config_manager, create_app_config
+    from marketflow_integration_example import initialize_marketflow_system, create_module_specific_logger
     FIXED_MODULES_AVAILABLE = True
 except ImportError as e:
     print(f"Warning: Could not import fixed modules: {e}")
@@ -346,8 +346,8 @@ class TestMarketflowIntegration(unittest.TestCase):
         """Test that there are no circular import issues"""
         # This test passes if the imports work without raising ImportError
         try:
-            from marketflow.marketflow_logger import get_logger
-            from marketflow.marketflow_config_manager import ConfigManager
+            from marketflow_logger_fixed import get_logger
+            from marketflow_config_manager_fixed import ConfigManager
             
             # Create instances
             logger = get_logger("CircularTest")
