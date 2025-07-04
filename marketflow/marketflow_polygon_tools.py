@@ -534,6 +534,10 @@ if __name__ == "__main__":
     if custom_bars:
         print(f"\nSuccessfully fetched Custom Bars for {ticker}")
         print("Custom Bars data:")
+        for bar in custom_bars['results']:
+            for key, value in bar.items():
+                print(f"{key}: {value}")
+            print("-" * 40)
         print(custom_bars['results'])
     else:
         print(f"Failed to fetch Custom for {ticker}")
