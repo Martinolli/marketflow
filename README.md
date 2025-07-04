@@ -4,6 +4,7 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-04 | v1.2     | `marketflow_polygon_tolls.py` (new module)      |
 | 2025-07-03 | v1.1     | `marketflow_config_manager.py`, `marketflow_logger.py` (refactor) |
 | 2025-07-03 | v1.1     | `marketflow_utils.py` (new module)              |
 | 2025-07-03 | v1.1     | `marketflow_data_provider.py` (async utility)   |
