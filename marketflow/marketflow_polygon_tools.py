@@ -10,11 +10,8 @@ Error handling and logging are unified with the main MarketFlow architecture.
 
 
 # vpa_polygon_provider.py
-from typing import Tuple, Dict, Optional
-import os
-from dotenv import load_dotenv
+from typing import Dict, Optional
 from polygon import RESTClient
-from polygon.rest.models import Agg
 from datetime import datetime, timedelta
 
 from marketflow.marketflow_logger import get_logger
@@ -78,7 +75,7 @@ class PolygonLLMTools:
                 aggs.append(a)
             return {"results": [bar.__dict__ for bar in aggs], "status": "OK"}
         except Exception as e:
-            self.logger.error(f"Error in get_custom_bars: {e}")
+            self.logger.error(f"Error in get_custom_bars: {{'error': {str(e)}, 'status': 'FAIL'}}")
             return {"error": str(e), "status": "FAIL"}
         
     # 2 - Get All Tickers
@@ -119,10 +116,8 @@ class PolygonLLMTools:
                 tickers.append(t)
             return {"results": [ticker.__dict__ for ticker in tickers], "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, "all", "tickers")
-            self.logger.error(f"Error fetching all tickers: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Get All Tickers Error: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
 
 #   3 - Get Ticker Overview
     def get_ticker_overview(self, ticker: str) -> Optional[Dict]:
@@ -150,9 +145,8 @@ class PolygonLLMTools:
             details = self.client.get_ticker_details(ticker)
             return {"results": details.__dict__, "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "overview")
-            self.logger.error(f"Error fetching ticker overview: {error_message}")
-            return None
+            self.logger.error(f"Error Get Ticker Overview: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
         
     # 4 - Get Daily Ticker Summary
     def get_daily_ticker_summary(self, ticker: str, date: str) -> Optional[Dict]:
@@ -180,10 +174,8 @@ class PolygonLLMTools:
             )
             return {"results": summary.__dict__, "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "daily_summary")
-            self.logger.error(f"Error fetching daily ticker summary: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Error in get_custom_bars: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
 
     # 5 - Previous Day Bar (OHLC)
     def get_previous_day_bar(self, ticker: str) -> Optional[Dict]:
@@ -205,10 +197,8 @@ class PolygonLLMTools:
             )
             return {"results": aggs.__dict__, "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "previous_day_bar")
-            self.logger.error(f"Error fetching previous day bar: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Error in Get Previous Day Bar: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
         
     # 6 - Get Trades
     def get_trades(self, ticker: str, from_date: str, limit: int = 1000) -> Optional[Dict]:
@@ -250,10 +240,9 @@ class PolygonLLMTools:
             )
             return {"results": [trade.__dict__ for trade in trades], "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "trades")
-            self.logger.error(f"Error fetching trades: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Error in Get Trades: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
+        
     # 7 - Get Quotes
     def get_quotes(self, ticker: str, from_date: str, limit: int = 1000) -> Optional[Dict]:
         """
@@ -289,10 +278,8 @@ class PolygonLLMTools:
                 quotes.append(t)
             return {"results": [quote.__dict__ for quote in quotes], "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "quotes")
-            self.logger.error(f"Error fetching quotes: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Error in Get Quotes: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
 
     # 8 - Get Last Quote
     def get_last_quote(self, ticker: str) -> Optional[Dict]:
@@ -317,10 +304,8 @@ class PolygonLLMTools:
             )
             return {"results": quote.__dict__, "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "last_quote")
-            self.logger.error(f"Error fetching last quote: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None        
+            self.logger.error(f"Error in Get Last Quote: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}  
 
     # 9 - Simple Moving Average (SMA)
 
@@ -356,10 +341,8 @@ class PolygonLLMTools:
             )
             return {"results": sma.__dict__, "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "sma")
-            self.logger.error(f"Error fetching simple moving average: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Error in Get SMAs: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
         
     # 10 - Exponential Moving Average (EMA)
 
@@ -400,10 +383,8 @@ class PolygonLLMTools:
             )
             return {"results": ema.__dict__, "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "ema")
-            self.logger.error(f"Error fetching exponential moving average: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Error in Get EMA: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
 
     # 11 Moving Average Convergence Divergence (MACD)
 
@@ -447,10 +428,8 @@ class PolygonLLMTools:
             )
             return {"results": macd.__dict__, "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "macd")
-            self.logger.error(f"Error fetching MACD: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Error in Get MACD: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
 
     # 12 Relative Strength Index (RSI)
     def get_relative_strength_index(self, ticker: str, timestamp: str, timespan: str, series_type: str, order: str, limit: str, window: int = 14) -> Optional[Dict]:
@@ -488,11 +467,9 @@ class PolygonLLMTools:
             )
             return {"results": rsi.__dict__, "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "rsi")
-            self.logger.error(f"Error fetching RSI: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
-
+            self.logger.error(f"Error in Get RSI: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
+        
     # 13 Get Dividends
 
     def get_dividens(self, ticker: str, ex_dividend_date: str, record_date: str, declaration_date: str, pay_date: str, frequency: str, cash_amount, dividend_type: str, order: str, sort: str, limit=10) -> Optional[Dict]:
@@ -533,13 +510,10 @@ class PolygonLLMTools:
             return {"results": dividends.__dict__, "status": "OK"}
 
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, "rsi")
-            self.logger.error(f"Error fetching RSI: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
+            self.logger.error(f"Error in Get Dividends: {{'error': {str(e)}, 'status': 'FAIL'}}")
+            return {"error": str(e), "status": "FAIL"}
         
 if __name__ == "__main__":
-    load_dotenv()  # Load environment variables from .env file
 
     poly = PolygonLLMTools()
 
