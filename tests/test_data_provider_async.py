@@ -101,5 +101,58 @@ class TestAsyncDataProvider(unittest.IsolatedAsyncioTestCase):
             # Verify that the async API call was made twice (once for each timeframe)
             self.assertEqual(mock_async_client.get_aggs.call_count, 2)
 
+    @patch('marketflow.marketflow_data_provider.get_logger')
+    @patch('marketflow.marketflow_data_provider.RESTClient')
+    async def test_async_fetch_handles_partial_failure(self, mock_rest_client_class, mock_get_logger):
+        """
+        Test that get_multi_timeframe_data_async gracefully handles an error in one of the concurrent fetches.
+        """
+        # --- 1. Setup Mocks ---
+        mock_async_client = AsyncMock()
+        # This side effect will return the async mock if `use_async=True` is passed
+        mock_rest_client_class.side_effect = lambda key, use_async=False: mock_async_client if use_async else MagicMock()
+
+        # Mock the logger to check its output
+        mock_logger = MagicMock()
+        mock_get_logger.return_value = mock_logger
+
+        # Define mock data for the successful call
+        mock_aggs_1d = [create_mock_agg(1672531200000, 150, 155, 149, 152, 10000)]
+
+        # Configure the mock's side_effect to raise an error for one timeframe
+        async def get_aggs_side_effect(*args, **kwargs):
+            await asyncio.sleep(0.01)
+            if kwargs.get('timespan') == 'day':
+                return mock_aggs_1d
+            elif kwargs.get('timespan') == 'hour':
+                raise ConnectionError("Simulated network failure for 4h timeframe")
+            return []
+
+        mock_async_client.get_aggs.side_effect = get_aggs_side_effect
+
+        # --- 2. Instantiate Providers ---
+        with patch('marketflow.marketflow_data_provider.create_app_config') as mock_create_config:
+            mock_config = MagicMock()
+            mock_config.get_api_key.return_value = "fake_api_key"
+            mock_create_config.return_value = mock_config
+
+            polygon_provider = PolygonIOProvider()
+            multi_provider = MultiTimeframeProvider(polygon_provider)
+
+            # --- 3. Execute the Asynchronous Call ---
+            timeframes_to_fetch = [{'interval': '1d'}, {'interval': '4h'}]
+            result = await multi_provider.get_multi_timeframe_data_async("AAPL", timeframes_to_fetch)
+
+            # --- 4. Assertions ---
+            self.assertIn('1d', result, "Successful '1d' timeframe data should be in the result")
+            self.assertNotIn('4h', result, "Failed '4h' timeframe data should NOT be in the result")
+            self.assertEqual(len(result), 1, "Result should contain data for only the one successful timeframe")
+
+            # There should be 2 calls to error (category + generic)
+            assert mock_logger.error.call_count == 2
+            call_args = [c[0][0] for c in mock_logger.error.call_args_list]
+            assert any("Unknown error fetching data for AAPL at 4h timeframe" in msg for msg in call_args)
+            assert any("Error fetching data for AAPL at 4h timeframe: Simulated network failure for 4h timeframe" in msg for msg in call_args)
+
 if __name__ == '__main__':
     unittest.main()
