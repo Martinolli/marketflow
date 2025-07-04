@@ -171,91 +171,17 @@ class PolygonIOProvider(DataProvider):
         price_df = df[['open', 'high', 'low', 'close']]
         volume_series = df['volume']
         return price_df, volume_series
-        
-    def get_data(
+
+    async def _fetch_data_core(
         self,
         ticker: str,
-        interval: str = "1d",
-        period: str = "1y",
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None
+        interval: str,
+        period: str,
+        start_date: Optional[str],
+        end_date: Optional[str]
     ) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
         """
-        Get price and volume data for a ticker with robust error handling.
-        Returns (price_df, volume_series) or None if data could not be fetched.
-        """
-        if not self._validate_client():
-            self.logger.error("Cannot fetch data: Polygon.io client not initialized")
-            return None
-
-        multiplier, timespan = self._parse_interval(interval)
-        if multiplier is None or timespan is None:
-            self.logger.error(f"Unsupported interval format: {interval}")
-            return None
-
-        # Calculate date range
-        if end_date is None:
-            end_date_dt = datetime.now()
-        elif isinstance(end_date, str):
-            end_date_dt = datetime.strptime(end_date, "%Y-%m-%d")
-        elif isinstance(end_date, pd.Timestamp):
-            end_date_dt = end_date.to_pydatetime()
-        else:
-            end_date_dt = end_date
-
-        if start_date is None:
-            start_date_dt = self._calculate_start_date(end_date_dt, period)
-        elif isinstance(start_date, str):
-            start_date_dt = datetime.strptime(start_date, "%Y-%m-%d")
-        elif isinstance(start_date, pd.Timestamp):
-            start_date_dt = start_date.to_pydatetime()
-        else:
-            start_date_dt = start_date
-
-        # Fetch data with retry logic
-        for attempt in range(MAX_RETRIES):
-            try:
-                self.logger.debug(
-                    f"Fetching data for {ticker} at {interval} timeframe (Attempt {attempt + 1}/{MAX_RETRIES})"
-                )
-                aggs = self.client.get_aggs(
-                    ticker=ticker,
-                    multiplier=multiplier,
-                    timespan=timespan,
-                    from_=start_date_dt.strftime("%Y-%m-%d"),
-                    to=end_date_dt.strftime("%Y-%m-%d"),
-                    limit=50000
-                )
-                price_df, volume_series = self._process_aggregates(aggs)
-                if price_df.empty:
-                    self.logger.warning(f"No data returned for {ticker} at {interval} timeframe")
-                    return None
-                self.logger.debug(f"Successfully fetched {len(price_df)} data points for {ticker} at {interval} timeframe")
-                return price_df, volume_series
-            except Exception as e:
-                error_category, message = self._handle_error(e, ticker, interval, attempt)
-                if self._should_retry(error_category, attempt):
-                    delay = self._calculate_retry_delay(attempt, error_category)
-                    self.logger.info(f"Retrying in {delay:.2f} seconds (Attempt {attempt + 1}/{MAX_RETRIES})")
-                    time.sleep(delay)
-                else:
-                    self.logger.error(f"Error fetching data for {ticker} at {interval} timeframe: {e}")
-                    return None
-
-        self.logger.error(f"Failed to fetch data for {ticker} at {interval} timeframe after {MAX_RETRIES} attempts")
-        return None
-
-    async def get_data_async(
-        self,
-        ticker: str,
-        interval: str = "1d",
-        period: str = "1y",
-        start_date: Optional[str] = None,
-        end_date: Optional[str] = None
-    ) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
-        """
-        Asynchronously get price and volume data for a ticker with robust error handling.
-        Returns (price_df, volume_series) or None if data could not be fetched.
+        Core asynchronous data fetching logic with retries. Shared by sync and async methods.
         """
         if not self._validate_client() or self.async_client is None:
             self.logger.error("Cannot fetch data: Polygon.io async client not initialized")
@@ -311,6 +237,45 @@ class PolygonIOProvider(DataProvider):
                     return None
         self.logger.error(f"Failed to fetch data for {ticker} at {interval} timeframe after {MAX_RETRIES} attempts")
         return None
+        
+    def get_data(
+        self,
+        ticker: str,
+        interval: str = "1d",
+        period: str = "1y",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
+        """
+        Get price and volume data for a ticker with robust error handling.
+        Returns (price_df, volume_series) or None if data could not be fetched.
+        """
+        # This is the standard way to call an async function from sync code.
+        try:
+            return asyncio.run(self._fetch_data_core(ticker, interval, period, start_date, end_date))
+        except RuntimeError as e:
+            # This handles the case where get_data is called from an already running event loop
+            if "cannot run loop while another loop is running" in str(e):
+                self.logger.error(
+                    "get_data (sync) was called from within an async context. "
+                    "Use get_data_async instead. Returning None."
+                )
+                return None
+            raise # Re-raise other RuntimeErrors
+
+    async def get_data_async(
+        self,
+        ticker: str,
+        interval: str = "1d",
+        period: str = "1y",
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> Optional[Tuple[pd.DataFrame, pd.Series]]:
+        """
+        Asynchronously get price and volume data for a ticker with robust error handling.
+        Returns (price_df, volume_series) or None if data could not be fetched.
+        """
+        return await self._fetch_data_core(ticker, interval, period, start_date, end_date)
 
     def _parse_interval(self, interval: str) -> Tuple[Optional[int], Optional[str]]:
         """Parse interval string into multiplier and timespan"""
