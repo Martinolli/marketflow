@@ -1,14 +1,18 @@
-#-------------------------------------------------------------------------------
-# VPA Polygon Provider Module 
-# This module provides an interface to fetch stock data from Polygon.io
-# Date Created: 2025-09-06
-#--------------------------------------------------------------------------------
+"""
+MarketFlow Polygon.io LLM Tool Interface
+
+This module exposes direct, LLM-friendly functions for interacting with Polygon.io endpoints.
+All methods are designed for function-calling or agent tool use: arguments are simple types, 
+and results are always JSON-serializable.
+
+Error handling and logging are unified with the main MarketFlow architecture.
+"""
+
 
 # vpa_polygon_provider.py
 from typing import Tuple, Dict, Optional
 import os
 from dotenv import load_dotenv
-import requests
 from polygon import RESTClient
 from polygon.rest.models import Agg
 from datetime import datetime, timedelta
@@ -16,103 +20,22 @@ from datetime import datetime, timedelta
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 #-------------------------------------------------------------------------------
-# Constants for error handling
-MAX_RETRIES = 3
-INITIAL_RETRY_DELAY = 2  # seconds
-MAX_RETRY_DELAY = 30  # seconds
-REQUEST_TIMEOUT = 30  # seconds
-
-# Error categories
-class ErrorCategory:
-    NETWORK = "NETWORK_ERROR"
-    API = "API_ERROR"
-    AUTHENTICATION = "AUTHENTICATION_ERROR"
-    RATE_LIMIT = "RATE_LIMIT_ERROR"
-    DATA_PROCESSING = "DATA_PROCESSING_ERROR"
-    UNKNOWN = "UNKNOWN_ERROR"
 
 # Class to fetch stock data from Polygon.io
-class PolygonDataProvider:
-    def __init__(self, api_key: str):
-        self.api_key = api_key
-        
-        # Initialize logger and config manager
-        self.logger = get_logger(module_name="PolygonTollsProvider")
-        # Create configuration manager for API keys and settings
-        self.config_manager = create_app_config(self.logger)
-    
-    def _initialize_client(self) -> None:
-        """Initialize the Polygon.io REST client with error handling"""
-        try:
-            # Get API key from config manager
-            api_key = self.config_manager.get_api_key('polygon')
-            
-            # Validate API key
-            if not api_key:
-                self.logger.error("Polygon.io API key not found")
-                raise ValueError("Polygon.io API key not found")
-            
-            # Initialize client
-            self.client = RESTClient(api_key)
-            self.logger.debug("Polygon.io client initialized successfully")
-        except Exception as e:
-            self.logger.error(f"Failed to initialize Polygon.io client: {e}")
-            self.client = None
-    
-    def _validate_client(self) -> bool:
-        """Validate that the client is initialized"""
-        if self.client is None:
-            self.logger.warning("Polygon.io client not initialized, attempting to initialize")
-            self._initialize_client()
-        
-        return self.client is not None
-    
-    # Handle errors and retry logic
-    def _handle_error(self, error: Exception, ticker: str, interval: str, 
-                      attempt: int = 0) -> Tuple[ErrorCategory, str]:
-        """
-        Handle errors with categorization and logging
-        
-        Parameters:
-        - error: The exception that occurred
-        - ticker: Stock symbol
-        - interval: Timeframe interval
-        - attempt: Current retry attempt
-        
-        Returns:
-        - Tuple of (error_category, error_message)
-        """
-        error_str = str(error)
-        error_category = ErrorCategory.UNKNOWN
-        
-        # Categorize error
-        if "ConnectionError" in error_str or "timeout" in error_str.lower():
-            error_category = ErrorCategory.NETWORK
-            message = f"Network error fetching data for {ticker} at {interval} timeframe: {error}"
-        elif "401" in error_str or "Unauthorized" in error_str:
-            error_category = ErrorCategory.AUTHENTICATION
-            message = f"Authentication error with Polygon.io API: {error}"
-        elif "429" in error_str or "Too Many Requests" in error_str:
-            error_category = ErrorCategory.RATE_LIMIT
-            message = f"Rate limit exceeded for Polygon.io API: {error}"
-        elif "404" in error_str or "Not Found" in error_str:
-            error_category = ErrorCategory.API
-            message = f"Resource not found for {ticker} at {interval} timeframe: {error}"
-        elif "format" in error_str.lower() or "invalid" in error_str.lower():
-            error_category = ErrorCategory.DATA_PROCESSING
-            message = f"Data format error for {ticker} at {interval} timeframe: {error}"
-        else:
-            message = f"Unknown error fetching data for {ticker} at {interval} timeframe: {error}"
-        
-        # Log with appropriate level based on attempt and category
-        if attempt < MAX_RETRIES - 1 and error_category in [ErrorCategory.NETWORK, ErrorCategory.RATE_LIMIT]:
-            self.logger.warning(message)
-        else:
-            self.logger.error(message)
-            if error_category == ErrorCategory.AUTHENTICATION:
-                self.logger.error("Please check your Polygon.io API key")
-        
-        return error_category, message
+class PolygonLLMTools:
+    def __init__(self, logger=None, config_manager=None):
+
+        # Initialize the Polygon.io client with error handling
+        self.logger = logger or get_logger("PolygonLLMTools")
+
+        # Load environment variables from .env file
+        self.config_manager = config_manager or create_app_config(self.logger)
+        api_key = self.config_manager.get_api_key_safe("polygon")
+
+        # Check if API key is available
+        if not api_key:
+            raise ValueError("Polygon.io API key not configured")
+        self.client = RESTClient(api_key)
 
     # 1 - Fetches cutsom bars (OHLCV) for a ticker
 
@@ -155,11 +78,9 @@ class PolygonDataProvider:
                 aggs.append(a)
             return {"results": [bar.__dict__ for bar in aggs], "status": "OK"}
         except Exception as e:
-            error_category, error_message = self._handle_error(e, ticker, f"{multiplier}{timespan}")
-            self.logger.error(f"Error fetching custom bars: {error_message}")
-            self.logger.error(f"Error Category: {error_category}")
-            return None
-
+            self.logger.error(f"Error in get_custom_bars: {e}")
+            return {"error": str(e), "status": "FAIL"}
+        
     # 2 - Get All Tickers
 
     def get_all_tickers(self, tickers: str) -> Optional[Dict]:
@@ -620,12 +541,7 @@ class PolygonDataProvider:
 if __name__ == "__main__":
     load_dotenv()  # Load environment variables from .env file
 
-    POLYGON_API_KEY = os.getenv("POLYGON_API_KEY")
-    if not POLYGON_API_KEY:
-        print("Error: POLYGON_API_KEY not found in environment variables")
-        exit(1)
-
-    poly = PolygonDataProvider(POLYGON_API_KEY)
+    poly = PolygonLLMTools()
 
     to_date = datetime.now()
     from_date = to_date - timedelta(days=30)  # Get data for the last 30 days
