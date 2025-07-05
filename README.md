@@ -16,6 +16,63 @@
 
 ---
 
+```mermaid
+classDiagram
+  %% === Core Parameter and Processing Classes ===
+  class MarketFlowDataParameters {
+    - config : dict
+    - wyckoff_config : dict
+    + get_volume_thresholds()
+    + get_candle_thresholds()
+    + get_trend_parameters()
+    + get_pattern_parameters()
+    + get_signal_parameters()
+    + get_risk_parameters()
+    + get_timeframes()
+    + get_primary_timeframe()
+    + get_all()
+    + get_account_parameters()
+    + get_wyckoff_parameter()
+    + set_wyckoff_parameter()
+    + update_parameters()
+  }
+
+  class DataProcessor {
+    - logger
+    - config_manager
+    - parameters : MarketFlowDataParameters
+    - volume_thresholds : dict
+    - candle_thresholds : dict
+    + preprocess_data(price_data, volume_data, lookback_period)
+    + calculate_candle_properties(processed_data)
+    + calculate_volume_metrics(processed_data, lookback_period)
+    + classify_volume(volume_ratio)
+    + classify_candles(data)
+    + calculate_atr(price_data, period)
+    + calculate_price_direction(price_data, lookback_period, threshold_pct, use_ema, strength_levels)
+    + calculate_obv(price_data, volume_data)
+    + calculate_volume_direction(price_data, volume_data, lookback_period, threshold_pct)
+  }
+
+  %% === Support Classes ===
+  class MarketflowLogger
+  class ConfigManager
+
+  %% === Relationships ===
+  MarketFlowDataParameters o-- ConfigManager : uses
+  MarketFlowDataParameters o-- MarketflowLogger : uses
+  DataProcessor o-- MarketFlowDataParameters : uses
+  DataProcessor o-- ConfigManager : uses
+  DataProcessor o-- MarketflowLogger : uses
+
+  %% === Integration with Other Modules ===
+  class OtherMarketFlowModules
+  OtherMarketFlowModules ..> MarketFlowDataParameters : can use
+  OtherMarketFlowModules ..> DataProcessor : can use
+  OtherMarketFlowModules ..> ConfigManager : can use
+  OtherMarketFlowModules ..> MarketflowLogger : can use
+```
+
 ## 🚀 Features
 
 - **Modular architecture:** Clean separation of data fetching, processing, signal analysis, and LLM-driven reporting.
