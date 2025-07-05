@@ -4,6 +4,8 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-05 | v1.3     | `marketflow_processor.py` (new module)          |
+| 2025-07-05 | v1.3     | `marketflow_data_parameters.py` (new module)    |
 | 2025-07-04 | v1.2     | `marketflow_polygon_tolls.py` (new module)      |
 | 2025-07-03 | v1.1     | `marketflow_config_manager.py`, `marketflow_logger.py` (refactor) |
 | 2025-07-03 | v1.1     | `marketflow_utils.py` (new module)              |
@@ -45,18 +47,19 @@ marketflow/
 ├── marketflow/                                         # Core Python package
 │   ├── __init__.py
 │   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
-│   ├── marketflow_data_provider.py                     # Abstract + provider-specific data fetchers
-│   ├── marketflow_processor.py                         # Data processing/cleaning
-│   ├── marketflow_analyzer.py                          # Core VPA and Wyckoff analytics
-│   ├── marketflow_signals.py                           # Signal detection algorithms
-│   ├── marketflow_wyc_module.py                        # Wyckoff method analytics
-│   ├── marketflow_facade.py                            # Orchestrator: unified API for analytics, charting, reporting
+│   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
+│   ├── marketflow_processor.py  (✓ new)                # Data processing/cleaning
+│   ├── marketflow_analyzer.py  (TBD)                   # Core VPA and Wyckoff analytics
+│   ├── marketflow_signals.py   (TBD)                   # Signal detection algorithms
+│   ├── marketflow_wyc_module.py (TBD)                  # Wyckoff method analytics
+│   ├── marketflow_facade.py  (TBD)                     # Orchestrator: unified API for analytics, charting, reporting
 │   ├── marketflow_logger.py (✓ replaced)               # Centralized logging
-│   ├── marketflow_llm_providers.py                     # LLM abstraction layer
-│   ├── marketflow_memory_manager.py                    # Conversation/session memory for LLMs
-│   ├── marketflow_llm_interface.py                     # Human-friendly narrative/report generator for LLM
-│   ├── marketflow_llm_query_engine.py                  # Orchestrates user query through LLM and backend
+│   ├── marketflow_llm_providers.py (TBD)               # LLM abstraction layer
+│   ├── marketflow_memory_manager.py (TBD)              # Conversation/session memory for LLMs
+│   ├── marketflow_llm_interface.py  (TBD)              # Human-friendly narrative/report generator for LLM
+│   ├── marketflow_llm_query_engine.py (TBD)            # Orchestrates user query through LLM and backend
 │   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
+│   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
 │   ├── examples/
 │   │    └── integration_example.py (✓ new)             # Integration example script
 │   ├──
@@ -204,6 +207,258 @@ All configuration is managed by `config_manager.py` and environment variables.
 
 - Do **not** commit your `.env` file.
 - Use the `ConfigManager` class to access API keys and config in code.
+
+---
+
+## ⚙️ Configuration Manager Module (`marketflow_config_manager.py`)
+
+The **Configuration Manager** is the central hub for all configuration, API key management, and system settings in MarketFlow. This module provides a robust, secure, and cross-platform solution for managing application configuration with multiple fallback mechanisms and comprehensive validation.
+
+### 🎯 Key Features
+
+#### **🔐 Secure API Key Management**
+
+- **Multi-source support**: Environment variables, JSON config files, or programmatic setting
+- **Service-specific validation**: Built-in validation for different API key formats (OpenAI, Polygon.io)
+- **Safe retrieval**: Non-throwing methods for optional API keys
+- **Centralized storage**: Single point of configuration for all external services
+
+#### **🤖 LLM Provider Configuration**
+
+- **Multi-provider support**: OpenAI, Ollama, and extensible architecture for additional providers
+- **Model management**: Configure and switch between different LLM models (including fine-tuned models)
+- **Provider-specific settings**: Separate configuration for API keys, base URLs, and model names
+- **Runtime switching**: Change LLM providers and models without restart
+
+#### **🌐 Cross-Platform Compatibility**
+
+- **Path handling**: Uses `pathlib.Path` for Windows/Linux/macOS compatibility
+- **Environment detection**: Automatic project root detection and relative path resolution
+- **Fallback mechanisms**: Multiple configuration file locations with intelligent fallbacks
+- **Directory creation**: Automatic creation of required directories for logs and memory storage
+
+#### **📝 Comprehensive Configuration Sources**
+
+The Configuration Manager checks for settings in this priority order:
+
+1. **Environment Variables** (highest priority)
+
+   ```bash
+   MARKETFLOW_LLM_PROVIDER=openai
+   MARKETFLOW_LOG_LEVEL=DEBUG
+   OPENAI_API_KEY=sk-your-key-here
+   POLYGON_API_KEY=your-polygon-key
+   ```
+
+2. **JSON Configuration Files** (multiple locations checked)
+   - User-specified config file path
+   - `{project_root}/.marketflow/config/config.json`
+   - `{user_home}/.marketflow/config.json`
+   - `{current_directory}/marketflow_config.json`
+   - `{module_directory}/config.json`
+
+3. **Programmatic Settings** (via `set_config_value()`)
+
+4. **Built-in Defaults** (lowest priority)
+
+### 🏗️ Architecture & Design Patterns
+
+#### **Dependency Injection for Logger**
+
+```python
+# Avoids circular imports by accepting logger as dependency
+config = ConfigManager(logger=your_logger)
+```
+
+#### **Singleton Pattern Support**
+
+```python
+# Get shared instance across the application
+config = get_config_manager()
+```
+
+#### **Backward Compatibility**
+
+```python
+# Legacy interface still supported
+legacy_config = MARKETFLOWConfigManager()
+```
+
+### 📋 Configuration Parameters
+
+#### **LLM Provider Settings**
+
+| Parameter | Environment Variable | Default | Description |
+|-----------|---------------------|---------|-------------|
+| `llm_provider` | `LLM_PROVIDER` | `"openai"` | LLM provider (openai/ollama) |
+| `openai_api_key` | `OPENAI_API_KEY` | `None` | OpenAI API key |
+| `openai_model_name` | `OPENAI_MODEL_NAME` | `"gpt-4-turbo-preview"` | OpenAI model |
+| `ollama_base_url` | `OLLAMA_BASE_URL` | `"http://localhost:11434"` | Ollama server URL |
+| `ollama_model_name` | `OLLAMA_MODEL_NAME` | `"llama3:instruct"` | Ollama model |
+
+#### **Data Provider Settings**
+
+| Parameter | Environment Variable | Default | Description |
+|-----------|---------------------|---------|-------------|
+| `polygon_api_key` | `POLYGON_API_KEY` | `None` | Polygon.io API key |
+
+#### **Application Settings**
+
+| Parameter | Environment Variable | Default | Description |
+|-----------|---------------------|---------|-------------|
+| `log_level` | `LOG_LEVEL` | `"INFO"` | Logging level |
+| `max_conversation_history` | `MAX_CONVERSATION_HISTORY` | `10` | Chat history limit |
+| `rag_top_k` | `RAG_TOP_K` | `5` | RAG retrieval limit |
+| `log_file_path` | `LOG_FILE_PATH` | `{project}/.marketflow/logs/marketflow_engine.log` | Log file location |
+| `memory_db_path` | `MEMORY_DB_PATH` | `{project}/.marketflow/memory/marketflow_chat_history.db` | Memory database |
+
+### 🔧 Usage Examples
+
+#### **Basic Configuration Setup**
+
+```python
+from marketflow.marketflow_config_manager import get_config_manager
+
+# Initialize with logger
+config = get_config_manager(logger=my_logger)
+
+# Get API keys safely
+openai_key = config.get_api_key_safe('openai')
+polygon_key = config.get_api_key('polygon')  # Raises error if not found
+
+# Get LLM configuration
+llm_config = config.get_llm_provider_config()
+current_model = config.get_llm_model()
+```
+
+#### **Runtime Configuration Changes**
+
+```python
+# Change LLM model
+config.set_llm_model('gpt-4')
+
+# Set API keys programmatically
+config.set_api_key('openai', 'sk-new-key')
+
+# Update any configuration value
+config.set_config_value('log_level', 'DEBUG')
+
+# Save configuration to file
+config.save_config()
+```
+
+#### **Configuration Validation**
+
+```python
+# Validate all configuration
+validation_results = config.validate_configuration()
+print(f"OpenAI API Key Valid: {validation_results['openai_api_key']}")
+print(f"LLM Provider Config Valid: {validation_results['llm_provider_config']}")
+
+# Validate specific API key
+is_valid = config.validate_api_key('polygon')
+```
+
+### 🔧 Advanced Features
+
+#### **Fine-tuned Model Support**
+
+```python
+# Set custom fine-tuned model
+config.set_llm_model('ft:gpt-3.5-turbo:marketflow:20250602')
+
+# List available models
+available_models = config.get_available_models()
+```
+
+#### **Cross-platform File Paths**
+
+```python
+# Automatically handles Windows/Linux/macOS paths
+log_path = config.LOG_FILE_PATH  # Always uses correct path separators
+memory_path = config.MEMORY_DB_PATH  # Directories created automatically
+```
+
+#### **Environment-specific Configuration**
+
+```python
+# Development environment
+config.set_config_value('log_level', 'DEBUG')
+
+# Production environment  
+config.set_config_value('log_level', 'WARNING')
+```
+
+### 🛡️ Security & Best Practices
+
+#### **API Key Security**
+
+- Never hardcode API keys in source code
+- Use environment variables for production
+- Store sensitive config files outside the repository
+- Use the `get_api_key_safe()` method for optional keys
+
+#### **Configuration File Security**
+
+```json
+// .marketflow/config/config.json (example - keep secure)
+{
+    "llm_provider": "openai",
+    "openai_model_name": "gpt-4-turbo-preview",
+    "log_level": "INFO",
+    "max_conversation_history": 20,
+    "rag_top_k": 10
+}
+```
+
+#### **Environment Variable Setup**
+
+```bash
+# .env file (never commit this file)
+OPENAI_API_KEY=sk-your-openai-key-here
+POLYGON_API_KEY=your-polygon-api-key
+MARKETFLOW_LLM_PROVIDER=openai
+MARKETFLOW_LOG_LEVEL=INFO
+```
+
+### 🔄 Integration with Other Modules
+
+The Configuration Manager integrates seamlessly with all MarketFlow modules:
+
+- **Logger**: Provides log levels and file paths
+- **Data Provider**: Supplies API keys and provider settings  
+- **LLM Interface**: Configures provider, models, and parameters
+- **Memory Manager**: Specifies database paths and conversation limits
+- **Facade**: Central configuration access point
+
+### 🧪 Testing & Validation
+
+```python
+# Test configuration without external dependencies
+config = ConfigManager(logger=test_logger)
+
+# Mock API keys for testing
+config.set_api_key('openai', 'test-key')
+config.set_api_key('polygon', 'test-key')
+
+# Validate test configuration
+results = config.validate_configuration()
+assert all(results.values()), "Configuration validation failed"
+```
+
+### 🔄 Migration & Backward Compatibility
+
+The module maintains full backward compatibility with the original `MARKETFLOWConfigManager` interface while providing enhanced functionality. Legacy code continues to work without modification:
+
+```python
+# Legacy interface (still supported)
+from marketflow.marketflow_config_manager import MARKETFLOWConfigManager
+legacy_config = MARKETFLOWConfigManager()
+
+# Modern interface (recommended)
+from marketflow.marketflow_config_manager import get_config_manager
+modern_config = get_config_manager()
+```
 
 ---
 
