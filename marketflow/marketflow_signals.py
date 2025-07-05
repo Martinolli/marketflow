@@ -10,17 +10,7 @@ from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 
 # Import necessary libraries
-from enum import Enum, auto
-
-class SignalType(Enum):
-    BUY = "BUY"
-    SELL = "SELL"
-    NO_ACTION = "NO_ACTION"
-
-class SignalStrength(Enum):
-    STRONG = "STRONG"
-    MODERATE = "MODERATE"
-    NEUTRAL = "NEUTRAL"
+from marketflow.enums import SignalType, SignalStrength
 
 
 class SignalGenerator:
@@ -41,7 +31,7 @@ class SignalGenerator:
         self.account_params = data_parameters.get_account_parameters()
         
             
-    def generate_signals(self, timeframe_analyses: dict, confirmations: dict) ->dict[str, SignalType | SignalStrength | str]:
+    def generate_signals(self, timeframe_analyses: dict, confirmations: dict) -> dict[str, object]:
         """
         Generate trading signals based on VPA analysis across timeframes
         
@@ -104,7 +94,7 @@ class SignalGenerator:
         self.logger.info(f"Generated signal: {signal}")
         
         # Add supporting evidence
-        signal["evidence"] = self.gather_signal_evidence(timeframe_analyses, confirmations, signal["type"])
+        signal["evidence"] = self.gather_signal_evidence(timeframe_analyses, confirmations, signal["type"].value)
         
         return signal
     
@@ -342,7 +332,7 @@ class SignalGenerator:
                 bearish_confirmations >= moderate_bearish_confirmation_threshold)
         self.logger.debug(f"Moderate sell signal result: {result}")
         return result
-    def gather_signal_evidence(self, timeframe_analyses: dict, confirmations: dict, signal_type: str) -> dict:
+    def gather_signal_evidence(self, timeframe_analyses: dict, confirmations: dict, signal_type: SignalType) -> dict:
         """
         Gather evidence supporting the signal
         
@@ -363,7 +353,7 @@ class SignalGenerator:
         }
         
         # Gather evidence based on signal type
-        if signal_type == "BUY":
+        if signal_type == SignalType.BUY:
             # Add bullish candle signals
             for tf in timeframe_analyses:
                 candle_analysis = timeframe_analyses[tf]["candle_analysis"]
@@ -408,7 +398,7 @@ class SignalGenerator:
             self.logger.debug(f"Bullish timeframe confirmations: {confirmations['bullish']}")
             evidence["timeframe_confirmations"] = confirmations["bullish"]
         
-        elif signal_type == "SELL":
+        elif signal_type == SignalType.SELL:
             # Add bearish candle signals
             for tf in timeframe_analyses:
                 candle_analysis = timeframe_analyses[tf]["candle_analysis"]
