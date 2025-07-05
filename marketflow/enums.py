@@ -18,3 +18,39 @@ class SignalStrength(Enum):
     STRONG = "STRONG"
     MODERATE = "MODERATE"
     NEUTRAL = "NEUTRAL"
+
+class WyckoffEvent(Enum):
+    # --- Accumulation Events ---
+    SC = "Selling Climax"
+    AR = "Automatic Rally"
+    ST = "Secondary Test"
+    SPRING = "Spring"
+    TEST = "Test"
+    SOS = "Sign of Strength"
+    LPS = "Last Point of Support"
+    JAC = "Jump Across the Creek"
+    
+    # --- Distribution Events ---
+    BC = "Buying Climax"
+    AUTO_REACTION = "Automatic Reaction" # Renamed from AR for distribution clarity
+    ST_DIST = "Secondary Test in Distribution"
+    UTAD = "Upthrust After Distribution"
+    SOW = "Sign of Weakness"
+    LPSY = "Last Point of Supply"
+    
+    # --- Common Events ---
+    UT = "Upthrust"
+
+class WyckoffPhase(Enum):
+    A = "Phase A - Stopping Action"
+    B = "Phase B - Building a Cause"
+    C = "Phase C - Testing"
+    D = "Phase D - Markup/Markdown" # Changed to reflect both up and down moves
+    E = "Phase E - Trend Continuation" # Changed to be more general
+    UNKNOWN = "Unknown Phase"
+
+class MarketContext(Enum):
+    ACCUMULATION = "Accumulation"
+    DISTRIBUTION = "Distribution"
+    UNDEFINED = "Undefined"
+## --- CHANGE END --- ##
