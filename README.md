@@ -4,6 +4,7 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-03 | v1.3     | `marketflow_signals.py` (new module)           |
 | 2025-07-05 | v1.3     | `marketflow_processor.py` (new module)          |
 | 2025-07-05 | v1.3     | `marketflow_data_parameters.py` (new module)    |
 | 2025-07-04 | v1.2     | `marketflow_polygon_tolls.py` (new module)      |
@@ -107,7 +108,7 @@ marketflow/
 │   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
 │   ├── marketflow_processor.py  (✓ new)                # Data processing/cleaning
 │   ├── marketflow_analyzer.py  (TBD)                   # Core VPA and Wyckoff analytics
-│   ├── marketflow_signals.py   (TBD)                   # Signal detection algorithms
+│   ├── marketflow_signals.py   (✓ new)                 # Signal detection algorithms
 │   ├── marketflow_wyc_module.py (TBD)                  # Wyckoff method analytics
 │   ├── marketflow_facade.py  (TBD)                     # Orchestrator: unified API for analytics, charting, reporting
 │   ├── marketflow_logger.py (✓ replaced)               # Centralized logging
