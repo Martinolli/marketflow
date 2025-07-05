@@ -1,14 +1,17 @@
 """
-VPA Configuration Module
+Marketflow Data Parameters Module Configuration Module
 
-This module provides configuration management for the VPA algorithm.
+This module provides the configuration parameters for the Marketflow Data Parameters,
+
+This module provides configuration management for the Marketflow algorithm.
 """
-
+import json
+from pathlib import Path
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 
 class MarketFlowDataParameters:
-    """Configuration for VPA analysis"""
+    """Configuration Parameters for Marketflow analysis"""
     
     def __init__(self, config_file=None):
 
@@ -17,7 +20,7 @@ class MarketFlowDataParameters:
 
         # Create configuration manager for API keys and settings
         self.config_manager = create_app_config(self.logger)
-
+    
         # Load configuration from file or use defaults
         self.config = self._load_config(config_file)
         # Initialize wyckoff_config from the loaded config
@@ -36,6 +39,80 @@ class MarketFlowDataParameters:
                 return default_config
         return default_config
     
+    def _validate_param(self, key, value):
+        """Validate parameter updates, logging warnings for invalid values."""
+        # Define validation rules for known parameters
+        validation_rules = {
+            # Volume thresholds
+            "very_high_threshold": lambda v: isinstance(v, (float, int)) and v > 0,
+            "high_threshold": lambda v: isinstance(v, (float, int)) and v > 0,
+            "low_threshold": lambda v: isinstance(v, (float, int)) and v > 0,
+            "very_low_threshold": lambda v: isinstance(v, (float, int)) and v > 0,
+            "lookback_period": lambda v: isinstance(v, int) and v > 0,
+            # Candle
+            "wide_threshold": lambda v: isinstance(v, (float, int)) and v > 0,
+            "narrow_threshold": lambda v: isinstance(v, (float, int)) and v > 0,
+            "wick_threshold": lambda v: isinstance(v, (float, int)) and v > 0,
+            # Trend
+            "sideways_threshold": lambda v: isinstance(v, (float, int)) and v >= 0,
+            "strong_trend_threshold": lambda v: isinstance(v, (float, int)) and v >= 0,
+            "volume_change_threshold": lambda v: isinstance(v, (float, int)) and v >= 0,
+            "min_trend_length": lambda v: isinstance(v, int) and v > 0,
+            # Risk
+            "default_stop_loss_percent": lambda v: isinstance(v, (float, int)) and 0 < v < 1,
+            "default_take_profit_percent": lambda v: isinstance(v, (float, int)) and 0 < v < 1,
+            "support_resistance_buffer": lambda v: isinstance(v, (float, int)) and 0 <= v < 1,
+            "default_risk_percent": lambda v: isinstance(v, (float, int)) and 0 < v < 1,
+            "default_risk_reward": lambda v: isinstance(v, (float, int)) and v >= 1,
+            # Account
+            "account_size": lambda v: isinstance(v, (float, int)) and v > 0,
+            "risk_per_trade": lambda v: isinstance(v, (float, int)) and 0 < v < 1,
+        }
+        if key in validation_rules:
+            if not validation_rules[key](value):
+                self.logger.warning(f"Invalid value for parameter '{key}': {value}")
+                return False
+        return True
+
+    def save_parameters(self, config_file=None) -> dict:
+        """
+        Save the current parameters to a JSON file.
+        Uses the config manager path if not specified.
+        """
+        if not config_file:
+            # Prefer first config manager path, fallback to default
+            if self.config_manager.config_file_paths and self.config_manager.config_file_paths[0]:
+                config_file = self.config_manager.config_file_paths[0]
+            else:
+                config_file = "marketflow_data_parameters.json"
+        try:
+            # Ensure any separate wyckoff_config is in sync
+            self.config["wyckoff_config"] = self.wyckoff_config
+            Path(config_file).parent.mkdir(parents=True, exist_ok=True)
+            with open(config_file, "w") as f:
+                json.dump(self.config, f, indent=4)
+            self.logger.info(f"Parameters saved to {config_file}")
+        except Exception as e:
+            self.logger.error(f"Error saving parameters: {e}")
+
+    def load_parameters(self, config_file=None) -> dict:
+        """
+        Load parameters from a JSON file.
+        Uses the config manager path if not specified.
+        """
+        if not config_file:
+            if self.config_manager.config_file_paths and self.config_manager.config_file_paths[0]:
+                config_file = self.config_manager.config_file_paths[0]
+            else:
+                config_file = "marketflow_data_parameters.json"
+        try:
+            with open(config_file, "r") as f:
+                self.config = json.load(f)
+            self.wyckoff_config = self.config.get("wyckoff_config", {})
+            self.logger.info(f"Parameters loaded from {config_file}")
+        except Exception as e:
+            self.logger.error(f"Error loading parameters: {e}")
+
     def get_volume_thresholds(self):
         """Get volume classification thresholds"""
         return self.config["volume"]
@@ -90,7 +167,7 @@ class MarketFlowDataParameters:
 
     def update_parameters(self, params):
         """
-        Update configuration parameters
+        Update configuration parameters with validation.
         
         Args:
             params: Dictionary of parameters to update
@@ -104,9 +181,16 @@ class MarketFlowDataParameters:
                     if section not in config_section:
                         config_section[section] = {}
                     config_section = config_section[section]
+                # Only validate leaf keys
+                if not self._validate_param(sections[-1], value):
+                    self.logger.warning(f"Parameter '{key}' not updated due to validation failure.")
+                    continue
                 config_section[sections[-1]] = value
             else:
                 # Handle top-level parameters
+                if not self._validate_param(key, value):
+                    self.logger.warning(f"Parameter '{key}' not updated due to validation failure.")
+                    continue
                 self.config[key] = value
         
         return self.config
