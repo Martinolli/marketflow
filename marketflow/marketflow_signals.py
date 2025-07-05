@@ -93,7 +93,7 @@ class SignalGenerator:
         
         return signal
     
-    def is_strong_buy_signal(self, timeframe_analyses, confirmations):
+    def is_strong_buy_signal(self, timeframe_analyses: dict, confirmations: dict) -> bool:
         """
         Check if a strong buy signal is present
         
@@ -144,14 +144,14 @@ class SignalGenerator:
         
         bullish_candle = candle_analysis["signal_strength"] == "BULLISH"
         bullish_trend = trend_analysis["signal_strength"] == "BULLISH"
-        self.logger.info(f"Bullish candle signal: {bullish_candle}")
+        self.logger.debug(f"Strong buy: confirmations={len(confirmations['bullish'])}, patterns={bullish_patterns}, candle={bullish_candle}, trend={bullish_trend}")
         
         # Determine if strong buy signal is present
         return (len(confirmations["bullish"]) >= bullish_confirmation_threshold and 
                 bullish_patterns >= 1 and 
                 (bullish_candle or bullish_trend))
     
-    def is_strong_sell_signal(self, timeframe_analyses, confirmations):
+    def is_strong_sell_signal(self, timeframe_analyses: dict, confirmations: dict) -> bool:
         """
         Check if a strong sell signal is present
         
@@ -202,14 +202,15 @@ class SignalGenerator:
         
         bearish_candle = candle_analysis["signal_strength"] == "BEARISH"
         bearish_trend = trend_analysis["signal_strength"] == "BEARISH"
-        self.logger.info(f"Bearish candle signal: {bearish_candle}")
+        self.logger.debug(f"Strong sell: confirmations={len(confirmations['bearish'])}, patterns={bearish_patterns}, candle={bearish_candle}, trend={bearish_trend}")
+        
         
         # Determine if strong sell signal is present
         return (len(confirmations["bearish"]) >= bearish_confirmation_threshold and 
                 bearish_patterns >= 1 and 
                 (bearish_candle or bearish_trend))
     
-    def is_moderate_buy_signal(self, timeframe_analyses, confirmations):
+    def is_moderate_buy_signal(self, timeframe_analyses: dict, confirmations: dict) -> bool:
         """
         Check if a moderate buy signal is present
 
@@ -267,7 +268,7 @@ class SignalGenerator:
         self.logger.debug(f"Moderate buy signal result: {result}")
         return result
     
-    def is_moderate_sell_signal(self, timeframe_analyses, confirmations):
+    def is_moderate_sell_signal(self, timeframe_analyses: dict, confirmations: dict) -> bool:
         """
         Check if a moderate sell signal is present
         
@@ -456,7 +457,7 @@ class RiskAssessor:
         self.risk_params = data_parameters.get_risk_parameters()
         self.account_params = data_parameters.get_account_parameters()
         
-    def assess_trade_risk(self, signal, current_price, support_resistance):
+    def assess_trade_risk(self, signal, current_price: float, support_resistance: dict) -> dict:
         """
         Assess risk for a potential trade
         
@@ -505,7 +506,7 @@ class RiskAssessor:
             "risk_per_share": risk_per_share
         }
     
-    def calculate_stop_loss(self, signal, current_price, support_resistance):
+    def calculate_stop_loss(self, signal: dict, current_price: float, support_resistance: dict) -> float:
         """
         Calculate appropriate stop loss level
         
@@ -587,7 +588,7 @@ class RiskAssessor:
         
         return stop_loss
     
-    def calculate_take_profit(self, signal, current_price, support_resistance):
+    def calculate_take_profit(self, signal: dict, current_price: float, support_resistance: dict) -> float:
         """
         Calculate appropriate take profit level
         
@@ -669,7 +670,7 @@ class RiskAssessor:
         
         return take_profit
     
-    def calculate_position_size(self, current_price, stop_loss):
+    def calculate_position_size(self, current_price: float, stop_loss: float) -> float:
         """
         Calculate appropriate position size based on risk
         
