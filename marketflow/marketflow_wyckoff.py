@@ -12,51 +12,8 @@ from typing import Any, Dict, List, Optional
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
-
-## --- CHANGE START --- ##
-# DOC: Added Distribution-specific events and re-ordered for clarity.
-# REASON: The original module only handled accumulation. This change is crucial
-# for implementing dual logic as per the improvement suggestions.
-class WyckoffEvent(Enum):
-    # --- Accumulation Events ---
-    SC = "Selling Climax"
-    AR = "Automatic Rally"
-    ST = "Secondary Test"
-    SPRING = "Spring"
-    TEST = "Test"
-    SOS = "Sign of Strength"
-    LPS = "Last Point of Support"
-    JAC = "Jump Across the Creek"
-    
-    # --- Distribution Events ---
-    BC = "Buying Climax"
-    AUTO_REACTION = "Automatic Reaction" # Renamed from AR for distribution clarity
-    ST_DIST = "Secondary Test in Distribution"
-    UTAD = "Upthrust After Distribution"
-    SOW = "Sign of Weakness"
-    LPSY = "Last Point of Supply"
-    
-    # --- Common Events ---
-    UT = "Upthrust"
-## --- CHANGE END --- ##
-
-class WyckoffPhase(Enum):
-    A = "Phase A - Stopping Action"
-    B = "Phase B - Building a Cause"
-    C = "Phase C - Testing"
-    D = "Phase D - Markup/Markdown" # Changed to reflect both up and down moves
-    E = "Phase E - Trend Continuation" # Changed to be more general
-    UNKNOWN = "Unknown Phase"
-
-## --- CHANGE START --- ##
-# DOC: Added MarketContext to track if we are in an accumulation or distribution context.
-# REASON: This is essential for the dual-logic state machine in detect_events.
-class MarketContext(Enum):
-    ACCUMULATION = "Accumulation"
-    DISTRIBUTION = "Distribution"
-    UNDEFINED = "Undefined"
-## --- CHANGE END --- ##
-
+from marketflow.enums import WyckoffEvent, WyckoffPhase, MarketContext
+# Define the WyckoffAnalyzer class
 
 class WyckoffAnalyzer:
     def __init__(self, processed_data: Dict[str, Any], parameters=None):
