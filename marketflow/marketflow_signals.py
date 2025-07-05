@@ -3,10 +3,25 @@ Marketflow Signals Module
 
 This module provides signal generation and risk assessment for the Marketflow algorithm.
 """
+# Import necessary modules
 
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
+
+# Import necessary libraries
+from enum import Enum, auto
+
+class SignalType(Enum):
+    BUY = "BUY"
+    SELL = "SELL"
+    NO_ACTION = "NO_ACTION"
+
+class SignalStrength(Enum):
+    STRONG = "STRONG"
+    MODERATE = "MODERATE"
+    NEUTRAL = "NEUTRAL"
+
 
 class SignalGenerator:
     """Generate trading signals based on VPA analysis"""
@@ -26,7 +41,7 @@ class SignalGenerator:
         self.account_params = data_parameters.get_account_parameters()
         
             
-    def generate_signals(self, timeframe_analyses: dict, confirmations: dict) -> dict:
+    def generate_signals(self, timeframe_analyses: dict, confirmations: dict) ->dict[str, SignalType | SignalStrength | str]:
         """
         Generate trading signals based on VPA analysis across timeframes
         
@@ -58,32 +73,32 @@ class SignalGenerator:
         # Generate signal
         if strong_buy:
             signal = {
-                "type": "BUY",
-                "strength": "STRONG",
+                "type": SignalType.BUY,
+                "strength": SignalStrength.STRONG,
                 "details": "Strong buy signal confirmed across multiple timeframes"
             }
         elif strong_sell:
             signal = {
-                "type": "SELL",
-                "strength": "STRONG",
+                "type": SignalType.SELL,
+                "strength": SignalStrength.STRONG,
                 "details": "Strong sell signal confirmed across multiple timeframes"
             }
         elif moderate_buy:
             signal = {
-                "type": "BUY",
-                "strength": "MODERATE",
+                "type": SignalType.BUY,
+                "strength": SignalStrength.MODERATE,
                 "details": "Moderate buy signal with some timeframe confirmation"
             }
         elif moderate_sell:
             signal = {
-                "type": "SELL",
-                "strength": "MODERATE",
+                "type": SignalType.SELL,
+                "strength": SignalStrength.MODERATE,
                 "details": "Moderate sell signal with some timeframe confirmation"
             }
         else:
             signal = {
-                "type": "NO_ACTION",
-                "strength": "NEUTRAL",
+                "type": SignalType.NO_ACTION,
+                "strength": SignalStrength.NEUTRAL,
                 "details": "No clear signal detected"
             }
         self.logger.info(f"Generated signal: {signal}")
@@ -107,7 +122,7 @@ class SignalGenerator:
 
         if not timeframe_analyses or not isinstance(timeframe_analyses, dict):
             self.logger.error("Invalid input for timeframe_analyses.")
-            return {"type": "NO_ACTION", "strength": "NEUTRAL", "details": "Invalid input."}
+            return False
         
         # Get parameters from config
         bullish_confirmation_threshold = self.signal_params.get("bullish_confirmation_threshold", 1)
@@ -165,7 +180,7 @@ class SignalGenerator:
 
         if not timeframe_analyses or not isinstance(timeframe_analyses, dict):
             self.logger.error("Invalid input for timeframe_analyses.")
-            return {"type": "NO_ACTION", "strength": "NEUTRAL", "details": "Invalid input."}
+            return False
     
         # Get parameters from config
         bearish_confirmation_threshold = self.signal_params.get("bearish_confirmation_threshold", 1)
@@ -479,7 +494,7 @@ class RiskAssessor:
         self.logger.debug(f"Calculated take_profit: {take_profit}")
         
         # Calculate risk-reward ratio
-        if signal["type"] == "BUY":
+        if signal["type"] == SignalType.BUY:
             risk = current_price - stop_loss
             reward = take_profit - current_price
         else:  # SELL or NO_ACTION
@@ -525,7 +540,7 @@ class RiskAssessor:
         support_resistance_buffer = self.risk_params.get("support_resistance_buffer", 0.005)
         self.logger.debug(f"default_stop_loss_percent: {default_stop_loss_percent}, support_resistance_buffer: {support_resistance_buffer}")
         
-        if signal["type"] == "BUY":
+        if signal["type"] == SignalType.BUY:
             # For buy signals, place stop loss below recent support
             support_levels = support_resistance["support"]
             self.logger.debug(f"Support levels: {support_levels}")
@@ -553,7 +568,7 @@ class RiskAssessor:
                 stop_loss = current_price * (1 - default_stop_loss_percent)
                 self.logger.debug(f"No support levels found, stop loss set by default percent: {stop_loss}")
         
-        elif signal["type"] == "SELL":
+        elif signal["type"] == SignalType.SELL:
             # For sell signals, place stop loss above recent resistance
             resistance_levels = support_resistance["resistance"]
             self.logger.debug(f"Resistance levels: {resistance_levels}")
@@ -607,7 +622,7 @@ class RiskAssessor:
         support_resistance_buffer = self.risk_params.get("support_resistance_buffer", 0.005)
         self.logger.debug(f"default_take_profit_percent: {default_take_profit_percent}, support_resistance_buffer: {support_resistance_buffer}")
         
-        if signal["type"] == "BUY":
+        if signal["type"] == SignalType.BUY:
             # For buy signals, place take profit at or above recent resistance
             resistance_levels = support_resistance["resistance"]
             self.logger.debug(f"Resistance levels: {resistance_levels}")
@@ -635,7 +650,7 @@ class RiskAssessor:
                 take_profit = current_price * (1 + default_take_profit_percent)
                 self.logger.debug(f"No resistance levels found, take profit set by default percent: {take_profit}")
         
-        elif signal["type"] == "SELL":
+        elif signal["type"] == SignalType.SELL:
             # For sell signals, place take profit at or below recent support
             support_levels = support_resistance["support"]
             self.logger.debug(f"Support levels: {support_levels}")
