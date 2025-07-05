@@ -26,7 +26,7 @@ class SignalGenerator:
         self.account_params = data_parameters.get_account_parameters()
         
             
-    def generate_signals(self, timeframe_analyses, confirmations):
+    def generate_signals(self, timeframe_analyses: dict, confirmations: dict) -> dict:
         """
         Generate trading signals based on VPA analysis across timeframes
         
@@ -37,6 +37,11 @@ class SignalGenerator:
         Returns:
         - Dictionary with signal information
         """
+
+        if not timeframe_analyses or not isinstance(timeframe_analyses, dict):
+            self.logger.error("Invalid input for timeframe_analyses.")
+            return {"type": "NO_ACTION", "strength": "NEUTRAL", "details": "Invalid input."}
+    
         self.logger.info("Generating signals...")
         # Check for strong signals
         strong_buy = self.is_strong_buy_signal(timeframe_analyses, confirmations)
@@ -99,14 +104,14 @@ class SignalGenerator:
         Returns:
         - Boolean indicating if a strong buy signal is present
         """
+
+        if not timeframe_analyses or not isinstance(timeframe_analyses, dict):
+            self.logger.error("Invalid input for timeframe_analyses.")
+            return {"type": "NO_ACTION", "strength": "NEUTRAL", "details": "Invalid input."}
+        
         # Get parameters from config
         bullish_confirmation_threshold = self.signal_params.get("bullish_confirmation_threshold", 1)
         self.logger.debug(f"Checking for strong buy signal with confirmation threshold: {bullish_confirmation_threshold}")
-        
-        # Check for bullish confirmations across timeframes
-        if len(confirmations["bullish"]) <= bullish_confirmation_threshold:
-            self.logger.debug("No strong buy signals detected across timeframes")
-            return False
         
         # Check for bullish patterns
         bullish_patterns = 0
@@ -157,14 +162,14 @@ class SignalGenerator:
         Returns:
         - Boolean indicating if a strong sell signal is present
         """
+
+        if not timeframe_analyses or not isinstance(timeframe_analyses, dict):
+            self.logger.error("Invalid input for timeframe_analyses.")
+            return {"type": "NO_ACTION", "strength": "NEUTRAL", "details": "Invalid input."}
+    
         # Get parameters from config
         bearish_confirmation_threshold = self.signal_params.get("bearish_confirmation_threshold", 1)
         self.logger.debug(f"Checking for strong sell signal with confirmation threshold: {bearish_confirmation_threshold}")
-        
-        # Check for bearish confirmations across timeframes
-        if len(confirmations["bearish"]) <= bearish_confirmation_threshold:
-            self.logger.debug("No strong sell signals detected across timeframes")
-            return False
         
         # Check for bearish patterns
         bearish_patterns = 0
@@ -207,53 +212,60 @@ class SignalGenerator:
     def is_moderate_buy_signal(self, timeframe_analyses, confirmations):
         """
         Check if a moderate buy signal is present
-        
+
         Parameters:
         - timeframe_analyses: Dictionary with analysis results for each timeframe
         - confirmations: Dictionary with confirmation analysis across timeframes
-        
+
         Returns:
         - Boolean indicating if a moderate buy signal is present
         """
+        self.logger.debug("Checking for moderate buy signal...")
         # Check for bullish signals in at least one timeframe
         bullish_candles = 0
         bullish_trends = 0
-        
+
         for tf in timeframe_analyses:
             candle_analysis = timeframe_analyses[tf]["candle_analysis"]
             trend_analysis = timeframe_analyses[tf]["trend_analysis"]
-            
+
             if candle_analysis["signal_strength"] == "BULLISH":
                 bullish_candles += 1
-            
+                self.logger.debug(f"Bullish candle detected in {tf}")
             if trend_analysis["signal_strength"] == "BULLISH":
                 bullish_trends += 1
-        
+                self.logger.debug(f"Bullish trend detected in {tf}")
+
         # Get parameters from config
         bullish_candles_threshold = self.signal_params.get("bullish_candles_threshold", 2)
         moderate_bullish_confirmation_threshold = self.signal_params.get("moderate_bullish_confirmation_threshold", 1)
-        
+        self.logger.debug(f"Bullish candles threshold: {bullish_candles_threshold}, Moderate bullish confirmation threshold: {moderate_bullish_confirmation_threshold}")
+
         # Check for bullish patterns
         bullish_patterns = 0
         for tf in timeframe_analyses:
             patterns = timeframe_analyses[tf]["pattern_analysis"]
-            
+
             # Check for accumulation
             if patterns["accumulation"]["detected"]:
                 bullish_patterns += 1
-            
+                self.logger.debug(f"Accumulation pattern detected in {tf}")
             # Check for selling climax
             if patterns["selling_climax"]["detected"]:
                 bullish_patterns += 1
-        
+                self.logger.debug(f"Selling climax pattern detected in {tf}")
+
         # Check for bullish confirmations
         bullish_confirmations = len(confirmations["bullish"])
+        self.logger.debug(f"Bullish candles: {bullish_candles}, Bullish trends: {bullish_trends}, Bullish patterns: {bullish_patterns}, Bullish confirmations: {bullish_confirmations}")
 
         # Determine if moderate buy signal is present
-        return ((bullish_candles >= bullish_candles_threshold or 
-             bullish_trends >= 1 or 
-             bullish_patterns >= 1) and
-            bullish_confirmations >= moderate_bullish_confirmation_threshold)
+        result = ((bullish_candles >= bullish_candles_threshold or 
+                 bullish_trends >= 1 or 
+                 bullish_patterns >= 1) and
+                bullish_confirmations >= moderate_bullish_confirmation_threshold)
+        self.logger.debug(f"Moderate buy signal result: {result}")
+        return result
     
     def is_moderate_sell_signal(self, timeframe_analyses, confirmations):
         """
@@ -266,6 +278,7 @@ class SignalGenerator:
         Returns:
         - Boolean indicating if a moderate sell signal is present
         """
+        self.logger.debug("Checking for moderate sell signal...")
         # Check for bearish signals in at least one timeframe
         bearish_candles = 0
         bearish_trends = 0
@@ -276,13 +289,16 @@ class SignalGenerator:
             
             if candle_analysis["signal_strength"] == "BEARISH":
                 bearish_candles += 1
+                self.logger.debug(f"Bearish candle detected in {tf}")
             
             if trend_analysis["signal_strength"] == "BEARISH":
                 bearish_trends += 1
+                self.logger.debug(f"Bearish trend detected in {tf}")
         
         # Get parameters from config
         bearish_candles_threshold = self.signal_params.get("bearish_candles_threshold", 2)
         moderate_bearish_confirmation_threshold = self.signal_params.get("moderate_bearish_confirmation_threshold", 1)
+        self.logger.debug(f"Bearish candles threshold: {bearish_candles_threshold}, Moderate bearish confirmation threshold: {moderate_bearish_confirmation_threshold}")
 
         # Check for bearish patterns
         bearish_patterns = 0
@@ -292,22 +308,25 @@ class SignalGenerator:
             # Check for distribution
             if patterns["distribution"]["detected"]:
                 bearish_patterns += 1
+                self.logger.debug(f"Distribution pattern detected in {tf}")
             
             # Check for buying climax
             if patterns["buying_climax"]["detected"]:
                 bearish_patterns += 1
+                self.logger.debug(f"Buying climax pattern detected in {tf}")
         
         # Check for bearish confirmations
         bearish_confirmations = len(confirmations["bearish"])
+        self.logger.debug(f"Bearish candles: {bearish_candles}, Bearish trends: {bearish_trends}, Bearish patterns: {bearish_patterns}, Bearish confirmations: {bearish_confirmations}")
 
         # Determine if moderate sell signal is present
-        # Determine if moderate sell signal is present
-        return ((bearish_candles >= bearish_candles_threshold or 
+        result = ((bearish_candles >= bearish_candles_threshold or 
                 bearish_trends >= 1 or 
                 bearish_patterns >= 1) and
                 bearish_confirmations >= moderate_bearish_confirmation_threshold)
-    
-    def gather_signal_evidence(self, timeframe_analyses, confirmations, signal_type):
+        self.logger.debug(f"Moderate sell signal result: {result}")
+        return result
+    def gather_signal_evidence(self, timeframe_analyses: dict, confirmations: dict, signal_type: str) -> dict:
         """
         Gather evidence supporting the signal
         
@@ -319,6 +338,7 @@ class SignalGenerator:
         Returns:
         - Dictionary with supporting evidence
         """
+        self.logger.debug(f"Gathering signal evidence for signal_type: {signal_type}")
         evidence = {
             "candle_signals": [],
             "trend_signals": [],
@@ -332,6 +352,7 @@ class SignalGenerator:
             for tf in timeframe_analyses:
                 candle_analysis = timeframe_analyses[tf]["candle_analysis"]
                 if candle_analysis["signal_strength"] == "BULLISH":
+                    self.logger.debug(f"Bullish candle detected in {tf}: {candle_analysis['details']}")
                     evidence["candle_signals"].append({
                         "timeframe": tf,
                         "details": candle_analysis["details"]
@@ -341,6 +362,7 @@ class SignalGenerator:
             for tf in timeframe_analyses:
                 trend_analysis = timeframe_analyses[tf]["trend_analysis"]
                 if trend_analysis["signal_strength"] == "BULLISH":
+                    self.logger.debug(f"Bullish trend detected in {tf}: {trend_analysis['details']}")
                     evidence["trend_signals"].append({
                         "timeframe": tf,
                         "details": trend_analysis["details"]
@@ -351,6 +373,7 @@ class SignalGenerator:
                 patterns = timeframe_analyses[tf]["pattern_analysis"]
                 
                 if patterns["accumulation"]["detected"]:
+                    self.logger.debug(f"Accumulation pattern detected in {tf}: {patterns['accumulation']['details']}")
                     evidence["pattern_signals"].append({
                         "timeframe": tf,
                         "pattern": "Accumulation",
@@ -358,6 +381,7 @@ class SignalGenerator:
                     })
                 
                 if patterns["selling_climax"]["detected"]:
+                    self.logger.debug(f"Selling climax pattern detected in {tf}: {patterns['selling_climax']['details']}")
                     evidence["pattern_signals"].append({
                         "timeframe": tf,
                         "pattern": "Selling Climax",
@@ -365,6 +389,7 @@ class SignalGenerator:
                     })
             
             # Add timeframe confirmations
+            self.logger.debug(f"Bullish timeframe confirmations: {confirmations['bullish']}")
             evidence["timeframe_confirmations"] = confirmations["bullish"]
         
         elif signal_type == "SELL":
@@ -372,6 +397,7 @@ class SignalGenerator:
             for tf in timeframe_analyses:
                 candle_analysis = timeframe_analyses[tf]["candle_analysis"]
                 if candle_analysis["signal_strength"] == "BEARISH":
+                    self.logger.debug(f"Bearish candle detected in {tf}: {candle_analysis['details']}")
                     evidence["candle_signals"].append({
                         "timeframe": tf,
                         "details": candle_analysis["details"]
@@ -381,6 +407,7 @@ class SignalGenerator:
             for tf in timeframe_analyses:
                 trend_analysis = timeframe_analyses[tf]["trend_analysis"]
                 if trend_analysis["signal_strength"] == "BEARISH":
+                    self.logger.debug(f"Bearish trend detected in {tf}: {trend_analysis['details']}")
                     evidence["trend_signals"].append({
                         "timeframe": tf,
                         "details": trend_analysis["details"]
@@ -391,6 +418,7 @@ class SignalGenerator:
                 patterns = timeframe_analyses[tf]["pattern_analysis"]
                 
                 if patterns["distribution"]["detected"]:
+                    self.logger.debug(f"Distribution pattern detected in {tf}: {patterns['distribution']['details']}")
                     evidence["pattern_signals"].append({
                         "timeframe": tf,
                         "pattern": "Distribution",
@@ -398,6 +426,7 @@ class SignalGenerator:
                     })
                 
                 if patterns["buying_climax"]["detected"]:
+                    self.logger.debug(f"Buying climax pattern detected in {tf}: {patterns['buying_climax']['details']}")
                     evidence["pattern_signals"].append({
                         "timeframe": tf,
                         "pattern": "Buying Climax",
@@ -405,8 +434,10 @@ class SignalGenerator:
                     })
             
             # Add timeframe confirmations
+            self.logger.debug(f"Bearish timeframe confirmations: {confirmations['bearish']}")
             evidence["timeframe_confirmations"] = confirmations["bearish"]
         
+        self.logger.debug(f"Gathered evidence: {evidence}")
         return evidence
 
 class RiskAssessor:
@@ -437,9 +468,14 @@ class RiskAssessor:
         Returns:
         - Dictionary with risk assessment
         """
+        self.logger.debug(f"Assessing trade risk for signal: {signal}, current_price: {current_price}, support_resistance: {support_resistance}")
+
         # Calculate stop loss and take profit levels
         stop_loss = self.calculate_stop_loss(signal, current_price, support_resistance)
+        self.logger.debug(f"Calculated stop_loss: {stop_loss}")
+
         take_profit = self.calculate_take_profit(signal, current_price, support_resistance)
+        self.logger.debug(f"Calculated take_profit: {take_profit}")
         
         # Calculate risk-reward ratio
         if signal["type"] == "BUY":
@@ -448,18 +484,25 @@ class RiskAssessor:
         else:  # SELL or NO_ACTION
             risk = stop_loss - current_price
             reward = current_price - take_profit
-        
+
+        self.logger.debug(f"Risk: {risk}, Reward: {reward}")
+
         risk_reward_ratio = reward / risk if risk > 0 else 0
-        
+        self.logger.debug(f"Risk-reward ratio: {risk_reward_ratio}")
+
         # Determine position size based on risk
         position_size = self.calculate_position_size(current_price, stop_loss)
-        
+        self.logger.debug(f"Calculated position_size: {position_size}")
+
+        risk_per_share = abs(current_price - stop_loss)
+        self.logger.debug(f"Risk per share: {risk_per_share}")
+
         return {
             "stop_loss": stop_loss,
             "take_profit": take_profit,
             "risk_reward_ratio": risk_reward_ratio,
             "position_size": position_size,
-            "risk_per_share": abs(current_price - stop_loss)
+            "risk_per_share": risk_per_share
         }
     
     def calculate_stop_loss(self, signal, current_price, support_resistance):
@@ -474,57 +517,73 @@ class RiskAssessor:
         Returns:
         - Stop loss price level
         """
+        self.logger.debug(f"Calculating stop loss for signal: {signal}, current_price: {current_price}, support_resistance: {support_resistance}")
+
         # Get parameters from config
         default_stop_loss_percent = self.risk_params.get("default_stop_loss_percent", 0.02)
         support_resistance_buffer = self.risk_params.get("support_resistance_buffer", 0.005)
+        self.logger.debug(f"default_stop_loss_percent: {default_stop_loss_percent}, support_resistance_buffer: {support_resistance_buffer}")
         
         if signal["type"] == "BUY":
             # For buy signals, place stop loss below recent support
             support_levels = support_resistance["support"]
+            self.logger.debug(f"Support levels: {support_levels}")
             
             if support_levels:
                 # Find closest support level below current price
                 valid_supports = [level for level in support_levels if level["price"] < current_price]
+                self.logger.debug(f"Valid supports below current price: {valid_supports}")
                 
                 if valid_supports:
                     # Sort by price (descending) to get closest support below current price
                     valid_supports.sort(key=lambda x: x["price"], reverse=True)
                     stop_level = valid_supports[0]["price"]
+                    self.logger.debug(f"Closest support below current price: {stop_level}")
                     
                     # Add buffer below support
                     stop_loss = stop_level * (1 - support_resistance_buffer)
+                    self.logger.debug(f"Stop loss set below support with buffer: {stop_loss}")
                 else:
                     # No valid support found, use default percentage
                     stop_loss = current_price * (1 - default_stop_loss_percent)
+                    self.logger.debug(f"No valid support found, stop loss set by default percent: {stop_loss}")
             else:
                 # No support levels found, use default percentage
                 stop_loss = current_price * (1 - default_stop_loss_percent)
+                self.logger.debug(f"No support levels found, stop loss set by default percent: {stop_loss}")
         
         elif signal["type"] == "SELL":
             # For sell signals, place stop loss above recent resistance
             resistance_levels = support_resistance["resistance"]
+            self.logger.debug(f"Resistance levels: {resistance_levels}")
             
             if resistance_levels:
                 # Find closest resistance level above current price
                 valid_resistances = [level for level in resistance_levels if level["price"] > current_price]
+                self.logger.debug(f"Valid resistances above current price: {valid_resistances}")
                 
                 if valid_resistances:
                     # Sort by price (ascending) to get closest resistance above current price
                     valid_resistances.sort(key=lambda x: x["price"])
                     stop_level = valid_resistances[0]["price"]
+                    self.logger.debug(f"Closest resistance above current price: {stop_level}")
                     
                     # Add buffer above resistance
                     stop_loss = stop_level * (1 + support_resistance_buffer)
+                    self.logger.debug(f"Stop loss set above resistance with buffer: {stop_loss}")
                 else:
                     # No valid resistance found, use default percentage
                     stop_loss = current_price * (1 + default_stop_loss_percent)
+                    self.logger.debug(f"No valid resistance found, stop loss set by default percent: {stop_loss}")
             else:
                 # No resistance levels found, use default percentage
                 stop_loss = current_price * (1 + default_stop_loss_percent)
+                self.logger.debug(f"No resistance levels found, stop loss set by default percent: {stop_loss}")
         
         else:  # NO_ACTION
             # For no action signals, use default percentage
             stop_loss = current_price * (1 - default_stop_loss_percent)
+            self.logger.debug(f"NO_ACTION signal, stop loss set by default percent: {stop_loss}")
         
         return stop_loss
     
@@ -540,57 +599,73 @@ class RiskAssessor:
         Returns:
         - Take profit price level
         """
+        self.logger.debug(f"Calculating take profit for signal: {signal}, current_price: {current_price}, support_resistance: {support_resistance}")
+
         # Get parameters from config
         default_take_profit_percent = self.risk_params.get("default_take_profit_percent", 0.05)
         support_resistance_buffer = self.risk_params.get("support_resistance_buffer", 0.005)
+        self.logger.debug(f"default_take_profit_percent: {default_take_profit_percent}, support_resistance_buffer: {support_resistance_buffer}")
         
         if signal["type"] == "BUY":
             # For buy signals, place take profit at or above recent resistance
             resistance_levels = support_resistance["resistance"]
+            self.logger.debug(f"Resistance levels: {resistance_levels}")
             
             if resistance_levels:
                 # Find closest resistance level above current price
                 valid_resistances = [level for level in resistance_levels if level["price"] > current_price]
+                self.logger.debug(f"Valid resistances above current price: {valid_resistances}")
                 
                 if valid_resistances:
                     # Sort by price (ascending) to get closest resistance above current price
                     valid_resistances.sort(key=lambda x: x["price"])
                     target_level = valid_resistances[0]["price"]
+                    self.logger.debug(f"Closest resistance above current price: {target_level}")
                     
                     # Add buffer above resistance
                     take_profit = target_level * (1 + support_resistance_buffer)
+                    self.logger.debug(f"Take profit set above resistance with buffer: {take_profit}")
                 else:
                     # No valid resistance found, use default percentage
                     take_profit = current_price * (1 + default_take_profit_percent)
+                    self.logger.debug(f"No valid resistance found, take profit set by default percent: {take_profit}")
             else:
                 # No resistance levels found, use default percentage
                 take_profit = current_price * (1 + default_take_profit_percent)
+                self.logger.debug(f"No resistance levels found, take profit set by default percent: {take_profit}")
         
         elif signal["type"] == "SELL":
             # For sell signals, place take profit at or below recent support
             support_levels = support_resistance["support"]
+            self.logger.debug(f"Support levels: {support_levels}")
             
             if support_levels:
                 # Find closest support level below current price
                 valid_supports = [level for level in support_levels if level["price"] < current_price]
+                self.logger.debug(f"Valid supports below current price: {valid_supports}")
                 
                 if valid_supports:
                     # Sort by price (descending) to get closest support below current price
                     valid_supports.sort(key=lambda x: x["price"], reverse=True)
                     target_level = valid_supports[0]["price"]
+                    self.logger.debug(f"Closest support below current price: {target_level}")
                     
                     # Add buffer below support
                     take_profit = target_level * (1 - support_resistance_buffer)
+                    self.logger.debug(f"Take profit set below support with buffer: {take_profit}")
                 else:
                     # No valid support found, use default percentage
                     take_profit = current_price * (1 - default_take_profit_percent)
+                    self.logger.debug(f"No valid support found, take profit set by default percent: {take_profit}")
             else:
                 # No support levels found, use default percentage
                 take_profit = current_price * (1 - default_take_profit_percent)
+                self.logger.debug(f"No support levels found, take profit set by default percent: {take_profit}")
         
         else:  # NO_ACTION
             # For no action signals, use default percentage
             take_profit = current_price * (1 + default_take_profit_percent)
+            self.logger.debug(f"NO_ACTION signal, take profit set by default percent: {take_profit}")
         
         return take_profit
     
