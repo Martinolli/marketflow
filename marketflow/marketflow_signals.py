@@ -25,8 +25,8 @@ class SignalGenerator:
         self.config_manager = create_app_config(self.logger)
 
         self.data_parameters = data_parameters or MarketFlowDataParameters()
-        self.signal_params = data_parameters.get_signal_parameters()
-        self.account_params = data_parameters.get_account_parameters()
+        self.signal_params = self.data_parameters.get_signal_parameters()
+        self.account_params = self.data_parameters.get_account_parameters()
         
             
     def generate_signals(self, timeframe_analyses: dict, confirmations: dict) -> dict[str, object]:
@@ -457,8 +457,8 @@ class RiskAssessor:
 
         # Initialize configuration and parameters
         self.data_parameters = data_parameters or MarketFlowDataParameters()
-        self.risk_params = data_parameters.get_risk_parameters()
-        self.account_params = data_parameters.get_account_parameters()
+        self.risk_params = self.data_parameters.get_risk_parameters()
+        self.account_params = self.data_parameters.get_account_parameters()
         
     def assess_trade_risk(self, signal, current_price: float, support_resistance: dict) -> dict:
         """
