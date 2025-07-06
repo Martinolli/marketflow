@@ -4,8 +4,9 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
-| 2025-07-03 | v1.3     | `marketflow_wyckoff.py` (new module)           |
-| 2025-07-03 | v1.3     | `marketflow_signals.py` (new module)           |
+| 2025-07-06 | v1.4     | `enums.py` (new module)                        |
+| 2025-07-05 | v1.3     | `marketflow_wyckoff.py` (new module)           |
+| 2025-07-05 | v1.3     | `marketflow_signals.py` (new module)           |
 | 2025-07-05 | v1.3     | `marketflow_processor.py` (new module)          |
 | 2025-07-05 | v1.3     | `marketflow_data_parameters.py` (new module)    |
 | 2025-07-04 | v1.2     | `marketflow_polygon_tolls.py` (new module)      |
@@ -93,7 +94,7 @@ marketflow/
 │
 ├── __pycache__ 
 │
-├── __pytest_cache__ 
+├── .pytest_cache
 │
 │
 ├── markdown_files/
@@ -104,23 +105,26 @@ marketflow/
 │       
 │
 ├── marketflow/                                         # Core Python package
-│   ├── __init__.py
-│   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
-│   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
-│   ├── marketflow_processor.py  (✓ new)                # Data processing/cleaning
-│   ├── marketflow_analyzer.py  (TBD)                   # Core VPA and Wyckoff analytics
-│   ├── marketflow_signals.py   (✓ new)                 # Signal detection algorithms
-│   ├── marketflow_wyckoff.py (✓ new)                   # Wyckoff method analytics
-│   ├── marketflow_facade.py  (TBD)                     # Orchestrator: unified API for analytics, charting, reporting
-│   ├── marketflow_logger.py (✓ replaced)               # Centralized logging
-│   ├── marketflow_llm_providers.py (TBD)               # LLM abstraction layer
-│   ├── marketflow_memory_manager.py (TBD)              # Conversation/session memory for LLMs
-│   ├── marketflow_llm_interface.py  (TBD)              # Human-friendly narrative/report generator for LLM
-│   ├── marketflow_llm_query_engine.py (TBD)            # Orchestrates user query through LLM and backend
-│   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
-│   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
+│   ├── __pycache__
 │   ├── examples/
 │   │    └── integration_example.py (✓ new)             # Integration example script
+│   ├── __init__.py
+│   ├── enums.py                                        # Enum definitions
+│   ├── marketflow_analyzer.py  (TBD)                   # Core VPA and Wyckoff analytics
+│   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
+│   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
+│   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
+│   ├── marketflow_facade.py  (TBD)                     # Orchestrator: unified API for analytics, charting, reporting
+│   ├── marketflow_logger.py (✓ replaced)               # Centralized logging
+│   ├── marketflow_memory_manager.py (TBD)              # Conversation/session memory for LLMs
+│   ├── marketflow_polygon_tools.py (new)               # Polygon Tools Requesting Code
+│   ├── marketflow_processor.py  (✓ new)                # Data processing/cleaning
+│   ├── marketflow_signals.py   (✓ new)                 # Signal detection algorithms
+│   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
+│   ├── marketflow_wyckoff.py (✓ new)                   # Wyckoff method analytics
+│   ├── marketflow_llm_providers.py (TBD)               # LLM abstraction layer
+│   ├── marketflow_llm_interface.py  (TBD)              # Human-friendly narrative/report generator for LLM
+│   ├── marketflow_llm_query_engine.py (TBD)            # Orchestrates user query through LLM and backend
 │   ├──
 │   └── ...                                             # (Other modules as needed)
 │
