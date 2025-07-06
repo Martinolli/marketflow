@@ -22,6 +22,10 @@ class WyckoffAnalyzer:
         Initialize the analyzer.
         All arguments should be outputs of their respective VPA modules.
         """
+        # Validate processed_data format
+        if not isinstance(processed_data, dict) or 'price' not in processed_data or 'volume' not in processed_data:
+            raise ValueError("Invalid processed_data format")
+        
         # Initialize logger
         self.logger = get_logger(module_name="WyckoffAnalyzer")
 
@@ -85,7 +89,7 @@ class WyckoffAnalyzer:
         self.trading_ranges = []
 
     def run_analysis(self):
-        """Runs the full Wyckoff analysis."""
+        """Runs the full Wyckoff analysis."""        
         self.logger.info("Running full Wyckoff analysis.")
         try:
             events = self.detect_events()
