@@ -5,7 +5,6 @@ This module provides data access for Marketflow analysis with robust error handl
 and a clear, extensible interface for future data providers.
 """
 
-import time
 from datetime import datetime, timedelta, timezone
 from typing import Coroutine, Dict, List, Tuple, Optional, Any
 from pandas.tseries.offsets import DateOffset
@@ -253,12 +252,25 @@ class PolygonIOProvider(DataProvider):
         Get price and volume data for a ticker with robust error handling.
         Returns (price_df, volume_series) or None if data could not be fetched.
         """
+        self.logger.info(
+            f"Starting synchronous data fetch for {ticker} at {interval} interval, period={period}, "
+            f"start_date={start_date}, end_date={end_date}"
+        )
         # This is the standard way to call an async function from sync code.
         try:
-            return asyncio.run(self._fetch_data_core(ticker, interval, period, start_date, end_date))
+            result = asyncio.run(self._fetch_data_core(ticker, interval, period, start_date, end_date))
+            if result is not None and not result[0].empty:
+                self.logger.info(
+                    f"Successfully fetched data for {ticker} at {interval} interval (sync)"
+                )
+            else:
+                self.logger.info(
+                    f"No data returned for {ticker} at {interval} interval (sync)"
+                )
+            return result
         except RuntimeError as e:
             # This handles the case where get_data is called from an already running event loop
-            if "cannot run loop while another loop is running" in str(e):
+            if "cannot be called from a running event loop" in str(e):
                 self.logger.error(
                     "get_data (sync) was called from within an async context. "
                     "Use get_data_async instead. Returning None."
@@ -278,18 +290,35 @@ class PolygonIOProvider(DataProvider):
         Asynchronously get price and volume data for a ticker with robust error handling.
         Returns (price_df, volume_series) or None if data could not be fetched.
         """
-        return await self._fetch_data_core(ticker, interval, period, start_date, end_date)
+        self.logger.info(
+            f"Starting asynchronous data fetch for {ticker} at {interval} interval, period={period}, "
+            f"start_date={start_date}, end_date={end_date}"
+        )
+        result = await self._fetch_data_core(ticker, interval, period, start_date, end_date)
+        if result is not None and not result[0].empty:
+            self.logger.info(
+                f"Successfully fetched data for {ticker} at {interval} interval (async)"
+            )
+        else:
+            self.logger.info(
+                f"No data returned for {ticker} at {interval} interval (async)"
+            )
+        return result
 
     def _parse_interval(self, interval: str) -> Tuple[Optional[int], Optional[str]]:
         """Parse interval string into multiplier and timespan"""
         try:
             if interval.endswith('m'):
+                self.logger.info(f"Parsing interval: {interval} as minute timeframe")
                 return int(interval[:-1]), 'minute'
             elif interval.endswith('h'):
+                self.logger.info(f"Parsing interval: {interval} as hour timeframe")
                 return int(interval[:-1]), 'hour'
             elif interval.endswith('d'):
+                self.logger.info(f"Parsing interval: {interval} as day timeframe")
                 return int(interval[:-1]), 'day'
             elif interval.endswith('w'):
+                self.logger.info(f"Parsing interval: {interval} as week timeframe")
                 return int(interval[:-1]), 'week'
             else:
                 self.logger.error(f"Unsupported interval format: {interval}")
