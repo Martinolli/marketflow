@@ -5,7 +5,6 @@ It detects Wyckoff events and phases based on price and volume data.
 
 # Import necessary libraries
 import pandas as pd
-from enum import Enum
 from typing import Any, Dict, List, Optional
 
 # Import custom modules
@@ -190,6 +189,7 @@ class WyckoffAnalyzer:
         """
         Identify Wyckoff events using a dual-logic state machine for Accumulation and Distribution.
         """
+        print("Starting Wyckoff event detection.")
         df = self.price_data.copy()
         min_data_len = self.vol_lookback + self.swing_point_n
         if len(df) < min_data_len:
@@ -374,6 +374,8 @@ class WyckoffAnalyzer:
                         self.trading_ranges[-1]['end_timestamp'] = current_row.name
                     trading_range = None; last_reaction_idx = None; last_climax_idx = None
         self.events = sorted(events, key=lambda x: x['timestamp'])
+        print(f"Detected {len(self.events)} Wyckoff events.")
+        self.logger.info(f"Detected {len(self.events)} Wyckoff events.")
         return self.events
     
     def detect_phases(self):
@@ -381,6 +383,7 @@ class WyckoffAnalyzer:
         Classify Wyckoff phases based on the sequence of detected events.
         This logic is more stateful and context-aware than the original implementation.
         """
+        print("Starting Wyckoff phase detection.")
         self.logger.info("Starting stateful Wyckoff phase detection.")
         if not self.events:
             self.logger.warning("No events detected, cannot determine phases.")
@@ -405,51 +408,80 @@ class WyckoffAnalyzer:
         for event_dict in self.events:
             ts = event_dict['timestamp']
             event = WyckoffEvent[event_dict['event_name']]
+            self.logger.debug(f"Processing event {event.name} at {ts}")
+            self.logger.info(f"Processing event {event.name} at {ts}")
 
-            # Fill in the phase for the time between the last event and this one
+            # --- Step 1: Fill the gap between the last event and this one ---
+            # This uses the 'current_phase' from the *previous* iteration, which is correct.
             for date in self.price_data.loc[last_event_ts:ts].index:
                 if date not in phases_by_timestamp:
                     phases_by_timestamp[date] = current_phase
+                    self.logger.debug(f"Filling phase {current_phase.name} for timestamp {date}")
+                    self.logger.info(f"Filling phase {current_phase.name} for timestamp {date}")
 
-            # --- Phase State Machine ---
-            # Determine initial context and enter Phase A
+            # --- Step 2: Check for a context reset AFTER filling the gap ---
+            # A new climax event implies the old pattern is over and a new one is beginning.
+            if event in {WyckoffEvent.SC, WyckoffEvent.BC} and current_phase != WyckoffPhase.UNKNOWN:
+                self.logger.info(f"*** CONTEXT RESET *** triggered by new climatic event {event.name} at {ts}. Restarting phase analysis.")
+                current_phase = WyckoffPhase.UNKNOWN # Reset the state
+                context = MarketContext.UNDEFINED     # Reset the context
+            
+            # --- Step 3: Run the state machine to determine the phase for the current event ---
             if current_phase == WyckoffPhase.UNKNOWN:
                 if event in phase_a_acc_events:
                     current_phase = WyckoffPhase.A
                     context = MarketContext.ACCUMULATION
+                    self.logger.info(f"Entering Phase A (Accumulation) at {ts} due to {event.name}")
                     self.logger.debug(f"Entering Phase A (Accumulation) at {ts} due to {event.name}")
                 elif event in phase_a_dist_events:
                     current_phase = WyckoffPhase.A
                     context = MarketContext.DISTRIBUTION
+                    self.logger.info(f"Entering Phase A (Distribution) at {ts} due to {event.name}")
                     self.logger.debug(f"Entering Phase A (Distribution) at {ts} due to {event.name}")
             
             # Transition from A to B
             elif current_phase == WyckoffPhase.A:
-                if (context == MarketContext.ACCUMULATION and event == WyckoffEvent.ST) or \
-                   (context == MarketContext.DISTRIBUTION and event == WyckoffEvent.ST_DIST):
+                # Prioritize a jump to D if a strong breakout/breakdown occurs
+                if (context == MarketContext.ACCUMULATION and event in phase_d_acc_events) or \
+                   (context == MarketContext.DISTRIBUTION and event in phase_d_dist_events):
+                    current_phase = WyckoffPhase.D
+                    self.logger.warning(f"Jumping from Phase A to D at {ts} due to strong event {event.name}. Phase B/C may have been brief or missed.")
+                elif (context == MarketContext.ACCUMULATION and event == WyckoffEvent.ST) or \
+                     (context == MarketContext.DISTRIBUTION and event == WyckoffEvent.ST_DIST):
                     current_phase = WyckoffPhase.B
-                    self.logger.debug(f"Transitioning to Phase B at {ts} due to {event.name}")
+                    self.logger.info(f"Transitioning to Phase B at {ts} due to {event.name}")
+
             
             # Transition from B to C
             elif current_phase == WyckoffPhase.B:
-                if (context == MarketContext.ACCUMULATION and event in phase_c_acc_events) or \
-                   (context == MarketContext.DISTRIBUTION and event in phase_c_dist_events):
+                # Prioritize a jump to D here as well
+                if (context == MarketContext.ACCUMULATION and event in phase_d_acc_events) or \
+                   (context == MarketContext.DISTRIBUTION and event in phase_d_dist_events):
+                    current_phase = WyckoffPhase.D
+                    self.logger.warning(f"Jumping from Phase B to D at {ts} due to strong event {event.name}. Phase C may have been brief or missed.")
+                elif (context == MarketContext.ACCUMULATION and event in phase_c_acc_events) or \
+                     (context == MarketContext.DISTRIBUTION and event in phase_c_dist_events):
                     current_phase = WyckoffPhase.C
-                    self.logger.debug(f"Transitioning to Phase C at {ts} due to {event.name}")
+                    self.logger.info(f"Transitioning to Phase C at {ts} due to {event.name}")
             
             # Transition from C to D
             elif current_phase == WyckoffPhase.C:
                 if (context == MarketContext.ACCUMULATION and event in phase_d_acc_events) or \
                    (context == MarketContext.DISTRIBUTION and event in phase_d_dist_events):
                     current_phase = WyckoffPhase.D
+                    self.logger.info(f"Transitioning to Phase D at {ts} due to {event.name}")
                     self.logger.debug(f"Transitioning to Phase D at {ts} due to {event.name}")
-            
-            # Transition from D to E (Represents confirmed trend)
+
+            # Phase D represents the start of the trend. It remains in Phase D upon
+            # confirmation events like LPS/LPSY or further SOS/SOW. The transition to
+            # Phase E is a condition (sustained trend), not a simple event trigger.
+            # For this implementation, we will let the phase persist as D.
             elif current_phase == WyckoffPhase.D:
                  if (context == MarketContext.ACCUMULATION and event in phase_d_acc_events) or \
                    (context == MarketContext.DISTRIBUTION and event in phase_d_dist_events):
-                    current_phase = WyckoffPhase.E
-                    self.logger.debug(f"Transitioning to Phase E at {ts} due to {event.name}")
+                    # DO NOTHING - Stay in Phase D. This event confirms the phase.
+                    self.logger.info(f"Confirming Phase D at {ts} with event {event.name}")
+                    self.logger.debug(f"Confirming Phase D at {ts} with event {event.name}")
 
             phases_by_timestamp[ts] = current_phase
             last_event_ts = ts
@@ -461,6 +493,7 @@ class WyckoffAnalyzer:
         # Convert the dictionary to the required list format
         self.phases = [{'timestamp': ts, 'phase': p.value, 'phase_name': p.name} for ts, p in phases_by_timestamp.items()]
         self.logger.info(f"Wyckoff phase detection completed. {len(self.phases)} phase entries generated.")
+        print(f"Detected {len(self.phases)} Wyckoff phases.")
         return self.phases
     ## --- CHANGE END --- ##
 
