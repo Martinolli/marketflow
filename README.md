@@ -132,9 +132,17 @@ marketflow/
 │   └── marketflow_app.py                               # empty
 │
 ├── tests/                                              # Unit and integration tests
-│   ├── test_data_provider.py
+│   ├── demo_marketflow_modules.py (✓ new)
 │   ├── test_marketflow_modules.py (✓ new)
-│   └── demo_marketflow_modules.py (✓ new)
+│   ├── test_test_data_provider_async.py (✓ new)
+│   ├── test_data_provider.py
+│   ├── test_marketflow_data_parameters.py (✓ new)
+│   ├── test_marketflow_modules.py (✓ new)
+│   ├── test_marketflow_processor_integration.py (✓ new)
+│   ├── test_signals.py (✓ new)
+│   ├── test_wyckoff_phases.py (✓ new)
+│   ├── test_wyckoff.py (✓ new)
+│   └── ...
 │
 ├── deprecated_backup/
 │   ├── backup_info.txt (✓ created)
