@@ -345,10 +345,19 @@ class TestMarketflowIntegration(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test fixtures"""
-        self.home_patcher.stop()  # Stop the patch
+        logging.shutdown()
         clear_loggers()
-        if os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir)
+        import time
+        for _ in range(15):  # Try up to 5 times
+            try:
+                time.sleep(0.2)
+                if os.path.exists(self.temp_dir):
+                    shutil.rmtree(self.temp_dir)
+                break
+            except PermissionError:
+                continue
+        else:
+            print(f"Warning: Unable to delete temporary directory: {self.temp_dir}")
     
     @unittest.skipUnless(FIXED_MODULES_AVAILABLE, "Fixed modules not available")
     def test_integration_initialization(self):
@@ -414,12 +423,26 @@ class TestErrorHandling(unittest.TestCase):
         """Set up test fixtures"""
         self.temp_dir = tempfile.mkdtemp()
         clear_loggers()
+        # Mock Path.home() to prevent RuntimeError when os.environ is cleared
+        # This is necessary because ConfigManager tries to find a config in the home dir
+        self.home_patcher = patch('pathlib.Path.home', return_value=Path(self.temp_dir))
+        self.mock_home = self.home_patcher.start()
     
     def tearDown(self):
         """Clean up test fixtures"""
+        logging.shutdown()
         clear_loggers()
-        if os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir)
+        import time
+        for _ in range(15):  # Try up to 5 times
+            try:
+                time.sleep(0.2)
+                if os.path.exists(self.temp_dir):
+                    shutil.rmtree(self.temp_dir)
+                break
+            except PermissionError:
+                continue
+        else:
+            print(f"Warning: Unable to delete temporary directory: {self.temp_dir}")
     
     @unittest.skipUnless(FIXED_MODULES_AVAILABLE, "Fixed modules not available")
     def test_logger_with_invalid_path(self):
