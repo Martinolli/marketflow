@@ -4,6 +4,7 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-06 | v1.5     | `marketflow_analyzer` (new module)             |
 | 2025-07-06 | v1.4     | `enums.py` (new module)                        |
 | 2025-07-05 | v1.3     | `marketflow_wyckoff.py` (new module)           |
 | 2025-07-05 | v1.3     | `marketflow_signals.py` (new module)           |
@@ -110,7 +111,7 @@ marketflow/
 │   │    └── integration_example.py (✓ new)             # Integration example script
 │   ├── __init__.py
 │   ├── enums.py                                        # Enum definitions
-│   ├── marketflow_analyzer.py  (TBD)                   # Core VPA and Wyckoff analytics
+│   ├── marketflow_analyzer.py  (✓ new)                 # Core VPA and Wyckoff analytics
 │   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
 │   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
 │   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
