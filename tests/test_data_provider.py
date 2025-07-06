@@ -8,6 +8,7 @@ import os
 import sys
 from types import SimpleNamespace
 import warnings
+from unittest.mock import MagicMock
 
 # Suppress specific deprecation warnings
 warnings.filterwarnings("ignore", category=DeprecationWarning, module="websockets")
@@ -42,12 +43,14 @@ def mock_provider(monkeypatch):
     Pytest fixture to create a PolygonIOProvider instance with a mocked API key
     and a dummy client.
     """
+    # Patch RESTClient to prevent any real network calls during __init__
+    monkeypatch.setattr("marketflow.marketflow_data_provider.RESTClient", MagicMock())
     monkeypatch.setattr(ConfigManager, "get_api_key", lambda self, service: "dummy_key")
     logger.info("Mocking ConfigManager.get_api_key to return 'dummy_key'")
-    # Create a PolygonIOProvider instance with a dummy client
+    # Create a PolygonIOProvider instance. Its internal clients will be MagicMocks.
     provider = PolygonIOProvider()
     logger.info("Creating PolygonIOProvider instance for testing.")
-    # Assign the dummy client to the provider
+    # Now, assign our specific dummy client for testing the get_data method.
     provider.client = DummyClient()
     logger.info("Assigning DummyClient to PolygonIOProvider instance.")
     # Ensure the provider is ready for testing
@@ -141,6 +144,8 @@ def test_polygon_provider_no_data(monkeypatch):
     Test the PolygonIOProvider's get_data method when the API returns no data.
     """
     logger.info("Testing PolygonIOProvider.get_data with no data returned.")
+    # Patch RESTClient to prevent any real network calls during __init__
+    monkeypatch.setattr("marketflow.marketflow_data_provider.RESTClient", MagicMock())
     # Mock the ConfigManager to return a dummy API key
     monkeypatch.setattr(ConfigManager, "get_api_key", lambda self, service: "dummy_key")
     logger.info("Mocking ConfigManager.get_api_key to return 'dummy_key'")

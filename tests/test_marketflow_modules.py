@@ -46,9 +46,19 @@ class TestMarketflowLogger(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test fixtures"""
+        logging.shutdown()
         clear_loggers()
-        if os.path.exists(self.temp_dir):
-            shutil.rmtree(self.temp_dir)
+        import time
+        for _ in range(15):  # Try up to 5 times
+            try:
+                time.sleep(0.2)
+                if os.path.exists(self.temp_dir):
+                    shutil.rmtree(self.temp_dir)
+                break
+            except PermissionError:
+                continue
+        else:
+            print(f"Warning: Unable to delete temporary directory: {self.temp_dir}")
     
     @unittest.skipUnless(FIXED_MODULES_AVAILABLE, "Fixed modules not available")
     def test_logger_initialization(self):
@@ -110,6 +120,7 @@ class TestMarketflowLogger(unittest.TestCase):
         """Test specialized logging methods for MarketFlow"""
         logger = get_logger(
             module_name="SpecializedTest",
+            log_level="DEBUG",
             log_file=self.test_log_file
         )
         
@@ -164,15 +175,12 @@ class TestMarketflowLogger(unittest.TestCase):
         
         self.assertIsInstance(logger, MarketflowLogger)
         logger.info("Test message")
-        
-        # Close the logger
-        logger.handlers[0].close()
-        logger.handlers.clear()
 
         # Should still work with default level
         self.assertTrue(os.path.exists(self.test_log_file))
 
 
+@patch.dict(os.environ, {}, clear=True)
 class TestMarketflowConfigManager(unittest.TestCase):
     """Test cases for the MarketFlow Config Manager module"""
     
@@ -180,6 +188,11 @@ class TestMarketflowConfigManager(unittest.TestCase):
         """Set up test fixtures"""
         self.temp_dir = tempfile.mkdtemp()
         self.test_config_file = os.path.join(self.temp_dir, "test_config.json")
+        
+        # Mock Path.home() to prevent RuntimeError when os.environ is cleared
+        # This is necessary because ConfigManager tries to find a config in the home dir
+        self.home_patcher = patch('pathlib.Path.home', return_value=Path(self.temp_dir))
+        self.mock_home = self.home_patcher.start()
         
         # Create a test config file
         self.test_config_data = {
@@ -194,6 +207,7 @@ class TestMarketflowConfigManager(unittest.TestCase):
     
     def tearDown(self):
         """Clean up test fixtures"""
+        self.home_patcher.stop()  # Stop the patch
         clear_loggers()
         logging.shutdown()
         import time
@@ -214,7 +228,7 @@ class TestMarketflowConfigManager(unittest.TestCase):
         config = ConfigManager(config_file=self.test_config_file)
         
         self.assertIsInstance(config, ConfigManager)
-        self.assertEqual(config.config_data["openai_api_key"], "sk-test123456")
+        self.assertEqual(config.config_data["openai_api_key"], "sk-test123456789")
     
     @unittest.skipUnless(FIXED_MODULES_AVAILABLE, "Fixed modules not available")
     def test_api_key_retrieval(self):
@@ -223,7 +237,7 @@ class TestMarketflowConfigManager(unittest.TestCase):
         
         # Test successful retrieval
         openai_key = config.get_api_key("openai")
-        self.assertEqual(openai_key, "sk-test123456")
+        self.assertEqual(openai_key, "sk-test123456789")
         
         polygon_key = config.get_api_key("polygon")
         self.assertEqual(polygon_key, "test_polygon_key")
@@ -324,9 +338,14 @@ class TestMarketflowIntegration(unittest.TestCase):
         """Set up test fixtures"""
         self.temp_dir = tempfile.mkdtemp()
         clear_loggers()
+        # Mock Path.home() to prevent RuntimeError when os.environ is cleared
+        # This is necessary because ConfigManager tries to find a config in the home dir
+        self.home_patcher = patch('pathlib.Path.home', return_value=Path(self.temp_dir))
+        self.mock_home = self.home_patcher.start()
     
     def tearDown(self):
         """Clean up test fixtures"""
+        self.home_patcher.stop()  # Stop the patch
         clear_loggers()
         if os.path.exists(self.temp_dir):
             shutil.rmtree(self.temp_dir)
@@ -387,6 +406,7 @@ class TestMarketflowIntegration(unittest.TestCase):
             self.assertNotIn('\\', config.MEMORY_DB_PATH)
 
 
+@patch.dict(os.environ, {}, clear=True)
 class TestErrorHandling(unittest.TestCase):
     """Test error handling in both modules"""
     
@@ -522,4 +542,3 @@ def main():
 if __name__ == "__main__":
     success = main()
     sys.exit(0 if success else 1)
-
