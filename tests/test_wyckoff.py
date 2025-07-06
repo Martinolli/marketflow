@@ -30,7 +30,7 @@ def synthetic_market_data():
 
 def test_wyckoff_analyzer_run_analysis(synthetic_market_data):
     analyzer = WyckoffAnalyzer(synthetic_market_data)
-    phases, events, trading_ranges = analyzer.run_analysis()
+    phases, events, _ = analyzer.run_analysis()
     # There should be at least one event and phase detected
     assert isinstance(events, list)
     assert len(events) > 0, "No Wyckoff events detected"
