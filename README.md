@@ -95,9 +95,24 @@ marketflow/
 │
 ├── __pycache__ 
 │
+├── .marketflow/
+│   ├── config                                          # Config Files
+│   ├── logs                                            # Central config/env loader
+│   ├── memory                                          # Abstract + provider-specific data fetchers
+|
 ├── .pytest_cache
+|
+|
+├── .vscode/
 │
+├── deprecated_backup/
+│   ├── backup_info.txt (✓ created)
+│   └── modules/
+│       ├── marketflow_config_manager_original.py (✓ backup)
+│       └── marketflow_logger_original.py (✓ backup)
 │
+├── env                                                 # (Not committed) Environment
+|
 ├── markdown_files/
 │   ├── marketflow_files_compatibility_analysis.md (✓ created)
 │   ├── marketflow_replacement_backup_guide.md (✓ created)
@@ -145,25 +160,15 @@ marketflow/
 │   ├── test_wyckoff.py (✓ new)
 │   └── ...
 │
-├── deprecated_backup/
-│   ├── backup_info.txt (✓ created)
-│   └── modules/
-│       ├── marketflow_config_manager_original.py (✓ backup)
-│       └── marketflow_logger_original.py (✓ backup)
 │
-├── env                                                 # (Not committed) Environment 
 ├── .env                                                # (Not committed) Your API keys and secrets
 ├── .gitignore                                          # Standard ignore file
 ├── LICENSE                                             # MIT license
 ├── requirements.txt                                    # Python dependencies
 ├── README.md                                           # This file
 ├── backup_and_replace.bat (✓ created)
+├── setup.py (✓ created)
 │  
-│
-├── .marketflow/
-│   ├── config                                          # Config Files
-│   ├── logs                                            # Central config/env loader
-│   ├── memory                                          # Abstract + provider-specific data fetchers
 │
 │
 ├── marketflow_finetuning/                              # NEW: The home for all training activities
