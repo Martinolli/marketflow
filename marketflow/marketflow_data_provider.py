@@ -78,18 +78,17 @@ class PolygonIOProvider(DataProvider):
         self._initialize_client()
     
     def _initialize_client(self) -> None:
-        """Initialize the Polygon.io REST clients (sync and async) with error handling"""
+        """Initialize the Polygon.io REST client with error handling"""
         try:
             api_key = self.config_manager.get_api_key('polygon')
             if not api_key:
                 self.logger.error("Polygon.io API key not found")
                 raise ValueError("Polygon.io API key not found")
             self.client = RESTClient(api_key)
-            # The async client is instantiated from the same class with a boolean flag
-            self.async_client = RESTClient(api_key, True)
-            self.logger.debug("Polygon.io clients (sync & async) initialized successfully")
+            self.async_client = self.client  # Keep the attribute for interface compatibility
+            self.logger.debug("Polygon.io client initialized successfully")
         except Exception as e:
-            self.logger.error(f"Failed to initialize Polygon.io clients: {e}")
+            self.logger.error(f"Failed to initialize Polygon.io client: {e}")
             self.client = None
             self.async_client = None
     
@@ -215,11 +214,15 @@ class PolygonIOProvider(DataProvider):
         for attempt in range(MAX_RETRIES):
             try:
                 self.logger.debug(f"Fetching data for {ticker} at {interval} timeframe (Attempt {attempt + 1}/{MAX_RETRIES})")
-                aggs = await self.async_client.get_aggs(
+                aggs = await asyncio.to_thread(
+                    self.async_client.get_aggs,
                     ticker=ticker, multiplier=multiplier, timespan=timespan,
                     from_=start_date_dt.strftime("%Y-%m-%d"), to=end_date_dt.strftime("%Y-%m-%d"),
                     limit=50000
                 )
+                # Check if aggs is a coroutine (async result) or not
+                if asyncio.iscoroutine(aggs):
+                    aggs = aggs
                 price_df, volume_series = self._process_aggregates(aggs)
                 if price_df.empty:
                     self.logger.warning(f"No data returned for {ticker} at {interval} timeframe")
