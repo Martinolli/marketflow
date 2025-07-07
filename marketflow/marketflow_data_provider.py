@@ -101,10 +101,11 @@ class PolygonIOProvider(DataProvider):
     def _handle_error(self, error: Exception, ticker: str, interval: str, attempt: int = 0) -> Tuple[str, str]:
         """Handle errors with categorization and logging"""
         error_str = str(error)
+        self.logger.debug(f"DEBUG: _handle_error received error_str: '{error_str}'") # ADD THIS LINE
         error_category = ErrorCategory.UNKNOWN
 
         # Categorize error
-        if "ConnectionError" in error_str or "timeout" in error_str.lower():
+        if isinstance(error, ConnectionError) or "timeout" in error_str.lower():
             error_category = ErrorCategory.NETWORK
             message = f"Network error fetching data for {ticker} at {interval} timeframe: {error}"
         elif "401" in error_str or "Unauthorized" in error_str:
@@ -213,15 +214,11 @@ class PolygonIOProvider(DataProvider):
         for attempt in range(MAX_RETRIES):
             try:
                 self.logger.debug(f"Fetching data for {ticker} at {interval} timeframe (Attempt {attempt + 1}/{MAX_RETRIES})")
-                aggs = await asyncio.to_thread(
-                    self.async_client.get_aggs,
+                aggs = await self.async_client.get_aggs(
                     ticker=ticker, multiplier=multiplier, timespan=timespan,
                     from_=start_date_dt.strftime("%Y-%m-%d"), to=end_date_dt.strftime("%Y-%m-%d"),
                     limit=50000
                 )
-                # Check if aggs is a coroutine (async result) or not
-                if asyncio.iscoroutine(aggs):
-                    aggs = aggs
                 price_df, volume_series = self._process_aggregates(aggs)
                 if price_df.empty:
                     self.logger.warning(f"No data returned for {ticker} at {interval} timeframe")
@@ -415,11 +412,12 @@ class MultiTimeframeProvider:
         for (tf_key, _), result in zip(tasks, results):
             if isinstance(result, Exception):
                 self.logger.error(f"Error fetching data for {ticker} at {tf_key} timeframe: {result}", exc_info=True)
-                continue
-            
-            if result is None or result[0].empty:
+                continue # <--- This continues to the next iteration, skipping the next block
+
+            if result is None or result[0].empty: # <--- This is where the extra warning comes from
                 self.logger.warning(f"No price data returned for {ticker} at {tf_key} timeframe. Skipping.")
                 continue
+
             
             price_data, volume_data = result
             timeframe_data[tf_key] = {'price_data': price_data, 'volume_data': volume_data}
