@@ -27,7 +27,7 @@ class CandleAnalyzer:
             self.logger.info("Using provided MarketFlowDataParameters.")
         self.parameters = parameters or MarketFlowDataParameters()
 
-    def analyze_candle(self, idx, processed_data):
+    def analyze_candle(self, idx: int, processed_data: dict) -> dict:
         """
         Analyze a single candle and its volume for Marketflow signals
 
@@ -176,7 +176,7 @@ class TrendAnalyzer:
 
         self.trend_params = self.parameters.get_trend_parameters()
     
-    def analyze_trend(self, processed_data, current_idx, lookback=None):
+    def analyze_trend(self, processed_data: dict, current_idx, lookback=None) -> dict:
         """
         Analyze recent candles to identify trend characteristics
         
@@ -321,7 +321,7 @@ class PatternRecognizer:
 
         self.pattern_params = self.parameters.get_pattern_parameters()
     
-    def identify_patterns(self, processed_data, current_idx, lookback=20):
+    def identify_patterns(self, processed_data: dict, current_idx, lookback=20) -> dict:
         """
         Identify Marketflow patterns in the price and volume data
 
@@ -369,7 +369,7 @@ class PatternRecognizer:
 
         return patterns
     
-    def detect_accumulation(self, price_data, volume_data, volume_class):
+    def detect_accumulation(self, price_data, volume_data, volume_class) -> dict:
         """
         Detect accumulation patterns
         
@@ -432,7 +432,7 @@ class PatternRecognizer:
         self.logger.info(f"Accumulation detection result: {result}")
         self.logger.debug(f"Accumulation details: {result['details']}")
         return result
-    def detect_distribution(self, price_data, volume_data, volume_class):
+    def detect_distribution(self, price_data, volume_data, volume_class) -> dict:
         """
         Detect distribution patterns
         
@@ -495,7 +495,7 @@ class PatternRecognizer:
         self.logger.info(f"Distribution detection result: {result}")
         self.logger.debug(f"Distribution details: {result['details']}")
         return result
-    def detect_testing(self, price_data, volume_class):
+    def detect_testing(self, price_data, volume_class) -> dict:
         """
         Detect testing patterns
         
@@ -553,7 +553,7 @@ class PatternRecognizer:
             "tests": tests  # This list is what the visualizer expects
         }
     
-    def detect_buying_climax(self, price_data, volume_data, volume_class):
+    def detect_buying_climax(self, price_data, volume_data, volume_class) -> dict:
         """
         Detect buying climax patterns
         
@@ -617,7 +617,7 @@ class PatternRecognizer:
         self.logger.info(f"Buying climax detection result: {result}")
         self.logger.debug(f"Buying climax details: {result['details']}")
         return result
-    def detect_selling_climax(self, price_data, volume_data, volume_class):
+    def detect_selling_climax(self, price_data, volume_data, volume_class) -> dict:
         """
         Detect selling climax patterns
         
@@ -699,7 +699,7 @@ class SupportResistanceAnalyzer:
             self.logger.info("Using provided MarketFlowDataParameters.")
         self.parameters = parameters or MarketFlowDataParameters()
     
-    def analyze_support_resistance(self, processed_data, lookback=50):
+    def analyze_support_resistance(self, processed_data: dict, lookback=50) -> dict:
         """
         Identify key support and resistance levels based on price and volume
 
@@ -736,7 +736,7 @@ class SupportResistanceAnalyzer:
             "volume_at_levels": volume_at_levels
         }
 
-    def find_support_levels(self, price_data, volume_data):
+    def find_support_levels(self, price_data, volume_data) -> list:
         """
         Find potential support levels based on price and volume
 
@@ -802,7 +802,7 @@ class SupportResistanceAnalyzer:
 
         self.logger.info(f"Total filtered support levels: {len(filtered_levels)}")
         return filtered_levels[:5]  # Return top 5 support levels
-    def find_resistance_levels(self, price_data, volume_data):
+    def find_resistance_levels(self, price_data, volume_data) -> list:
         """
         Find potential resistance levels based on price and volume
         
@@ -868,7 +868,7 @@ class SupportResistanceAnalyzer:
         
         self.logger.info(f"Total filtered resistance levels: {len(filtered_levels)}")
         return filtered_levels[:5]  # Return top 5 resistance levels
-    def analyze_volume_at_price(self, price_data, volume_data, support_levels, resistance_levels):
+    def analyze_volume_at_price(self, price_data, volume_data, support_levels: list, resistance_levels: list) -> dict:
         """
         Analyze volume at key price levels
         
@@ -944,7 +944,7 @@ class MultiTimeframeAnalyzer:
         self.sr_analyzer = SupportResistanceAnalyzer(self.parameters)
         self.processor = DataProcessor(self.parameters)
     
-    def analyze_multiple_timeframes(self, timeframe_data):
+    def analyze_multiple_timeframes(self, timeframe_data: dict) -> dict:
         """
         Perform Marketflow analysis across multiple timeframes
         
@@ -992,7 +992,7 @@ class MultiTimeframeAnalyzer:
         
         return results, confirmations
     
-    def identify_timeframe_confirmations(self, results):
+    def identify_timeframe_confirmations(self, results: dict) -> dict:
         """
         Identify confirmations and divergences across timeframes
         
@@ -1073,7 +1073,7 @@ class PointInTimeAnalyzer:
         self.pattern_recognizer = PatternRecognizer(self.parameters)
         self.sr_analyzer = SupportResistanceAnalyzer(self.parameters)
     
-    def analyze_all(self, processed_timeframe_data):
+    def analyze_all(self, processed_timeframe_data: dict) -> dict:
         """
         Analyze all timeframes at a specific point in time
 
@@ -1163,7 +1163,7 @@ class PointInTimeAnalyzer:
             self.logger.debug(f"Final signals: {signals}")
 
         return signals
-    def compute_risk_reward(self, processed_data, signals):
+    def compute_risk_reward(self, processed_data: dict, signals: dict) -> dict:
         """
         Compute risk-reward metrics based on analysis
 
@@ -1264,7 +1264,7 @@ class PointInTimeAnalyzer:
 
         return result
     
-    def compute_volatility(self, processed_data, lookback=20):
+    def compute_volatility(self, processed_data: dict, lookback=20) -> dict:
         """
         Compute volatility metrics
 
@@ -1323,7 +1323,7 @@ class PointInTimeAnalyzer:
 
         return result
     
-    def compute_confidence_score(self, signals):
+    def compute_confidence_score(self, signals: dict) -> float:
         """
         Compute confidence score based on signals across timeframes
 
