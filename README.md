@@ -278,6 +278,33 @@ sequenceDiagram
 
 ---
 
+## 📦 Module Overview
+
+### marketflow_data_provider.py
+
+The `marketflow_data_provider.py` module is the core data access layer for MarketFlow. It provides a robust, extensible interface for fetching price and volume data from external sources, such as Polygon.io. Key features include:
+
+- **Abstract Base Class (`DataProvider`)**  
+  Defines a standard interface for all data providers, requiring both synchronous (`get_data`) and asynchronous (`get_data_async`) methods for fetching price and volume data.
+
+- **PolygonIOProvider**  
+  Implements the data provider interface for Polygon.io, with:
+  - Advanced error handling and retry logic (including exponential backoff and jitter)
+  - Support for both synchronous and asynchronous data fetching
+  - API key management and configuration integration
+  - Interval and period parsing, and conversion of raw API responses into pandas DataFrames and Series
+
+- **MultiTimeframeProvider**  
+  Utility class for fetching data across multiple timeframes (e.g., daily, hourly) in a single call, supporting both sync and async workflows.
+
+- **Error Handling**  
+  Categorizes errors (network, API, authentication, rate limit, data processing, unknown), applies retries, and logs all issues for diagnostics.
+
+- **Extensibility**  
+  New data providers can be added easily by subclassing `DataProvider`.
+
+This module is the foundation for all data ingestion in MarketFlow, ensuring reliability, testability, and future extensibility.
+
 ## 🛠️ Configuration
 
 All configuration is managed by `config_manager.py` and environment variables.
