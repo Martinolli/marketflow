@@ -11,6 +11,7 @@ from pandas.tseries.offsets import DateOffset
 from abc import ABC, abstractmethod
 import asyncio
 
+import inspect
 import pandas as pd
 import numpy as np
 from polygon import RESTClient
@@ -214,11 +215,23 @@ class PolygonIOProvider(DataProvider):
         for attempt in range(MAX_RETRIES):
             try:
                 self.logger.debug(f"Fetching data for {ticker} at {interval} timeframe (Attempt {attempt + 1}/{MAX_RETRIES})")
-                aggs = await self.async_client.get_aggs(
-                    ticker=ticker, multiplier=multiplier, timespan=timespan,
-                    from_=start_date_dt.strftime("%Y-%m-%d"), to=end_date_dt.strftime("%Y-%m-%d"),
-                    limit=50000
-                )
+                get_aggs = self.async_client.get_aggs
+                if inspect.iscoroutinefunction(get_aggs):
+                    aggs = await get_aggs(
+                        ticker=ticker, multiplier=multiplier, timespan=timespan,
+                        from_=start_date_dt.strftime("%Y-%m-%d"), to=end_date_dt.strftime("%Y-%m-%d"),
+                        limit=50000
+                    )
+                else:
+                    loop = asyncio.get_running_loop()
+                    aggs = await loop.run_in_executor(
+                        None,
+                        lambda: get_aggs(
+                            ticker=ticker, multiplier=multiplier, timespan=timespan,
+                            from_=start_date_dt.strftime("%Y-%m-%d"), to=end_date_dt.strftime("%Y-%m-%d"),
+                            limit=50000
+                        )
+                    )
                 price_df, volume_series = self._process_aggregates(aggs)
                 if price_df.empty:
                     self.logger.warning(f"No data returned for {ticker} at {interval} timeframe")
