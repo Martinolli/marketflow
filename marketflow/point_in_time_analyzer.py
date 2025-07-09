@@ -1,7 +1,7 @@
 """
-Marketflow Analyzer Orchestrator
+Point-in-Time Analyzer Module
 
-Manages and coordinates the sub-analyzers for MarketFlow.
+Analyzes MarketFlow signals at a specific point in time.
 """
 
 import pandas as pd
@@ -9,53 +9,12 @@ import pandas as pd
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
-
 from marketflow.candle_analyzer import CandleAnalyzer
 from marketflow.trend_analyzer import TrendAnalyzer
 from marketflow.pattern_recognizer import PatternRecognizer
 from marketflow.support_resistance_analyzer import SupportResistanceAnalyzer
-from marketflow.multi_timeframe_analyzer import MultiTimeframeAnalyzer
-from marketflow.point_in_time_analyzer import PointInTimeAnalyzer
 
-
-class MarketflowAnalyzer:
-    def __init__(self, parameters=None):
-
-        # Initialize Logger
-        self.logger = get_logger(module_name="MarketflowAnalyzer")
-
-        # Create configuration manager for API keys and settings
-        self.config_manager = create_app_config(self.logger)
-
-        # Check if parameters are provided, otherwise use default
-        # This allows for flexibility in testing and configuration
-        if parameters is None:
-            self.logger.info("Using default MarketFlowDataParameters.")
-        else:
-            self.logger.info("Using provided MarketFlowDataParameters.")
-        self.parameters = parameters or MarketFlowDataParameters()
-
-
-        # Initialize sub-analyzers with the parameters
-        self.candle_analyzer = CandleAnalyzer(parameters)
-
-        # Initialize other analyzers
-        self.trend_analyzer = TrendAnalyzer(parameters)
-
-        # Initialize pattern recognizer and other analyzers
-        self.pattern_recognizer = PatternRecognizer(parameters)
-
-        # Initialize support/resistance analyzer
-        self.sr_analyzer = SupportResistanceAnalyzer(parameters)
-
-        # Initialize multi-timeframe analyzer
-        self.multi_timeframe_analyzer = MultiTimeframeAnalyzer(parameters)
-
-        # Initialize point-in-time analyzer
-        self.point_in_time_analyzer = PointInTimeAnalyzer(parameters)
-    # Add methods to coordinate analysis as needed
-
-
+class PointInTimeAnalyzer:
     """Analyze data at a specific point in time for Marketflow signals"""
     
     def __init__(self, parameters=None):
