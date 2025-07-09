@@ -4,6 +4,13 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-09 | v1.6     | `marketflow_analyzer` (refactor - split the file into different modules)               |
+| 2025-07-09 | v1.6     | `candle_analyzer.py` (new module)              |
+| 2025-07-09 | v1.6     | `trend_analyzer.py` (new module)               |
+| 2025-07-09 | v1.6     | `pattern_recognizer.py` (new module)           |
+| 2025-07-09 | v1.6     | `support_resistance_analyzer.py` (new module)  |
+| 2025-07-09 | v1.6     | `multi_timeframe_analyzer.py` (new module)     |
+| 2025-07-09 | v1.6     | `point_in_time_analyzer.py` (new module)       |
 | 2025-07-06 | v1.5     | `marketflow_analyzer` (new module)             |
 | 2025-07-06 | v1.4     | `enums.py` (new module)                        |
 | 2025-07-05 | v1.3     | `marketflow_wyckoff.py` (new module)           |
