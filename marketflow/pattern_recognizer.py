@@ -96,7 +96,7 @@ class PatternRecognizer:
         self.logger.debug(f"Volume class: {list(volume_class)}")
 
         # Get parameters from config
-        params = self.parameters.pattern_params.get("accumulation", {})
+        params = self.parameters.get_pattern_parameters().get("accumulation", {})
         price_volatility_threshold = params.get("price_volatility_threshold", 0.08)
         high_volume_threshold = params.get("high_volume_threshold", 2)
         support_tests_threshold = params.get("support_tests_threshold", 1)
@@ -159,7 +159,7 @@ class PatternRecognizer:
         self.logger.debug(f"Volume class: {list(volume_class)}")
 
         # Get parameters from config
-        params = self.parameters.pattern_params.get("distribution", {})
+        params = self.parameters.get_pattern_parameters().get("distribution", {})
         price_volatility_threshold = params.get("price_volatility_threshold", 0.08)
         high_volume_threshold = params.get("high_volume_threshold", 2)
         resistance_tests_threshold = params.get("resistance_tests_threshold", 1)
@@ -280,7 +280,7 @@ class PatternRecognizer:
         self.logger.debug(f"Volume class: {list(volume_class)}")
 
         # Get parameters from config
-        params = self.parameters.pattern_params.get("buying_climax", {})
+        params = self.parameters.get_pattern_parameters().get("buying_climax", {})
         near_high_threshold = params.get("near_high_threshold", 0.93)
         wide_up_threshold = params.get("wide_up_threshold", 0.6)
         upper_wick_threshold = params.get("upper_wick_threshold", 0.25)
@@ -344,7 +344,7 @@ class PatternRecognizer:
         self.logger.debug(f"Volume class: {list(volume_class)}")
 
         # Get parameters from config
-        params = self.parameters.pattern_params.get("selling_climax", {})
+        params = self.parameters.get_pattern_parameters().get("selling_climax", {})
         near_low_threshold = params.get("near_low_threshold", 1.07)
         wide_down_threshold = params.get("wide_down_threshold", 0.6)
         lower_wick_threshold = params.get("lower_wick_threshold", 0.25)
