@@ -4,6 +4,12 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-10 | v1.7     | `candle_analyzer.py` (new module)              |
+| 2025-07-10 | v1.7     | `trend_analyzer.py` (new module)               |
+| 2025-07-10 | v1.7     | `pattern_recognizer.py` (new module)           |
+| 2025-07-10 | v1.7     | `support_resistance_analyzer.py` (new module)  |
+| 2025-07-10 | v1.7     | `multi_timeframe_analyzer.py` (new module)     |
+| 2025-07-10 | v1.7     | `point_in_time_analyzer.py` (new module)       |
 | 2025-07-09 | v1.6     | `marketflow_analyzer` (refactor - split the file into different modules)               |
 | 2025-07-09 | v1.6     | `candle_analyzer.py` (new module)              |
 | 2025-07-09 | v1.6     | `trend_analyzer.py` (new module)               |
@@ -124,6 +130,7 @@ marketflow/
 │   ├── marketflow_files_compatibility_analysis.md (✓ created)
 │   ├── marketflow_replacement_backup_guide.md (✓ created)
 │   ├── post_replacement_verification_checklist.md (✓ created)
+│   ├── marketflow_analyzer_changes.md (✓ created)
 │
 │       
 │
@@ -132,6 +139,7 @@ marketflow/
 │   ├── examples/
 │   │    └── integration_example.py (✓ new)             # Integration example script
 │   ├── __init__.py
+│   ├── candle_analyzer.py  (✓ new)                     # Enum definitions
 │   ├── enums.py                                        # Enum definitions
 │   ├── marketflow_analyzer.py  (✓ new)                 # Core VPA and Wyckoff analytics
 │   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
@@ -145,6 +153,11 @@ marketflow/
 │   ├── marketflow_signals.py   (✓ new)                 # Signal detection algorithms
 │   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
 │   ├── marketflow_wyckoff.py (✓ new)                   # Wyckoff method analytics
+│   ├── multi_timeframe_analyzer.py (✓ new)             # Multi timeframe analytics
+│   ├── pattern_recognizer.py (✓ new)                   # Pattern recognition algorithms
+│   ├── point_in_time_analyzer.py (✓ new)               # Point in time analytics
+│   ├── support_resistance_analyzer.py (✓ new)          # Support and Resistance algorithms
+│   ├── trend_analyzer.py (✓ new)                       # Trend Analyzer algorithms
 │   ├── marketflow_llm_providers.py (TBD)               # LLM abstraction layer
 │   ├── marketflow_llm_interface.py  (TBD)              # Human-friendly narrative/report generator for LLM
 │   ├── marketflow_llm_query_engine.py (TBD)            # Orchestrates user query through LLM and backend
@@ -155,15 +168,21 @@ marketflow/
 │   └── marketflow_app.py                               # empty
 │
 ├── tests/                                              # Unit and integration tests
+│   ├── __pycache__                                     
 │   ├── demo_marketflow_modules.py (✓ new)
-│   ├── test_marketflow_modules.py (✓ new)
-│   ├── test_test_data_provider_async.py (✓ new)
+│   ├── test_candle_analyzer_real_data.py (✓ new)
+│   ├── test_data_provider_async.py (✓ new)
+│   ├── test_data_provider_simple.py (✓ new)
 │   ├── test_data_provider.py
 │   ├── test_marketflow_data_parameters.py (✓ new)
 │   ├── test_marketflow_modules.py (✓ new)
 │   ├── test_marketflow_processor_integration.py (✓ new)
+│   ├── test_pattern_recognizer_real_data.py (✓ new)
 │   ├── test_signals.py (✓ new)
+│   ├── test_support_and_resistance_real_data.py (✓ new)
+│   ├── test_trend_analyzer_real_data.py (✓ new)
 │   ├── test_wyckoff_phases.py (✓ new)
+│   ├── test_wyckoff_real_data.py
 │   ├── test_wyckoff.py (✓ new)
 │   └── ...
 │
