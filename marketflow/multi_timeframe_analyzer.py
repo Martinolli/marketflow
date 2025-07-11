@@ -21,15 +21,15 @@ class MultiTimeframeAnalyzer:
     def __init__(self, parameters=None):
 
         # Initialize Logger
-        self.logger = get_logger(module_name="MarketflowAnalyzer")
+        self.logger = get_logger(module_name="MultiTimeframeAnalyzer")
 
         # Create configuration manager for API keys and settings
         self.config_manager = create_app_config(self.logger)
 
         if parameters is None:
-            self.logger.info("Using default MarketFlowDataParameters.")
+            self.logger.info("Using default MultiTimeframeAnalyzer parameters.")
         else:
-            self.logger.info("Using provided MarketFlowDataParameters.")
+            self.logger.info("Using provided MultiTimeframeAnalyzer parameters.")
         self.parameters = parameters or MarketFlowDataParameters()
 
         self.candle_analyzer = CandleAnalyzer(self.parameters)
