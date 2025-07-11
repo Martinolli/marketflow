@@ -9,7 +9,7 @@ def main():
     # --- Step 1: Get real market data ---
     provider = PolygonIOProvider()
     result = provider.get_data(
-        ticker="NFLX",
+        ticker="NVDA",
         interval="1h",
         period="2d"
     )
@@ -26,6 +26,8 @@ def main():
     processor = DataProcessor()
     processed_data = processor.preprocess_data(price_df, volume_series)
     print("Processed Data Done:")
+    print()
+    print(processed_data)
     print()
 
     # Get Parameters
