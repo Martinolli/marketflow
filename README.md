@@ -4,6 +4,7 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-11 | v1.8     | `marketflow_facade.py` (new module)             |
 | 2025-07-10 | v1.7     | `candle_analyzer.py` (new module)              |
 | 2025-07-10 | v1.7     | `trend_analyzer.py` (new module)               |
 | 2025-07-10 | v1.7     | `pattern_recognizer.py` (new module)           |
@@ -145,7 +146,7 @@ marketflow/
 │   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
 │   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
 │   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
-│   ├── marketflow_facade.py  (TBD)                     # Orchestrator: unified API for analytics, charting, reporting
+│   ├── marketflow_facade.py  (✓ new)                   # Orchestrator: unified API for analytics, charting, reporting
 │   ├── marketflow_logger.py (✓ replaced)               # Centralized logging
 │   ├── marketflow_memory_manager.py (TBD)              # Conversation/session memory for LLMs
 │   ├── marketflow_polygon_tools.py (new)               # Polygon Tools Requesting Code
