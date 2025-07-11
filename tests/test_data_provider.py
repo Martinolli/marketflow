@@ -21,11 +21,7 @@ from marketflow.marketflow_config_manager import ConfigManager
 from marketflow.marketflow_logger import get_logger
 
 # Initialize logger
-logger = get_logger(
-            module_name="Test_Config_Manager_Marketflow",
-            log_level="DEBUG",
-            log_file=r"C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\logs\marketflow_test_data_provider.log"
-        )
+logger = get_logger(module_name="Test_Config_Manager_Marketflow")
 
 # Dummy client to simulate Polygon API responses for testing
 class DummyClient:

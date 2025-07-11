@@ -25,13 +25,15 @@ def main():
 
     analysis = facade.analyze_ticker(
         ticker="NVDA",
-        # timeframes=[{"interval": "1h", "period": "2d"}]
+        timeframes=[{"interval": "1h", "period": "2d"}]
     )
 
     if analysis is None:
         print("Analysis failed")
         return
     print("Analysis Results:")
+    print()
+    print(type(analysis))
     print(analysis)
 
     # --- Step 4: Get signals ---
@@ -77,15 +79,18 @@ def main():
     print("Batch analyzing multiple tickers...")
     # Example tickers for batch analysis
     # Note: Ensure these tickers are valid and available in your data source
-    tickers = ["AAPL", "MSFT", "GOOGL"]
+    tickers = ["MSFT", "GOOGL"]
     batch_results = facade.batch_analyze(tickers, timeframes=[{"interval": "1h", "period": "2d"}])
     print()
     print("Batch Analysis Results:")
     for ticker, result in batch_results.items():
         print(f"{ticker}: {result}")
 
+
+
     # Scan for signals across multiple tickers
     print()
+    tickers = ["NVDA"]
     print("Scanning for signals across multiple tickers...")
     scan_results = facade.scan_for_signals(tickers, timeframes=[{"interval": "1h", "period": "2d"}])
     print()
