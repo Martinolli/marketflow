@@ -54,7 +54,7 @@ class VPAFacade:
         self.multi_tf_analyzer = MultiTimeframeAnalyzer(self.parameters)
         self.analyzer = PointInTimeAnalyzer(self.parameters)
 
-    def analyze_ticker(self, ticker, timeframes=None):
+    def analyze_ticker(self, ticker: str, timeframes=None) -> dict:
         """
         Analyze a ticker with Marketflow Analysis
         
@@ -109,8 +109,6 @@ class VPAFacade:
                     # The new analyzer will automatically use the parameterized logic and dual-context detection.
                     wyckoff = WyckoffAnalyzer(
                         processed_data=processed_data,
-                        config=self.parameters,
-                        logger=self.logger
                     )
                     self.logger.info(f"Running Wyckoff analysis for {ticker} on timeframe {tf}")
                     
@@ -158,7 +156,7 @@ class VPAFacade:
         
         return results
 
-    def analyze_ticker_at_point(self, ticker: str, sliced_data_by_timeframe: dict):
+    def analyze_ticker_at_point(self, ticker: str, sliced_data_by_timeframe: dict) -> dict:
         """
         Analyze a ticker using only data up to a specific historical point in time.
 
@@ -239,7 +237,17 @@ class VPAFacade:
             self.logger.exception("Detailed error information:")
             return None
 
-    def get_signals(self, ticker, timeframes=None):
+    def get_signals(self, ticker: str, timeframes=None) -> dict:
+        """
+        Get trading signals for a ticker
+        Parameters:
+        - ticker: Stock symbol (e.g., 'AAPL', 'MSFT')
+        - timeframes: Optional list of timeframe dictionaries with 'interval' and 'period' keys
+        Returns:
+        - Dictionary with signal results
+        """
+        self.logger.info(f"Getting signals for {ticker} with timeframes: {timeframes}")
+
         results = self.analyze_ticker(ticker, timeframes)
         if "error" in results: 
             return results 
@@ -252,6 +260,17 @@ class VPAFacade:
         return signal_results
     
     def explain_signal(self, ticker, timeframes=None):
+        """
+        Generate a detailed explanation of the trading signal for a ticker
+        Parameters:
+        - ticker: Stock symbol (e.g., 'AAPL', 'MSFT')
+        - timeframes: Optional list of timeframe dictionaries with 'interval' and 'period' keys
+        Returns:
+        - String with detailed explanation of the signal
+        """
+        self.logger.info(f"Generating explanation for {ticker} with timeframes: {timeframes}")
+
+        # Fetch analysis results for the ticker
         results = self.analyze_ticker(ticker, timeframes)
         if "error" in results: 
             return f"Could not generate explanation for {ticker} due to an error: {results['error']}"
@@ -302,7 +321,16 @@ class VPAFacade:
         self.logger.debug(explanation)
         return explanation
     
-    def batch_analyze(self, tickers, timeframes=None):
+    def batch_analyze(self, tickers, timeframes=None) -> dict:
+        """
+        Batch analyze multiple tickers and return their analysis results
+        Parameters:
+        - tickers: List of stock symbols (e.g., ['AAPL', 'MSFT'])
+        - timeframes: Optional list of timeframe dictionaries with 'interval' and 'period' keys
+        Returns:
+        - Dictionary with ticker as key and analysis results as value
+        """
+        self.logger.info(f"Batch analyzing {len(tickers)} tickers with timeframes: {timeframes}")
         results = {}
         for ticker in tickers:
             try:
@@ -315,7 +343,18 @@ class VPAFacade:
                 }
         return results
     
-    def scan_for_signals(self, tickers, signal_type=None, signal_strength=None, timeframes=None):
+    def scan_for_signals(self, tickers, signal_type=None, signal_strength=None, timeframes=None) -> dict:
+        """
+        Scan multiple tickers for specific trading signals
+        Parameters:
+        - tickers: List of stock symbols (e.g., ['AAPL', 'MSFT'])
+        - signal_type: Optional type of signal to filter (e.g., 'BUY', 'SELL')
+        - signal_strength: Optional strength of signal to filter (e.g., 'STRONG', 'WEAK')
+        - timeframes: Optional list of timeframe dictionaries with 'interval' and 'period' keys
+        Returns:
+        - Dictionary with ticker as key and analysis results as value
+        """
+
         self.logger.info(f"Scanning {len(tickers)} tickers for signals. Type: {signal_type}, Strength: {signal_strength}")
         all_results = self.batch_analyze(tickers, timeframes)
         filtered_results = {}
