@@ -31,16 +31,16 @@ class VPAFacade:
         - logger: Optional Marketflow AnalysisLogger instance (if None, a new one will be created)
         """
          # Initialize Logger
-        self.logger = get_logger(module_name="MarketflowDataProcessor")
+        self.logger = get_logger(module_name="MarketflowFacade")
 
         # Create configuration manager for API keys and settings
         self.config_manager = create_app_config(self.logger)
 
         # Load parameters or use default MarketFlowDataParameters
         if parameters is None:
-            self.logger.info("Using default MarketFlowDataParameters.")
+            self.logger.info("Using default MarketFlowFacadeParameters.")
         else:
-            self.logger.info("Using provided MarketFlowDataParameters.")
+            self.logger.info("Using provided MarketFlowFacadeParameters.")
         self.parameters = parameters or MarketFlowDataParameters()
         
         self.data_provider = PolygonIOProvider()
@@ -55,7 +55,6 @@ class VPAFacade:
         self.analyzer = PointInTimeAnalyzer(self.parameters)
 
     def analyze_ticker(self, ticker, timeframes=None):
-        self.logger.log_analysis_start(ticker, timeframes or [])
         """
         Analyze a ticker with Marketflow Analysis
         
