@@ -176,6 +176,7 @@ marketflow/
 │   ├── test_data_provider_simple.py (✓ new)
 │   ├── test_data_provider.py
 │   ├── test_marketflow_data_parameters.py (✓ new)
+│   ├── test_marketflow_facade_real_data.py (✓ new)
 │   ├── test_marketflow_modules.py (✓ new)
 │   ├── test_marketflow_processor_integration.py (✓ new)
 │   ├── test_multi_timeframe_analyzer_real_data.py (✓ new)
