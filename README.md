@@ -179,6 +179,7 @@ marketflow/
 │   ├── test_marketflow_processor_integration.py (✓ new)
 │   ├── test_multi_timeframe_analyzer_real_data.py (✓ new)
 │   ├── test_pattern_recognizer_real_data.py (✓ new)
+│   ├── test_point_in_time_analyzer_real_data.py (✓ new)
 │   ├── test_signals.py (✓ new)
 │   ├── test_support_and_resistance_real_data.py (✓ new)
 │   ├── test_trend_analyzer_real_data.py (✓ new)
