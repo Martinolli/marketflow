@@ -4,6 +4,7 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-12 | v1.9     | `marketflow_analyzer.py` (deprecated)             |
 | 2025-07-11 | v1.8     | `marketflow_facade.py` (new module)             |
 | 2025-07-10 | v1.7     | `candle_analyzer.py` (new module)              |
 | 2025-07-10 | v1.7     | `trend_analyzer.py` (new module)               |
