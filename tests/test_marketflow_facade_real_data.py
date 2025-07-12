@@ -1,12 +1,19 @@
+"""
+This script tests the MarketflowFacade with real market data.
+It fetches data, performs analysis, retrieves signals, explains them,
+and generates a report.
+"""
+
 import pandas as pd
 from marketflow.marketflow_data_provider import PolygonIOProvider
-from marketflow.marketflow_processor import DataProcessor
 from marketflow.marketflow_facade import MarketflowFacade
 from marketflow.marketflow_results_extractor import MarketflowResultExtractor
+from marketflow.marketflow_report import MarketflowReport
+from marketflow.marketflow_config_manager import create_app_config
 
 def main():
     # --- Step 1: Get real market data ---
-    ticker = "NVDA"
+    ticker = "KTOS"
     print(f"Fetching real market data for {ticker}...")
     provider = PolygonIOProvider()
     result = provider.get_data(
@@ -27,8 +34,7 @@ def main():
     facade = MarketflowFacade()
 
     analysis = facade.analyze_ticker(
-        ticker=ticker,
-        timeframes=[{"interval": "1h", "period": "30d"}]
+        ticker=ticker
     )
 
     if analysis is None:
@@ -142,6 +148,19 @@ def main():
 
     print(type(extractor))
     print(extractor)
+
+    print("Creating report...")
+    config = create_app_config()
+    report_dir = config.REPORT_DIR
+    report = MarketflowReport(extractor, output_dir=report_dir)
+
+    # Actually generate the report file
+    success = report.generate_report_for_ticker(ticker)
+    if success:
+        print(f"Summary report created successfully in {report_dir}")
+    else:
+        print("Report creation failed.")
+    print("MarketflowFacade real data test completed successfully.")
 
 if __name__ == "__main__":
     main()

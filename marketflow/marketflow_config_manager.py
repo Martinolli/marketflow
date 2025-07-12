@@ -115,6 +115,18 @@ class ConfigManager:
         
         self.LOG_FILE_PATH = self.get_config_value("log_file_path", os.getenv("LOG_FILE_PATH", default_log_path))
         self.MEMORY_DB_PATH = self.get_config_value("memory_db_path", os.getenv("MEMORY_DB_PATH", default_memory_path))
+
+        # --- Reports and Output ---
+        default_report_dir = str(self.project_root / ".marketflow" / "reports")
+        self.REPORT_DIR = self.get_config_value("report_dir", os.getenv("REPORT_DIR", default_report_dir))
+        
+        # Ensure output directory exists
+        try:
+            Path(self.REPORT_DIR).mkdir(parents=True, exist_ok=True)
+            self._log("info", f"Report output directory created/verified: {self.REPORT_DIR}")
+        except Exception as e:
+            self._log("error", f"Failed to create report output directory {self.REPORT_DIR}: {e}")
+            raise
     
     def get_api_key(self, service: str) -> str:
         """
