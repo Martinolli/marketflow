@@ -27,13 +27,23 @@ def main():
     processed_data = processor.preprocess_data(price_df, volume_series)
     print("Processed Data Done:")
     print()
-    print(processed_data)
+    print(type(processed_data))
+    print("processed_data keys:")
+    print(processed_data.keys())
+    print("processed data shape:")
+    print(processed_data["price"].shape if "price" in processed_data else "No price data")
     print()
+    print(processed_data["volume"].shape if "volume" in processed_data else "No volume data")
+    print()
+    print(processed_data["volume"].head() if "volume" in processed_data else "No volume data to display")
 
     # Get Parameters
     parameters = MarketFlowDataParameters()
     timeframes = parameters.get_timeframes()
-
+    print()
+    print("Available Timeframes:")
+    print(timeframes)
+    print()
 
     # --- Step 3: Get Multi Timeframe Data ---
     print("Multi Timeframe Provider Initialization...")
@@ -43,6 +53,7 @@ def main():
     print()
     print(timeframe_data)
 
+    
     # --- Step 4: Analyze with Multi Timeframe Analyzer ---
     print("Multi Timeframe Analyzer Initialization...")
     multi_timeframe_analyzer = MultiTimeframeAnalyzer()
@@ -63,6 +74,7 @@ def main():
     print("Confirmations:")
     print(confirmations)
     print()
+
 
 if __name__ == "__main__":
     main()
