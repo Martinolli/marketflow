@@ -152,7 +152,8 @@ def main():
     print("Creating report...")
     config = create_app_config()
     report_dir = config.REPORT_DIR
-    report = MarketflowReport(extractor, output_dir=report_dir)
+    output_dir = f"{report_dir}/{ticker}"
+    report = MarketflowReport(extractor, output_dir)
 
     # Actually generate the report file
     success = report.generate_report_for_ticker(ticker)
