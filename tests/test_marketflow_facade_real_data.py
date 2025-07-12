@@ -28,7 +28,7 @@ def main():
 
     analysis = facade.analyze_ticker(
         ticker=ticker,
-        timeframes=[{"interval": "1h", "period": "2d"}]
+        timeframes=[{"interval": "1h", "period": "30d"}]
     )
 
     if analysis is None:
@@ -140,6 +140,7 @@ def main():
     print(extractor.get_data_summary())
     print("Data extraction and analysis completed successfully.")
 
+    print(type(extractor))
     print(extractor)
 
 if __name__ == "__main__":
