@@ -17,7 +17,7 @@ from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_wyckoff import WyckoffAnalyzer
 
-class VPAFacade:
+class MarketflowFacade:
     """Simplified API for Marketflow Analysis analysis"""
     
     def __init__(self, parameters=None):
