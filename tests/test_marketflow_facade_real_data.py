@@ -1,13 +1,16 @@
 import pandas as pd
 from marketflow.marketflow_data_provider import PolygonIOProvider
 from marketflow.marketflow_processor import DataProcessor
-from marketflow.marketflow_facade import VPAFacade
+from marketflow.marketflow_facade import MarketflowFacade
+from marketflow.marketflow_results_extractor import MarketflowResultExtractor
 
 def main():
     # --- Step 1: Get real market data ---
+    ticker = "NVDA"
+    print(f"Fetching real market data for {ticker}...")
     provider = PolygonIOProvider()
     result = provider.get_data(
-        ticker="NFLX",
+        ticker=ticker,
         interval="1h",
         period="2d"
     )
@@ -21,10 +24,10 @@ def main():
         return
 
     # --- Step 3: Analyze with Candle Analyzer ---
-    facade = VPAFacade()
+    facade = MarketflowFacade()
 
     analysis = facade.analyze_ticker(
-        ticker="NVDA",
+        ticker=ticker,
         timeframes=[{"interval": "1h", "period": "2d"}]
     )
 
@@ -55,7 +58,7 @@ def main():
     # Explanation
     print()
     print("Explaining signal for NVDA...")
-    explanation = facade.explain_signal(ticker="NVDA")
+    explanation = facade.explain_signal(ticker)
     print()
     if explanation is None:
         print("No explanation found")
@@ -68,7 +71,7 @@ def main():
         "1h": price_df,
         "1d": price_df.resample('D').last()  # Example resampling for daily data
     }
-    point_analysis = facade.analyze_ticker_at_point("NVDA", sliced_data)
+    point_analysis = facade.analyze_ticker_at_point(ticker, sliced_data)
     print()
     print("Point Analysis:")
     print(point_analysis)
@@ -79,7 +82,7 @@ def main():
     print("Batch analyzing multiple tickers...")
     # Example tickers for batch analysis
     # Note: Ensure these tickers are valid and available in your data source
-    tickers = ["MSFT", "GOOGL"]
+    tickers = [ticker]
     batch_results = facade.batch_analyze(tickers, timeframes=[{"interval": "1h", "period": "2d"}])
     print()
     print("Batch Analysis Results:")
@@ -90,7 +93,7 @@ def main():
 
     # Scan for signals across multiple tickers
     print()
-    tickers = ["NVDA"]
+    tickers = [ticker]
     print("Scanning for signals across multiple tickers...")
     scan_results = facade.scan_for_signals(tickers, timeframes=[{"interval": "1h", "period": "2d"}])
     print()
@@ -105,6 +108,39 @@ def main():
         print(explanation)
     else:
         print("No signal found for AAPL")
+
+
+    # Extracting results
+    print()
+    print("Extracting results...")
+    extractor = MarketflowResultExtractor({ticker: analysis})
+    print("Extracting data from results...")
+    for key in extractor.get_tickers():
+        print(f"Ticker: {key}")
+        print(f"Current Price: {extractor.get_ticker_data(key).get('current_price')}")
+        print(f"Signal: {extractor.get_signal(key)}")
+        print(f"Timeframes: {extractor.get_timeframes(key)}")
+
+    for timeframe in extractor.get_timeframes(key):
+            print(f"  Timeframe: {timeframe}")
+            price_data = extractor.get_price_data(key, timeframe)
+            volume_data = extractor.get_volume_data(key, timeframe)
+            print(f"    Price Data:\n{price_data.head()}")
+            print(f"    Volume Data:\n{volume_data.head()}")
+            print(f"    Candle Analysis: {extractor.get_candle_analysis(key, timeframe)}")
+            print(f"    Trend Analysis: {extractor.get_trend_analysis(key, timeframe)}")
+            print(f"    Pattern Analysis: {extractor.get_pattern_analysis(key, timeframe)}")
+            print(f"    Support/Resistance: {extractor.get_support_resistance(key, timeframe)}")
+            print(f"    Wyckoff Phases: {extractor.get_wyckoff_phases(key, timeframe)}")
+            print(f"    Volume Events: {extractor.get_wyckoff_events(key, timeframe)}")
+
+
+    print("Data extraction complete.")
+    print("Result Extractor Summary:")
+    print(extractor.get_data_summary())
+    print("Data extraction and analysis completed successfully.")
+
+    print(extractor)
 
 if __name__ == "__main__":
     main()
