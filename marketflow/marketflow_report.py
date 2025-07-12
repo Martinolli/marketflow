@@ -7,6 +7,7 @@ import pandas as pd
 from typing import Dict
 from datetime import datetime
 from pathlib import Path
+import jsonpickle
 
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
@@ -45,18 +46,17 @@ class MarketflowReport:
 
         # Validate and set output directory
         if not isinstance(output_dir, str) or not output_dir:
-            self.logger.debug("Invalid output_dir provided: %s", output_dir)
             raise ValueError("output_dir must be a non-empty string")
         
         report_dir = Path(output_dir)
-        self.logger.debug("Creating report directory at: %s", report_dir)
         report_dir.mkdir(parents=True, exist_ok=True)
+        self.logger.info(f"Output directory created: {report_dir}")
 
         self.output_dir = report_dir
-
-        self.logger.info("Output directory set to: %s", self.output_dir)
+        self.logger.info(f"Output directory set to: {self.output_dir}")
 
         self.report = self.generate_report_for_ticker
+        self.logger.info("MarketflowReport initialized successfully")
     
     def create_summary_report(self, ticker: str) -> bool:
         """
@@ -171,6 +171,153 @@ class MarketflowReport:
             self.logger.error(f"Error creating detailed summary report for {ticker}: {e}", exc_info=True)
             return False
 
+    import jsonpickle
+
+    def create_json_report(self, ticker: str) -> bool:
+        """
+        Export the full extracted analysis for a ticker as a JSON file.
+        """
+        try:
+            report_path = self.output_dir / f"{ticker}_report.json"
+            self.logger.info(f"Generating JSON report for {ticker}")
+            
+            # Use the extractor to grab all structured data
+            ticker_data = self.extractor.get_ticker_data(ticker)
+            
+            with open(report_path, "w", encoding="utf-8") as f:
+                json_data = jsonpickle.encode(ticker_data, unpicklable=False, indent=2)
+                f.write(json_data)
+            
+            self.logger.info(f"JSON report saved to {report_path}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error generating JSON report for {ticker}: {e}", exc_info=True)
+            return False
+            
+    def create_html_report(self, ticker: str) -> bool:
+        """
+        Generate a human-readable HTML report for a given ticker.
+        """
+        try:
+            report_path = self.output_dir / f"{ticker}_report.html"
+            self.logger.info(f"Generating HTML report for {ticker}")
+
+            signal = self.extractor.get_signal(ticker)
+            risk = self.extractor.get_risk_assessment(ticker)
+            current_price = self.extractor.get_current_price(ticker)
+            timeframes = self.extractor.get_timeframes(ticker)
+
+            html = f"""
+            <html>
+            <head>
+                <title>Marketflow Analysis Report for {ticker}</title>
+                <style>
+                    body {{ font-family: Arial, sans-serif; margin: 2em; }}
+                    h1 {{ color: #204080; }}
+                    h2 {{ color: #306090; border-bottom: 1px solid #ccc; }}
+                    h3 {{ color: #408090; }}
+                    .section {{ margin-bottom: 2em; }}
+                    table {{ border-collapse: collapse; width: 100%; }}
+                    th, td {{ border: 1px solid #ccc; padding: 0.5em; }}
+                    th {{ background: #f0f4fa; }}
+                </style>
+            </head>
+            <body>
+            <h1>Marketflow Analysis Report for {ticker}</h1>
+            <div class="section">
+                <h2>Overall Assessment</h2>
+                <ul>
+                    <li><strong>Signal Type:</strong> {signal.get('type', 'N/A')}</li>
+                    <li><strong>Signal Strength:</strong> {signal.get('strength', 'N/A')}</li>
+                    <li><strong>Details:</strong> {signal.get('details', 'N/A')}</li>
+                    <li><strong>Current Price:</strong> ${current_price:.2f}</li>
+                    <li><strong>Stop Loss:</strong> ${risk.get('stop_loss', 0):.2f}</li>
+                    <li><strong>Take Profit:</strong> ${risk.get('take_profit', 0):.2f}</li>
+                    <li><strong>Risk/Reward:</strong> {risk.get('risk_reward_ratio', 0):.2f}</li>
+                </ul>
+            </div>
+            """
+
+            for tf in timeframes:
+                trend = self.extractor.get_trend_analysis(ticker, tf)
+                candle = self.extractor.get_candle_analysis(ticker, tf)
+                pattern = self.extractor.get_pattern_analysis(ticker, tf)
+                sr = self.extractor.get_support_resistance(ticker, tf)
+                wyckoff_phases = self.extractor.get_wyckoff_phases(ticker, tf)
+                wyckoff_events = self.extractor.get_wyckoff_events(ticker, tf)
+                wyckoff_ranges = self.extractor.get_wyckoff_trading_ranges(ticker, tf)
+
+                html += f"""
+                <div class="section">
+                    <h2>Timeframe Analysis: {tf.upper()}</h2>
+                    <h3>Conventional Analysis</h3>
+                    <table>
+                        <tr><th>Trend</th><td>{trend.get('trend_direction', 'N/A')}</td></tr>
+                        <tr><th>Candle Signal</th><td>{candle.get('last_candle_signal', {}).get('Name', 'None')}</td></tr>
+                        <tr><th>Patterns Detected</th><td>{', '.join(pattern.keys()) if pattern else 'None'}</td></tr>
+                        <tr><th>Support Levels</th><td>{', '.join(f'${lvl['price']:.2f}' for lvl in sr.get('support', []))}</td></tr>
+                        <tr><th>Resistance Levels</th><td>{', '.join(f'${lvl['price']:.2f}' for lvl in sr.get('resistance', []))}</td></tr>
+                    </table>
+
+                    <h3>Wyckoff Analysis</h3>
+                """
+
+                if not (wyckoff_phases or wyckoff_events or wyckoff_ranges):
+                    html += "<p>No significant Wyckoff structures detected.</p>"
+                else:
+                    if wyckoff_phases:
+                        latest_phase = wyckoff_phases[-1]
+                        html += f"<p><strong>Current Phase:</strong> {latest_phase.get('phase', 'N/A')}</p>"
+
+                    if wyckoff_ranges:
+                        html += "<h4>Detected Trading Ranges:</h4>"
+                        for i, wr in enumerate(wyckoff_ranges):
+                            start_timestamp = wr.get('start_timestamp')
+                            end_timestamp = wr.get('end_timestamp')
+                            start = pd.to_datetime(start_timestamp).strftime('%Y-%m-%d') if start_timestamp else 'N/A'
+                            end = pd.to_datetime(end_timestamp).strftime('%Y-%m-%d') if end_timestamp else 'Ongoing'
+                            html += f"""
+                            <p>
+                                <strong>Range {i+1} ({wr.get('context', 'N/A')}):</strong><br>
+                                Duration: {start} to {end}<br>
+                                Support: ${wr.get('support', 0):.2f}, Resistance: ${wr.get('resistance', 0):.2f}
+                            </p>
+                            """
+
+                    if wyckoff_events:
+                        html += "<h4>Recent Key Events (up to last 10):</h4><ul>"
+                        for event in wyckoff_events[-10:]:
+                            timestamp = event.get('timestamp')
+                            if timestamp:
+                                try:
+                                    ts = pd.to_datetime(timestamp).strftime('%Y-%m-%d %H:%M')
+                                except (ValueError, TypeError):
+                                    ts = str(timestamp)
+                            else:
+                                ts = 'N/A'
+                            
+                            event_name = event.get('event_name', 'N/A')
+                            details = event.get('description') or event.get('subtype') or ''
+                            details_str = f" ({details})" if details else ""
+                            price = event.get('price', 0)
+                            volume = event.get('volume', 0)
+                            
+                            html += f"<li>{ts}: {event_name}{details_str} @ ${price:.2f} (Vol: {volume:.0f})</li>"
+                        html += "</ul>"
+
+                html += "</div>"
+
+            html += """
+            </body></html>
+            """
+            with open(report_path, "w", encoding="utf-8") as f:
+                f.write(html)
+            self.logger.info(f"HTML report saved to {report_path}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Error generating HTML report for {ticker}: {e}", exc_info=True)
+            return False
+        
     def generate_report_for_ticker(self, ticker: str) -> Dict[str, bool]:
         """
         A convenient method to run all visualization generation for a single ticker.
@@ -186,5 +333,13 @@ class MarketflowReport:
         results['summary_report'] = self.create_summary_report(ticker)
         self.logger.info(f"Summary report generation for {ticker}: {results['summary_report']}")      
         self.logger.info(f"--- Finished generating report for {ticker}")
+
+        # Create JSON report
+        results['json_report'] = self.create_json_report(ticker)
+        self.logger.info(f"JSON report generation for {ticker}: {results['json_report']}")
+
+        # Create HTML report
+        results['html_report'] = self.create_html_report(ticker)
+        self.logger.info(f"HTML report generation for {ticker}: {results['html_report']}")
         
         return results
