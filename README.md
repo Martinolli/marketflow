@@ -123,7 +123,8 @@ marketflow/
 │   ├── backup_info.txt (✓ created)
 │   └── modules/
 │       ├── marketflow_config_manager_original.py (✓ backup)
-│       └── marketflow_logger_original.py (✓ backup)
+│       ├── marketflow_logger_original.py (✓ backup)
+│       ├── marketflow_analyzer.py  (✓ backup)                 
 │
 ├── env                                                 # (Not committed) Environment
 |
@@ -142,7 +143,6 @@ marketflow/
 │   ├── __init__.py
 │   ├── candle_analyzer.py  (✓ new)                     # Enum definitions
 │   ├── enums.py                                        # Enum definitions
-│   ├── marketflow_analyzer.py  (✓ new)                 # Core VPA and Wyckoff analytics
 │   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
 │   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
 │   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
