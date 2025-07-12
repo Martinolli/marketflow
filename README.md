@@ -4,6 +4,8 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-12 | v1.11    | `marketflow_report.py` (new module)             |
+| 2025-07-12 | v1.10    | `marketflow_result_extractor.py` (new module)  |
 | 2025-07-12 | v1.9     | `marketflow_analyzer.py` (deprecated)             |
 | 2025-07-11 | v1.8     | `marketflow_facade.py` (new module)             |
 | 2025-07-10 | v1.7     | `candle_analyzer.py` (new module)              |
@@ -152,6 +154,8 @@ marketflow/
 │   ├── marketflow_memory_manager.py (TBD)              # Conversation/session memory for LLMs
 │   ├── marketflow_polygon_tools.py (new)               # Polygon Tools Requesting Code
 │   ├── marketflow_processor.py  (✓ new)                # Data processing/cleaning
+│   ├── marketflow_report.py  (✓ new)                   # Report generation
+│   ├── marketflow_result_extractor.py  (✓ new)         # Extractor Data from Facade
 │   ├── marketflow_signals.py   (✓ new)                 # Signal detection algorithms
 │   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
 │   ├── marketflow_wyckoff.py (✓ new)                   # Wyckoff method analytics
