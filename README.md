@@ -37,6 +37,92 @@
 
 ---
 
+## 🚀 Modules Description
+
+| Module                    | Role                                                        |
+| ------------------------- | ----------------------------------------------------------- |
+| MarketflowFacade          | Orchestrates the entire analysis pipeline                   |
+| PolygonIOProvider         | Fetches market data from external APIs                      |
+| MultiTimeframeProvider    | Supports multi-timeframe data acquisition                   |
+| DataProcessor             | Preprocesses and feature-engineers data                     |
+| CandleAnalyzer            | Detects candlestick signals                                 |
+| TrendAnalyzer             | Analyzes trend direction/strength                           |
+| PatternRecognizer         | Finds market structure patterns (accumulation, tests, etc.) |
+| SupportResistanceAnalyzer | Identifies support/resistance levels                        |
+| WyckoffAnalyzer           | Detects Wyckoff phases, events, trading ranges              |
+| MultiTimeframeAnalyzer    | Aggregates multi-timeframe results                          |
+| SignalGenerator           | Synthesizes actionable signals                              |
+| RiskAssessor              | Computes stops, targets, position size                      |
+| MarketflowResultExtractor | Structures results for reporting                            |
+| MarketflowReport          | Generates TXT, HTML, JSON reports                           |
+
+## PlantUML Class Diagram Preview
+
+```plantuml
+@startuml
+
+class MarketflowFacade {
+    - config_manager
+    - logger
+    - parameters
+    - data_provider : PolygonIOProvider
+    - multi_tf_provider : MultiTimeframeProvider
+    - processor : DataProcessor
+    - candle_analyzer : CandleAnalyzer
+    - trend_analyzer : TrendAnalyzer
+    - pattern_recognizer : PatternRecognizer
+    - signal_generator : SignalGenerator
+    - risk_assessor : RiskAssessor
+    - multi_tf_analyzer : MultiTimeframeAnalyzer
+    - analyzer : PointInTimeAnalyzer
+    + analyze_ticker()
+    + analyze_ticker_at_point()
+    + get_signals()
+    + explain_signal()
+    + batch_analyze()
+    + scan_for_signals()
+}
+
+class PolygonIOProvider
+class MultiTimeframeProvider
+class DataProcessor
+class CandleAnalyzer
+class TrendAnalyzer
+class PatternRecognizer
+class SupportResistanceAnalyzer
+class WyckoffAnalyzer
+class MultiTimeframeAnalyzer
+class PointInTimeAnalyzer
+class SignalGenerator
+class RiskAssessor
+class MarketflowResultExtractor
+class MarketflowReport
+
+MarketflowFacade "1" -- "1" PolygonIOProvider : uses >
+MarketflowFacade "1" -- "1" MultiTimeframeProvider : uses >
+MarketflowFacade "1" -- "1" DataProcessor : uses >
+MarketflowFacade "1" -- "1" CandleAnalyzer : uses >
+MarketflowFacade "1" -- "1" TrendAnalyzer : uses >
+MarketflowFacade "1" -- "1" PatternRecognizer : uses >
+MarketflowFacade "1" -- "1" SignalGenerator : uses >
+MarketflowFacade "1" -- "1" RiskAssessor : uses >
+MarketflowFacade "1" -- "1" MultiTimeframeAnalyzer : uses >
+MarketflowFacade "1" -- "1" PointInTimeAnalyzer : uses >
+
+MultiTimeframeAnalyzer --|> CandleAnalyzer
+MultiTimeframeAnalyzer --|> TrendAnalyzer
+MultiTimeframeAnalyzer --|> PatternRecognizer
+MultiTimeframeAnalyzer --|> SupportResistanceAnalyzer
+MultiTimeframeAnalyzer --|> DataProcessor
+
+MarketflowReport "1" -- "1" MarketflowResultExtractor : <<uses>>
+MarketflowResultExtractor "1" -- "1" MarketflowFacade : <<receives results from>>
+
+WyckoffAnalyzer ..> MarketflowFacade : <<created in analyze_ticker()>>
+
+@enduml
+```
+
 ```mermaid
 classDiagram
   %% === Core Parameter and Processing Classes ===
