@@ -4,6 +4,7 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-12 | v1.11    | `chunker.py`, `embedder.py`, `retriever.py` (new module) |
 | 2025-07-12 | v1.11    | `marketflow_report.py` (new module)             |
 | 2025-07-12 | v1.10    | `marketflow_result_extractor.py` (new module)  |
 | 2025-07-12 | v1.9     | `marketflow_analyzer.py` (deprecated)             |
@@ -217,6 +218,12 @@ marketflow/
 │
 ├── env                                                 # (Not committed) Environment
 |
+├── knowledgebase/                                      # KNowledge Datase      
+│   ├── chunked/ (✓ created)                            # Chunked Files
+│   ├── embeddings (✓ created)                          # Embeddings Files
+│   ├── sources (✓ created)                             # Sources Files
+│
+│       
 ├── markdown_files/
 │   ├── marketflow_files_compatibility_analysis.md (✓ created)
 │   ├── marketflow_replacement_backup_guide.md (✓ created)
@@ -256,8 +263,17 @@ marketflow/
 │   ├──
 │   └── ...                                             # (Other modules as needed)
 │
+├── rag/                                                # RAG scripts
+│   ├── __init__.py
+│   ├── chunker.py  (✓ new)                            # Chunker script                                     
+│   ├── embedder.py (✓ new)                            # Embedder script
+│   └── retriever.py (✓ new)                           # Retriever scrip
+│
 ├── scripts/                                            # CLI, app entrypoints, notebooks, demos
 │   └── marketflow_app.py                               # empty
+│
+├── tests_outputs/                                      # Outputs Tests Files
+│   └── tsts_files                                      # HTML, JSON, TXT files
 │
 ├── tests/                                              # Unit and integration tests
 │   ├── __pycache__                                     
