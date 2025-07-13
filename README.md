@@ -266,6 +266,7 @@ marketflow/
 │   ├── test_data_provider_async.py (✓ new)
 │   ├── test_data_provider_simple.py (✓ new)
 │   ├── test_data_provider.py
+│   ├── test_test_integration_core_pipeline.py (✓ new)
 │   ├── test_marketflow_data_parameters.py (✓ new)
 │   ├── test_marketflow_facade_real_data.py (✓ new)
 │   ├── test_marketflow_modules.py (✓ new)
