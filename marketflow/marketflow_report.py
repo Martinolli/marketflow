@@ -120,8 +120,24 @@ class MarketflowReport:
                             f.write(f"      - {p_name.replace('_', ' ').title()}:\n")
                             if isinstance(p_data, dict):
                                 for key, val in p_data.items():
-                                    f.write(f"        - {str(key).ljust(15)}: {val}\n")
-                    f.write("\n")
+                                    if key == "tests" and isinstance(val, list) and val:
+                                        f.write(f"        - {str(key).ljust(15)}:\n")
+                                        for test in val:
+                                            test_type = test.get('type', 'N/A')
+                                            index = test.get('index')
+                                            if hasattr(index, 'strftime'):
+                                                date_str = index.strftime('%Y-%m-%d')
+                                            else:
+                                                date_str = str(index)
+                                            price = test.get('price', '')
+                                            try:
+                                                price_str = f"${float(price):.2f}"
+                                            except Exception:
+                                                price_str = str(price)
+                                            f.write(f"            • {test_type.ljust(16)} Date: {date_str}  Price: {price_str}\n")
+                                    else:
+                                        f.write(f"        - {str(key).ljust(15)}: {val}\n")
+                        f.write("\n")
 
                     # --- Wyckoff Analysis ---
                     f.write("  Wyckoff Analysis:\n")
