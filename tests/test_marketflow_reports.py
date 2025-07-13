@@ -34,7 +34,8 @@ def main():
     facade = MarketflowFacade()
 
     analysis = facade.analyze_ticker(
-        ticker=ticker
+        ticker=ticker,
+        timeframes=[{"interval": "1h", "period": "2d"}],
     )
 
     if analysis is None:
