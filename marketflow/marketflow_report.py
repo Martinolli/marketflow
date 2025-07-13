@@ -250,7 +250,33 @@ class MarketflowReport:
                 if pattern:
                     html += "<h4>Pattern Analysis</h4><table><tr><th>Pattern</th><th>Details</th></tr>"
                     for p_name, p_data in pattern.items():
-                        details_str = '<br>'.join([f"{k}: {v}" for k, v in p_data.items()])
+                        details_lines = []
+                        for k, v in p_data.items():
+                            if k == "tests" and isinstance(v, list):
+                                # Render tests as a sub-table for readability
+                                if v:
+                                    test_table = "<table style='margin:5px 0; border:1px solid #ccc;'><tr><th>Type</th><th>Date</th><th>Price</th></tr>"
+                                    for test in v:
+                                        test_type = test.get('type', 'N/A')
+                                        # Format timestamp and price
+                                        index = test.get('index')
+                                        if hasattr(index, 'strftime'):
+                                            date_str = index.strftime('%Y-%m-%d')
+                                        else:
+                                            date_str = str(index)
+                                        price = test.get('price', '')
+                                        try:
+                                            price_str = f"${float(price):.2f}"
+                                        except Exception:
+                                            price_str = str(price)
+                                        test_table += f"<tr><td>{test_type}</td><td>{date_str}</td><td>{price_str}</td></tr>"
+                                    test_table += "</table>"
+                                    details_lines.append(f"Tests:<br>{test_table}")
+                                else:
+                                    details_lines.append("Tests: None")
+                            else:
+                                details_lines.append(f"{k}: {v}")
+                        details_str = '<br>'.join(details_lines)
                         html += f"<tr><td>{p_name.replace('_', ' ').title()}</td><td>{details_str}</td></tr>"
                     html += "</table>"
 
