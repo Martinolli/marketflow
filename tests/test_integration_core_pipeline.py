@@ -16,7 +16,7 @@ def facade():
     return MarketflowFacade()
 
 def test_full_marketflow_pipeline(facade):
-    ticker = "KTOS"  # or any test ticker you have data for
+    ticker = "NVDA"  # or any test ticker you have data for
     timeframes =  [{"interval": "1d", "period": "60d"}]  # or just ["1h"] if you want to keep it simple
 
     # 1. Run core analysis pipeline

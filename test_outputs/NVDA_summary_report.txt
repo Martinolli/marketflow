@@ -1,0 +1,396 @@
+================================================================================
+Marketflow Analysis Report for: NVDA
+Generated on: 2025-07-14 17:57:59
+================================================================================
+
+--- OVERALL ASSESSMENT ---
+  Signal Type:         SignalType.NO_ACTION
+  Signal Strength:     SignalStrength.NEUTRAL
+  Details:             No clear signal detected
+
+  Current Price:       $163.16
+  Stop Loss:           $159.89
+  Take Profit:         $171.31
+  Risk/Reward Ratio:   0.00
+
+--------------------------------------------------------------------------------
+--- TIMEFRAME ANALYSIS: 1D ---
+
+  Conventional Analysis:
+      - Trend Analysis:
+        trend_direction:        SLIGHT_UP
+        price_change_percent:   3.11
+        volume_trend:           DECREASING
+        volume_change_percent:  -85.24
+        signal_type:            TREND_ANOMALY
+        signal_strength:        BEARISH
+        details:                Rising price (3.11%) with falling volume (-85.24%) indicates weakening bullish trend
+      - Last Candle Signal: None
+    - Support:    $129.16, $132.92, $140.85, $151.49
+    - Resistance: $145.00, $143.49, $158.71, $137.40, $160.98
+
+    - Pattern Analysis:
+      - Accumulation:
+        - detected       : True
+        - strength       : 2
+        - details        : Sideways: False, High volume count: 3, Support tests: 12
+      - Distribution:
+        - detected       : True
+        - strength       : 2
+        - details        : Sideways: False, High volume count: 3, Resistance tests: 10
+      - Testing:
+        - detected       : True
+        - strength       : 2
+        - details        : Found 2 testing patterns.
+        - tests          :
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $163.07
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.49
+      - Buying Climax:
+        - detected       : False
+        - strength       : 2
+        - details        : Near high: True, Very high volume: False, Wide up candle: False, Upper wick: True
+      - Selling Climax:
+        - detected       : False
+        - strength       : 1
+        - details        : Near low: False, Very high volume: False, Wide down candle: True, Lower wick: False
+
+  Wyckoff Analysis:
+    No significant Wyckoff structures detected on this timeframe.
+
+--------------------------------------------------------------------------------
+--- TIMEFRAME ANALYSIS: 1H ---
+
+  Conventional Analysis:
+      - Trend Analysis:
+        trend_direction:        SIDEWAYS
+        price_change_percent:   -1.84
+        volume_trend:           INCREASING
+        volume_change_percent:  3930.82
+        signal_type:            CONSOLIDATION
+        signal_strength:        NEUTRAL
+        details:                Sideways price movement (-1.84%) indicates consolidation
+      - Last Candle Signal: None
+    - Support:    $162.49, $164.83
+    - Resistance: $164.35, $166.00, $167.89
+
+    - Pattern Analysis:
+      - Accumulation:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 6, Support tests: 18
+      - Distribution:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 6, Resistance tests: 19
+      - Testing:
+        - detected       : True
+        - strength       : 22
+        - details        : Found 22 testing patterns.
+        - tests          :
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $162.61
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $162.88
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $162.60
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.87
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.97
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.91
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.83
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $164.04
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $165.32
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $164.86
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $164.80
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $162.93
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $163.33
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $163.52
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $166.04
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $165.06
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $165.05
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $165.00
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.74
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $166.00
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.96
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.31
+      - Buying Climax:
+        - detected       : True
+        - strength       : 3
+        - details        : Near high: False, Very high volume: True, Wide up candle: False, Upper wick: True
+      - Selling Climax:
+        - detected       : True
+        - strength       : 4
+        - details        : Near low: True, Very high volume: True, Wide down candle: True, Lower wick: False
+
+  Wyckoff Analysis:
+    - Current Phase: Phase A - Stopping Action
+    - Trading Ranges:
+      - Range 1 (Distribution): 2025-06-20 to Ongoing | Support: $142.65, Resistance: $146.20
+    - Recent Key Events (up to last 10):
+      - 2025-06-20 13:00: BC              @ $145.68   (Vol: 42,631,163)
+      - 2025-06-20 15:00: AUTO_REACTION   @ $143.82   (Vol: 26,756,021)
+      - 2025-06-24 12:00: UTAD            @ $145.44   (Vol: 1,755,837)
+
+--------------------------------------------------------------------------------
+--- TIMEFRAME ANALYSIS: 4H ---
+
+  Conventional Analysis:
+      - Trend Analysis:
+        trend_direction:        SIDEWAYS
+        price_change_percent:   -0.44
+        volume_trend:           INCREASING
+        volume_change_percent:  1754.06
+        signal_type:            CONSOLIDATION
+        signal_strength:        NEUTRAL
+        details:                Sideways price movement (-0.44%) indicates consolidation
+      - Last Candle Signal: None
+    - Support:    $162.60, $159.67
+    - Resistance: $164.42, $167.89
+
+    - Pattern Analysis:
+      - Accumulation:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 6, Support tests: 18
+      - Distribution:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 6, Resistance tests: 18
+      - Testing:
+        - detected       : True
+        - strength       : 14
+        - details        : Found 14 testing patterns.
+        - tests          :
+            • SUPPORT_TEST     Date: 2025-07-09  Price: $162.72
+            • SUPPORT_TEST     Date: 2025-07-10  Price: $163.20
+            • SUPPORT_TEST     Date: 2025-07-10  Price: $163.67
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $162.61
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.83
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $164.04
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $162.50
+            • RESISTANCE_TEST  Date: 2025-07-09  Price: $163.37
+            • RESISTANCE_TEST  Date: 2025-07-10  Price: $164.50
+            • RESISTANCE_TEST  Date: 2025-07-10  Price: $164.14
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $163.61
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $166.04
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $166.00
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.96
+      - Buying Climax:
+        - detected       : False
+        - strength       : 1
+        - details        : Near high: False, Very high volume: False, Wide up candle: False, Upper wick: True
+      - Selling Climax:
+        - detected       : False
+        - strength       : 2
+        - details        : Near low: True, Very high volume: False, Wide down candle: True, Lower wick: False
+
+  Wyckoff Analysis:
+    No significant Wyckoff structures detected on this timeframe.
+
+--------------------------------------------------------------------------------
+--- TIMEFRAME ANALYSIS: 5M ---
+
+  Conventional Analysis:
+      - Trend Analysis:
+        trend_direction:        SIDEWAYS
+        price_change_percent:   -1.75
+        volume_trend:           INCREASING
+        volume_change_percent:  4878.48
+        signal_type:            CONSOLIDATION
+        signal_strength:        NEUTRAL
+        details:                Sideways price movement (-1.75%) indicates consolidation
+      - Last Candle Signal: None
+    - Support:    $165.70
+    - Resistance: $165.96
+
+    - Pattern Analysis:
+      - Accumulation:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 7, Support tests: 19
+      - Distribution:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 7, Resistance tests: 20
+      - Testing:
+        - detected       : True
+        - strength       : 14
+        - details        : Found 14 testing patterns.
+        - tests          :
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $164.81
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $164.97
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $165.08
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $165.38
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $165.38
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $165.41
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $165.43
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.00
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.16
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.27
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.53
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.45
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.50
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.50
+      - Buying Climax:
+        - detected       : True
+        - strength       : 4
+        - details        : Near high: True, Very high volume: True, Wide up candle: False, Upper wick: True
+      - Selling Climax:
+        - detected       : True
+        - strength       : 4
+        - details        : Near low: True, Very high volume: True, Wide down candle: True, Lower wick: False
+
+  Wyckoff Analysis:
+    - Current Phase: Phase D - Markup/Markdown
+    - Trading Ranges:
+      - Range 1 (Accumulation): 2025-07-08 to 2025-07-08 | Support: $158.41, Resistance: $159.74
+      - Range 2 (Distribution): 2025-07-09 to 2025-07-10 | Support: $162.44, Resistance: $163.48
+      - Range 3 (Distribution): 2025-07-10 to 2025-07-11 | Support: $163.65, Resistance: $163.93
+      - Range 4 (Accumulation): 2025-07-11 to 2025-07-11 | Support: $162.74, Resistance: $163.04
+      - Range 5 (Distribution): 2025-07-11 to 2025-07-14 | Support: $163.00, Resistance: $163.52
+    - Recent Key Events (up to last 10):
+      - 2025-07-11 10:00: SPRING          @ $162.78   (Vol: 24,039)
+      - 2025-07-11 10:00: ST              @ $162.78   (Vol: 24,039)
+      - 2025-07-11 10:40: ST              @ $162.80   (Vol: 4,631)
+      - 2025-07-11 10:55: SPRING          @ $162.88   (Vol: 27,879)
+      - 2025-07-11 11:00: SOS             @ $163.12   (Vol: 84,011)
+      - 2025-07-11 11:00: JAC             @ $163.12   (Vol: 84,011)
+      - 2025-07-11 12:00: BC              @ $163.33   (Vol: 762,124)
+      - 2025-07-11 12:40: AUTO_REACTION   @ $163.06   (Vol: 56,458)
+      - 2025-07-14 13:35: UTAD            @ $163.28   (Vol: 5,306,733)
+      - 2025-07-14 13:40: SOW             @ $162.54   (Vol: 3,432,363)
+
+--------------------------------------------------------------------------------
+--- TIMEFRAME ANALYSIS: 15M ---
+
+  Conventional Analysis:
+      - Trend Analysis:
+        trend_direction:        SIDEWAYS
+        price_change_percent:   -1.65
+        volume_trend:           INCREASING
+        volume_change_percent:  5832.26
+        signal_type:            CONSOLIDATION
+        signal_strength:        NEUTRAL
+        details:                Sideways price movement (-1.65%) indicates consolidation
+      - Last Candle Signal: None
+    - Support:    $164.83
+    - Resistance: $165.60
+
+    - Pattern Analysis:
+      - Accumulation:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 7, Support tests: 19
+      - Distribution:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 7, Resistance tests: 20
+      - Testing:
+        - detected       : False
+        - strength       : 0
+        - details        : Found 0 testing patterns.
+        - tests          : []
+      - Buying Climax:
+        - detected       : True
+        - strength       : 4
+        - details        : Near high: True, Very high volume: True, Wide up candle: False, Upper wick: True
+      - Selling Climax:
+        - detected       : True
+        - strength       : 4
+        - details        : Near low: True, Very high volume: True, Wide down candle: True, Lower wick: False
+
+  Wyckoff Analysis:
+    - Current Phase: Phase A - Stopping Action
+    - Trading Ranges:
+      - Range 1 (Distribution): 2025-07-09 to 2025-07-09 | Support: $162.49, Resistance: $160.82
+      - Range 2 (Distribution): 2025-07-09 to 2025-07-10 | Support: $162.49, Resistance: $161.40
+      - Range 3 (Accumulation): 2025-07-10 to 2025-07-11 | Support: $161.61, Resistance: $164.50
+      - Range 4 (Distribution): 2025-07-11 to 2025-07-11 | Support: $165.93, Resistance: $166.60
+    - Recent Key Events (up to last 10):
+      - 2025-07-11 13:30: JAC             @ $165.53   (Vol: 18,489,713)
+      - 2025-07-11 13:45: BC              @ $166.16   (Vol: 13,761,386)
+      - 2025-07-11 15:00: UTAD            @ $166.18   (Vol: 9,282,034)
+      - 2025-07-11 15:15: UTAD            @ $166.50   (Vol: 7,182,899)
+      - 2025-07-11 15:45: UTAD            @ $166.31   (Vol: 4,407,185)
+      - 2025-07-11 16:00: AUTO_REACTION   @ $166.05   (Vol: 5,169,860)
+      - 2025-07-11 16:30: UTAD            @ $166.16   (Vol: 3,439,293)
+      - 2025-07-11 18:15: LPSY            @ $165.68   (Vol: 3,818,788)
+      - 2025-07-11 19:45: SOW             @ $164.88   (Vol: 9,337,882)
+      - 2025-07-14 13:30: SC              @ $162.54   (Vol: 17,643,433)
+
+--------------------------------------------------------------------------------
+--- TIMEFRAME ANALYSIS: 30M ---
+
+  Conventional Analysis:
+      - Trend Analysis:
+        trend_direction:        SIDEWAYS
+        price_change_percent:   -1.52
+        volume_trend:           INCREASING
+        volume_change_percent:  4740.54
+        signal_type:            CONSOLIDATION
+        signal_strength:        NEUTRAL
+        details:                Sideways price movement (-1.52%) indicates consolidation
+      - Last Candle Signal: None
+    - Support:    $164.83, $162.61
+    - Resistance: $166.04, $163.04, $167.89
+
+    - Pattern Analysis:
+      - Accumulation:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 7, Support tests: 19
+      - Distribution:
+        - detected       : True
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 7, Resistance tests: 20
+      - Testing:
+        - detected       : True
+        - strength       : 20
+        - details        : Found 20 testing patterns.
+        - tests          :
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.87
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.92
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.97
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.98
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.95
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.91
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.83
+            • SUPPORT_TEST     Date: 2025-07-11  Price: $164.85
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $164.04
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $165.20
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $166.04
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $165.06
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $165.06
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $165.05
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $165.05
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $164.98
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $164.96
+            • RESISTANCE_TEST  Date: 2025-07-11  Price: $165.00
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.60
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $165.74
+      - Buying Climax:
+        - detected       : True
+        - strength       : 4
+        - details        : Near high: True, Very high volume: True, Wide up candle: False, Upper wick: True
+      - Selling Climax:
+        - detected       : True
+        - strength       : 4
+        - details        : Near low: True, Very high volume: True, Wide down candle: True, Lower wick: False
+
+  Wyckoff Analysis:
+    - Current Phase: Phase D - Markup/Markdown
+    - Trading Ranges:
+      - Range 1 (Distribution): 2025-07-09 to 2025-07-10 | Support: $162.49, Resistance: $164.42
+      - Range 2 (Distribution): 2025-07-11 to 2025-07-14 | Support: $164.83, Resistance: $166.60
+    - Recent Key Events (up to last 10):
+      - 2025-07-10 11:30: UTAD            @ $164.41   (Vol: 278,532)
+      - 2025-07-10 12:30: UTAD            @ $164.33   (Vol: 832,005)
+      - 2025-07-10 13:00: UTAD            @ $164.33   (Vol: 3,591,353)
+      - 2025-07-10 14:00: SOW             @ $162.40   (Vol: 17,338,200)
+      - 2025-07-11 13:30: BC              @ $166.16   (Vol: 32,251,099)
+      - 2025-07-11 15:00: UTAD            @ $166.50   (Vol: 16,464,933)
+      - 2025-07-11 15:30: UTAD            @ $166.31   (Vol: 10,347,749)
+      - 2025-07-11 16:30: UTAD            @ $166.26   (Vol: 7,035,724)
+      - 2025-07-11 19:00: AUTO_REACTION   @ $165.09   (Vol: 9,935,604)
+      - 2025-07-14 13:30: SOW             @ $162.54   (Vol: 17,643,433)
+
+
+================================================================================
+End of Report
+================================================================================

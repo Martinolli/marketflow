@@ -1,17 +1,17 @@
 ================================================================================
 Marketflow Analysis Report for: KTOS
-Generated on: 2025-07-13 16:17:22
+Generated on: 2025-07-14 17:56:44
 ================================================================================
 
 --- OVERALL ASSESSMENT ---
-  Signal Type:         SignalType.BUY
+  Signal Type:         SignalType.SELL
   Signal Strength:     SignalStrength.STRONG
-  Details:             Strong buy signal confirmed across multiple timeframes
+  Details:             Strong sell signal confirmed across multiple timeframes
 
-  Current Price:       $51.71
-  Stop Loss:           $41.66
-  Take Profit:         $54.30
-  Risk/Reward Ratio:   0.26
+  Current Price:       $51.56
+  Stop Loss:           $52.59
+  Take Profit:         $41.66
+  Risk/Reward Ratio:   9.60
 
 --------------------------------------------------------------------------------
 --- TIMEFRAME ANALYSIS: 1D ---
@@ -19,12 +19,12 @@ Generated on: 2025-07-13 16:17:22
   Conventional Analysis:
       - Trend Analysis:
         trend_direction:        UP
-        price_change_percent:   15.79
-        volume_trend:           INCREASING
-        volume_change_percent:  338.61
-        signal_type:            TREND_VALIDATION
-        signal_strength:        BULLISH
-        details:                Rising price (15.79%) with rising volume (338.61%) confirms bullish trend
+        price_change_percent:   15.14
+        volume_trend:           DECREASING
+        volume_change_percent:  -58.22
+        signal_type:            TREND_ANOMALY
+        signal_strength:        BEARISH
+        details:                Rising price (15.14%) with falling volume (-58.22%) indicates weakening bullish trend
       - Last Candle Signal: None
     - Support:    $34.05, $35.88, $37.90, $39.00, $41.87
     - Resistance: $46.52, $41.47, $39.16, $47.09
@@ -49,13 +49,13 @@ Generated on: 2025-07-13 16:17:22
             • RESISTANCE_TEST  Date: 2025-07-07  Price: $46.25
             • RESISTANCE_TEST  Date: 2025-07-09  Price: $46.15
       - Buying Climax:
-        - detected       : True
-        - strength       : 4
-        - details        : Near high: True, Very high volume: True, Wide up candle: True, Upper wick: False
+        - detected       : False
+        - strength       : 2
+        - details        : Near high: True, Very high volume: False, Wide up candle: False, Upper wick: True
       - Selling Climax:
-        - detected       : True
-        - strength       : 3
-        - details        : Near low: False, Very high volume: True, Wide down candle: False, Lower wick: True
+        - detected       : False
+        - strength       : 1
+        - details        : Near low: False, Very high volume: False, Wide down candle: False, Lower wick: True
 
   Wyckoff Analysis:
     No significant Wyckoff structures detected on this timeframe.
@@ -65,60 +65,58 @@ Generated on: 2025-07-13 16:17:22
 
   Conventional Analysis:
       - Trend Analysis:
-        trend_direction:        SIDEWAYS
-        price_change_percent:   0.65
-        volume_trend:           DECREASING
-        volume_change_percent:  -99.27
-        signal_type:            CONSOLIDATION
-        signal_strength:        NEUTRAL
-        details:                Sideways price movement (0.65%) indicates consolidation
+        trend_direction:        SLIGHT_DOWN
+        price_change_percent:   -2.98
+        volume_trend:           INCREASING
+        volume_change_percent:  10464.94
+        signal_type:            TREND_VALIDATION
+        signal_strength:        BEARISH
+        details:                Falling price (-2.98%) with rising volume (10464.94%) confirms bearish trend
       - Last Candle Signal: None
-    - Support:    $46.02, $44.33, $47.50, $51.14, $43.88
-    - Resistance: $44.55, $48.23, $51.97, $46.73, $52.57
+    - Support:    $46.02, $51.14, $47.50, $43.88, $44.85
+    - Resistance: $48.23, $51.97, $52.57, $46.73
 
     - Pattern Analysis:
       - Accumulation:
         - detected       : True
         - strength       : 2
-        - details        : Sideways: False, High volume count: 5, Support tests: 15
+        - details        : Sideways: False, High volume count: 5, Support tests: 14
       - Distribution:
         - detected       : True
         - strength       : 2
-        - details        : Sideways: False, High volume count: 5, Resistance tests: 17
+        - details        : Sideways: False, High volume count: 5, Resistance tests: 15
       - Testing:
         - detected       : True
-        - strength       : 21
-        - details        : Found 21 testing patterns.
+        - strength       : 19
+        - details        : Found 19 testing patterns.
         - tests          :
-            • SUPPORT_TEST     Date: 2025-07-10  Price: $47.62
-            • SUPPORT_TEST     Date: 2025-07-10  Price: $47.86
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $47.50
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $47.97
             • SUPPORT_TEST     Date: 2025-07-11  Price: $48.19
             • SUPPORT_TEST     Date: 2025-07-11  Price: $47.81
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.65
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.77
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.75
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.81
-            • RESISTANCE_TEST  Date: 2025-07-10  Price: $47.99
-            • RESISTANCE_TEST  Date: 2025-07-10  Price: $47.90
-            • RESISTANCE_TEST  Date: 2025-07-10  Price: $48.43
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $48.00
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $48.40
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.75
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $52.46
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.81
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $48.74
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $48.77
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.92
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.97
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.95
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.96
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $53.09
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $53.09
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $52.50
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $53.06
       - Buying Climax:
-        - detected       : False
-        - strength       : 1
-        - details        : Near high: True, Very high volume: False, Wide up candle: False, Upper wick: False
+        - detected       : True
+        - strength       : 3
+        - details        : Near high: False, Very high volume: True, Wide up candle: False, Upper wick: True
       - Selling Climax:
-        - detected       : False
-        - strength       : 1
-        - details        : Near low: False, Very high volume: False, Wide down candle: False, Lower wick: True
+        - detected       : True
+        - strength       : 3
+        - details        : Near low: False, Very high volume: True, Wide down candle: False, Lower wick: True
 
   Wyckoff Analysis:
     - Current Phase: Phase D - Markup/Markdown
@@ -145,44 +143,42 @@ Generated on: 2025-07-13 16:17:22
   Conventional Analysis:
       - Trend Analysis:
         trend_direction:        UP
-        price_change_percent:   12.30
-        volume_trend:           DECREASING
-        volume_change_percent:  -97.62
-        signal_type:            TREND_ANOMALY
-        signal_strength:        BEARISH
-        details:                Rising price (12.3%) with falling volume (-97.62%) indicates weakening bullish trend; Multiple high volume bars in uptrend may indicate buying climax
+        price_change_percent:   6.72
+        volume_trend:           INCREASING
+        volume_change_percent:  3576.65
+        signal_type:            TREND_VALIDATION
+        signal_strength:        BULLISH
+        details:                Rising price (6.72%) with rising volume (3576.65%) confirms bullish trend
       - Last Candle Signal: None
     - Support:    $42.81, $43.88, $44.85
-    - Resistance: $46.25, $45.64, $52.57
+    - Resistance: $45.64, $52.57
 
     - Pattern Analysis:
       - Accumulation:
         - detected       : True
         - strength       : 2
-        - details        : Sideways: False, High volume count: 8, Support tests: 7
+        - details        : Sideways: False, High volume count: 6, Support tests: 6
       - Distribution:
         - detected       : True
         - strength       : 2
-        - details        : Sideways: False, High volume count: 8, Resistance tests: 12
+        - details        : Sideways: False, High volume count: 6, Resistance tests: 13
       - Testing:
         - detected       : True
-        - strength       : 10
-        - details        : Found 10 testing patterns.
+        - strength       : 8
+        - details        : Found 8 testing patterns.
         - tests          :
-            • SUPPORT_TEST     Date: 2025-07-08  Price: $44.15
-            • SUPPORT_TEST     Date: 2025-07-09  Price: $44.33
             • SUPPORT_TEST     Date: 2025-07-10  Price: $46.03
             • SUPPORT_TEST     Date: 2025-07-10  Price: $45.70
-            • RESISTANCE_TEST  Date: 2025-07-08  Price: $44.55
-            • RESISTANCE_TEST  Date: 2025-07-09  Price: $44.65
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.75
             • RESISTANCE_TEST  Date: 2025-07-09  Price: $46.43
             • RESISTANCE_TEST  Date: 2025-07-10  Price: $46.61
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $48.77
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.97
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $53.09
       - Buying Climax:
         - detected       : False
-        - strength       : 2
-        - details        : Near high: True, Very high volume: False, Wide up candle: True, Upper wick: False
+        - strength       : 1
+        - details        : Near high: False, Very high volume: False, Wide up candle: False, Upper wick: True
       - Selling Climax:
         - detected       : False
         - strength       : 1
@@ -197,83 +193,81 @@ Generated on: 2025-07-13 16:17:22
   Conventional Analysis:
       - Trend Analysis:
         trend_direction:        SIDEWAYS
-        price_change_percent:   0.01
+        price_change_percent:   0.29
         volume_trend:           INCREASING
-        volume_change_percent:  1086.14
+        volume_change_percent:  691.44
         signal_type:            CONSOLIDATION
         signal_strength:        NEUTRAL
-        details:                Sideways price movement (0.01%) indicates consolidation
+        details:                Sideways price movement (0.29%) indicates consolidation
       - Last Candle Signal: None
-    - Support:    $51.77, $51.14
-    - Resistance: $51.83
+    - Support:    $51.92, $51.00, $52.57
+    - Resistance: $53.09, $52.50
 
     - Pattern Analysis:
       - Accumulation:
         - detected       : True
         - strength       : 3
-        - details        : Sideways: True, High volume count: 8, Support tests: 20
+        - details        : Sideways: True, High volume count: 6, Support tests: 18
       - Distribution:
         - detected       : True
         - strength       : 3
-        - details        : Sideways: True, High volume count: 8, Resistance tests: 20
+        - details        : Sideways: True, High volume count: 6, Resistance tests: 18
       - Testing:
         - detected       : True
         - strength       : 20
         - details        : Found 20 testing patterns.
         - tests          :
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.96
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.88
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.90
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.93
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.92
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.92
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.92
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.95
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.96
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.81
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.96
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.88
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.90
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.93
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.92
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.92
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.92
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.95
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.96
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.85
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $52.00
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $52.15
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $52.05
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.55
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.41
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.27
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.02
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $50.82
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $50.99
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.12
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $52.15
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $52.15
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $52.15
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.75
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.66
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.60
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.38
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.10
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.75
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.86
       - Buying Climax:
-        - detected       : True
-        - strength       : 4
-        - details        : Near high: True, Very high volume: True, Wide up candle: True, Upper wick: False
+        - detected       : False
+        - strength       : 1
+        - details        : Near high: False, Very high volume: False, Wide up candle: False, Upper wick: True
       - Selling Climax:
-        - detected       : True
-        - strength       : 4
-        - details        : Near low: True, Very high volume: True, Wide down candle: False, Lower wick: True
+        - detected       : False
+        - strength       : 2
+        - details        : Near low: True, Very high volume: False, Wide down candle: True, Lower wick: False
 
   Wyckoff Analysis:
-    - Current Phase: Phase A - Stopping Action
+    - Current Phase: Phase C - Testing
     - Trading Ranges:
-      - Range 1 (Accumulation): 2025-07-07 to 2025-07-07 | Support: $44.34, Resistance: $44.32
-      - Range 2 (Accumulation): 2025-07-07 to 2025-07-08 | Support: $43.88, Resistance: $44.79
-      - Range 3 (Distribution): 2025-07-08 to 2025-07-08 | Support: $44.93, Resistance: $45.20
-      - Range 4 (Accumulation): 2025-07-08 to 2025-07-08 | Support: $44.45, Resistance: $44.56
-      - Range 5 (Accumulation): 2025-07-08 to 2025-07-08 | Support: $44.31, Resistance: $44.56
-      - Range 6 (Accumulation): 2025-07-08 to 2025-07-09 | Support: $44.05, Resistance: $44.56
-      - Range 7 (Distribution): 2025-07-10 to 2025-07-10 | Support: $46.08, Resistance: $46.43
-      - Range 8 (Accumulation): 2025-07-10 to 2025-07-10 | Support: $45.42, Resistance: $45.80
-      - Range 9 (Distribution): 2025-07-11 to 2025-07-11 | Support: $47.81, Resistance: $48.49
-      - Range 10 (Distribution): 2025-07-11 to 2025-07-11 | Support: $50.92, Resistance: $52.47
+      - Range 1 (Accumulation): 2025-07-08 to 2025-07-08 | Support: $44.58, Resistance: $44.56
+      - Range 2 (Accumulation): 2025-07-08 to 2025-07-08 | Support: $44.31, Resistance: $44.56
+      - Range 3 (Accumulation): 2025-07-08 to 2025-07-09 | Support: $44.05, Resistance: $44.56
+      - Range 4 (Distribution): 2025-07-10 to 2025-07-10 | Support: $46.08, Resistance: $46.43
+      - Range 5 (Accumulation): 2025-07-10 to 2025-07-10 | Support: $45.42, Resistance: $45.80
+      - Range 6 (Distribution): 2025-07-11 to 2025-07-11 | Support: $47.81, Resistance: $48.49
+      - Range 7 (Distribution): 2025-07-11 to 2025-07-11 | Support: $50.92, Resistance: $52.47
+      - Range 8 (Accumulation): 2025-07-11 to Ongoing | Support: $51.75, Resistance: $53.09
     - Recent Key Events (up to last 10):
-      - 2025-07-11 10:35: BC              @ $48.49    (Vol: 1,729)
-      - 2025-07-11 11:00: UTAD            @ $48.04    (Vol: 16,182)
-      - 2025-07-11 11:30: AUTO_REACTION   @ $47.81    (Vol: 1,942)
-      - 2025-07-11 12:00: UTAD            @ $47.99    (Vol: 18,637)
-      - 2025-07-11 12:30: LPSY            @ $47.64    (Vol: 2,219)
-      - 2025-07-11 12:50: SOW             @ $47.74    (Vol: 7,063)
-      - 2025-07-11 13:30: BC              @ $51.81    (Vol: 958,904)
-      - 2025-07-11 13:40: SOW             @ $50.79    (Vol: 297,054)
       - 2025-07-11 15:55: AUTO_REACTION   @ $51.05    (Vol: 101,599)
       - 2025-07-11 22:25: SC              @ $51.75    (Vol: 1,431)
+      - 2025-07-11 23:50: ST              @ $51.81    (Vol: 230)
+      - 2025-07-14 09:10: AR              @ $53.05    (Vol: 1,257)
+      - 2025-07-14 10:40: ST              @ $52.61    (Vol: 534)
+      - 2025-07-14 10:50: ST              @ $52.46    (Vol: 225)
+      - 2025-07-14 11:05: ST              @ $51.96    (Vol: 1,880)
+      - 2025-07-14 11:15: ST              @ $51.93    (Vol: 843)
+      - 2025-07-14 12:00: SPRING          @ $52.00    (Vol: 17,000)
+      - 2025-07-14 13:35: SPRING          @ $52.00    (Vol: 157,480)
 
 --------------------------------------------------------------------------------
 --- TIMEFRAME ANALYSIS: 15M ---
@@ -281,56 +275,42 @@ Generated on: 2025-07-13 16:17:22
   Conventional Analysis:
       - Trend Analysis:
         trend_direction:        SIDEWAYS
-        price_change_percent:   0.41
+        price_change_percent:   -1.88
         volume_trend:           INCREASING
-        volume_change_percent:  78.15
+        volume_change_percent:  7434.54
         signal_type:            CONSOLIDATION
         signal_strength:        NEUTRAL
-        details:                Sideways price movement (0.41%) indicates consolidation
+        details:                Sideways price movement (-1.88%) indicates consolidation
       - Last Candle Signal: None
-    - Support:    $51.49, $47.60, $50.92
-    - Resistance: $52.18, $48.98
+    - Support:    $51.77, $51.00
+    - Resistance: $51.96, $53.09
 
     - Pattern Analysis:
       - Accumulation:
         - detected       : True
         - strength       : 3
-        - details        : Sideways: True, High volume count: 4, Support tests: 20
+        - details        : Sideways: True, High volume count: 12, Support tests: 17
       - Distribution:
         - detected       : True
         - strength       : 3
-        - details        : Sideways: True, High volume count: 4, Resistance tests: 20
+        - details        : Sideways: True, High volume count: 12, Resistance tests: 16
       - Testing:
         - detected       : True
-        - strength       : 22
-        - details        : Found 22 testing patterns.
+        - strength       : 8
+        - details        : Found 8 testing patterns.
         - tests          :
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.65
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.76
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.80
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.80
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.80
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.77
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.90
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.88
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.88
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.75
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.75
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.92
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.88
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.91
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.91
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.97
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.97
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.96
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.96
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.94
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.93
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.92
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $52.95
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $52.46
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.90
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $50.82
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $52.96
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $52.52
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.98
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $51.75
       - Buying Climax:
         - detected       : True
         - strength       : 3
-        - details        : Near high: True, Very high volume: True, Wide up candle: False, Upper wick: False
+        - details        : Near high: False, Very high volume: True, Wide up candle: False, Upper wick: True
       - Selling Climax:
         - detected       : True
         - strength       : 4
@@ -339,12 +319,11 @@ Generated on: 2025-07-13 16:17:22
   Wyckoff Analysis:
     - Current Phase: Phase D - Markup/Markdown
     - Trading Ranges:
-      - Range 1 (Distribution): 2025-07-07 to 2025-07-08 | Support: $43.80, Resistance: $46.25
-      - Range 2 (Accumulation): 2025-07-08 to 2025-07-09 | Support: $42.81, Resistance: $44.56
-      - Range 3 (Distribution): 2025-07-09 to 2025-07-09 | Support: $46.02, Resistance: $45.26
-      - Range 4 (Distribution): 2025-07-09 to 2025-07-09 | Support: $46.02, Resistance: $45.51
-      - Range 5 (Accumulation): 2025-07-10 to 2025-07-11 | Support: $45.42, Resistance: $48.23
-      - Range 6 (Distribution): 2025-07-11 to 2025-07-11 | Support: $50.92, Resistance: $52.47
+      - Range 1 (Accumulation): 2025-07-08 to 2025-07-09 | Support: $42.81, Resistance: $44.56
+      - Range 2 (Distribution): 2025-07-09 to 2025-07-09 | Support: $46.02, Resistance: $45.26
+      - Range 3 (Distribution): 2025-07-09 to 2025-07-09 | Support: $46.02, Resistance: $45.51
+      - Range 4 (Accumulation): 2025-07-10 to 2025-07-11 | Support: $45.42, Resistance: $48.23
+      - Range 5 (Distribution): 2025-07-11 to 2025-07-11 | Support: $50.92, Resistance: $52.47
     - Recent Key Events (up to last 10):
       - 2025-07-10 14:45: SPRING          @ $45.70    (Vol: 103,073)
       - 2025-07-10 15:30: SPRING          @ $45.71    (Vol: 80,783)
@@ -362,36 +341,31 @@ Generated on: 2025-07-13 16:17:22
 
   Conventional Analysis:
       - Trend Analysis:
-        trend_direction:        SIDEWAYS
-        price_change_percent:   -0.02
-        volume_trend:           FLAT
-        volume_change_percent:  -1.51
-        signal_type:            CONSOLIDATION
-        signal_strength:        NEUTRAL
-        details:                Sideways price movement (-0.02%) indicates consolidation
+        trend_direction:        SLIGHT_DOWN
+        price_change_percent:   -2.22
+        volume_trend:           INCREASING
+        volume_change_percent:  4354.45
+        signal_type:            TREND_VALIDATION
+        signal_strength:        BEARISH
+        details:                Falling price (-2.22%) with rising volume (4354.45%) confirms bearish trend
       - Last Candle Signal: None
-    - Support:    $47.50, $50.92, $45.81
-    - Resistance: $48.23, $52.18, $48.98
+    - Support:    $50.92, $47.50, $51.75
+    - Resistance: $52.18, $48.43, $53.09, $48.98
 
     - Pattern Analysis:
       - Accumulation:
         - detected       : True
-        - strength       : 2
-        - details        : Sideways: False, High volume count: 5, Support tests: 16
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 8, Support tests: 17
       - Distribution:
         - detected       : True
-        - strength       : 2
-        - details        : Sideways: False, High volume count: 5, Resistance tests: 17
+        - strength       : 3
+        - details        : Sideways: True, High volume count: 8, Resistance tests: 16
       - Testing:
         - detected       : True
-        - strength       : 26
-        - details        : Found 26 testing patterns.
+        - strength       : 20
+        - details        : Found 20 testing patterns.
         - tests          :
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $50.96
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.71
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.49
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.37
-            • SUPPORT_TEST     Date: 2025-07-11  Price: $51.48
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.65
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.80
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.77
@@ -400,11 +374,8 @@ Generated on: 2025-07-13 16:17:22
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.75
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.95
             • SUPPORT_TEST     Date: 2025-07-11  Price: $51.81
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.98
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $52.05
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.94
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.96
-            • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.69
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $51.75
+            • SUPPORT_TEST     Date: 2025-07-14  Price: $52.95
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.92
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.91
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.97
@@ -413,22 +384,23 @@ Generated on: 2025-07-13 16:17:22
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.95
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.96
             • RESISTANCE_TEST  Date: 2025-07-11  Price: $51.96
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $52.36
+            • RESISTANCE_TEST  Date: 2025-07-14  Price: $53.08
       - Buying Climax:
-        - detected       : False
-        - strength       : 1
-        - details        : Near high: True, Very high volume: False, Wide up candle: False, Upper wick: False
+        - detected       : True
+        - strength       : 3
+        - details        : Near high: False, Very high volume: True, Wide up candle: False, Upper wick: True
       - Selling Climax:
-        - detected       : False
-        - strength       : 1
-        - details        : Near low: False, Very high volume: False, Wide down candle: False, Lower wick: True
+        - detected       : True
+        - strength       : 4
+        - details        : Near low: True, Very high volume: True, Wide down candle: False, Lower wick: True
 
   Wyckoff Analysis:
     - Current Phase: Phase D - Markup/Markdown
     - Trading Ranges:
-      - Range 1 (Accumulation): 2025-07-08 to 2025-07-09 | Support: $43.65, Resistance: $44.56
-      - Range 2 (Distribution): 2025-07-09 to 2025-07-09 | Support: $46.02, Resistance: $45.26
-      - Range 3 (Distribution): 2025-07-09 to 2025-07-09 | Support: $46.02, Resistance: $45.94
-      - Range 4 (Accumulation): 2025-07-10 to 2025-07-11 | Support: $45.42, Resistance: $48.23
+      - Range 1 (Distribution): 2025-07-09 to 2025-07-09 | Support: $46.02, Resistance: $44.93
+      - Range 2 (Distribution): 2025-07-09 to 2025-07-09 | Support: $46.02, Resistance: $45.51
+      - Range 3 (Accumulation): 2025-07-10 to 2025-07-11 | Support: $45.42, Resistance: $48.23
     - Recent Key Events (up to last 10):
       - 2025-07-09 23:30: AUTO_REACTION   @ $46.42    (Vol: 808)
       - 2025-07-10 13:30: SC              @ $45.49    (Vol: 438,454)
