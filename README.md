@@ -4,6 +4,7 @@
 
 | Date       | Revision | Modules/Scripts Affected                        |
 |------------|----------|------------------------------------------------|
+| 2025-07-15 | v1.12    | `embedder_vector_db.py` (new module)           |
 | 2025-07-12 | v1.11    | `chunker.py`, `embedder.py`, `retriever.py` (new module) |
 | 2025-07-12 | v1.11    | `marketflow_report.py` (new module)             |
 | 2025-07-12 | v1.10    | `marketflow_result_extractor.py` (new module)  |
@@ -203,6 +204,7 @@ marketflow/
 │   ├── config                                          # Config Files
 │   ├── logs                                            # Central config/env loader
 │   ├── memory                                          # Abstract + provider-specific data fetchers
+│   └── reports                                         # Save Reports
 |
 ├── .pytest_cache
 |
@@ -214,7 +216,7 @@ marketflow/
 │   └── modules/
 │       ├── marketflow_config_manager_original.py (✓ backup)
 │       ├── marketflow_logger_original.py (✓ backup)
-│       ├── marketflow_analyzer.py  (✓ backup)                 
+│       └── marketflow_analyzer.py  (✓ backup)                 
 │
 ├── env                                                 # (Not committed) Environment
 |
@@ -222,13 +224,14 @@ marketflow/
 │   ├── chunked/ (✓ created)                            # Chunked Files
 │   ├── embeddings (✓ created)                          # Embeddings Files
 │   ├── sources (✓ created)                             # Sources Files
+│   └── vectordb (✓ created)                            # Embeddings DB file
 │
 │       
 ├── markdown_files/
 │   ├── marketflow_files_compatibility_analysis.md (✓ created)
 │   ├── marketflow_replacement_backup_guide.md (✓ created)
 │   ├── post_replacement_verification_checklist.md (✓ created)
-│   ├── marketflow_analyzer_changes.md (✓ created)
+│   └── marketflow_analyzer_changes.md (✓ created)
 │
 │       
 │
@@ -265,7 +268,8 @@ marketflow/
 │
 ├── rag/                                                # RAG scripts
 │   ├── __init__.py
-│   ├── chunker.py  (✓ new)                            # Chunker script                                     
+│   ├── chunker.py  (✓ new)                            # Chunker script
+│   ├── embedder_vector_db.py  (✓ new)                 # Embedder DB script                                      
 │   ├── embedder.py (✓ new)                            # Embedder script
 │   └── retriever.py (✓ new)                           # Retriever scrip
 │
