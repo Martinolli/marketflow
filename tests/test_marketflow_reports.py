@@ -13,7 +13,7 @@ from marketflow.marketflow_config_manager import create_app_config
 
 def main():
     # --- Step 1: Get real market data ---
-    ticker = "NVDA"
+    ticker = "NFLX"
     print(f"Fetching real market data for {ticker}...")
     provider = PolygonIOProvider()
     result = provider.get_data(
@@ -35,7 +35,6 @@ def main():
 
     analysis = facade.analyze_ticker(
         ticker=ticker,
-        timeframes=[{"interval": "1h", "period": "2d"}],
     )
 
     if analysis is None:

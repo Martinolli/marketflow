@@ -59,17 +59,6 @@ def main():
             print(f"{key}: {value}")
     print()
 
-    for timeframe_analysis in analysis.values():
-        print(type(timeframe_analysis))
-        # Print all dict attributes in timeframe_analysis
-        for attr_name in dir(timeframe_analysis):
-            attr = getattr(timeframe_analysis, attr_name)
-            if isinstance(attr, dict):
-                print(f"Dict attribute '{attr_name}':")
-                print(attr)
-        print()
-
-
 
 if __name__ == "__main__":
     main()

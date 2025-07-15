@@ -90,6 +90,9 @@ class MarketflowReport:
                 f.write(f"  {'Stop Loss:'.ljust(20)} ${risk.get('stop_loss', 0):.2f}\n")
                 f.write(f"  {'Take Profit:'.ljust(20)} ${risk.get('take_profit', 0):.2f}\n")
                 f.write(f"  {'Risk/Reward Ratio:'.ljust(20)} {risk.get('risk_reward_ratio', 0):.2f}\n\n")
+                f.write(f"  {'Position Size:'.ljust(20)} {risk.get('position_size', 0):.2f}\n\n")
+                f.write(f"  {'Risk Per Share:'.ljust(20)} ${risk.get('risk_per_share', 0):.2f}\n\n")
+                f.write(f"{'='*80}\n\n")
 
                 # --- Detailed Timeframe Analysis ---
                 timeframes = self.extractor.get_timeframes(ticker)
@@ -245,6 +248,10 @@ class MarketflowReport:
                 <tr><th>Stop Loss</th><td>${risk.get('stop_loss', 0):.2f}</td></tr>
                 <tr><th>Take Profit</th><td>${risk.get('take_profit', 0):.2f}</td></tr>
                 <tr><th>Risk/Reward Ratio</th><td>{risk.get('risk_reward_ratio', 0):.2f}</td></tr>
+                <tr><th>Position Size</th><td>{risk.get('position_size', 0):.2f}</td></tr>
+                <tr><th>Risk Per Share</th><td>${risk.get('risk_per_share', 0):.2f}</td></tr>
+            </table></div>
+            <div class="section"><h2>Detailed Timeframe Analysis</h2>
             </table></div>"""
 
             for tf in timeframes:

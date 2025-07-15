@@ -95,6 +95,8 @@ def save_chunks_to_json(chunks: List[Dict], output_path: Path):
     print(f"💾 Saved {len(chunks)} chunks to {output_path}")
 
 def main():
+    logger.info("Starting the chunking process...")
+    print("🔍 Starting the chunking process...")
     parser = argparse.ArgumentParser(description="Extract text from a PDF, chunk it, and save to JSON.")
     parser.add_argument("source_path", type=Path, help="Path to the source PDF file.")
     parser.add_argument("output_path", type=Path, help="Path to the output JSON file.")

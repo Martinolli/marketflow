@@ -114,6 +114,8 @@ def main():
             if emb:
                 chunk["embedding"] = emb
                 embedded_chunks.append(chunk)
+            else:
+                logger.warning(f"Failed to embed chunk {chunk['chunk_id']}. It will be skipped.")
 
     print(f"💾 Saving {len(embedded_chunks)} total embedded chunks to {args.output_path}")
     logger.info(f"Saving {len(embedded_chunks)} total embedded chunks to {args.output_path}")
