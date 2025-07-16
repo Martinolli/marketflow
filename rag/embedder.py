@@ -1,4 +1,4 @@
-"""
+r"""
 This script generates embeddings for text chunks using the OpenAI API.
 It processes chunks in batches to improve efficiency and avoids re-embedding already processed chunks.
 
@@ -6,7 +6,7 @@ How to use:
 # Make sure your OPENAI_API_KEY is set as an environment variable
 # export OPENAI_API_KEY="sk-..."
 
-python embedder.py "knowledgebase/chunked/Wyckoff_Stock_Analysis.json" "knowledgebase/embeddings/Wyckoff_Stock_Analysis.json"
+python rag\embedder.py "knowledgebase/chunked/Wyckoff_Stock_Analysis.json" "knowledgebase/embeddings/Wyckoff_Stock_Analysis.json"
 
 """
 
