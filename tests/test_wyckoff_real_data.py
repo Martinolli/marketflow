@@ -8,9 +8,9 @@ def main():
     # --- Step 1: Get real market data ---
     provider = PolygonIOProvider()
     result = provider.get_data(
-        ticker="NFLX",
-        interval="1h",
-        period="90d"
+        ticker="NVDA",
+        # interval="1h",
+        # period="90d"
     )
     if result is None:
         print("Failed to fetch data")
