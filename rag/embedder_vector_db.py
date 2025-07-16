@@ -4,10 +4,7 @@ and stores them in a ChromaDB persistent vector database (SQLite).
 It avoids re-embedding and re-uploading already-processed chunks.
 
 USAGE:
-    python embedder_vector_db.py \
-        knowledgebase/chunked/Wyckoff_Stock_Analysis.json \
-        knowledgebase/embeddings/Wyckoff_Stock_Analysis.json \
-        --collection wyckoff_docs
+    python rag/embedder_vector_db.py "knowledgebase/chunked/Wyckoff_Stock_Analysis.json" "knowledgebase/embeddings/Wyckoff_Stock_Analysis.json" --collection wyckoff_docs
 
 Requirements:
     pip install chromadb openai
