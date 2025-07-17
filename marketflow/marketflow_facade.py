@@ -41,18 +41,28 @@ class MarketflowFacade:
             self.logger.info("Using default MarketFlowFacadeParameters.")
         else:
             self.logger.info("Using provided MarketFlowFacadeParameters.")
-        self.parameters = parameters or MarketFlowDataParameters()
+
+        self.parameters = parameters or MarketFlowDataParameters() # 0 - Initialize parameters with default MarketFlowDataParameters
         
-        self.data_provider = PolygonIOProvider() # Initialize data provider with default PolygonIOProvider
-        self.processor = DataProcessor(self.parameters) # Initialize data processor with parameters
-        self.candle_analyzer = CandleAnalyzer(self.parameters) # Initialize candle analyzer with parameters
-        self.trend_analyzer = TrendAnalyzer(self.parameters) # Initialize trend analyzer with parameters
-        self.pattern_recognizer = PatternRecognizer(self.parameters) # Initialize pattern recognizer with parameters
-        self.signal_generator = SignalGenerator(self.parameters) # Initialize signal generator with parameters
-        self.risk_assessor = RiskAssessor(self.parameters) # Initialize risk assessor with parameters
-        self.multi_tf_provider = MultiTimeframeProvider(self.data_provider) # Initialize multi-timeframe provider with data provider
-        self.multi_tf_analyzer = MultiTimeframeAnalyzer(self.parameters) # Initialize multi-timeframe analyzer with parameters
-        self.analyzer = PointInTimeAnalyzer(self.parameters) # Initialize point-in-time analyzer with parameters
+        self.data_provider = PolygonIOProvider() # 1 - Initialize data provider with default PolygonIOProvider
+
+        self.multi_tf_provider = MultiTimeframeProvider(self.data_provider) # 2 - Initialize multi-timeframe provider with data provider
+
+        self.multi_tf_analyzer = MultiTimeframeAnalyzer(self.parameters) # 3 - Initialize multi-timeframe analyzer with parameters
+
+        self.signal_generator = SignalGenerator(self.parameters) # 4 - Initialize signal generator with parameters
+
+        self.risk_assessor = RiskAssessor(self.parameters) # 5 - Initialize risk assessor with parameters
+
+        self.processor = DataProcessor(self.parameters) # 6 - Initialize data processor with parameters
+
+        # self.candle_analyzer = CandleAnalyzer(self.parameters) # Initialize candle analyzer with parameters
+
+        # self.trend_analyzer = TrendAnalyzer(self.parameters) # Initialize trend analyzer with parameters
+
+        # self.pattern_recognizer = PatternRecognizer(self.parameters) # Initialize pattern recognizer with parameters
+
+        self.analyzer = PointInTimeAnalyzer(self.parameters) # 7 - Initialize point-in-time analyzer with parameters
 
     def analyze_ticker(self, ticker: str, timeframes=None) -> dict:
         """
@@ -68,7 +78,7 @@ class MarketflowFacade:
         if timeframes is None:
             timeframes = self.parameters.get_timeframes()
         
-        timeframe_data = self.multi_tf_provider.get_multi_timeframe_data(ticker, timeframes)
+        timeframe_data = self.multi_tf_provider.get_multi_timeframe_data(ticker, timeframes) # 8 - Fetch data for multiple timeframes
         
         if not timeframe_data:
             self.logger.error(f"No data fetched for {ticker} across specified timeframes. Aborting analysis.")
@@ -82,13 +92,15 @@ class MarketflowFacade:
                 "current_price": None
             }
 
-        timeframe_analyses, confirmations = self.multi_tf_analyzer.analyze_multiple_timeframes(timeframe_data)
-        signal = self.signal_generator.generate_signals(timeframe_analyses, confirmations)
+        timeframe_analyses, confirmations = self.multi_tf_analyzer.analyze_multiple_timeframes(timeframe_data) # 9 - Analyze multiple timeframes
+
+        signal = self.signal_generator.generate_signals(timeframe_analyses, confirmations) # 10 - Generate trading signals based on analysis
         
-        primary_tf_key = list(timeframe_analyses.keys())[0] 
+        primary_tf_key = list(timeframe_analyses.keys())[0] # 11 - Determine primary timeframe key
         current_price = None
         support_resistance = {}
 
+        # Determine current price and support/resistance from primary timeframe if available
         if timeframe_analyses.get(primary_tf_key) and not timeframe_analyses[primary_tf_key]["processed_data"]["price"]["close"].empty:
             current_price = timeframe_analyses[primary_tf_key]["processed_data"]["price"]["close"].iloc[-1]
             support_resistance = timeframe_analyses[primary_tf_key]["support_resistance"]
@@ -96,7 +108,7 @@ class MarketflowFacade:
             self.logger.warning(f"Could not determine current price or S/R for {ticker} from primary timeframe {primary_tf_key}.")
             signal["details"] += " (Current price unavailable for full risk assessment)"
 
-        risk_assessment = self.risk_assessor.assess_trade_risk(signal, current_price, support_resistance)
+        risk_assessment = self.risk_assessor.assess_trade_risk(signal, current_price, support_resistance) # 12 - Assess trade risk based on signal and current price
         
         ## --- Marketflow Analysis FACADE - WYCKOFF INTEGRATION POINT --- ##
         # The following loop integrates the Wyckoff analysis for each timeframe.
@@ -109,12 +121,12 @@ class MarketflowFacade:
                     # The new analyzer will automatically use the parameterized logic and dual-context detection.
                     wyckoff = WyckoffAnalyzer(
                         processed_data=processed_data,
-                    )
+                    )                                                                                    # 13 - Initialize WyckoffAnalyzer with processed data
                     self.logger.info(f"Running Wyckoff analysis for {ticker} on timeframe {tf}")
                     
                     # The `run_analysis` method from the improved module returns phases, events, and trading_ranges.
                     # This line correctly unpacks all three results.
-                    phases, events, trading_ranges = wyckoff.run_analysis()
+                    phases, events, trading_ranges = wyckoff.run_analysis()                              # 14 - Run Wyckoff analysis and unpack results      
 
                     # Add all Wyckoff results to the timeframe analysis dictionary.
                     tf_analysis_data["wyckoff_phases"] = phases or []
