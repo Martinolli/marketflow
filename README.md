@@ -522,6 +522,87 @@ The `DataProcessor` class takes raw price and volume data, aligns and processes 
 
 The **Configuration Manager** is the central hub for all configuration, API key management, and system settings in MarketFlow. This module provides a robust, secure, and cross-platform solution for managing application configuration with multiple fallback mechanisms and comprehensive validation.
 
+## Marketflow Signals Description and Parameters Flow
+
+### 📦 Marketflow Signals Module Description
+
+This module provides signal generation and risk assessment for the Marketflow trading algorithm based on Volume Price Analysis (VPA). It consists of two main classes:
+
+### 1. SignalGenerator Class
+
+The `SignalGenerator` class is responsible for analyzing market data across multiple timeframes and generating trading signals based on VPA patterns, candle analysis, and trend analysis.
+
+**Key Features:**
+
+- Multi-timeframe analysis integration
+- Pattern recognition (accumulation, distribution, climax patterns)
+- Signal strength classification (Strong, Moderate, Neutral)
+- Evidence gathering for signal validation
+
+### 2. RiskAssessor Class
+
+The `RiskAssessor` class calculates risk metrics for potential trades, including stop-loss levels, take-profit targets, position sizing, and risk-reward ratios.
+
+**Key Features:**
+
+- Dynamic stop-loss calculation based on support/resistance levels
+- Take-profit level optimization
+- Position sizing based on account risk parameters
+- Risk-reward ratio analysis
+
+## Data Flow
+
+1. **Input**: Timeframe analyses and confirmations are fed into the `SignalGenerator`
+2. **Signal Analysis**: The system checks for strong and moderate buy/sell signals across timeframes
+3. **Pattern Recognition**: Identifies VPA patterns (accumulation, distribution, climax patterns)
+4. **Signal Generation**: Creates a signal object with type, strength, and supporting evidence
+5. **Risk Assessment**: The `RiskAssessor` calculates appropriate risk metrics for the generated signal
+6. **Output**: Returns actionable trading signals with complete risk management parameters
+
+## Detailed Method Information Table
+
+| Class | Method | Input Parameters | Input Data Types | Output | Output Data Type | Description |
+|-------|--------|------------------|------------------|---------|------------------|-------------|
+| **SignalGenerator** | `__init__` | `data_parameters` (optional) | `MarketFlowDataParameters` or `None` | None | `None` | Initializes the signal generator with configuration parameters |
+| **SignalGenerator** | `generate_signals` | `timeframe_analyses`: Dictionary with analysis results `confirmations`: Dictionary with confirmation analysis | `dict`, `dict` | Signal information dictionary | `dict[str, object]` | Main method that generates trading signals based on multi-timeframe VPA analysis |
+| **SignalGenerator** | `is_strong_buy_signal` | `timeframe_analyses`: Analysis results per timeframe `confirmations`: Confirmation analysis | `dict`, `dict` | Boolean indicating strong buy signal presence | `bool` | Checks for strong bullish signals across timeframes with pattern confirmation |
+| **SignalGenerator** | `is_strong_sell_signal` | `timeframe_analyses`: Analysis results per timeframe `confirmations`: Confirmation analysis | `dict`, `dict` | Boolean indicating strong sell signal presence | `bool` | Checks for strong bearish signals across timeframes with pattern confirmation |
+| **SignalGenerator** | `is_moderate_buy_signal` | `timeframe_analyses`: Analysis results per timeframe `confirmations`: Confirmation analysis | `dict`, `dict` | Boolean indicating moderate buy signal presence | `bool` | Identifies moderate bullish signals with partial timeframe confirmation |
+| **SignalGenerator** | `is_moderate_sell_signal` | `timeframe_analyses`: Analysis results per timeframe `confirmations`: Confirmation analysis | `dict`, `dict` | Boolean indicating moderate sell signal presence | `bool` | Identifies moderate bearish signals with partial timeframe confirmation |
+| **SignalGenerator** | `gather_signal_evidence` | `timeframe_analyses`: Analysis results per timeframe `confirmations`: Confirmation analysis `signal_type`: Type of signal | `dict`, `dict`, `SignalType` | Supporting evidence dictionary | `dict` | Collects and organizes evidence supporting the generated signal |
+| **RiskAssessor** | `__init__` | `data_parameters` (optional) | `MarketFlowDataParameters` or `None` | None | `None` | Initializes the risk assessor with risk and account parameters |
+| **RiskAssessor** | `assess_trade_risk` | `signal`: Signal information `current_price`: Current asset price `support_resistance`: Support/resistance levels | `dict`, `float`, `dict` | Risk assessment dictionary | `dict` | Comprehensive risk assessment including stop-loss, take-profit, position size |
+| **RiskAssessor** | `calculate_stop_loss` | `signal`: Signal information `current_price`: Current asset price `support_resistance`: Support/resistance levels | `dict`, `float`, `dict` | Stop loss price level | `float` | Calculates optimal stop-loss level based on support/resistance and signal type |
+| **RiskAssessor** | `calculate_take_profit` | `signal`: Signal information `current_price`: Current asset price `support_resistance`: Support/resistance levels | `dict`, `float`, `dict` | Take profit price level | `float` | Calculates optimal take-profit level based on support/resistance and signal type |
+| **RiskAssessor** | `calculate_position_size` | `current_price`: Current asset price `stop_loss`: Stop loss price level | `float`, `float` | Position size (number of shares) | `float` | Calculates appropriate position size based on account risk parameters |
+
+### Key Data Structures
+
+**Signal Dictionary Structure:**
+
+```python
+{
+    "type": SignalType,           # BUY, SELL, or NO_ACTION
+    "strength": SignalStrength,   # STRONG, MODERATE, or NEUTRAL
+    "details": str,               # Human-readable description
+    "evidence": dict              # Supporting evidence
+}
+```
+
+**Risk Assessment Dictionary Structure:**
+
+```python
+{
+    "stop_loss": float,           # Stop loss price level
+    "take_profit": float,         # Take profit price level
+    "risk_reward_ratio": float,   # Risk-to-reward ratio
+    "position_size": float,       # Number of shares to trade
+    "risk_per_share": float       # Risk amount per share
+}
+```
+
+This module provides a complete trading signal generation and risk management system that integrates multiple timeframe analysis with robust risk assessment capabilities.
+
 ### 🎯 Key Features
 
 #### **🔐 Secure API Key Management**
