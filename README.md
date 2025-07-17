@@ -456,6 +456,68 @@ All configuration is managed by `config_manager.py` and environment variables.
 
 ---
 
+### marketflow_processor.py
+
+**complete description** of marketflow_processor.py, including the **sequence of operations** and a **table summarizing the final processed data content**.
+
+---
+
+## Description of Processor Module (`marketflow_processor.py`)
+
+This module defines the `DataProcessor` class, which processes raw price and volume data for the Marketflow algorithm. It performs data alignment, calculates technical features, classifies candles and volume, and determines price and volume trends.
+
+### Sequence of Operations
+
+1. **Initialization (`__init__`)**
+   - Sets up logging.
+   - Loads configuration and parameters (thresholds for volume and candles).
+
+2. **Preprocessing (`preprocess_data`)**
+   - Accepts price (OHLC) and volume data.
+   - Aligns both datasets on their datetime index.
+   - Stores aligned data in a dictionary.
+   - Calculates candle properties (spread, body %, wicks).
+   - Calculates volume metrics (average volume, volume ratio).
+   - Classifies volume and candles using thresholds.
+   - Calculates price direction (trend) using ATR and price change.
+   - Calculates volume direction using On Balance Volume (OBV).
+
+3. **Feature Calculation Methods**
+   - `calculate_candle_properties`: Computes spread, body %, upper/lower wicks.
+   - `calculate_volume_metrics`: Computes rolling average volume and volume ratio.
+   - `classify_volume`: Categorizes volume as VERY_HIGH, HIGH, AVERAGE, LOW, or VERY_LOW.
+   - `classify_candles`: Categorizes candles as WIDE, NARROW, WICK, or NEUTRAL.
+   - `calculate_atr`: Computes Average True Range for volatility.
+   - `calculate_price_direction`: Determines price trend (UP, DOWN, SIDEWAYS, with optional strength).
+   - `calculate_obv`: Computes On Balance Volume.
+   - `calculate_volume_direction`: Determines volume trend (INCREASING, DECREASING, FLAT).
+
+---
+
+## Final Processed Data Table
+
+After running `preprocess_data`, the returned dictionary contains the following keys and their descriptions:
+
+| Key               | Type           | Description                                                                 |
+|-------------------|----------------|-----------------------------------------------------------------------------|
+| `price`           | DataFrame      | Aligned OHLC price data                                                     |
+| `volume`          | Series         | Aligned volume data                                                         |
+| `spread`          | Series         | Absolute difference between close and open (candle body size)               |
+| `body_percent`    | Series         | Ratio of body size to total candle range                                    |
+| `upper_wick`      | Series         | Distance from candle top to body                                            |
+| `lower_wick`      | Series         | Distance from candle bottom to body                                         |
+| `avg_volume`      | Series         | Rolling average of volume over lookback period                              |
+| `volume_ratio`    | Series         | Ratio of current volume to average volume                                   |
+| `volume_class`    | Series         | Volume classification (VERY_HIGH, HIGH, AVERAGE, LOW, VERY_LOW)             |
+| `candle_class`    | Series         | Candle classification (WIDE, NARROW, WICK, NEUTRAL)                         |
+| `price_direction` | Series         | Price trend direction (UP, DOWN, SIDEWAYS, optionally with strength)         |
+| `volume_direction`| Series         | Volume trend direction (INCREASING, DECREASING, FLAT)                       |
+
+---
+
+**Summary:**  
+The `DataProcessor` class takes raw price and volume data, aligns and processes it, calculates technical features, classifies candles and volume, and outputs a dictionary with all relevant features for further analysis or modeling.
+
 ## ⚙️ Configuration Manager Module (`marketflow_config_manager.py`)
 
 The **Configuration Manager** is the central hub for all configuration, API key management, and system settings in MarketFlow. This module provides a robust, secure, and cross-platform solution for managing application configuration with multiple fallback mechanisms and comprehensive validation.
