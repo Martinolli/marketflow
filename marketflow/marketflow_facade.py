@@ -43,16 +43,16 @@ class MarketflowFacade:
             self.logger.info("Using provided MarketFlowFacadeParameters.")
         self.parameters = parameters or MarketFlowDataParameters()
         
-        self.data_provider = PolygonIOProvider()
-        self.processor = DataProcessor(self.parameters) 
-        self.candle_analyzer = CandleAnalyzer(self.parameters)
-        self.trend_analyzer = TrendAnalyzer(self.parameters)
-        self.pattern_recognizer = PatternRecognizer(self.parameters)
-        self.signal_generator = SignalGenerator(self.parameters)
-        self.risk_assessor = RiskAssessor(self.parameters)
-        self.multi_tf_provider = MultiTimeframeProvider(self.data_provider)
-        self.multi_tf_analyzer = MultiTimeframeAnalyzer(self.parameters)
-        self.analyzer = PointInTimeAnalyzer(self.parameters)
+        self.data_provider = PolygonIOProvider() # Initialize data provider with default PolygonIOProvider
+        self.processor = DataProcessor(self.parameters) # Initialize data processor with parameters
+        self.candle_analyzer = CandleAnalyzer(self.parameters) # Initialize candle analyzer with parameters
+        self.trend_analyzer = TrendAnalyzer(self.parameters) # Initialize trend analyzer with parameters
+        self.pattern_recognizer = PatternRecognizer(self.parameters) # Initialize pattern recognizer with parameters
+        self.signal_generator = SignalGenerator(self.parameters) # Initialize signal generator with parameters
+        self.risk_assessor = RiskAssessor(self.parameters) # Initialize risk assessor with parameters
+        self.multi_tf_provider = MultiTimeframeProvider(self.data_provider) # Initialize multi-timeframe provider with data provider
+        self.multi_tf_analyzer = MultiTimeframeAnalyzer(self.parameters) # Initialize multi-timeframe analyzer with parameters
+        self.analyzer = PointInTimeAnalyzer(self.parameters) # Initialize point-in-time analyzer with parameters
 
     def analyze_ticker(self, ticker: str, timeframes=None) -> dict:
         """

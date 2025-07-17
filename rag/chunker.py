@@ -1,4 +1,4 @@
-r"""
+"""
 This script extracts text from a PDF file, chunks it into smaller pieces while preserving page numbers, and saves the result as a JSON file.
 How to use:
 1. Ensure you have the required libraries installed: `pip install pymupdf langchain-text-splitters`.

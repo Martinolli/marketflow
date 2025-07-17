@@ -1,4 +1,4 @@
-r"""
+"""
 This script generates embeddings for text chunks using the OpenAI API.
 It processes chunks in batches to improve efficiency and avoids re-embedding already processed chunks.
 
