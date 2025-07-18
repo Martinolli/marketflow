@@ -39,6 +39,475 @@
 
 ---
 
+## MarketFlow Project Description
+
+## 1. Overview: Main Data Flow in MarketFlow
+
+The MarketFlow system is organized around the facade pattern (via MarketflowFacade), which orchestrates a modular pipeline for multi-timeframe financial analysis. The main pathway is:
+
+External Input (ticker, timeframes) → Data Acquisition → Preprocessing → Multi-Timeframe Analysis → Signal Generation → Risk Assessment (+Wyckoff/Pattern analysis)
+
+## 2. Module-by-Module Data Pathway
+
+Below is a breakdown of the data flow and dependencies, referencing your modules:
+
+### 1. Entry Point: MarketflowFacade
+
+Input: ticker, timeframes
+Delegates to:
+MultiTimeframeProvider → Data acquisition (price/volume for all timeframes)
+MultiTimeframeAnalyzer → Feature extraction & Analysis per timeframe
+
+### 2. Data Acquisition
+
+Module: marketflow_data_provider.py
+PolygonIOProvider.get_data() fetches raw OHLCV data as (price_df, volume_series)
+MultiTimeframeProvider.get_multi_timeframe_data() fetches for all configured timeframes, returns timeframe_data dict.
+
+### 3. Preprocessing
+
+Module: marketflow_processor.py
+DataProcessor.preprocess_data()
+Aligns price and volume
+Calculates candle properties, volume metrics, trend/volume direction
+Outputs: processed_data (dict of derived features, e.g. price, volume, candle_class, etc.)
+
+### 4. Multi-Timeframe Analysis
+
+Module: multi_timeframe_analyzer.py
+For each timeframe:
+CandleAnalyzer.analyze_candle()
+TrendAnalyzer.analyze_trend()
+PatternRecognizer.identify_patterns()
+SupportResistanceAnalyzer.analyze_support_resistance()
+Outputs: timeframe_analyses (per-tf dict of candle_analysis, trend_analysis, etc.)
+
+### 5. Signal Generation & Risk Assessment
+
+Module: marketflow_signals.py
+SignalGenerator.generate_signals()
+Consumes timeframe_analyses and confirmation dict.
+Returns a unified signal dict.
+RiskAssessor.assess_trade_risk()
+Consumes signal, current_price, and S/R levels.
+Returns position sizing and risk metrics.
+
+### 6. Wyckoff/Pattern Analysis (Advanced)
+
+Module: marketflow_wyckoff.py
+Consumes processed_data
+Returns detected Wyckoff phases, events, trading ranges, added to the analysis output.
+
+## 3. Text-Based Data Flow Diagram
+
+```bash
+User Request (ticker, timeframes)
+    |
+    v
+MarketflowFacade.analyze_ticker()
+    |
+    v
++--------------------+
+| MultiTimeframeProvider.get_multi_timeframe_data()         |  ---> [Per timeframe: raw price/volume]
++--------------------+
+    |
+    v
++--------------------+
+| DataProcessor.preprocess_data()         |  ---> [processed_data: price, volume, candle_class, etc.]
++--------------------+
+    |
+    v
++--------------------+
+| MultiTimeframeAnalyzer.analyze_multiple_timeframes()      |
+|   ├─ CandleAnalyzer.analyze_candle()                     |
+|   ├─ TrendAnalyzer.analyze_trend()                       |
+|   ├─ PatternRecognizer.identify_patterns()               |
+|   └─ SupportResistanceAnalyzer.analyze_support_resistance() |
++--------------------+
+    |
+    v
++--------------------+
+| SignalGenerator.generate_signals()      |  ---> [signal dict]
+| RiskAssessor.assess_trade_risk()        |  ---> [risk assessment]
++--------------------+
+    |
+    v
++--------------------+
+| WyckoffAnalyzer.run_analysis()           |  ---> [phases, events, trading_ranges]
++--------------------+
+    |
+    v
+Final Output (analysis dict with all above results)
+```
+
+## 4. Key Data Structures at Each Step
+
+* Raw Data:
+
+    price_df: OHLC DataFrame
+    volume_series: Pandas Series
+
+* Processed Data:
+
+    Dict with keys: price, volume, spread, candle_class, volume_class, etc.
+
+* Timeframe Analysis Result:
+
+    Dict with keys: candle_analysis, trend_analysis, pattern_analysis, support_resistance, processed_data
+
+* Signal:
+
+    Dict: type, strength, details, evidence
+
+* Risk Assessment:
+
+    Dict: stop_loss, take_profit, risk_reward_ratio, position_size, etc.
+
+* Wyckoff Output:
+
+    Lists of detected phases, events, trading_ranges
+
+## 5. Suggestions for Improving Clarity
+
+Add Inline Logging/Debug Output:
+Each module already logs key steps—ensure these logs include data shapes, keys, and sample values for easier tracing.
+
+Document Data Schema:
+Consider a markdown file or docstring in each module with the expected input/output format.
+
+Explicit Type Hints:
+Use type hints in function signatures for clarity, e.g., def analyze_candle(self, idx: int, processed_data: dict) -> dict:
+
+Trace IDs:
+Optionally, add a unique trace/session ID through the pipeline for correlating logs.
+
+## 6. Next Steps
+
+Use the above diagram as a base.
+For each step, you can expand the diagram to show which fields are produced/consumed.
+If you want a more visual (ASCII art) version, let me know!
+
+## 1. Expanded Data Flow Diagram: Produced and Consumed Fields
+
+This diagram shows, for each step/module, the primary fields produced (outputs) and consumed (inputs). The list is based on your codebase and the typical structure of data as it flows through the pipeline.
+
+```mermaid
+User Request (ticker, timeframes)
+    |
+    v
+MarketflowFacade.analyze_ticker()
+    |
+    V   (Consumes: ticker, timeframes)
++--------------------+
+| MultiTimeframeProvider.get_multi_timeframe_data()         |  
+|   - Consumes: ticker, timeframes (interval, period, dates)|
+|   - Produces:                                          |
+|       {                                                |
+|         "1d": { "price_data", "volume_data" },         |
+|         "1h": { "price_data", "volume_data" }, ...     |
+|       }                                                |
++--------------------+
+    |
+    v
++--------------------+
+| DataProcessor.preprocess_data()                         |
+|   - Consumes: price_data, volume_data (per timeframe)   |
+|   - Produces (per tf):                                 |
+|       processed_data: {                                |
+|         "price", "volume", "spread", "body_percent",   |
+|         "upper_wick", "lower_wick", "avg_volume",      |
+|         "volume_ratio", "volume_class",                |
+|         "candle_class", "price_direction",             |
+|         "volume_direction"                             |
+|       }                                                |
++--------------------+
+    |
+    v
++--------------------+
+| MultiTimeframeAnalyzer.analyze_multiple_timeframes()    |
+|   - Consumes: processed_data (per tf)                  |
+|   - Produces (per tf):                                 |
+|       {                                                |
+|         "candle_analysis":                             |
+|             consumes: candle_class, volume_class,      |
+|                      price_direction, price            |
+|             produces: signal_type, signal_strength,    |
+|                       details, ...                    |
+|         "trend_analysis":                              |
+|             consumes: price, volume, volume_class      |
+|             produces: trend_direction,                 |
+|                       signal_type, signal_strength,    |
+|                       details, ...                    |
+|         "pattern_analysis":                            |
+|             consumes: price, volume, volume_class      |
+|             produces: e.g., {accumulation, ...}        |
+|         "support_resistance":                          |
+|             consumes: price, volume                    |
+|             produces: {support, resistance, ...}       |
+|         "processed_data": { ... }                      |
+|       }                                                |
++--------------------+
+    |
+    v
++--------------------+
+| SignalGenerator.generate_signals()                     |
+|   - Consumes: timeframe_analyses, confirmations        |
+|   - Produces: signal dict:                             |
+|         { type, strength, details, evidence }          |
++--------------------+
+| RiskAssessor.assess_trade_risk()                       |
+|   - Consumes: signal, current_price, support_resistance|
+|   - Produces: { stop_loss, take_profit,                |
+|                 risk_reward_ratio, position_size, ... }|
++--------------------+
+    |
+    v
++--------------------+
+| WyckoffAnalyzer.run_analysis()                         |
+|   - Consumes: processed_data (per tf)                  |
+|   - Produces: { phases, events, trading_ranges }       |
++--------------------+
+    |
+    v
+Final Output (dict):
+{
+    "ticker": ...,
+    "timeframe_analyses": { ... },
+    "confirmations": ...,
+    "signal": ...,
+    "risk_assessment": ...,
+    "current_price": ...,
+    "wyckoff_phases": ...,
+    "wyckoff_events": ...,
+    "wyckoff_trading_ranges": ...,
+}
+```
+
+## 2. UML Diagram: MarketFlow Core Classes (Conceptual)
+
+This UML class diagram shows the primary classes, their key methods, and relationships. The focus is on data flow and module dependencies, not every method or field.
+
+```bash
++---------------------------------------------------------------+
+|                        MarketflowFacade                       |
++---------------------------------------------------------------+
+| - parameters: MarketFlowDataParameters                        |
+| - data_provider: PolygonIOProvider                            |
+| - multi_tf_provider: MultiTimeframeProvider                   |
+| - multi_tf_analyzer: MultiTimeframeAnalyzer                   |
+| - signal_generator: SignalGenerator                           |
+| - risk_assessor: RiskAssessor                                 |
+| - processor: DataProcessor                                    |
+| - analyzer: PointInTimeAnalyzer                               |
++---------------------------------------------------------------+
+| + analyze_ticker(ticker, timeframes) : dict                   |
+| + analyze_ticker_at_point(ticker, data_by_tf): dict           |
+| + get_signals(ticker, timeframes): dict                       |
+| + explain_signal(ticker, timeframes): str                     |
++---------------------------------------------------------------+
+                |         (uses)
+                v
++-------------------------------+
+| MultiTimeframeProvider        |-----------+
++-------------------------------+           |
+| + get_multi_timeframe_data()  |           |
+| + get_multi_timeframe_data_async()        |
++-------------------------------+           |
+    |        (uses)                         |
+    v                                       |
++-------------------------------+           |
+| PolygonIOProvider             |           |
++-------------------------------+           |
+| + get_data()                  |           |
+| + get_data_async()            |           |
++-------------------------------+           |
+                                            |
++-------------------------------+           |
+| MultiTimeframeAnalyzer        |<----------+
++-------------------------------+
+| + analyze_multiple_timeframes()|
+| + identify_timeframe_confirmations()|
++-------------------------------+
+    |        (uses)      
+    v
++----------------+     +-------------------+    +----------------+
+| CandleAnalyzer |     | TrendAnalyzer     |    | PatternRecognizer |
++----------------+     +-------------------+    +----------------+
+| + analyze_candle()|  | + analyze_trend() |    | + identify_patterns() |
++----------------+     +-------------------+    +----------------+
+    |                                       
+    v                                       
++-----------------------------+             
+| SupportResistanceAnalyzer   |             
++-----------------------------+             
+| + analyze_support_resistance()|
++-----------------------------+
+
++-----------------------+      +------------------+
+| SignalGenerator       |      | RiskAssessor     |
++-----------------------+      +------------------+
+| + generate_signals()  |      | + assess_trade_risk() |
++-----------------------+      +------------------+
+
++---------------------+
+| WyckoffAnalyzer     |
++---------------------+
+| + run_analysis()    |
+| + detect_events()   |
+| + detect_phases()   |
++---------------------+
+
+(Arrows: solid for composition/aggregation, dashed for use/call)
+```
+
+Notes:
+    - Most modules depend on a shared MarketFlowDataParameters for configuration.
+    - Data flows linearly through the pipeline, but results are bundled per timeframe.
+    - The facade orchestrates the entire pipeline, calling each module in sequence.
+    - The WyckoffAnalyzer operates on processed data per timeframe, after the main analysis.
+
+How to Read This Diagram
+Produced fields: Each module’s main output fields are listed under "produces" in the data flow diagram.
+Consumed fields: Each module’s main input fields are listed under "consumes".
+UML: Shows class relationships (not full attributes/methods for brevity) and how data flows via method calls.
+
+```plantuml
+@startuml
+' MarketFlow Core Data Flow and Class Diagram
+
+skinparam classAttributeIconSize 0
+skinparam shadowing false
+
+' === Core Classes ===
+class MarketflowFacade {
+    +analyze_ticker(ticker, timeframes): dict
+    +analyze_ticker_at_point(ticker, data_by_tf): dict
+    +get_signals(ticker, timeframes): dict
+    +explain_signal(ticker, timeframes): str
+}
+
+class PolygonIOProvider {
+    +get_data(ticker, interval, period, start, end): (price_df, volume_series)
+}
+
+class MultiTimeframeProvider {
+    +get_multi_timeframe_data(ticker, timeframes): dict
+}
+
+class DataProcessor {
+    +preprocess_data(price_data, volume_data): dict
+    -- Produces: --
+    spread
+    body_percent
+    upper_wick
+    lower_wick
+    avg_volume
+    volume_ratio
+    volume_class
+    candle_class
+    price_direction
+    volume_direction
+}
+
+class MultiTimeframeAnalyzer {
+    +analyze_multiple_timeframes(timeframe_data): dict
+    ' Consumes: processed_data (from DataProcessor)
+    ' Produces: 
+    '  candle_analysis, trend_analysis, pattern_analysis, support_resistance, processed_data
+}
+
+class CandleAnalyzer {
+    +analyze_candle(idx, processed_data): dict
+    -- Consumes: candle_class, volume_class, price_direction, price
+    -- Produces: signal_type, signal_strength, details
+}
+
+class TrendAnalyzer {
+    +analyze_trend(processed_data, idx): dict
+    -- Consumes: price, volume, volume_class
+    -- Produces: trend_direction, price_change_percent, volume_trend, signal_type, signal_strength, details
+}
+
+class PatternRecognizer {
+    +identify_patterns(processed_data, idx): dict
+    -- Consumes: price, volume, volume_class
+    -- Produces: accumulation, distribution, testing, buying_climax, selling_climax
+}
+
+class SupportResistanceAnalyzer {
+    +analyze_support_resistance(processed_data): dict
+    -- Consumes: price, volume
+    -- Produces: support, resistance, volume_at_levels
+}
+
+class SignalGenerator {
+    +generate_signals(timeframe_analyses, confirmations): dict
+    -- Consumes: all tf analyses & confirmations
+    -- Produces: signal dict (type, strength, details, evidence)
+}
+
+class RiskAssessor {
+    +assess_trade_risk(signal, current_price, support_resistance): dict
+    -- Consumes: signal, current_price, support_resistance
+    -- Produces: stop_loss, take_profit, risk_reward_ratio, position_size, risk_per_share
+}
+
+class WyckoffAnalyzer {
+    +run_analysis(): (phases, events, trading_ranges)
+    -- Consumes: processed_data
+    -- Produces: wyckoff_phases, wyckoff_events, wyckoff_trading_ranges
+}
+
+' === Data/Method Flow (Dependencies) ===
+MarketflowFacade --> MultiTimeframeProvider : get_multi_timeframe_data
+MultiTimeframeProvider --> PolygonIOProvider : get_data
+
+MarketflowFacade --> MultiTimeframeAnalyzer : analyze_multiple_timeframes
+MultiTimeframeAnalyzer --> DataProcessor : preprocess_data
+MultiTimeframeAnalyzer --> CandleAnalyzer : analyze_candle
+MultiTimeframeAnalyzer --> TrendAnalyzer : analyze_trend
+MultiTimeframeAnalyzer --> PatternRecognizer : identify_patterns
+MultiTimeframeAnalyzer --> SupportResistanceAnalyzer : analyze_support_resistance
+
+MarketflowFacade --> SignalGenerator : generate_signals
+MarketflowFacade --> RiskAssessor : assess_trade_risk
+MarketflowFacade --> WyckoffAnalyzer : run_analysis
+
+' === Data/Field Flow Notes ===
+note right of DataProcessor
+    Output fields:
+      - spread
+      - body_percent
+      - upper_wick/lower_wick
+      - avg_volume, volume_ratio
+      - volume_class, candle_class
+      - price_direction, volume_direction
+end note
+
+note "Consumes processed_data fields (candle_class, volume_class, price_direction, price)" as C1
+CandleAnalyzer .. C1
+
+note "Consumes price, volume, volume_class" as T1
+TrendAnalyzer .. T1
+
+note "Consumes price, volume, volume_class" as P1
+PatternRecognizer .. P1
+
+note "Consumes price, volume" as S1
+SupportResistanceAnalyzer .. S1
+
+note "Consumes all tf analyses & confirmations" as SIG1
+SignalGenerator .. SIG1
+
+note "Consumes signal, current_price, support_resistance" as RISK1
+RiskAssessor .. RISK1
+
+note "Consumes processed_data" as W1
+WyckoffAnalyzer .. W1
+
+@enduml
+```
+
 ## 🚀 Modules Description
 
 | Module                    | Role                                                        |
@@ -184,12 +653,12 @@ classDiagram
 
 ## 🚀 Features
 
-- **Modular architecture:** Clean separation of data fetching, processing, signal analysis, and LLM-driven reporting.
-- **Provider-agnostic data layer:** Easily add new data providers (e.g., Polygon.io, Yahoo Finance).
-- **LLM integration:** Swappable support for OpenAI, Ollama, and other LLMs for natural language reporting, tool-calling, and concept explanations.
-- **Robust error handling:** Retries, logging, and detailed diagnostics for every module.
-- **Configurable and secure:** Environment-based config, `.env` secrets, and a central `config_manager.py`.
-- **Extensible:** Add new strategies, signals, or analytics with minimal friction.
+**Modular architecture:** Clean separation of data fetching, processing, signal analysis, and LLM-driven reporting.
+**Provider-agnostic data layer:** Easily add new data providers (e.g., Polygon.io, Yahoo Finance).
+**LLM integration:** Swappable support for OpenAI, Ollama, and other LLMs for natural language reporting, tool-calling, and concept explanations.
+**Robust error handling:** Retries, logging, and detailed diagnostics for every module.
+**Configurable and secure:** Environment-based config, `.env` secrets, and a central `config_manager.py`.
+**Extensible:** Add new strategies, signals, or analytics with minimal friction.
 
 ---
 
@@ -426,23 +895,24 @@ sequenceDiagram
 
 The `marketflow_data_provider.py` module is the core data access layer for MarketFlow. It provides a robust, extensible interface for fetching price and volume data from external sources, such as Polygon.io. Key features include:
 
-- **Abstract Base Class (`DataProvider`)**  
+**Abstract Base Class (`DataProvider`)**  
   Defines a standard interface for all data providers, requiring both synchronous (`get_data`) and asynchronous (`get_data_async`) methods for fetching price and volume data.
 
-- **PolygonIOProvider**  
+**PolygonIOProvider**  
   Implements the data provider interface for Polygon.io, with:
-  - Advanced error handling and retry logic (including exponential backoff and jitter)
-  - Support for both synchronous and asynchronous data fetching
-  - API key management and configuration integration
-  - Interval and period parsing, and conversion of raw API responses into pandas DataFrames and Series
 
-- **MultiTimeframeProvider**  
+  Advanced error handling and retry logic (including exponential backoff and jitter)
+  Support for both synchronous and asynchronous data fetching
+  API key management and configuration integration
+  Interval and period parsing, and conversion of raw API responses into pandas DataFrames and Series
+
+ **MultiTimeframeProvider**  
   Utility class for fetching data across multiple timeframes (e.g., daily, hourly) in a single call, supporting both sync and async workflows.
 
-- **Error Handling**  
+ **Error Handling**  
   Categorizes errors (network, API, authentication, rate limit, data processing, unknown), applies retries, and logs all issues for diagnostics.
 
-- **Extensibility**  
+ **Extensibility**  
   New data providers can be added easily by subclassing `DataProvider`.
 
 This module is the foundation for all data ingestion in MarketFlow, ensuring reliability, testability, and future extensibility.
@@ -451,8 +921,8 @@ This module is the foundation for all data ingestion in MarketFlow, ensuring rel
 
 All configuration is managed by `config_manager.py` and environment variables.
 
-- Do **not** commit your `.env` file.
-- Use the `ConfigManager` class to access API keys and config in code.
+ Do **not** commit your `.env` file.
+Use the `ConfigManager` class to access API keys and config in code.
 
 ---
 
@@ -469,28 +939,29 @@ This module defines the `DataProcessor` class, which processes raw price and vol
 ### Sequence of Operations
 
 1. **Initialization (`__init__`)**
-   - Sets up logging.
-   - Loads configuration and parameters (thresholds for volume and candles).
+   Sets up logging.
+   Loads configuration and parameters (thresholds for volume and candles).
 
 2. **Preprocessing (`preprocess_data`)**
-   - Accepts price (OHLC) and volume data.
-   - Aligns both datasets on their datetime index.
-   - Stores aligned data in a dictionary.
-   - Calculates candle properties (spread, body %, wicks).
-   - Calculates volume metrics (average volume, volume ratio).
-   - Classifies volume and candles using thresholds.
-   - Calculates price direction (trend) using ATR and price change.
-   - Calculates volume direction using On Balance Volume (OBV).
+   Accepts price (OHLC) and volume data.
+   Aligns both datasets on their datetime index.
+   Stores aligned data in a dictionary.
+   Calculates candle properties (spread, body %, wicks).
+   Calculates volume metrics (average volume, volume ratio).
+   Classifies volume and candles using thresholds.
+   Calculates price direction (trend) using ATR and price change.
+   Calculates volume direction using On Balance Volume (OBV).
 
 3. **Feature Calculation Methods**
-   - `calculate_candle_properties`: Computes spread, body %, upper/lower wicks.
-   - `calculate_volume_metrics`: Computes rolling average volume and volume ratio.
-   - `classify_volume`: Categorizes volume as VERY_HIGH, HIGH, AVERAGE, LOW, or VERY_LOW.
-   - `classify_candles`: Categorizes candles as WIDE, NARROW, WICK, or NEUTRAL.
-   - `calculate_atr`: Computes Average True Range for volatility.
-   - `calculate_price_direction`: Determines price trend (UP, DOWN, SIDEWAYS, with optional strength).
-   - `calculate_obv`: Computes On Balance Volume.
-   - `calculate_volume_direction`: Determines volume trend (INCREASING, DECREASING, FLAT).
+
+   `calculate_candle_properties`: Computes spread, body %, upper/lower wicks.
+   `calculate_volume_metrics`: Computes rolling average volume and volume ratio.
+   `classify_volume`: Categorizes volume as VERY_HIGH, HIGH, AVERAGE, LOW, or VERY_LOW.
+   `classify_candles`: Categorizes candles as WIDE, NARROW, WICK, or NEUTRAL.
+   `calculate_atr`: Computes Average True Range for volatility.
+   `calculate_price_direction`: Determines price trend (UP, DOWN, SIDEWAYS, with optional strength).
+   `calculate_obv`: Computes On Balance Volume.
+   `calculate_volume_direction`: Determines volume trend (INCREASING, DECREASING, FLAT).
 
 ---
 
@@ -534,10 +1005,10 @@ The `SignalGenerator` class is responsible for analyzing market data across mult
 
 **Key Features:**
 
-- Multi-timeframe analysis integration
-- Pattern recognition (accumulation, distribution, climax patterns)
-- Signal strength classification (Strong, Moderate, Neutral)
-- Evidence gathering for signal validation
+ Multi-timeframe analysis integration
+ Pattern recognition (accumulation, distribution, climax patterns)
+ Signal strength classification (Strong, Moderate, Neutral)
+ Evidence gathering for signal validation
 
 ### 2. RiskAssessor Class
 
@@ -545,10 +1016,10 @@ The `RiskAssessor` class calculates risk metrics for potential trades, including
 
 **Key Features:**
 
-- Dynamic stop-loss calculation based on support/resistance levels
-- Take-profit level optimization
-- Position sizing based on account risk parameters
-- Risk-reward ratio analysis
+ Dynamic stop-loss calculation based on support/resistance levels
+ Take-profit level optimization
+ Position sizing based on account risk parameters
+ Risk-reward ratio analysis
 
 ## Data Flow
 
@@ -607,24 +1078,24 @@ This module provides a complete trading signal generation and risk management sy
 
 #### **🔐 Secure API Key Management**
 
-- **Multi-source support**: Environment variables, JSON config files, or programmatic setting
-- **Service-specific validation**: Built-in validation for different API key formats (OpenAI, Polygon.io)
-- **Safe retrieval**: Non-throwing methods for optional API keys
-- **Centralized storage**: Single point of configuration for all external services
+ **Multi-source support**: Environment variables, JSON config files, or programmatic setting
+ **Service-specific validation**: Built-in validation for different API key formats (OpenAI, Polygon.io)
+ **Safe retrieval**: Non-throwing methods for optional API keys
+ **Centralized storage**: Single point of configuration for all external services
 
 #### **🤖 LLM Provider Configuration**
 
-- **Multi-provider support**: OpenAI, Ollama, and extensible architecture for additional providers
-- **Model management**: Configure and switch between different LLM models (including fine-tuned models)
-- **Provider-specific settings**: Separate configuration for API keys, base URLs, and model names
-- **Runtime switching**: Change LLM providers and models without restart
+ **Multi-provider support**: OpenAI, Ollama, and extensible architecture for additional providers
+ **Model management**: Configure and switch between different LLM models (including fine-tuned models)
+ **Provider-specific settings**: Separate configuration for API keys, base URLs, and model names
+ **Runtime switching**: Change LLM providers and models without restart
 
 #### **🌐 Cross-Platform Compatibility**
 
-- **Path handling**: Uses `pathlib.Path` for Windows/Linux/macOS compatibility
-- **Environment detection**: Automatic project root detection and relative path resolution
-- **Fallback mechanisms**: Multiple configuration file locations with intelligent fallbacks
-- **Directory creation**: Automatic creation of required directories for logs and memory storage
+ **Path handling**: Uses `pathlib.Path` for Windows/Linux/macOS compatibility
+ **Environment detection**: Automatic project root detection and relative path resolution
+ **Fallback mechanisms**: Multiple configuration file locations with intelligent fallbacks
+ **Directory creation**: Automatic creation of required directories for logs and memory storage
 
 #### **📝 Comprehensive Configuration Sources**
 
@@ -640,11 +1111,11 @@ The Configuration Manager checks for settings in this priority order:
    ```
 
 2. **JSON Configuration Files** (multiple locations checked)
-   - User-specified config file path
-   - `{project_root}/.marketflow/config/config.json`
-   - `{user_home}/.marketflow/config.json`
-   - `{current_directory}/marketflow_config.json`
-   - `{module_directory}/config.json`
+    User-specified config file path
+    `{project_root}/.marketflow/config/config.json`
+    `{user_home}/.marketflow/config.json`
+    `{current_directory}/marketflow_config.json`
+    `{module_directory}/config.json`
 
 3. **Programmatic Settings** (via `set_config_value()`)
 
@@ -782,10 +1253,10 @@ config.set_config_value('log_level', 'WARNING')
 
 #### **API Key Security**
 
-- Never hardcode API keys in source code
-- Use environment variables for production
-- Store sensitive config files outside the repository
-- Use the `get_api_key_safe()` method for optional keys
+ Never hardcode API keys in source code
+ Use environment variables for production
+ Store sensitive config files outside the repository
+ Use the `get_api_key_safe()` method for optional keys
 
 #### **Configuration File Security**
 
@@ -814,11 +1285,11 @@ MARKETFLOW_LOG_LEVEL=INFO
 
 The Configuration Manager integrates seamlessly with all MarketFlow modules:
 
-- **Logger**: Provides log levels and file paths
-- **Data Provider**: Supplies API keys and provider settings  
-- **LLM Interface**: Configures provider, models, and parameters
-- **Memory Manager**: Specifies database paths and conversation limits
-- **Facade**: Central configuration access point
+ **Logger**: Provides log levels and file paths
+ **Data Provider**: Supplies API keys and provider settings  
+ **LLM Interface**: Configures provider, models, and parameters
+ **Memory Manager**: Specifies database paths and conversation limits
+ **Facade**: Central configuration access point
 
 ### 🧪 Testing & Validation
 
@@ -853,13 +1324,13 @@ modern_config = get_config_manager()
 
 ## 📊 Extending MarketFlow
 
-- **New data provider?**  
-  Subclass `BaseDataProvider` in `data_provider.py`, and register it in the factory.
-- **New signal or analytics?**  
+ **New data provider?**  
+ Subclass `BaseDataProvider` in `data_provider.py`, and register it in the factory.
+ **New signal or analytics?**  
   Add logic to `marketflow_signals.py` or `marketflow_analyzer.py`.
-- **Custom reporting/LLM tools?**  
-  Update `marketflow_llm_interface.py` and `llm_providers.py`.
-- **Testing:**  
+ **Custom reporting/LLM tools?**  
+ Update `marketflow_llm_interface.py` and `llm_providers.py`.
+ **Testing:**  
   Add new tests to the `tests/` folder using mocks for API calls.
 
 ---
@@ -879,8 +1350,8 @@ Please open issues or pull requests to suggest improvements.
 
 ## 📚 Documentation
 
-- Each module is documented with clear docstrings.
-- See the code comments and CLI help for usage examples.
+ Each module is documented with clear docstrings.
+ See the code comments and CLI help for usage examples.
 
 ---
 
