@@ -7,9 +7,6 @@ This module provides a simplified API for Marketflow Analysis.
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
 from marketflow.marketflow_data_provider import PolygonIOProvider, MultiTimeframeProvider
 from marketflow.marketflow_processor import DataProcessor
-from marketflow.candle_analyzer import CandleAnalyzer
-from marketflow.trend_analyzer import TrendAnalyzer
-from marketflow.pattern_recognizer import PatternRecognizer
 from marketflow.point_in_time_analyzer import PointInTimeAnalyzer
 from marketflow.multi_timeframe_analyzer import MultiTimeframeAnalyzer
 from marketflow.marketflow_signals import SignalGenerator, RiskAssessor
@@ -55,12 +52,6 @@ class MarketflowFacade:
         self.risk_assessor = RiskAssessor(self.parameters) # 5 - Initialize risk assessor with parameters
 
         self.processor = DataProcessor(self.parameters) # 6 - Initialize data processor with parameters
-
-        # self.candle_analyzer = CandleAnalyzer(self.parameters) # Initialize candle analyzer with parameters
-
-        # self.trend_analyzer = TrendAnalyzer(self.parameters) # Initialize trend analyzer with parameters
-
-        # self.pattern_recognizer = PatternRecognizer(self.parameters) # Initialize pattern recognizer with parameters
 
         self.analyzer = PointInTimeAnalyzer(self.parameters) # 7 - Initialize point-in-time analyzer with parameters
 
