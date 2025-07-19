@@ -378,7 +378,7 @@ class WyckoffAnalyzer:
         self.logger.info(f"Detected {len(self.events)} Wyckoff events.")
         return self.events
     
-    def detect_phases(self):
+    def detect_phases(self) -> List[Dict[str, Any]]: 
         """
         Classify Wyckoff phases based on the sequence of detected events.
         This logic is more stateful and context-aware than the original implementation.
@@ -497,7 +497,7 @@ class WyckoffAnalyzer:
         return self.phases
     ## --- CHANGE END --- ##
 
-    def annotate_chart(self):
+    def annotate_chart(self) -> pd.DataFrame:
         """
         Adds annotations (events and phases) to the price data.
         Returns a DataFrame with 'wyckoff_event' and 'wyckoff_phase' columns.
