@@ -27,10 +27,10 @@ def test_processor_integration_with_parameters(dummy_data):
     params.update_parameters({"volume.very_high_threshold": 1.5})
 
     # Create processor with parameters
-    processor = DataProcessor(parameters=params)
+    processor = DataProcessor(parameters=params)    
     assert processor.parameters is params
 
-    # Run preprocess
+    # Run preprocessing
     processed = processor.preprocess_data(price_data, volume_data)
 
     # --- Output checks ---
