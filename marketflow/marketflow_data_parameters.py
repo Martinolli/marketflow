@@ -267,10 +267,11 @@ default_config = {
     },
     "timeframes": [
         {"interval": "1d", "period": "60d"},
-        {"interval": "1h", "period": "30d"},
-        {"interval": "4h", "period": "10d"},
-        {"interval": "5m", "period": "6d"},
-        {"interval": "15m", "period": "6d"},
-        {"interval": "30m", "period": "6d"},
+        {"interval": "4h", "period": "30d"},
+        {"interval": "1h", "period": "30d"},    
+        {"interval": "30m", "period": "10d"},
+        {"interval": "15m", "period": "10d"},
+        {"interval": "5m", "period": "10d"},
+        {"interval": "1m", "period": "10d"}
     ]
 }
