@@ -119,13 +119,20 @@ class ConfigManager:
         # --- Reports and Output ---
         default_report_dir = str(self.project_root / ".marketflow" / "reports")
         self.REPORT_DIR = self.get_config_value("report_dir", os.getenv("REPORT_DIR", default_report_dir))
+
+        # --- Snapshot Output Directory ---
+        default_snapshot_dir = str(self.project_root / ".marketflow" / "snapshot_reports")
+        self.SNAPSHOT_OUTPUT_DIR = self.get_config_value("snapshot_output_dir", os.getenv("SNAPSHOT_OUTPUT_DIR", default_snapshot_dir))
+        self.config_data["snapshot_output_dir"] = self.SNAPSHOT_OUTPUT_DIR
         
-        # Ensure output directory exists
+        # Ensure output directories exist
         try:
             Path(self.REPORT_DIR).mkdir(parents=True, exist_ok=True)
             self._log("info", f"Report output directory created/verified: {self.REPORT_DIR}")
+            Path(self.SNAPSHOT_OUTPUT_DIR).mkdir(parents=True, exist_ok=True)
+            self._log("info", f"Snapshot output directory created/verified: {self.SNAPSHOT_OUTPUT_DIR}")
         except Exception as e:
-            self._log("error", f"Failed to create report output directory {self.REPORT_DIR}: {e}")
+            self._log("error", f"Failed to create output directory: {e}")
             raise
     
     def get_api_key(self, service: str) -> str:
