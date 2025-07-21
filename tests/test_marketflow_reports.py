@@ -13,7 +13,7 @@ from marketflow.marketflow_config_manager import create_app_config
 
 def main():
     # --- Step 1: Get real market data ---
-    ticker = "PLTR"
+    ticker = "GSLC"
     print(f"Fetching real market data for {ticker}...")
     provider = PolygonIOProvider()
     result = provider.get_data(
