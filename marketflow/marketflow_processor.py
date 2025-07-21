@@ -38,8 +38,8 @@ class DataProcessor:
         self.candle_thresholds = self.parameters.get_candle_thresholds()
         if self.candle_thresholds is None:
             self.logger.warning("Candle thresholds not found in parameters, using default values.")
-    
-    def preprocess_data(self, price_data, volume_data, lookback_period=None):
+
+    def preprocess_data(self, price_data: pd.DataFrame, volume_data: pd.Series, lookback_period=None) -> dict:
         """
         Preprocess price and volume data for Marketflow analysis
         
@@ -99,8 +99,8 @@ class DataProcessor:
 
         self.logger.info("Data preprocessing complete.")
         return processed_data
-    
-    def calculate_candle_properties(self, processed_data):
+
+    def calculate_candle_properties(self, processed_data: dict) -> dict:
         """
         Calculate candle properties
         
@@ -129,7 +129,7 @@ class DataProcessor:
         except Exception as e:
             self.logger.error(f"Error calculating candle properties: {e}")
             raise
-    def calculate_volume_metrics(self, processed_data, lookback_period):
+    def calculate_volume_metrics(self, processed_data: dict, lookback_period: int) -> dict:
         """
         Calculate volume metrics
         
@@ -155,8 +155,8 @@ class DataProcessor:
         except Exception as e:
             self.logger.error(f"Error calculating volume metrics: {e}")
             raise
-    
-    def classify_volume(self, volume_ratio):
+
+    def classify_volume(self, volume_ratio: pd.Series) -> pd.Series:
         """
         Classify volume as VERY_HIGH, HIGH, AVERAGE, LOW, or VERY_LOW
         based on volume ratio.
@@ -195,7 +195,7 @@ class DataProcessor:
             self.logger.error(f"Error classifying volume: {e}")
             raise
 
-    def classify_candles(self, data):
+    def classify_candles(self, data: dict) -> pd.Series:
         """
         Classify candles based on spread and wicks
         
@@ -232,7 +232,7 @@ class DataProcessor:
             self.logger.error(f"Error classifying candles: {e}")
             raise
 
-    def calculate_atr(self, price_data, period=14):
+    def calculate_atr(self, price_data: pd.DataFrame, period=14) -> pd.Series:
         """
         Calculate Average True Range (ATR)
         
@@ -255,7 +255,7 @@ class DataProcessor:
         atr = tr.rolling(window=period).mean()
         return atr
 
-    def calculate_price_direction(self, price_data, lookback_period=10, threshold_pct=5, use_ema=False, strength_levels=False):
+    def calculate_price_direction(self, price_data: pd.DataFrame, lookback_period=10, threshold_pct=5, use_ema=False, strength_levels=False) -> pd.Series:
         """
         Calculate the direction of price movement
         
@@ -299,8 +299,8 @@ class DataProcessor:
         except Exception as e:
             self.logger.error(f"Error calculating price direction: {e}")
             raise
-    
-    def calculate_obv(self, price_data, volume_data):
+
+    def calculate_obv(self, price_data: pd.DataFrame, volume_data: pd.Series) -> pd.Series:
         """
         Calculate On Balance Volume (OBV)
         
@@ -325,7 +325,7 @@ class DataProcessor:
         
         return obv
 
-    def calculate_volume_direction(self, price_data, volume_data, lookback_period=10, threshold_pct=10):
+    def calculate_volume_direction(self, price_data: pd.DataFrame, volume_data: pd.Series, lookback_period=10, threshold_pct=10) -> pd.Series:
         """
         Calculate the direction of volume movement using On Balance Volume (OBV)
         
