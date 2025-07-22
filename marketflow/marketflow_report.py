@@ -147,8 +147,9 @@ class MarketflowReport:
                     wyckoff_phases = self.extractor.get_wyckoff_phases(ticker, tf)
                     wyckoff_events = self.extractor.get_wyckoff_events(ticker, tf)
                     wyckoff_ranges = self.extractor.get_wyckoff_trading_ranges(ticker, tf)
+                    wyckoff_annotated = self.extractor.get_wyckoff_annotated_data(ticker, tf)
 
-                    if not any([wyckoff_phases, wyckoff_events, wyckoff_ranges]):
+                    if not any([wyckoff_phases, wyckoff_events, wyckoff_ranges]) and wyckoff_annotated.empty:
                         f.write("    No significant Wyckoff structures detected on this timeframe.\n\n")
                         continue
                     
@@ -170,6 +171,30 @@ class MarketflowReport:
                             price = event.get('price', 0)
                             volume = event.get('volume', 0)
                             f.write(f"      - {ts}: {event_name} @ ${price:<8.2f} (Vol: {volume:,.0f})\n")
+                    
+                    # --- Wyckoff Annotated Data Summary ---
+                    if not wyckoff_annotated.empty:
+                        f.write("    - Annotated Chart Data:\n")
+                        f.write(f"      - Data Points: {len(wyckoff_annotated):,} rows\n")
+                        f.write(f"      - Date Range: {wyckoff_annotated.index[0].strftime('%Y-%m-%d')} to {wyckoff_annotated.index[-1].strftime('%Y-%m-%d')}\n")
+                        
+                        # Show available annotation columns (excluding basic OHLCV)
+                        basic_cols = {'open', 'high', 'low', 'close', 'volume'}
+                        annotation_cols = [col for col in wyckoff_annotated.columns if col.lower() not in basic_cols]
+                        if annotation_cols:
+                            f.write(f"      - Annotation Columns: {', '.join(annotation_cols)}\n")
+                        
+                        # Show some statistics about annotations
+                        for col in annotation_cols[:5]:  # Limit to first 5 annotation columns
+                            if wyckoff_annotated[col].dtype == 'object':
+                                unique_values = wyckoff_annotated[col].dropna().unique()
+                                if len(unique_values) <= 10:  # Only show if reasonable number of unique values
+                                    f.write(f"        - {col}: {', '.join(str(v) for v in unique_values[:5])}\n")
+                            elif pd.api.types.is_numeric_dtype(wyckoff_annotated[col]):
+                                non_null_count = wyckoff_annotated[col].count()
+                                if non_null_count > 0:
+                                    f.write(f"        - {col}: {non_null_count:,} annotated points\n")
+                    
                     f.write("\n")
 
                 f.write(f"\n{'='*80}\nEnd of Report\n{'='*80}\n")
@@ -308,8 +333,9 @@ class MarketflowReport:
                 wyckoff_phases = self.extractor.get_wyckoff_phases(ticker, tf)
                 wyckoff_events = self.extractor.get_wyckoff_events(ticker, tf)
                 wyckoff_ranges = self.extractor.get_wyckoff_trading_ranges(ticker, tf)
+                wyckoff_annotated = self.extractor.get_wyckoff_annotated_data(ticker, tf)
 
-                if not any([wyckoff_phases, wyckoff_events, wyckoff_ranges]):
+                if not any([wyckoff_phases, wyckoff_events, wyckoff_ranges]) and wyckoff_annotated.empty:
                     html += "<p>No significant Wyckoff structures detected.</p>"
                 else:
                     if wyckoff_phases:
@@ -329,6 +355,42 @@ class MarketflowReport:
                             ts = pd.to_datetime(event.get('timestamp')).strftime('%Y-%m-%d %H:%M')
                             html += f"<tr><td>{ts}</td><td>{event.get('event_name', 'N/A')}</td><td>${event.get('price', 0):.2f}</td><td>{event.get('volume', 0):,}</td></tr>"
                         html += "</table>"
+                    
+                    # --- Wyckoff Annotated Data Section ---
+                    if not wyckoff_annotated.empty:
+                        html += "<h4>Annotated Chart Data</h4>"
+                        html += f"<p><strong>Data Points:</strong> {len(wyckoff_annotated):,} rows</p>"
+                        html += f"<p><strong>Date Range:</strong> {wyckoff_annotated.index[0].strftime('%Y-%m-%d')} to {wyckoff_annotated.index[-1].strftime('%Y-%m-%d')}</p>"
+                        
+                        # Show available annotation columns
+                        basic_cols = {'open', 'high', 'low', 'close', 'volume'}
+                        annotation_cols = [col for col in wyckoff_annotated.columns if col.lower() not in basic_cols]
+                        if annotation_cols:
+                            html += f"<p><strong>Annotation Columns:</strong> {', '.join(annotation_cols)}</p>"
+                            
+                            # Create a summary table for annotation statistics
+                            html += "<h5>Annotation Summary</h5><table><tr><th>Column</th><th>Type</th><th>Summary</th></tr>"
+                            for col in annotation_cols[:10]:  # Limit to first 10 columns
+                                col_type = str(wyckoff_annotated[col].dtype)
+                                if wyckoff_annotated[col].dtype == 'object':
+                                    unique_values = wyckoff_annotated[col].dropna().unique()
+                                    if len(unique_values) <= 10:
+                                        summary = f"Values: {', '.join(str(v) for v in unique_values[:5])}"
+                                        if len(unique_values) > 5:
+                                            summary += f" (+{len(unique_values)-5} more)"
+                                    else:
+                                        summary = f"{len(unique_values)} unique values"
+                                elif pd.api.types.is_numeric_dtype(wyckoff_annotated[col]):
+                                    non_null_count = wyckoff_annotated[col].count()
+                                    if non_null_count > 0:
+                                        summary = f"{non_null_count:,} annotated points"
+                                    else:
+                                        summary = "No data"
+                                else:
+                                    summary = f"{wyckoff_annotated[col].count():,} non-null values"
+                                
+                                html += f"<tr><td>{col}</td><td>{col_type}</td><td>{summary}</td></tr>"
+                            html += "</table>"
                 html += "</div>"
 
             html += "</div></body></html>"
@@ -340,9 +402,71 @@ class MarketflowReport:
             self.logger.error(f"Error generating HTML report for {ticker}: {e}", exc_info=True)
             return False
         
-    def generate_all_reports_for_ticker(self, ticker: str) -> Dict[str, bool]:
+    def export_wyckoff_annotated_data(self, ticker: str, timeframe: str, format: str = 'csv') -> bool:
+        """
+        Export Wyckoff annotated data to CSV or JSON format.
+        
+        Args:
+            ticker: Stock symbol
+            timeframe: Timeframe to export data for
+            format: Export format ('csv' or 'json')
+        
+        Returns:
+            bool: True if export successful, False otherwise
+        """
+        try:
+            wyckoff_annotated = self.extractor.get_wyckoff_annotated_data(ticker, timeframe)
+            
+            if wyckoff_annotated.empty:
+                self.logger.warning(f"No Wyckoff annotated data available for {ticker}-{timeframe}")
+                return False
+            
+            if format.lower() == 'csv':
+                export_path = self.output_dir / f"{ticker}_{timeframe}_wyckoff_annotated.csv"
+                wyckoff_annotated.to_csv(export_path, index=True)
+                self.logger.info(f"Wyckoff annotated data exported to CSV: {export_path}")
+            elif format.lower() == 'json':
+                export_path = self.output_dir / f"{ticker}_{timeframe}_wyckoff_annotated.json"
+                # Convert to JSON with proper handling of timestamps and NaN values
+                json_data = wyckoff_annotated.to_json(orient='index', date_format='iso', indent=2)
+                with open(export_path, 'w', encoding='utf-8') as f:
+                    f.write(json_data)
+                self.logger.info(f"Wyckoff annotated data exported to JSON: {export_path}")
+            else:
+                raise ValueError(f"Unsupported format: {format}. Use 'csv' or 'json'.")
+            
+            return True
+        except Exception as e:
+            self.logger.error(f"Error exporting Wyckoff annotated data for {ticker}-{timeframe}: {e}", exc_info=True)
+            return False
+
+    def export_all_wyckoff_annotated_data(self, ticker: str, format: str = 'csv') -> Dict[str, bool]:
+        """
+        Export Wyckoff annotated data for all available timeframes of a ticker.
+        
+        Args:
+            ticker: Stock symbol
+            format: Export format ('csv' or 'json')
+        
+        Returns:
+            Dict[str, bool]: Dictionary with timeframe as key and success status as value
+        """
+        timeframes = self.extractor.get_timeframes(ticker)
+        results = {}
+        
+        for tf in timeframes:
+            results[tf] = self.export_wyckoff_annotated_data(ticker, tf, format)
+        
+        self.logger.info(f"Wyckoff annotated data export completed for {ticker}. Results: {results}")
+        return results
+        
+    def generate_all_reports_for_ticker(self, ticker: str, include_wyckoff_export: bool = True) -> Dict[str, bool]:
         """
         A convenient method to generate all reports for a single ticker.
+        
+        Args:
+            ticker: Stock symbol
+            include_wyckoff_export: Whether to export Wyckoff annotated data as CSV files
         
         Returns:
             Dict[str, bool]: A dictionary with the success status of each report type.
@@ -358,6 +482,11 @@ class MarketflowReport:
             'json_report': self.create_json_report(ticker),
             'html_report': self.create_html_report(ticker)
         }
+        
+        # Optionally export Wyckoff annotated data
+        if include_wyckoff_export:
+            wyckoff_export_results = self.export_all_wyckoff_annotated_data(ticker, format='csv')
+            results['wyckoff_annotated_exports'] = wyckoff_export_results
         
         self.logger.info(f"--- Finished generating reports for {ticker} ---")
         self.logger.info(f"Report Generation Status for {ticker}: {results}")
