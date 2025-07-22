@@ -152,6 +152,7 @@ class MarketflowResultExtractor:
                             'wyckoff_phases': self._validate_data_structure(tf_data.get('wyckoff_phases', []), list, []),
                             'wyckoff_events': self._validate_data_structure(tf_data.get('wyckoff_events', []), list, []),
                             'wyckoff_trading_ranges': self._validate_data_structure(tf_data.get('wyckoff_trading_ranges', []), list, []),
+                            'wyckoff_annotated_data': self._safe_dataframe_creation(tf_data.get('wyckoff_annotated_data', pd.DataFrame()), f"{ticker}-{timeframe}-wyckoff-annotated"),
                             'candle_analysis': self._validate_data_structure(tf_data.get('candle_analysis', {}), dict, {}),
                             'trend_analysis': self._validate_data_structure(tf_data.get('trend_analysis', {}), dict, {}),
                             'pattern_analysis': self._validate_data_structure(tf_data.get('pattern_analysis', {}), dict, {}),
@@ -182,6 +183,7 @@ class MarketflowResultExtractor:
             'wyckoff_phases': [],
             'wyckoff_events': [],
             'wyckoff_trading_ranges': [],
+            'wyckoff_annotated_data': pd.DataFrame(),
             'candle_analysis': {},
             'trend_analysis': {},
             'pattern_analysis': {},
@@ -355,6 +357,58 @@ class MarketflowResultExtractor:
         ranges = self.get_wyckoff_trading_ranges(ticker, timeframe)
         return pd.DataFrame(ranges) if ranges else pd.DataFrame()
 
+    def get_wyckoff_annotated_data(self, ticker: str, timeframe: str) -> pd.DataFrame:
+        """Get Wyckoff annotated data for ticker and timeframe"""
+        self.logger.debug(f"Retrieving Wyckoff annotated data for {ticker} on {timeframe} timeframe")
+        try:
+            data = (self.extracted_data
+                   .get(ticker, {})
+                   .get('timeframes', {})
+                   .get(timeframe, {})
+                   .get('wyckoff_annotated_data', pd.DataFrame()))
+            
+            if data.empty:
+                self.logger.warning(f"No Wyckoff annotated data available for {ticker}-{timeframe}")
+            else:
+                self.logger.debug(f"Retrieved Wyckoff annotated data with shape {data.shape} for {ticker}-{timeframe}")
+            
+            return data
+        except Exception as e:
+            self.logger.error(f"Error retrieving Wyckoff annotated data for {ticker}-{timeframe}: {e}")
+            return pd.DataFrame()
+
+    def get_all_wyckoff_data(self, ticker: str, timeframe: str) -> Dict[str, Any]:
+        """Get all Wyckoff analysis data for ticker and timeframe"""
+        self.logger.debug(f"Retrieving all Wyckoff data for {ticker} on {timeframe} timeframe")
+        try:
+            tf_data = (self.extracted_data
+                      .get(ticker, {})
+                      .get('timeframes', {})
+                      .get(timeframe, {}))
+            
+            wyckoff_data = {
+                'phases': tf_data.get('wyckoff_phases', []),
+                'events': tf_data.get('wyckoff_events', []),
+                'trading_ranges': tf_data.get('wyckoff_trading_ranges', []),
+                'annotated_data': tf_data.get('wyckoff_annotated_data', pd.DataFrame())
+            }
+            
+            self.logger.debug(f"Retrieved Wyckoff data for {ticker}-{timeframe}: "
+                            f"phases={len(wyckoff_data['phases'])}, "
+                            f"events={len(wyckoff_data['events'])}, "
+                            f"trading_ranges={len(wyckoff_data['trading_ranges'])}, "
+                            f"annotated_data_shape={wyckoff_data['annotated_data'].shape if hasattr(wyckoff_data['annotated_data'], 'shape') else 'N/A'}")
+            
+            return wyckoff_data
+        except Exception as e:
+            self.logger.error(f"Error retrieving all Wyckoff data for {ticker}-{timeframe}: {e}")
+            return {
+                'phases': [],
+                'events': [],
+                'trading_ranges': [],
+                'annotated_data': pd.DataFrame()
+            }
+
     def has_data(self, ticker: str, timeframe: Optional[str] = None) -> bool:
         """Check if data exists for ticker and optionally timeframe"""
         if ticker not in self.extracted_data:
@@ -381,8 +435,11 @@ class MarketflowResultExtractor:
             # Add data quality info
             for tf in ticker_summary['timeframes']:
                 price_data = self.get_price_data(ticker, tf)
+                wyckoff_annotated = self.get_wyckoff_annotated_data(ticker, tf)
                 ticker_summary[f'{tf}_price_rows'] = len(price_data)
                 ticker_summary[f'{tf}_has_data'] = not price_data.empty
+                ticker_summary[f'{tf}_has_wyckoff_annotated'] = not wyckoff_annotated.empty
+                ticker_summary[f'{tf}_wyckoff_annotated_rows'] = len(wyckoff_annotated)
             
             summary[ticker] = ticker_summary
         
