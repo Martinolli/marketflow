@@ -3,7 +3,7 @@ Marketflow Facade Module
 
 This module provides a simplified API for Marketflow Analysis.
 """
-
+import pandas as pd
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
 from marketflow.marketflow_data_provider import PolygonIOProvider, MultiTimeframeProvider
 from marketflow.marketflow_processor import DataProcessor
@@ -117,12 +117,21 @@ class MarketflowFacade:
                     
                     # The `run_analysis` method from the improved module returns phases, events, and trading_ranges.
                     # This line correctly unpacks all three results.
-                    phases, events, trading_ranges = wyckoff.run_analysis()                              # 14 - Run Wyckoff analysis and unpack results      
-
+                    phases, events, trading_ranges = wyckoff.run_analysis()                              # 14 - Run Wyckoff analysis and unpack results
+                    annotated_data = wyckoff.annotate_chart()  # Optional: Annotate the chart with Wyckoff phases and events
+                    self.logger.debug(f"Wyckoff analysis for {ticker} on {tf} completed. Phases: {len(phases)}, Events: {len(events)}, Trading Ranges: {len(trading_ranges)}")
+                    
                     # Add all Wyckoff results to the timeframe analysis dictionary.
                     tf_analysis_data["wyckoff_phases"] = phases or []
                     tf_analysis_data["wyckoff_events"] = events or []
                     tf_analysis_data["wyckoff_trading_ranges"] = trading_ranges or []
+                    tf_analysis_data["wyckoff_annotated_data"] = annotated_data  # Ensure annotated data is always a DataFrame
+
+                    self.logger.debug(
+                        f"Wyckoff results for {ticker} on {tf}: "
+                        f"phases={phases}, events={events}, trading_ranges={trading_ranges}, "
+                        f"annotated_data_shape={annotated_data.shape if hasattr(annotated_data, 'shape') else 'N/A'}"
+                    )
 
                     if phases:
                         self.logger.info(f"Wyckoff phases detected for {ticker} on {tf}: {len(phases)} phases")
@@ -130,10 +139,18 @@ class MarketflowFacade:
                         self.logger.info(f"Wyckoff events detected for {ticker} on {tf}: {len(events)} events (now with added detail)")
                     if trading_ranges:
                         self.logger.info(f"Wyckoff trading ranges detected for {ticker} on {tf}: {len(trading_ranges)} ranges")
+                    if not annotated_data.empty:
+                        self.logger.info(f"Wyckoff annotated data detected for {ticker} on {tf}: {len(annotated_data)} rows")
+                        self.logger.debug(f"Wyckoff phases: {phases}")
+                        self.logger.debug(f"Wyckoff events: {events}")
+                        self.logger.debug(f"Wyckoff trading ranges: {trading_ranges}")
+                        self.logger.debug(f"Wyckoff annotated data (head):\n{annotated_data.head()}")
+                    
                 else:
                     tf_analysis_data["wyckoff_phases"] = []
                     tf_analysis_data["wyckoff_events"] = []
                     tf_analysis_data["wyckoff_trading_ranges"] = []
+                    tf_analysis_data["wyckoff_annotated_data"] = pd.DataFrame()
 
             except Exception as e:
                 self.logger.error(f"Error running Wyckoff analysis for {ticker} on timeframe {tf}: {str(e)}")
@@ -141,6 +158,7 @@ class MarketflowFacade:
                 tf_analysis_data["wyckoff_phases"] = []
                 tf_analysis_data["wyckoff_events"] = []
                 tf_analysis_data["wyckoff_trading_ranges"] = []
+                tf_analysis_data["wyckoff_annotated_data"] = pd.DataFrame()
 
         for tf, tf_analysis in timeframe_analyses.items():
             price = tf_analysis.get("processed_data", {}).get("price")
