@@ -191,7 +191,10 @@ If you want a more visual (ASCII art) version, let me know!
 
 This diagram shows, for each step/module, the primary fields produced (outputs) and consumed (inputs). The list is based on your codebase and the typical structure of data as it flows through the pipeline.
 
-```mermaid
+```plantuml
+@startuml
+
+' MarketFlow Core Data Flow and Class Diagram
 User Request (ticker, timeframes)
     |
     v
@@ -281,6 +284,7 @@ Final Output (dict):
     "wyckoff_events": ...,
     "wyckoff_trading_ranges": ...,
 }
+@enduml
 ```
 
 ## 2. UML Diagram: MarketFlow Core Classes (Conceptual)
