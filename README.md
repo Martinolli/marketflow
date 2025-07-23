@@ -427,7 +427,7 @@ marketflow/
 │  
 │
 │
-├── marketflow_finetuning/                              # NEW: The home for all training activities
+└── marketflow_finetuning/                              # NEW: The home for all training activities
     │
     ├── 1_data_generation/
     │   ├── get_ticker_list.py                          # Script to fetch a diverse list of tickers
