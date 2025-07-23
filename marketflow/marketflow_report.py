@@ -213,12 +213,21 @@ class MarketflowReport:
         if isinstance(data, pd.DataFrame):
             if data.empty:
                 return None
-            # Using 'split' is a good balance of readability and info
-            return data.to_dict(orient='split')
+            # Convert the DataFrame to a dict, then recursively call this same
+            # function on the result. This is crucial to handle non-serializable
+            # values within the DataFrame (like NaN) and convert them to None (JSON null).
+            df_as_dict = data.to_dict(orient='split')
+            return self._prepare_data_for_json(df_as_dict)
         if isinstance(data, pd.Timestamp):
             return data.isoformat()
         if pd.isna(data):
             return None
+        # Handle numpy numeric types just in case, converting them to native Python types
+        if hasattr(data, 'item'):
+            if pd.api.types.is_integer(data):
+                return int(data)
+            if pd.api.types.is_float(data):
+                return float(data)
         return data
 
     def create_json_report(self, ticker: str) -> bool:
