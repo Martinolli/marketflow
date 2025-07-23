@@ -119,6 +119,22 @@ class MarketflowFacade:
                     # This line correctly unpacks all three results.
                     phases, events, trading_ranges = wyckoff.run_analysis()                              # 14 - Run Wyckoff analysis and unpack results
                     annotated_data = wyckoff.annotate_chart()  # Optional: Annotate the chart with Wyckoff phases and events
+                    # --- Add candle/volume features to annotated_data DataFrame (if available) ---
+                    # List of extra fields to propagate
+                    # In the loop for each timeframe in marketflow_facade.py, after getting annotated_data:
+
+                    extra_fields = [
+                        "spread", "body_percent", "upper_wick", "lower_wick",
+                        "avg_volume", "volume_ratio", "volume_class", "candle_class",
+                        "price_direction", "volume_direction"
+                    ]
+                    for field in extra_fields:
+                        feature = processed_data.get(field)
+                        if feature is not None and isinstance(annotated_data, pd.DataFrame):
+                            annotated_data[field] = feature.reindex(annotated_data.index)
+                    tf_analysis_data["wyckoff_annotated_data"] = annotated_data
+
+
                     self.logger.debug(f"Wyckoff analysis for {ticker} on {tf} completed. Phases: {len(phases)}, Events: {len(events)}, Trading Ranges: {len(trading_ranges)}")
                     
                     # Add all Wyckoff results to the timeframe analysis dictionary.
@@ -126,6 +142,8 @@ class MarketflowFacade:
                     tf_analysis_data["wyckoff_events"] = events or []
                     tf_analysis_data["wyckoff_trading_ranges"] = trading_ranges or []
                     tf_analysis_data["wyckoff_annotated_data"] = annotated_data  # Ensure annotated data is always a DataFrame
+                    tf_analysis_data["extra_features"] = {field: processed_data.get(field) for field in extra_fields}
+
 
                     self.logger.debug(
                         f"Wyckoff results for {ticker} on {tf}: "
