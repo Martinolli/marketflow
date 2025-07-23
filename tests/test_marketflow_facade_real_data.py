@@ -33,7 +33,7 @@ def main():
     # --- Step 3: Analyze with Candle Analyzer ---
     facade = MarketflowFacade()
 
-    analysis = facade.analyze_ticker(
+    analysis, processed_data = facade.analyze_ticker(
         ticker=ticker
     )
 
@@ -59,6 +59,11 @@ def main():
             print(f"{key}: {value}")
     print()
 
+    # --- Step 5: Retrieve Signals ---
+    
+    print("Processed Data:")
+    print(processed_data)
+    print()
 
 if __name__ == "__main__":
     main()
