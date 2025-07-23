@@ -20,6 +20,8 @@ config_manager = create_app_config(logger=logger)
 def main():
     # --- Step 1: Get real market data ---
     # Technology and Defense industry tickers
+    logger.info("Starting MarketflowFacade real data test...")
+    logger.info("Fetching real market data for technology and defense industry tickers...")
     tickers = [
         # Technology
         "AAPL",   # Apple Inc.
@@ -44,6 +46,7 @@ def main():
         "BWXT",   # BWX Technologies
         "LDOS"    # Leidos Holdings
     ]
+
     
     # Analyse the tickers and save the results
 
