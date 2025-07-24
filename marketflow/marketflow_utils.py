@@ -4,7 +4,7 @@ Shared Utility Functions for the Marketflow Project
 This module contains common, reusable functions that are shared across different
 modules to avoid code duplication and maintain a single source of truth.
 """
-
+import re
 from pathlib import Path
 
 def get_project_root() -> Path:
@@ -15,3 +15,6 @@ def get_project_root() -> Path:
             return parent
     # Fallback to the parent directory of the 'marketflow' package
     return Path(__file__).parent.parent
+
+def sanitize_filename(filename):
+    return re.sub(r'[<>:"/\\|?*]', '_', filename)
