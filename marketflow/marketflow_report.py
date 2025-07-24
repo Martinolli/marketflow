@@ -5,6 +5,7 @@ Handles the creation of all Marketflow and Wyckoff related data handling.
 
 import pandas as pd
 import json
+import re
 from typing import Dict, Any
 from datetime import datetime
 from pathlib import Path
@@ -12,6 +13,7 @@ from pathlib import Path
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_results_extractor import MarketflowResultExtractor
+from marketflow.marketflow_utils import sanitize_filename
 
 class MarketflowReport:
     """
@@ -68,8 +70,9 @@ class MarketflowReport:
         Generates a detailed, comprehensive text-based summary report for a given ticker.
         """
         try:
-            report_path = self.output_dir / f"{ticker}_summary_report.txt"
-            self.logger.info(f"Generating detailed summary report for {ticker} at {report_path}")
+            sanitized_ticker = sanitize_filename(ticker)
+            report_path = self.output_dir / f"{sanitized_ticker}_summary_report.txt"
+            self.logger.info(f"Generating detailed summary report for {sanitized_ticker} at {report_path}")
 
             with open(report_path, 'w', encoding="utf-8") as f:
                 f.write(f"{'='*80}\n")
@@ -235,9 +238,10 @@ class MarketflowReport:
         Export the full extracted analysis for a ticker as a clean JSON file.
         """
         try:
-            report_path = self.output_dir / f"{ticker}_report.json"
-            self.logger.info(f"Generating JSON report for {ticker} at {report_path}")
-            
+            sanitized_ticker = sanitize_filename(ticker)
+            report_path = self.output_dir / f"{sanitized_ticker}_report.json"
+            self.logger.info(f"Generating JSON report for {sanitized_ticker} at {report_path}")
+
             ticker_data = self.extractor.get_ticker_data(ticker)
             serializable_data = self._prepare_data_for_json(ticker_data)
             
@@ -255,8 +259,9 @@ class MarketflowReport:
         Generate a human-readable HTML report with detailed tables.
         """
         try:
-            report_path = self.output_dir / f"{ticker}_report.html"
-            self.logger.info(f"Generating HTML report for {ticker} at {report_path}")
+            sanitized_ticker = sanitize_filename(ticker)
+            report_path = self.output_dir / f"{sanitized_ticker}_report.html"
+            self.logger.info(f"Generating HTML report for {sanitized_ticker} at {report_path}")
 
             signal = self.extractor.get_signal(ticker)
             risk = self.extractor.get_risk_assessment(ticker)
@@ -430,13 +435,16 @@ class MarketflowReport:
                 self.logger.warning(f"No Wyckoff annotated data available for {ticker}-{timeframe}")
                 return False
             
+            # Sanitize the ticker HERE, just for the filename.
+            sanitized_ticker = sanitize_filename(ticker)
+            
             if format.lower() == 'csv':
-                export_path = self.output_dir / f"{ticker}_{timeframe}_wyckoff_annotated.csv"
+                export_path = self.output_dir / f"{sanitized_ticker}_{timeframe}_wyckoff_annotated.csv"
                 wyckoff_annotated.to_csv(export_path, index=True)
                 self.logger.info(f"Wyckoff annotated data exported to CSV: {export_path}")
             elif format.lower() == 'json':
-                export_path = self.output_dir / f"{ticker}_{timeframe}_wyckoff_annotated.json"
-                # Convert to JSON with proper handling of timestamps and NaN values
+                # Use the sanitized_ticker for the path.
+                export_path = self.output_dir / f"{sanitized_ticker}_{timeframe}_wyckoff_annotated.json"
                 json_data = wyckoff_annotated.to_json(orient='index', date_format='iso', indent=2)
                 with open(export_path, 'w', encoding='utf-8') as f:
                     f.write(json_data)
@@ -465,7 +473,7 @@ class MarketflowReport:
         
         for tf in timeframes:
             results[tf] = self.export_wyckoff_annotated_data(ticker, tf, format)
-        
+
         self.logger.info(f"Wyckoff annotated data export completed for {ticker}. Results: {results}")
         return results
         
@@ -487,9 +495,9 @@ class MarketflowReport:
         self.logger.info(f"--- Generating all reports for {ticker} ---")
         
         results = {
-            'summary_report': self.create_summary_report(ticker),
-            'json_report': self.create_json_report(ticker),
-            'html_report': self.create_html_report(ticker)
+            "summary": self.create_summary_report(ticker),
+            "json": self.create_json_report(ticker),
+            "html": self.create_html_report(ticker)
         }
         
         # Optionally export Wyckoff annotated data
