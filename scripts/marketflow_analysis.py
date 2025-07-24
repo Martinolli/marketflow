@@ -5,14 +5,12 @@ generates a report, extracts results, and saves them in a specified output direc
 This script also call marketflow_snapshot.py to save the analysis results.
 """
 
-import pandas as pd
-from datetime import datetime
-from marketflow.marketflow_data_provider import PolygonIOProvider
 from marketflow.marketflow_facade import MarketflowFacade
 from marketflow.marketflow_results_extractor import MarketflowResultExtractor
 from marketflow.marketflow_report import MarketflowReport
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
+from marketflow.marketflow_utils import sanitize_filename
 
 logger = get_logger("marketflow_analysis")
 config_manager = create_app_config(logger=logger)
@@ -22,6 +20,8 @@ def main():
     # Technology and Defense industry tickers
     logger.info("Starting MarketflowFacade real data test...")
     logger.info("Fetching real market data for technology and defense industry tickers...")
+
+    """
     tickers = [
         # Technology
         "AAPL",   # Apple Inc.
@@ -34,8 +34,16 @@ def main():
         "ORCL",   # Oracle Corporation
         "CRM",    # Salesforce, Inc.
         "ADBE",   # Adobe Inc.
+        "ACHR",   # Archer Aviation Inc.
+        "PLTR",   # Palantir Technologies Inc.
+        "SNOW",   # Snowflake Inc.
         # Defense
         "LMT",    # Lockheed Martin
+        "GSLC",   # General Dynamics (formerly known as General Dynamics Land Systems)
+        "GS",     # General Dynamics
+        "GD",     # General Dynamics
+        "ORCL",   # Oracle Corporation (also in tech, but significant in defense contracts)
+        "BA",     # Boeing
         "RTX",    # RTX Corporation (Raytheon)
         "NOC",    # Northrop Grumman
         "GD",     # General Dynamics
@@ -46,8 +54,12 @@ def main():
         "BWXT",   # BWX Technologies
         "LDOS"    # Leidos Holdings
     ]
+    """
 
-    
+    # tickers = ["X:SOLUSD" , "X:ETHUSD", "X:SOLUSD", "X:ADAUSD", "X:XRPUSD", "X:LINKUSD", "X:UNIUSD", "X:AVAXUSD", "X:DOTUSD", "X:MATICUSD", "X:TRXUSD", "X:ALGOUSD", "X:ATOMUSD", "X:XLMUSD", "X:FTMUSD"]
+
+    tickers = ["X:MATICUSD"]
+
     # Analyse the tickers and save the results
 
     for ticker in tickers:
@@ -83,7 +95,8 @@ def main():
         logger.info("Creating report...")
         config = create_app_config()
         report_dir = config.REPORT_DIR
-        output_dir = f"{report_dir}/{ticker}"
+        output_dir = f"{report_dir}/{sanitize_filename(ticker)}" # Ensure the directory exists
+        logger.info(f"Report directory: {output_dir}")
         report = MarketflowReport(extractor, output_dir)
 
         # Actually generate the report file
