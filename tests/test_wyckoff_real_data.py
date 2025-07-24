@@ -8,7 +8,7 @@ def main():
     # --- Step 1: Get real market data ---
     provider = PolygonIOProvider()
     result = provider.get_data(
-        ticker="NVDA",
+        ticker="X:SOLUSD",
         # interval="1h",
         # period="90d"
     )

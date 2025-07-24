@@ -13,7 +13,7 @@ from marketflow.marketflow_config_manager import create_app_config
 
 def main():
     # --- Step 1: Get real market data ---
-    ticker = "AAPL"
+    ticker = "X:BTCUSD"
     print(f"Fetching real market data for {ticker}...")
     provider = PolygonIOProvider()
     result = provider.get_data(
@@ -33,7 +33,7 @@ def main():
     # --- Step 3: Analyze with Candle Analyzer ---
     facade = MarketflowFacade()
 
-    analysis, processed_data = facade.analyze_ticker(
+    analysis = facade.analyze_ticker(
         ticker=ticker
     )
 
@@ -57,13 +57,7 @@ def main():
             print(value.head())
         else:
             print(f"{key}: {value}")
-    print()
-
-    # --- Step 5: Retrieve Signals ---
-    
-    print("Processed Data:")
-    print(processed_data)
-    print()
+    print()    
 
 if __name__ == "__main__":
     main()
