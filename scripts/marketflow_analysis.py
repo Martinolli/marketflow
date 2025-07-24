@@ -1,10 +1,17 @@
-"""
-This script uses the MarketflowFacade with real market data.
-It fetches data, performs analysis, retrieves signals, explains them,
-generates a report, extracts results, and saves them in a specified output directory.
-This script also call marketflow_snapshot.py to save the analysis results.
-"""
+""""
+Marketflow Analysis Script
+This script runs a market analysis for a given ticker symbol using the MarketflowFacade.
+It generates reports and saves them in the specified output directory.
 
+Use:
+    python marketflow_analysis.py AAPL
+    python marketflow_analysis.py X:BTCUSD
+
+    python marketflow_analysis.py AAPL --timeframes 1d 1h 15m
+
+"""
+import argparse
+import os
 from marketflow.marketflow_facade import MarketflowFacade
 from marketflow.marketflow_results_extractor import MarketflowResultExtractor
 from marketflow.marketflow_report import MarketflowReport
@@ -15,98 +22,48 @@ from marketflow.marketflow_utils import sanitize_filename
 logger = get_logger("marketflow_analysis")
 config_manager = create_app_config(logger=logger)
 
-def main():
-    # --- Step 1: Get real market data ---
-    # Technology and Defense industry tickers
-    logger.info("Starting MarketflowFacade real data test...")
-    logger.info("Fetching real market data for technology and defense industry tickers...")
+def run_analysis(ticker, output_dir="data", timeframes=None):
+    """Run market analysis for a given ticker symbol.
 
+    Args:
+        ticker (str): Ticker symbol (e.g., AAPL or X:BTCUSD)
+        output_dir (str): Directory to save the reports.
+        timeframes (list, optional): List of timeframes to analyze. If None, uses default timeframes.
     """
-    tickers = [
-        # Technology
-        "AAPL",   # Apple Inc.
-        "MSFT",   # Microsoft Corporation
-        "GOOGL",  # Alphabet Inc.
-        "NVDA",   # NVIDIA Corporation
-        "AMD",    # Advanced Micro Devices
-        "INTC",   # Intel Corporation
-        "CSCO",   # Cisco Systems
-        "ORCL",   # Oracle Corporation
-        "CRM",    # Salesforce, Inc.
-        "ADBE",   # Adobe Inc.
-        "ACHR",   # Archer Aviation Inc.
-        "PLTR",   # Palantir Technologies Inc.
-        "SNOW",   # Snowflake Inc.
-        # Defense
-        "LMT",    # Lockheed Martin
-        "GSLC",   # General Dynamics (formerly known as General Dynamics Land Systems)
-        "GS",     # General Dynamics
-        "GD",     # General Dynamics
-        "ORCL",   # Oracle Corporation (also in tech, but significant in defense contracts)
-        "BA",     # Boeing
-        "RTX",    # RTX Corporation (Raytheon)
-        "NOC",    # Northrop Grumman
-        "GD",     # General Dynamics
-        "BA",     # Boeing
-        "HII",    # Huntington Ingalls Industries
-        "LHX",    # L3Harris Technologies
-        "TXT",    # Textron Inc.
-        "BWXT",   # BWX Technologies
-        "LDOS"    # Leidos Holdings
-    ]
-    """
+    facade = MarketflowFacade()
+    logger.info(f"Running analysis for ticker: {ticker}")
+    # Allow passing specific timeframes if needed (else use default in facade)
+    if timeframes:
+        results = facade.analyze_ticker(ticker, timeframes=timeframes)
+        logger.info(f"Using custom timeframes: {timeframes}")
+    else:
+        results = facade.analyze_ticker(ticker)
+        logger.info("Using default timeframes for analysis.")
 
-    # tickers = ["X:SOLUSD" , "X:ETHUSD", "X:SOLUSD", "X:ADAUSD", "X:XRPUSD", "X:LINKUSD", "X:UNIUSD", "X:AVAXUSD", "X:DOTUSD", "X:MATICUSD", "X:TRXUSD", "X:ALGOUSD", "X:ATOMUSD", "X:XLMUSD", "X:FTMUSD"]
+    extractor = MarketflowResultExtractor({ticker: results})
+    logger.info("Extracting data from results...")
+    config = create_app_config()
+    report_dir = config.REPORT_DIR
+    output_dir = f"{report_dir}/{sanitize_filename(ticker)}"
+    logger.info(f"Report directory: {output_dir}")
+    report = MarketflowReport(extractor, output_dir=output_dir)
+    logger.info("Creating report...")
+    success = report.generate_all_reports_for_ticker(ticker)
+    if success:
+        logger.info(f"Summary report created successfully in {report_dir}")
+    else:
+        logger.error("Report creation failed.")
+    logger.info("MarketflowFacade real data test completed successfully.")
 
-    tickers = ["X:MATICUSD"]
-
-    # Analyse the tickers and save the results
-
-    for ticker in tickers:
-        facade = MarketflowFacade()
-        analysis = facade.analyze_ticker(ticker=ticker)
-        extractor = MarketflowResultExtractor({ticker: analysis})
-        logger.info("Extracting data from results...")
-        for key in extractor.get_tickers():
-            logger.info(f"Ticker: {key}")
-            logger.info(f"Current Price: {extractor.get_ticker_data(key).get('current_price')}")
-            logger.info(f"Signal: {extractor.get_signal(key)}")
-            logger.info(f"Timeframes: {extractor.get_timeframes(key)}")
-
-        for timeframe in extractor.get_timeframes(key):
-            logger.info(f"  Timeframe: {timeframe}")
-            price_data = extractor.get_price_data(key, timeframe)
-            volume_data = extractor.get_volume_data(key, timeframe)
-            logger.info(f"    Price Data:\n{price_data.head()}")
-            logger.info(f"    Volume Data:\n{volume_data.head()}")
-            logger.info(f"    Candle Analysis: {extractor.get_candle_analysis(key, timeframe)}")
-            logger.info(f"    Trend Analysis: {extractor.get_trend_analysis(key, timeframe)}")
-            logger.info(f"    Pattern Analysis: {extractor.get_pattern_analysis(key, timeframe)}")
-            logger.info(f"    Support/Resistance: {extractor.get_support_resistance(key, timeframe)}")
-            logger.info(f"    Wyckoff Phases: {extractor.get_wyckoff_phases(key, timeframe)}")
-            logger.info(f"    Volume Events: {extractor.get_wyckoff_events(key, timeframe)}")
-        logger.info("Data extraction complete.")
-        logger.info("Result Extractor Summary:")
-        logger.info(extractor.get_data_summary())
-        logger.info("Data extraction and analysis completed successfully.")
-        logger.info(f"Extractor type: {type(extractor)}")
-        logger.info(f"Extractor object: {extractor}")
-
-        logger.info("Creating report...")
-        config = create_app_config()
-        report_dir = config.REPORT_DIR
-        output_dir = f"{report_dir}/{sanitize_filename(ticker)}" # Ensure the directory exists
-        logger.info(f"Report directory: {output_dir}")
-        report = MarketflowReport(extractor, output_dir)
-
-        # Actually generate the report file
-        success = report.generate_all_reports_for_ticker(ticker)
-        if success:
-            logger.info(f"Summary report created successfully in {report_dir}")
-        else:
-            logger.error("Report creation failed.")
-        logger.info("MarketflowFacade real data test completed successfully.")
-   
+    print(f"✅ Reports for {ticker} saved in {output_dir}")
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Run Marketflow analysis for a ticker.")
+    parser.add_argument("ticker", type=str, help="Ticker symbol (e.g., AAPL or X:BTCUSD)")
+    parser.add_argument("--output", type=str, default="C:\\Users\\Aspire5 15 i7 4G2050\\marketflow\\.marketflow\\reports", help="Output directory for reports")
+    parser.add_argument("--timeframes", type=str, nargs="*", default=None,
+                        help="List of timeframes (e.g., 1d 4h 1h). If not provided, uses default timeframes.")
+    args = parser.parse_args()
+
+    os.makedirs(args.output, exist_ok=True)
+    run_analysis(args.ticker, output_dir=args.output, timeframes=args.timeframes)
