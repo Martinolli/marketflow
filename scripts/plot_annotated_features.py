@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 import plotly.express as px
 import argparse
 from plotly.subplots import make_subplots
+import plotly.graph_objs as go
 import os
 
 from marketflow.marketflow_config_manager import create_app_config
@@ -49,7 +50,6 @@ def plot_features(csv_file, features=None, nrows=100):
         logger.info(f"Features to plot: {features}")
 
     # Plot Closed Price and Volume in the same frame (price above, volume below)
-    import plotly.graph_objs as go
     # Limit to nrows
     df = df.head(nrows)
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
@@ -119,7 +119,9 @@ def plot_features(csv_file, features=None, nrows=100):
         fig = px.scatter(df, x='timestamp', y='close', color='candle_class',
                          title=f"Classified Candles {os.path.basename(csv_file)}",
                          labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
-                         color_discrete_sequence=px.colors.qualitative.Plotly)
+                         color_discrete_sequence=px.colors.qualitative.Plotly,
+                         hover_data=['candle_class'],
+        )
         fig.update_layout(legend_title_text='Candle Classification')
         fig.write_html("classified_candles_plot.html")
         logger.info("Classified candles plot saved as classified_candles_plot.html")
