@@ -4,10 +4,10 @@ This script runs a market analysis for a given ticker symbol using the Marketflo
 It generates reports and saves them in the specified output directory.
 
 Use:
-    python marketflow_analysis.py AAPL
-    python marketflow_analysis.py X:BTCUSD
+    python /scripts/marketflow_analysis.py AAPL
+    python /scripts/marketflow_analysis.py X:BTCUSD
 
-    python marketflow_analysis.py AAPL --timeframes 1d 1h 15m
+    python /scripts/marketflow_analysis.py AAPL --timeframes 1d 1h 15m
 
 """
 import argparse

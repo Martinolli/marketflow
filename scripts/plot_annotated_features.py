@@ -46,42 +46,84 @@ def plot_features(csv_file, features=None, nrows=100):
     else:
         logger.info(f"Features to plot: {features}")
 
-    # Plot the specified features
-    plt.figure(figsize=(12, 6))
-    for feature in features:
-        if feature in df.columns:
-            plt.plot(df[feature][:nrows], label=feature)
-    plt.xlabel("Index (row)")
-    plt.ylabel("Value")
-    plt.title(f"MarketFlow Features from {os.path.basename(csv_file)}")
-    plt.legend()
-    plt.tight_layout()
-    plt.savefig("my_output_plot.png", dpi=150)
-    logger.info("Plot saved as my_output_plot.png")
-    plt.show()
+    # Plot Closed Price over Time
+    fig = px.line(df, x='timestamp', y='close',
+                  hover_data=['close'],
+                  title=f"MarketFlow Closed Price {os.path.basename(csv_file)}",
+                  labels={'timestamp': 'Timestamp', 'close': 'Closed Price'},
+                  color_discrete_sequence=px.colors.qualitative.Plotly)
+    fig.update_layout(xaxis_title="Timestamp", yaxis_title="Closed Price")
+    fig.write_html("my_output_plot.html")
+    logger.info("Plot saved as my_output_plot.html")
+    fig.update_xaxes(rangeslider_visible=True)
+    fig.show()
+
+    # Plot Volume over Time
+    fig = px.histogram(df, x= "timestamp", y='volume', nbins=150,
+                       title="Volume Distribution Over Time",
+                       labels={'timestamp': 'Timestamp', 'volume': 'Volume'},)
+    fig.update_layout(xaxis_title="Timestamp", yaxis_title="Volume")
+    fig.write_html("volume_distribution_plot.html")
+    logger.info("Volume distribution plot saved as volume_distribution_plot.html")
+    fig.show()
+
+    # Plot Spread over Time
+    fig = px.line(df, x='timestamp', y='spread', color='candle_class',
+                  title="Spread Over Time",
+                  color_discrete_sequence=px.colors.qualitative.Plotly,
+                  hover_data=['spread'],
+                  labels={'timestamp': 'Timestamp', 'spread': 'Spread'},)
+    fig.update_layout(xaxis_title="Timestamp", yaxis_title="Spread")
+    fig.write_html("spread_plot.html")
+    logger.info("Spread plot saved as spread_plot.html")
+    fig.show()
 
     if "volume_class" in features:
-        # Define the order and numeric mapping for volume_class
-        categories = ["VERY_LOW", "LOW", "AVERAGE", "HIGH", "VERY_HIGH"]
-        cat2num = {cat: i for i, cat in enumerate(categories)}
+        fig = px.scatter(df, x='timestamp', y='close',
+                      color='volume_class',
+                      title="Volume Class Over Time",
+                      labels={'timestamp': 'Timestamp', 'close': 'Closed Price'},
+                        color_discrete_map={
+                            "VERY_LOW": "blue", "LOW": "green", "AVERAGE": "yellow",
+                            "HIGH": "orange", "VERY_HIGH": "red"
+                        })
+        fig.update_layout(xaxis_title="Timestamp", yaxis_title="Volume Class")
+        fig.write_html("volume_class_plot.html")
+        logger.info("Volume class plot saved as volume_class_plot.html")
+        fig.show()
 
-        # Map to numeric codes
-        df['volume_class_code'] = df['volume_class'].map(cat2num)
+    if "candle_class" in features:
+        # Plot the classified candles using Plotly
+        fig = px.scatter(df, x='timestamp', y='close', color='candle_class',
+                         title="Classified Candles",
+                         labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
+                         color_discrete_sequence=px.colors.qualitative.Plotly)
+        fig.update_layout(legend_title_text='Candle Classification')
+        fig.write_html("classified_candles_plot.html")
+        logger.info("Classified candles plot saved as classified_candles_plot.html")
+        fig.show()
 
-        fig, ax1 = plt.subplots(figsize=(16,6))
-        ax1.plot(df['close'][:nrows], color='gray', alpha=0.6, label="Close Price")
-        ax2 = ax1.twinx()
-        ax2.plot(df['volume_class_code'][:nrows], color='blue', label="Volume Class (numeric)")
-        ax2.set_yticks(range(len(categories)))
-        ax2.set_yticklabels(categories)
-        ax1.set_xlabel("Index (row)")
-        ax1.set_ylabel("Close Price")
-        ax2.set_ylabel("Volume Class")
-        plt.title("Price and Volume Class Over Time")
-        fig.tight_layout()
-        plt.savefig("my_output_plot.png", dpi=150)
-        logger.info("Volume class plot saved as my_output_plot.png")
-        plt.show()
+    if "price_direction" in features:
+        # Plot the price direction using Plotly
+        fig = px.scatter(df, x='timestamp', y='close', color='price_direction',
+                         title="Price Direction",
+                         labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
+                         color_discrete_sequence=px.colors.qualitative.Plotly)
+        fig.update_layout(legend_title_text='Price Direction')
+        fig.write_html("price_direction_plot.html")
+        logger.info("Price direction plot saved as price_direction_plot.html")
+        fig.show()
+
+    if "volume_direction" in features:
+        # Plot the volume direction using Plotly
+        fig = px.scatter(df, x='timestamp', y='close', color='volume_direction',
+                         title="Volume Direction",
+                         labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
+                         color_discrete_sequence=px.colors.qualitative.Plotly)
+        fig.update_layout(legend_title_text='Volume Direction')
+        fig.write_html("volume_direction_plot.html")
+        logger.info("Volume direction plot saved as volume_direction_plot.html")
+        fig.show()
 
 if __name__ == "__main__":
     import os
