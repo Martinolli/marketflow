@@ -14,6 +14,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import plotly.express as px
 import argparse
+from plotly.subplots import make_subplots
+import os
 
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
@@ -46,42 +48,61 @@ def plot_features(csv_file, features=None, nrows=100):
     else:
         logger.info(f"Features to plot: {features}")
 
-    # Plot Closed Price over Time
-    fig = px.line(df, x='timestamp', y='close',
-                  hover_data=['close'],
-                  title=f"MarketFlow Closed Price {os.path.basename(csv_file)}",
-                  labels={'timestamp': 'Timestamp', 'close': 'Closed Price'},
-                  color_discrete_sequence=px.colors.qualitative.Plotly)
-    fig.update_layout(xaxis_title="Timestamp", yaxis_title="Closed Price")
-    fig.write_html("my_output_plot.html")
-    logger.info("Plot saved as my_output_plot.html")
-    fig.update_xaxes(rangeslider_visible=True)
+    # Plot Closed Price and Volume in the same frame (price above, volume below)
+    import plotly.graph_objs as go
+    # Limit to nrows
+    df = df.head(nrows)
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                        vertical_spacing=0.05,
+                        subplot_titles=("Closed Price", "Volume"))
+    # Price (top)
+    fig.add_trace(
+        go.Scatter(x=df['timestamp'], y=df['close'], mode='lines', name='Closed Price'),
+        row=1, col=1
+    )
+    # Volume (bottom)
+    fig.add_trace(
+        go.Bar(x=df['timestamp'], y=df['volume'], name='Volume', marker_color='rgba(100,150,255,0.6)'),
+        row=2, col=1
+    )
+    fig.update_layout(
+        height=700,
+        title_text=f"Closed Price and Volume - {os.path.basename(csv_file)}",
+        xaxis2_title="Timestamp",
+        yaxis_title="Closed Price",
+        yaxis2_title="Volume"
+    )
+    fig.update_xaxes(rangeslider_visible=True, row=2, col=1)
+    fig.write_html("price_volume_combined_plot.html")
+    logger.info("Combined price and volume plot saved as price_volume_combined_plot.html")
     fig.show()
 
     # Plot Volume over Time
     fig = px.histogram(df, x= "timestamp", y='volume', nbins=150,
-                       title="Volume Distribution Over Time",
+                       title=f"Volume Distribution Over Time {os.path.basename(csv_file)}",
                        labels={'timestamp': 'Timestamp', 'volume': 'Volume'},)
     fig.update_layout(xaxis_title="Timestamp", yaxis_title="Volume")
     fig.write_html("volume_distribution_plot.html")
     logger.info("Volume distribution plot saved as volume_distribution_plot.html")
+    fig.update_xaxes(rangeslider_visible=True)
     fig.show()
 
     # Plot Spread over Time
-    fig = px.line(df, x='timestamp', y='spread', color='candle_class',
-                  title="Spread Over Time",
+    fig = px.line(df, x='timestamp', y='spread',
+                  title=f"Spread Over Time {os.path.basename(csv_file)}",
                   color_discrete_sequence=px.colors.qualitative.Plotly,
                   hover_data=['spread'],
                   labels={'timestamp': 'Timestamp', 'spread': 'Spread'},)
     fig.update_layout(xaxis_title="Timestamp", yaxis_title="Spread")
     fig.write_html("spread_plot.html")
     logger.info("Spread plot saved as spread_plot.html")
+    fig.update_xaxes(rangeslider_visible=True)
     fig.show()
 
     if "volume_class" in features:
         fig = px.scatter(df, x='timestamp', y='close',
                       color='volume_class',
-                      title="Volume Class Over Time",
+                      title=f"Volume Class Over Time {os.path.basename(csv_file)}",
                       labels={'timestamp': 'Timestamp', 'close': 'Closed Price'},
                         color_discrete_map={
                             "VERY_LOW": "blue", "LOW": "green", "AVERAGE": "yellow",
@@ -90,43 +111,46 @@ def plot_features(csv_file, features=None, nrows=100):
         fig.update_layout(xaxis_title="Timestamp", yaxis_title="Volume Class")
         fig.write_html("volume_class_plot.html")
         logger.info("Volume class plot saved as volume_class_plot.html")
+        fig.update_xaxes(rangeslider_visible=True)
         fig.show()
 
     if "candle_class" in features:
         # Plot the classified candles using Plotly
         fig = px.scatter(df, x='timestamp', y='close', color='candle_class',
-                         title="Classified Candles",
+                         title=f"Classified Candles {os.path.basename(csv_file)}",
                          labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
                          color_discrete_sequence=px.colors.qualitative.Plotly)
         fig.update_layout(legend_title_text='Candle Classification')
         fig.write_html("classified_candles_plot.html")
         logger.info("Classified candles plot saved as classified_candles_plot.html")
+        fig.update_xaxes(rangeslider_visible=True)
         fig.show()
 
     if "price_direction" in features:
         # Plot the price direction using Plotly
         fig = px.scatter(df, x='timestamp', y='close', color='price_direction',
-                         title="Price Direction",
+                         title=f"Price Direction {os.path.basename(csv_file)}",
                          labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
                          color_discrete_sequence=px.colors.qualitative.Plotly)
         fig.update_layout(legend_title_text='Price Direction')
         fig.write_html("price_direction_plot.html")
         logger.info("Price direction plot saved as price_direction_plot.html")
+        fig.update_xaxes(rangeslider_visible=True)
         fig.show()
 
     if "volume_direction" in features:
         # Plot the volume direction using Plotly
         fig = px.scatter(df, x='timestamp', y='close', color='volume_direction',
-                         title="Volume Direction",
+                         title=f"Volume Direction {os.path.basename(csv_file)}",
                          labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
                          color_discrete_sequence=px.colors.qualitative.Plotly)
         fig.update_layout(legend_title_text='Volume Direction')
         fig.write_html("volume_direction_plot.html")
         logger.info("Volume direction plot saved as volume_direction_plot.html")
+        fig.update_xaxes(rangeslider_visible=True)
         fig.show()
 
 if __name__ == "__main__":
-    import os
     parser = argparse.ArgumentParser(description="Plot features from MarketFlow annotated CSV.")
     parser.add_argument("csv", type=str, help="Path to annotated CSV file")
     parser.add_argument("--features", type=str, nargs="*", default=None,
