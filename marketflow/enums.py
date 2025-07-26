@@ -53,4 +53,23 @@ class MarketContext(Enum):
     ACCUMULATION = "Accumulation"
     DISTRIBUTION = "Distribution"
     UNDEFINED = "Undefined"
+
+class MarketCondition(Enum):
+    """Market condition classifications"""
+    BULL_MARKET = "bull_market"
+    BEAR_MARKET = "bear_market"
+    SIDEWAYS = "sideways"
+    HIGH_VOLATILITY = "high_volatility"
+    LOW_VOLATILITY = "low_volatility"
+    TRENDING = "trending"
+    RANGING = "ranging"
+
+class AnalysisType(Enum):
+    """Types of analysis performed"""
+    TECHNICAL = "technical"
+    FUNDAMENTAL = "fundamental"
+    SENTIMENT = "sentiment"
+    WYCKOFF = "wyckoff"
+    VOLUME_PRICE = "volume_price"
+    PATTERN_RECOGNITION = "pattern_recognition"
 ## --- CHANGE END --- ##
