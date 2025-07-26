@@ -4,6 +4,16 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [1.15.0]
+
+### Added 15
+
+- Initial development of `marketflow_snapshot`
+    Multi-layared data architecture with semantic modeling
+    First version - not working so good - need to be refactored
+
+---
+
 ## [1.14.0]
 
 ### Added 14
