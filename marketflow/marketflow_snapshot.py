@@ -29,36 +29,17 @@ import uuid
 
 import pandas as pd
 import numpy as np
-from sqlalchemy import create_engine, Column, String, DateTime, Text, JSON, Float, Integer, Boolean
+from sqlalchemy import create_engine, Column, String, DateTime, Text, JSON, Float, func, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.dialects.sqlite import JSON as SQLiteJSON
 
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
-from marketflow.enums import SignalType  # Make sure to import SignalType
+from marketflow.enums import MarketCondition, AnalysisType  # Make sure to import SignalType
 
 # Data Models and Schemas
 Base = declarative_base()
-
-class MarketCondition(Enum):
-    """Market condition classifications"""
-    BULL_MARKET = "bull_market"
-    BEAR_MARKET = "bear_market"
-    SIDEWAYS = "sideways"
-    HIGH_VOLATILITY = "high_volatility"
-    LOW_VOLATILITY = "low_volatility"
-    TRENDING = "trending"
-    RANGING = "ranging"
-
-class AnalysisType(Enum):
-    """Types of analysis performed"""
-    TECHNICAL = "technical"
-    FUNDAMENTAL = "fundamental"
-    SENTIMENT = "sentiment"
-    WYCKOFF = "wyckoff"
-    VOLUME_PRICE = "volume_price"
-    PATTERN_RECOGNITION = "pattern_recognition"
 
 @dataclass
 class SnapshotMetadata:
@@ -233,12 +214,13 @@ class MarketflowSnapshot:
     def _classify_market_condition(self, analysis_result: Dict) -> MarketCondition:
         """Classify market condition based on analysis results"""
         signal = analysis_result.get('signal', {})
-        signal_type = signal.get('type', '').upper()
+        signal_type_val = signal.get('type', '')
+        signal_type_str = str(signal_type_val).upper()
         
         # Simple classification logic - can be enhanced with more sophisticated analysis
-        if 'BUY' in signal_type:
+        if 'BUY' in signal_type_str:
             return MarketCondition.BULL_MARKET
-        elif 'SELL' in signal_type:
+        elif 'SELL' in signal_type_str:
             return MarketCondition.BEAR_MARKET
         else:
             return MarketCondition.SIDEWAYS
@@ -274,6 +256,8 @@ class MarketflowSnapshot:
         
         return min(score / max_score, 1.0)
     
+    # ... inside the MarketflowSnapshot class ...
+
     def save_enhanced_snapshot(self, 
                              analysis_result: Dict,
                              ticker: str,
@@ -317,12 +301,29 @@ class MarketflowSnapshot:
                 confidence_level=market_context.get('signal_confidence', 0.0),
                 market_session=self._determine_market_session(timestamp),
                 volatility_regime=self._classify_volatility_regime(market_context.get('volatility', 0.0)),
-                trend_direction=market_context.get('signal_type', 'UNKNOWN'),
+                # IMPORTANT: Get the string value from the enum here
+                trend_direction=str(market_context.get('signal_type', 'UNKNOWN')),
                 volume_profile=self._analyze_volume_profile(analysis_result),
                 analyst_notes=analyst_notes,
                 tags=tags or []
             )
             
+            # --- START OF FIX ---
+            # Convert the dataclass to a dictionary
+            metadata_dict = asdict(metadata)
+            
+            # Now, manually convert non-serializable types to strings.
+            # Convert datetime to an ISO 8601 formatted string
+            if isinstance(metadata_dict.get("timestamp"), datetime):
+                metadata_dict["timestamp"] = metadata_dict["timestamp"].isoformat()
+            
+            # Convert enums to their string values
+            for key in ["analysis_type", "market_condition"]:
+                if hasattr(metadata_dict.get(key), "value"):
+                    metadata_dict[key] = metadata_dict[key].value
+            # The 'trend_direction' field is already a string from the update above.
+            # --- END OF FIX ---
+
             # Save data file
             data_file_path = self.data_dir / f"{snapshot_id}"
             saved_path = self._save_data_file(analysis_result, data_file_path)
@@ -340,11 +341,13 @@ class MarketflowSnapshot:
                     confidence_level=metadata.confidence_level,
                     market_session=metadata.market_session,
                     volatility_regime=metadata.volatility_regime,
-                    trend_direction=metadata.trend_direction,
+                    # IMPORTANT: Use the string value for the direct column
+                    trend_direction=metadata.trend_direction, 
                     volume_profile=metadata.volume_profile,
                     analyst_notes=analyst_notes,
                     tags=tags,
-                    metadata_json=asdict(metadata),
+                    # Use the fixed dictionary for the JSON column
+                    metadata_json=metadata_dict,
                     data_path=saved_path
                 )
                 session.add(db_snapshot)
@@ -357,6 +360,8 @@ class MarketflowSnapshot:
             self.logger.error(f"Failed to save enhanced snapshot for {ticker}: {e}")
             raise
     
+    # ... inside the MarketflowSnapshot class ...
+
     def load_enhanced_snapshot(self, snapshot_id: str) -> Tuple[Dict, SnapshotMetadata]:
         """
         Load analysis result and metadata by snapshot ID.
@@ -379,8 +384,24 @@ class MarketflowSnapshot:
                 # Load data file
                 analysis_result = self._load_data_file(db_snapshot.data_path)
                 
-                # Reconstruct metadata
-                metadata = SnapshotMetadata(**db_snapshot.metadata_json)
+                # --- START OF FIX ---
+                # Reconstruct metadata by first loading the dictionary
+                metadata_dict = db_snapshot.metadata_json
+                
+                # Convert string representations back to proper Python objects
+                # Convert ISO string back to datetime object
+                if "timestamp" in metadata_dict and isinstance(metadata_dict["timestamp"], str):
+                    metadata_dict["timestamp"] = datetime.fromisoformat(metadata_dict["timestamp"])
+                
+                # Convert string values back to Enum objects
+                if "analysis_type" in metadata_dict:
+                    metadata_dict["analysis_type"] = AnalysisType(metadata_dict["analysis_type"])
+                if "market_condition" in metadata_dict:
+                    metadata_dict["market_condition"] = MarketCondition(metadata_dict["market_condition"])
+                
+                # Reconstruct the dataclass instance with the corrected types
+                metadata = SnapshotMetadata(**metadata_dict)
+                # --- END OF FIX ---
                 
                 return analysis_result, metadata
                 
@@ -769,8 +790,11 @@ The analysis has a data quality score of {metadata.data_quality_score:.1%}, indi
         
         prompt = f"Should I buy, sell, or hold {metadata.ticker} based on your analysis?"
         
-        signal_type = signal.get('type', 'HOLD')
-        signal_strength = signal.get('strength', 'WEAK')
+        signal_type_enum = signal.get('type', 'HOLD')
+        signal_type = str(signal_type_enum.value) if hasattr(signal_type_enum, 'value') else str(signal_type_enum)
+
+        signal_strength_enum = signal.get('strength', 'WEAK')
+        signal_strength = str(signal_strength_enum.value) if hasattr(signal_strength_enum, 'value') else str(signal_strength_enum)
         
         if 'BUY' in signal_type.upper():
             action = "BUY"
@@ -943,13 +967,14 @@ The analysis has a data quality score of {metadata.data_quality_score:.1%}, indi
             response += f"""
 
 **Wyckoff Interpretation**:
-The Wyckoff methodology focuses on understanding the relationship between price and volume to identify the intentions of large market participants (the "Composite Man"). 
+The Wyckoff methodology focuses on understanding the relationship between price and volume to identify the intentions of large market participants (the \"Composite Man\"). 
 
-{'This analysis suggests institutional accumulation or distribution activity' if wyckoff_events else 'The current structure shows'} {'clear market phases' if wyckoff_phases else 'developing market structure'} that can help identify potential turning points and trend continuations.
+{f'This analysis suggests institutional accumulation or distribution activity' if wyckoff_events else 'The current structure shows'}
+{f'clear market phases' if wyckoff_phases else 'developing market structure'} that can help identify potential turning points and trend continuations.
 
 **Trading Implications**:
-- {'Look for' if wyckoff_phases else 'Monitor for'} volume confirmation of price movements
-- {'Respect' if wyckoff_ranges else 'Watch for'} key support and resistance levels from trading ranges
+- {f'Look for' if wyckoff_phases else 'Monitor for'} volume confirmation of price movements
+- {f'Respect' if wyckoff_ranges else 'Watch for'} key support and resistance levels from trading ranges
 - Consider the broader market context when interpreting Wyckoff signals"""
             
             record_id = self._save_llm_training_record(
@@ -1114,9 +1139,7 @@ The Wyckoff methodology focuses on understanding the relationship between price 
                 # Records by conversation type
                 conv_type_stats = session.query(
                     LLMTrainingRecord.conversation_type,
-                    session.query(LLMTrainingRecord).filter(
-                        LLMTrainingRecord.conversation_type == LLMTrainingRecord.conversation_type
-                    ).count().label('count')
+                    func.count(LLMTrainingRecord.id).label('count')
                 ).group_by(LLMTrainingRecord.conversation_type).all()
                 
                 # Quality score distribution
