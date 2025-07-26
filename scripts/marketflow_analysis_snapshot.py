@@ -67,7 +67,7 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     snapshot_id = snapshot.save_enhanced_snapshot(
         analysis_result=results,
         ticker=ticker,
-        analysis_type=AnalysisType.WYCKOFF,
+        analysis_type=AnalysisType.TECHNICAL,
         analyst_notes="Strong bullish setup with Wyckoff confirmation",
         tags=["bullish", "wyckoff", "high_confidence"]
     )
