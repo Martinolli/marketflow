@@ -330,7 +330,10 @@ marketflow/
 │   └── modules/
 │       ├── marketflow_config_manager_original.py (✓ backup)
 │       ├── marketflow_logger_original.py (✓ backup)
-│       └── marketflow_analyzer.py  (✓ backup)                 
+│       ├── marketflow_analyzer.py  (✓ backup)
+│       ├── README.md  (✓ backup)
+│       ├── retriever_original.py  (✓ backup)
+│       └── marketflow_analysis.py (✓ backup)                 
 │
 ├── env                                                 # (Not committed) Environment
 |
@@ -385,13 +388,18 @@ marketflow/
 │   ├── chunker.py  (✓ new)                            # Chunker script
 │   ├── embedder_vector_db.py  (✓ new)                 # Embedder DB script                                      
 │   ├── embedder.py (✓ new)                            # Embedder script
+│   ├── query_vectordb.py (✓ new)                      # Query Vector DB script
 │   └── retriever.py (✓ new)                           # Retriever scrip
 │
 ├── scripts/                                            # CLI, app entrypoints, notebooks, demos
-│   └── marketflow_app.py                               # empty
+│   ├── __pycache__
+│   ├── marketflow_analysis.py  (✓ new)                 # Analysis script
+│   ├── marketflow_integration_example.py               # Integration Example
+│   ├── plot_annotated_features.py  (✓ new)             # Plot script
+│   └── marketflow_app.py (TBD)                          # empty
 │
 ├── tests_outputs/                                      # Outputs Tests Files
-│   └── tsts_files                                      # HTML, JSON, TXT files
+│   └── tests_files                                     # HTML, JSON, TXT files
 │
 ├── tests/                                              # Unit and integration tests
 │   ├── __pycache__                                     

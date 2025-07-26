@@ -32,6 +32,7 @@ def plot_features(csv_file, features=None, nrows=100):
         features (list, optional): List of features/columns to plot. If None, defaults to ['close', 'spread', 'volume'].
         nrows (int): Number of rows to plot from the CSV file.
     """
+    output_dir = os.path.dirname(csv_file)
 
     logger.info(f"Loading data from {csv_file}...")
     if not os.path.exists(csv_file):
@@ -73,8 +74,9 @@ def plot_features(csv_file, features=None, nrows=100):
         yaxis2_title="Volume"
     )
     fig.update_xaxes(rangeslider_visible=True, row=2, col=1)
-    fig.write_html("price_volume_combined_plot.html")
-    logger.info("Combined price and volume plot saved as price_volume_combined_plot.html")
+    price_volume_path = os.path.join(output_dir, "price_volume_combined_plot.html")
+    fig.write_html(price_volume_path)
+    logger.info(f"Combined price and volume plot saved as {price_volume_path}")
     fig.show()
 
     # Plot Volume over Time
@@ -82,9 +84,10 @@ def plot_features(csv_file, features=None, nrows=100):
                        title=f"Volume Distribution Over Time {os.path.basename(csv_file)}",
                        labels={'timestamp': 'Timestamp', 'volume': 'Volume'},)
     fig.update_layout(xaxis_title="Timestamp", yaxis_title="Volume")
-    fig.write_html("volume_distribution_plot.html")
-    logger.info("Volume distribution plot saved as volume_distribution_plot.html")
     fig.update_xaxes(rangeslider_visible=True)
+    volume_dist_path = os.path.join(output_dir, "volume_distribution_plot.html")
+    fig.write_html(volume_dist_path)
+    logger.info(f"Volume distribution plot saved as {volume_dist_path}")
     fig.show()
 
     # Plot Spread over Time
@@ -94,9 +97,10 @@ def plot_features(csv_file, features=None, nrows=100):
                   hover_data=['spread'],
                   labels={'timestamp': 'Timestamp', 'spread': 'Spread'},)
     fig.update_layout(xaxis_title="Timestamp", yaxis_title="Spread")
-    fig.write_html("spread_plot.html")
-    logger.info("Spread plot saved as spread_plot.html")
     fig.update_xaxes(rangeslider_visible=True)
+    spread_path = os.path.join(output_dir, "spread_plot.html")
+    fig.write_html(spread_path)
+    logger.info(f"Spread plot saved as {spread_path}")
     fig.show()
 
     if "volume_class" in features:
@@ -109,9 +113,10 @@ def plot_features(csv_file, features=None, nrows=100):
                             "HIGH": "orange", "VERY_HIGH": "red"
                         })
         fig.update_layout(xaxis_title="Timestamp", yaxis_title="Volume Class")
-        fig.write_html("volume_class_plot.html")
-        logger.info("Volume class plot saved as volume_class_plot.html")
         fig.update_xaxes(rangeslider_visible=True)
+        volume_class_path = os.path.join(output_dir, "volume_class_plot.html")
+        fig.write_html(volume_class_path)
+        logger.info(f"Volume class plot saved as {volume_class_path}")
         fig.show()
 
     if "candle_class" in features:
@@ -123,9 +128,10 @@ def plot_features(csv_file, features=None, nrows=100):
                          hover_data=['candle_class'],
         )
         fig.update_layout(legend_title_text='Candle Classification')
-        fig.write_html("classified_candles_plot.html")
-        logger.info("Classified candles plot saved as classified_candles_plot.html")
         fig.update_xaxes(rangeslider_visible=True)
+        candle_class_path = os.path.join(output_dir, "classified_candles_plot.html")
+        fig.write_html(candle_class_path)
+        logger.info(f"Classified candles plot saved as {candle_class_path}")
         fig.show()
 
     if "price_direction" in features:
@@ -135,9 +141,10 @@ def plot_features(csv_file, features=None, nrows=100):
                          labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
                          color_discrete_sequence=px.colors.qualitative.Plotly)
         fig.update_layout(legend_title_text='Price Direction')
-        fig.write_html("price_direction_plot.html")
-        logger.info("Price direction plot saved as price_direction_plot.html")
         fig.update_xaxes(rangeslider_visible=True)
+        price_direction_path = os.path.join(output_dir, "price_direction_plot.html")
+        fig.write_html(price_direction_path)
+        logger.info(f"Price direction plot saved as {price_direction_path}")
         fig.show()
 
     if "volume_direction" in features:
@@ -147,9 +154,10 @@ def plot_features(csv_file, features=None, nrows=100):
                          labels={'Index (row)': 'Index (row)', 'close': 'Closed Price'},
                          color_discrete_sequence=px.colors.qualitative.Plotly)
         fig.update_layout(legend_title_text='Volume Direction')
-        fig.write_html("volume_direction_plot.html")
-        logger.info("Volume direction plot saved as volume_direction_plot.html")
         fig.update_xaxes(rangeslider_visible=True)
+        volume_direction_path = os.path.join(output_dir, "volume_direction_plot.html")
+        fig.write_html(volume_direction_path)
+        logger.info(f"Volume direction plot saved as {volume_direction_path}")
         fig.show()
 
 if __name__ == "__main__":

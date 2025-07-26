@@ -4,13 +4,16 @@ All notable changes to this project are documented in this file.
 
 ---
 
-## [Unreleased]
+## [1.14.0]
 
 ### Added 14
 
 - Streamlined README.md focusing on key features and onboarding.
 - Project roadmap/next steps plan template.
 - Initial CHANGELOG.md for transparent version tracking.
+- Initial Script to plot data from CSV files from generated reports with annotated information
+- Initial Script to analyze integrated script/logic using complete pipeline from:
+     `data_provider` -> `facade` -> `extractor` -> `report`.
 
 ---
 
