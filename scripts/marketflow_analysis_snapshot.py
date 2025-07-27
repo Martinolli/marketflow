@@ -12,12 +12,14 @@ Use:
 """
 import argparse
 import os
-import datetime
+import json
 from datetime import datetime
+from enum import Enum
 from marketflow.marketflow_facade import MarketflowFacade
 from marketflow.marketflow_results_extractor import MarketflowResultExtractor
 from marketflow.marketflow_report import MarketflowReport
 from marketflow.marketflow_snapshot import MarketflowSnapshot, AnalysisType
+from marketflow.marketflow_llm_interface import MarketflowLLMInterface
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_utils import sanitize_filename
@@ -25,6 +27,43 @@ from marketflow.marketflow_utils import sanitize_filename
 logger = get_logger("marketflow_analysis_snapshot")
 config_manager = create_app_config(logger=logger)
 
+class CustomJSONEncoder(json.JSONEncoder):
+    """Custom JSON encoder that handles Enum types and other non-serializable objects."""
+    
+    def default(self, obj):
+        if isinstance(obj, Enum):
+            return obj.value
+        # Add other custom type handling as needed
+        try:
+            return super().default(obj)
+        except TypeError:
+            # Convert non-serializable objects to string representation
+            return str(obj)
+
+def safe_json_dump(data, file_path):
+    """Safely dump data to JSON file with custom encoder."""
+    try:
+        with open(file_path, "w") as f:
+            json.dump(data, f, indent=4, cls=CustomJSONEncoder, ensure_ascii=False)
+        return True
+    except Exception as e:
+        logger.error(f"Failed to save JSON to {file_path}: {e}")
+        # Try to save a simplified version
+        try:
+            simplified_data = {
+                "error": "Original data could not be serialized",
+                "error_message": str(e),
+                "ticker": data.get("ticker", "unknown") if isinstance(data, dict) else "unknown",
+                "timestamp": datetime.now().isoformat()
+            }
+            with open(file_path, "w") as f:
+                json.dump(simplified_data, f, indent=4)
+            logger.warning(f"Saved simplified error data to {file_path}")
+            return False
+        except Exception as fallback_error:
+            logger.error(f"Failed to save even simplified data: {fallback_error}")
+            return False
+        
 def run_analysis(ticker, output_dir="data", timeframes=None):
     """Run market analysis for a given ticker symbol.
 
@@ -33,6 +72,11 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
         output_dir (str): Directory to save the reports.
         timeframes (list, optional): List of timeframes to analyze. If None, uses default timeframes.
     """
+    # Get current date for logging
+    current_date = datetime.now().strftime("%Y-%m-%d")
+    logger.info(f"Running analysis for {ticker} on {current_date}")
+
+    # Initialize MarketflowFacade
     facade = MarketflowFacade()
     logger.info(f"Running analysis for ticker: {ticker}")
     # Allow passing specific timeframes if needed (else use default in facade)
@@ -47,7 +91,7 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     logger.info("Extracting data from results...")
     config = create_app_config()
     report_dir = config.REPORT_DIR
-    output_dir = f"{report_dir}/{sanitize_filename(ticker)}"
+    output_dir = f"{report_dir}/{current_date}/{sanitize_filename(ticker)}"
     logger.info(f"Report directory: {output_dir}")
     report = MarketflowReport(extractor, output_dir=output_dir)
     logger.info("Creating report...")
