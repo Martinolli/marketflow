@@ -4,6 +4,25 @@ All notable changes to this project are documented in this file.
 
 ---
 
+## [1.16.0]
+
+### Added 16
+
+- Development of `marketflow_llm_interface`
+    LLM interface This module provides an intelligent, narrative-driven interface for LLMs
+    to interact with the advanced VPA and Wyckoff analysis engine.
+
+- Development of `marketflow_snapshot`
+    his module provides advanced functionality for capturing, storing, and retrieving MarketFlow
+    analysis results with comprehensive support for historical data storage, chart plotting,
+    information display, and LLM interface/training data preparation.
+
+- Development of `marketflow_analysis`
+    Three (3) different scripts to run analysis using complete analysis plus Snapshot and LLM Interface script,
+    and pure analysis and results.
+
+---
+
 ## [1.15.0]
 
 ### Added 15
