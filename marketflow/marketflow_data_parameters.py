@@ -266,12 +266,12 @@ default_config = {
             'tr_max_duration': 100
     },
     "timeframes": [
-        {"interval": "1d", "period": "60d"},
-        {"interval": "4h", "period": "30d"},
+        {"interval": "1d", "period": "90d"},
+        {"interval": "4h", "period": "60d"},
         {"interval": "1h", "period": "30d"},    
         {"interval": "30m", "period": "10d"},
-        {"interval": "15m", "period": "10d"},
-        {"interval": "5m", "period": "10d"},
-        {"interval": "1m", "period": "10d"}
+        {"interval": "15m", "period": "4d"},
+        {"interval": "5m", "period": "4d"},
+        {"interval": "1m", "period": "3d"}
     ]
 }
