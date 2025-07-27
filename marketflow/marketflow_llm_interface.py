@@ -12,7 +12,7 @@ from marketflow.marketflow_data_parameters import MarketFlowDataParameters
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 
-class VPALLMInterface:
+class MarketflowLLMInterface:
     """
     Intelligent interface for LLM integration with VPA and Wyckoff analysis.
     This class synthesizes raw analysis into a structured, narrative-driven format.
