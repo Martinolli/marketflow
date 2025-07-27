@@ -9,6 +9,7 @@ import re
 from marketflow.marketflow_facade import MarketflowFacade
 from marketflow.marketflow_wyckoff import WyckoffEvent, WyckoffPhase
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
+from marketflow.marketflow_llm_narrative import generate_analysis_narrative
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 
@@ -31,7 +32,7 @@ class MarketflowLLMInterface:
         self.logger = get_logger(module_name="MarketflowLLMInterface")
 
         # Initialize configuration manager
-        self.config_manager = create_app_config()
+        self.config_manager = create_app_config(logger=self.logger)
 
         # Initialize configuration
         # Load parameters or use default MarketFlowDataParameters
@@ -224,63 +225,6 @@ class MarketflowLLMInterface:
                 return explanation
         self.logger.warning(f"Concept '{concept_name}' not found.")
         return f"Concept '{concept_name}' not found."
-    
-    def _generate_analysis_narrative(self, analysis: dict) -> str:
-        """
-        Synthesizes the VPA and Wyckoff analysis into a coherent narrative story.
-        This is the core intelligence of the interface.
-        """
-        self.logger.info(f"Generating analysis narrative for ticker: {analysis.get('ticker', 'UNKNOWN')}")
-        ticker = analysis["ticker"]
-        signal = analysis["signal"]
-        primary_tf_key = list(analysis["timeframe_analyses"].keys())[0]
-        primary_tf_analysis = analysis["timeframe_analyses"][primary_tf_key]
-        
-        # Extract the latest Wyckoff context
-        latest_phase = primary_tf_analysis.get("wyckoff_phases", [])[-1] if primary_tf_analysis.get("wyckoff_phases") else None
-        latest_event = primary_tf_analysis.get("wyckoff_events", [])[-1] if primary_tf_analysis.get("wyckoff_events") else None
-        
-        narrative = f"**Narrative Analysis for {ticker} (Primary Timeframe: {primary_tf_key}):**\n\n"
-        
-        # 1. Start with the overall VPA Signal
-        narrative += f"The primary VPA signal is **{signal['type']} ({signal['strength']})**. "
-        narrative += f"Reasoning: {signal['details']}.\n\n"
-        
-        # 2. Connect to Wyckoff Context
-        if latest_phase and latest_event:
-            phase_val = latest_phase['phase']
-            event_val = latest_event['event']
-            narrative += f"This signal is supported by the current Wyckoff context. The market is in **{phase_val}**. "
-            narrative += f"The most recent significant event was a **{event_val}** on {latest_event['timestamp']}.\n"
-            
-            # Add specific narrative based on phase and signal
-            if signal['type'] == 'BUY' and latest_phase['phase_name'] in ['D', 'E'] and 'Accumulation' in latest_phase.get('context', ''):
-                narrative += f"This is a constructive pattern, suggesting that the accumulation phase has completed and the markup (uptrend) is underway. The {event_val} confirms buyer control.\n"
-            elif signal['type'] == 'SELL' and latest_phase['phase_name'] in ['D', 'E'] and 'Distribution' in latest_phase.get('context', ''):
-                narrative += f"This is a bearish pattern, suggesting that the distribution phase has completed and the markdown (downtrend) is in progress. The {event_val} confirms seller control.\n"
-            elif signal['type'] == 'HOLD' or signal['type'] == 'NO_SIGNAL':
-                 narrative += f"The market appears to be in a consolidation or 'cause-building' phase. It's advisable to wait for a clear Sign of Strength (breakout) or Sign of Weakness (breakdown) before considering a new position.\n"
-            else:
-                # Highlight conflicts
-                narrative += f"**Warning:** There is a potential conflict between the VPA signal ({signal['type']}) and the Wyckoff context ({latest_phase.get('context', 'unknown')}). This suggests uncertainty, and caution is advised.\n"
-
-        elif latest_phase:
-             narrative += f"The market is currently in **{latest_phase['phase']}** according to Wyckoff analysis, but specific events are unclear. This indicates a period of consolidation.\n"
-        else:
-            narrative += "Wyckoff analysis did not identify a clear phase or event, suggesting the market is in a random or non-structural state.\n"
-
-        # 3. Discuss Trading Ranges
-        if primary_tf_analysis.get("wyckoff_trading_ranges"):
-            tr = primary_tf_analysis["wyckoff_trading_ranges"][-1]
-            narrative += f"\nA trading range has been identified between **support at ~${tr['support']:.2f}** and **resistance at ~${tr['resistance']:.2f}**. "
-            narrative += "This range represents the 'cause' being built for the next trend.\n"
-
-        # 4. Conclude with risk assessment
-        risk = analysis['risk_assessment']
-        narrative += f"\n**Trade Management:** Based on this analysis, the suggested stop-loss is **${risk.get('stop_loss', 0):.2f}** and the take-profit target is **${risk.get('take_profit', 0):.2f}**, offering a risk-reward ratio of **{risk.get('risk_reward_ratio', 0):.2f}**."
-
-        self.logger.info(f"Generated narrative for {ticker}: {narrative[:200]}...")  # Log first 200 chars
-        return narrative.strip()
 
     def get_ticker_analysis(self, ticker: str):
         """
@@ -299,7 +243,7 @@ class MarketflowLLMInterface:
                 "current_price": analysis.get("current_price"),
                 "vpa_signal": analysis.get("signal"),
                 "risk_assessment": analysis.get("risk_assessment"),
-                "analysis_narrative": self._generate_analysis_narrative(analysis),
+                "analysis_narrative": generate_analysis_narrative(analysis),
                 "timeframe_data": {}
             }
             
