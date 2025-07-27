@@ -61,15 +61,15 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     print(f"✅ Reports for {ticker} saved in {output_dir}")
 
     # Create a snapshot of the analysis
-    snapshot = MarketflowSnapshot(output_dir=f".marketflow/snapshot_reports/{ticker}_{datetime.now().strftime('%Y%m%d%H%M%S')}",
+    snapshot = MarketflowSnapshot(output_dir=f".marketflow/snapshot_reports/{sanitize_filename(ticker)}_{datetime.now().strftime('%Y%m%d%H%M%S')}",
                                   enable_compression=True)
     logger.info("Creating snapshot of the analysis...")
     snapshot_id = snapshot.save_enhanced_snapshot(
         analysis_result=results,
         ticker=ticker,
-        analysis_type=AnalysisType.TECHNICAL,
-        analyst_notes="Strong bullish setup with Wyckoff confirmation",
-        tags=["bullish", "wyckoff", "high_confidence"]
+        analysis_type=AnalysisType.SENTIMENT,
+        analyst_notes="Sentiment analysis completed. Review shows prevailing market optimism with moderate risk factors.",
+        tags=["sentiment", "market_optimism", "risk_analysis"]
     )
     print(f"Saved snapshot: {snapshot_id}")
     logger.info(f"Snapshot for {ticker} created successfully in {output_dir}")
