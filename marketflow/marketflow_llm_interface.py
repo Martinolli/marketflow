@@ -48,7 +48,7 @@ class MarketflowLLMInterface:
             self.logger.error("Invalid configuration provided. Expected MarketFlowDataParameters instance.")
             raise ValueError("Invalid configuration provided. Expected MarketFlowDataParameters instance.")
         # Pass the interface instance itself, which has a .logger attribute, to the facade.
-        self.marketflow = MarketflowFacade(config=self.parameters)
+        self.marketflow = MarketflowFacade()
 
         # Load concept explanations for VPA and Wyckoff
         self.marketflow_concepts = self._load_vpa_concept_explanations()
