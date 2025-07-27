@@ -363,6 +363,7 @@ marketflow/
 │   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
 │   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
 │   ├── marketflow_facade.py  (✓ new)                   # Orchestrator: unified API for analytics, charting, reporting
+│   ├── marketflow_llm_interface.py  (✓ new)            # Human-friendly narrative/report generator for LLM
 │   ├── marketflow_logger.py (✓ replaced)               # Centralized logging
 │   ├── marketflow_memory_manager.py (TBD)              # Conversation/session memory for LLMs
 │   ├── marketflow_polygon_tools.py (new)               # Polygon Tools Requesting Code
@@ -370,6 +371,7 @@ marketflow/
 │   ├── marketflow_report.py  (✓ new)                   # Report generation
 │   ├── marketflow_result_extractor.py  (✓ new)         # Extractor Data from Facade
 │   ├── marketflow_signals.py   (✓ new)                 # Signal detection algorithms
+│   ├── marketflow_snapshot.py   (✓ new)                # This module provides advanced functionality for capturing, storing, and retrieving MarketFlow
 │   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
 │   ├── marketflow_wyckoff.py (✓ new)                   # Wyckoff method analytics
 │   ├── multi_timeframe_analyzer.py (✓ new)             # Multi timeframe analytics
@@ -378,7 +380,6 @@ marketflow/
 │   ├── support_resistance_analyzer.py (✓ new)          # Support and Resistance algorithms
 │   ├── trend_analyzer.py (✓ new)                       # Trend Analyzer algorithms
 │   ├── marketflow_llm_providers.py (TBD)               # LLM abstraction layer
-│   ├── marketflow_llm_interface.py  (TBD)              # Human-friendly narrative/report generator for LLM
 │   ├── marketflow_llm_query_engine.py (TBD)            # Orchestrates user query through LLM and backend
 │   ├──
 │   └── ...                                             # (Other modules as needed)
@@ -393,6 +394,8 @@ marketflow/
 │
 ├── scripts/                                            # CLI, app entrypoints, notebooks, demos
 │   ├── __pycache__
+│   ├── marketflow_analysis_llm_interface.py  (✓ new)   # Analysis script and LLM interface generation
+│   ├── marketflow_analysis_snapshot.py  (✓ new)        # Analysis script and Snapshot Interface generation
 │   ├── marketflow_analysis.py  (✓ new)                 # Analysis script
 │   ├── marketflow_integration_example.py               # Integration Example
 │   ├── plot_annotated_features.py  (✓ new)             # Plot script
