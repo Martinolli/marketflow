@@ -126,7 +126,7 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     logger.info("Creating LLM interface for further analysis...")
 
     # Save the LLM analysis to a file with safe serialization
-    llm_analysis_file = os.path.join(output_dir, f"{current_date}_{sanitize_filename(ticker)}_llm_analysis.json")
+    llm_analysis_file = os.path.join(output_dir, f"{sanitize_filename(ticker)}_llm_analysis.json")
     
     # Ensure the directory exists
     os.makedirs(output_dir, exist_ok=True)
