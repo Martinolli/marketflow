@@ -250,14 +250,16 @@ class MarketflowLLMInterface:
             # Populate detailed timeframe data, now including full Wyckoff results
             for tf, tf_data in analysis["timeframe_analyses"].items():
                 self.logger.debug(f"Processing timeframe {tf} for {ticker}")
+                wyckoff_trading_ranges = tf_data.get("wyckoff_trading_ranges", [])
+                last_trading_range = wyckoff_trading_ranges[-1] if wyckoff_trading_ranges else {}
                 llm_output["timeframe_data"][tf] = {
                     "trend": tf_data.get("trend_analysis"),
                     "support_resistance": tf_data.get("support_resistance"),
                     "wyckoff": {
-                        "context": tf_data.get("wyckoff_trading_ranges", [{}])[-1].get("context", "Undefined"),
+                        "context": last_trading_range.get("context", "Undefined"),
                         "phases": tf_data.get("wyckoff_phases", []),
                         "events": tf_data.get("wyckoff_events", []),
-                        "trading_ranges": tf_data.get("wyckoff_trading_ranges", []),
+                        "trading_ranges": wyckoff_trading_ranges,
                     }
                 }
 
