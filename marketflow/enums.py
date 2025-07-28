@@ -72,4 +72,22 @@ class AnalysisType(Enum):
     WYCKOFF = "wyckoff"
     VOLUME_PRICE = "volume_price"
     PATTERN_RECOGNITION = "pattern_recognition"
+
+class QueryIntent(Enum):
+    """Enumeration of supported query intents"""
+    TICKER_ANALYSIS = "ticker_analysis"
+    CONCEPT_EXPLANATION = "concept_explanation"
+    RAG_QUERY = "rag_query"
+    COMPARISON = "comparison"
+    HISTORICAL_ANALYSIS = "historical_analysis"
+    MULTI_TIMEFRAME = "multi_timeframe"
+    UNKNOWN = "unknown"
+
+
+class QueryConfidence(Enum):
+    """Confidence levels for intent classification"""
+    HIGH = "high"      # > 0.8
+    MEDIUM = "medium"  # 0.5 - 0.8
+    LOW = "low"        # < 0.5
+    
 ## --- CHANGE END --- ##
