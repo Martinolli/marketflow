@@ -72,7 +72,7 @@ class MarketflowReport:
         try:
             current_date = datetime.now().strftime("%Y-%m-%d")
             sanitized_ticker = sanitize_filename(ticker)
-            report_path = self.output_dir / f"{current_date}_{sanitized_ticker}_summary_report.txt"
+            report_path = self.output_dir / f"{sanitized_ticker}_summary_report.txt"
             self.logger.info(f"Generating detailed summary report for {sanitized_ticker} at {report_path}")
 
             with open(report_path, 'w', encoding="utf-8") as f:
@@ -241,7 +241,7 @@ class MarketflowReport:
         try:
             current_date = datetime.now().strftime("%Y-%m-%d")
             sanitized_ticker = sanitize_filename(ticker)
-            report_path = self.output_dir / f"{current_date}_{sanitized_ticker}_report.json"
+            report_path = self.output_dir / f"{sanitized_ticker}_report.json"
             self.logger.info(f"Generating JSON report for {sanitized_ticker} at {report_path}")
 
             ticker_data = self.extractor.get_ticker_data(ticker)
@@ -263,7 +263,7 @@ class MarketflowReport:
         try:
             current_date = datetime.now().strftime("%Y-%m-%d")
             sanitized_ticker = sanitize_filename(ticker)
-            report_path = self.output_dir / f"{current_date}_{sanitized_ticker}_report.html"
+            report_path = self.output_dir / f"{sanitized_ticker}_report.html"
             self.logger.info(f"Generating HTML report for {sanitized_ticker} at {report_path}")
 
             signal = self.extractor.get_signal(ticker)
@@ -442,12 +442,12 @@ class MarketflowReport:
             sanitized_ticker = sanitize_filename(ticker)
             current_date = datetime.now().strftime("%Y-%m-%d")
             if format.lower() == 'csv':
-                export_path = self.output_dir / f"{current_date}_{sanitized_ticker}_{timeframe}_wyckoff_annotated.csv"
+                export_path = self.output_dir / f"{sanitized_ticker}_{timeframe}_wyckoff_annotated.csv"
                 wyckoff_annotated.to_csv(export_path, index=True)
                 self.logger.info(f"Wyckoff annotated data exported to CSV: {export_path}")
             elif format.lower() == 'json':
                 # Use the sanitized_ticker for the path.
-                export_path = self.output_dir / f"{current_date}_{sanitized_ticker}_{timeframe}_wyckoff_annotated.json"
+                export_path = self.output_dir / f"{sanitized_ticker}_{timeframe}_wyckoff_annotated.json"
                 json_data = wyckoff_annotated.to_json(orient='index', date_format='iso', indent=2)
                 with open(export_path, 'w', encoding='utf-8') as f:
                     f.write(json_data)
