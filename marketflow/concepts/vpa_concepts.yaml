@@ -1,0 +1,87 @@
+effort_vs_result: |
+  Effort vs. Result is a core concept in VPA that compares the volume (effort)
+  with the price movement (result).
+  
+  Key principles:
+  1. High effort (volume) with small result (price movement) indicates potential reversal
+  2. Low effort with large result indicates weakness in the move
+  3. Equal effort and result indicates a healthy trend
+  
+  Examples:
+  - High volume up day with small price gain: supply is meeting demand (bearish)
+  - Low volume down day with large price drop: no support present (bearish)
+  - High volume down day with small price drop: demand is meeting supply (bullish)
+
+vpa_overview: |
+  Volume Price Analysis (VPA) is a trading methodology that analyzes the relationship 
+  between price action and volume to reveal market sentiment and identify trading opportunities.
+  
+  VPA is based on the work of iconic traders like Charles Dow, Jesse Livermore, and Richard Wyckoff,
+  and focuses on how volume confirms or contradicts price movements. The core principle is that
+  volume precedes price, meaning significant volume changes often signal upcoming price movements.
+  
+  Key concepts in VPA include:
+  1. Volume confirms price - When price and volume move in the same direction, it validates the move
+  2. Volume contradicts price - When price and volume move in opposite directions, it signals potential reversal
+  3. Effort vs. Result - Comparing the effort (volume) with the result (price movement)
+
+accumulation: |
+  Accumulation in VPA refers to a pattern where large operators or institutions are buying
+  an asset while trying to keep the price relatively stable to avoid driving it up before
+  they complete their buying.
+  
+  Key characteristics of accumulation:
+  1. Sideways price movement with narrowing range
+  2. High volume on down days but price doesn't fall much (absorption)
+  3. Low volume on up days
+  4. Tests of support that hold with decreasing volume
+  
+  Accumulation typically occurs after a downtrend and precedes an uptrend.
+
+distribution: |
+  Distribution in VPA refers to a pattern where large operators or institutions are selling
+  an asset while trying to keep the price relatively stable to avoid driving it down before
+  they complete their selling.
+  
+  Key characteristics of distribution:
+  1. Sideways price movement with narrowing range
+  2. High volume on up days but price doesn't rise much (supply)
+  3. Low volume on down days
+  4. Tests of resistance that fail with decreasing volume
+  
+  Distribution typically occurs after an uptrend and precedes a downtrend.
+
+buying_climax: |
+  A buying climax in VPA is a pattern that marks the end of an uptrend, characterized by:
+  
+  1. Extremely high volume (often the highest in the trend)
+  2. Wide range up candle
+  3. Price at or near the high of the trend
+  4. Often followed by a reversal or significant pullback
+  
+  A buying climax represents the last surge of buying before smart money begins to distribute.
+  It often shows exhaustion of buying pressure and is a bearish signal.
+
+selling_climax: |
+  A selling climax in VPA is a pattern that marks the end of a downtrend, characterized by:
+  
+  1. Extremely high volume (often the highest in the trend)
+  2. Wide range down candle
+  3. Price at or near the low of the trend
+  4. Often followed by a reversal or significant bounce
+  
+  A selling climax represents the last surge of selling before smart money begins to accumulate.
+  It often shows exhaustion of selling pressure and is a bullish signal.
+
+testing: |
+  Testing in VPA refers to price probes of support or resistance levels with specific
+  volume characteristics that reveal the strength of these levels.
+  
+  Key characteristics of testing:
+  1. Support test: Price moves below a previous low but with lower volume
+  2. Resistance test: Price moves above a previous high but with lower volume
+  
+  The outcome of these tests provides valuable information:
+  - If support holds on low volume, it's strong support
+  - If resistance breaks on high volume, it's a valid breakout
+  - If resistance fails on low volume, it's a false breakout

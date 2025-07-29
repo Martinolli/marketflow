@@ -1,0 +1,89 @@
+effort_vs_result: |
+  Effort vs. Result is a core concept in VPA that compares the volume (effort)
+  with the price movement (result).
+  
+  Key principles:
+  1. High effort (volume) with small result (price movement) indicates potential reversal
+  2. Low effort with large result indicates weakness in the move
+  3. Equal effort and result indicates a healthy trend
+  
+  Examples:
+  - High volume up day with small price gain: supply is meeting demand (bearish)
+  - Low volume down day with large price drop: no support present (bearish)
+  - High volume down day with small price drop: demand is meeting supply (bullish)
+
+selling_climax: |
+  A selling climax in VPA is a pattern that marks the end of a downtrend, characterized by:
+  
+  1. Extremely high volume (often the highest in the trend)
+  2. Wide range down candle
+  3. Price at or near the low of the trend
+  4. Often followed by a reversal or significant bounce
+  
+  A selling climax represents the last surge of selling before smart money begins to accumulate.
+  It often shows exhaustion of selling pressure and is a bullish signal.
+
+buying_climax: |
+  A buying climax in VPA is a pattern that marks the end of an uptrend, characterized by:
+  
+  1. Extremely high volume (often the highest in the trend)
+  2. Wide range up candle
+  3. Price at or near the high of the trend
+  4. Often followed by a reversal or significant pullback
+  
+  A buying climax represents the last surge of buying before smart money begins to distribute.
+  It often shows exhaustion of buying pressure and is a bearish signal.
+
+accumulation: |
+  Accumulation in VPA refers to a pattern where large operators or institutions are buying
+  an asset while trying to keep the price relatively stable to avoid driving it up before
+  they complete their buying.
+  
+  Key characteristics of accumulation:
+  1. Sideways price movement with narrowing range
+  2. High volume on down days but price doesn't fall much (absorption)
+  3. Low volume on up days
+  4. Tests of support that hold with decreasing volume
+  
+  Accumulation typically occurs after a downtrend and precedes an uptrend.
+
+distribution: |
+  Distribution in VPA refers to a pattern where large operators or institutions are selling
+  an asset while trying to keep the price relatively stable to avoid driving it down before
+  they complete their selling.
+  
+  Key characteristics of distribution:
+  1. Sideways price movement with narrowing range
+  2. High volume on up days but price doesn't rise much (supply)
+  3. Low volume on down days
+  4. Tests of resistance that fail with decreasing volume
+  
+  Distribution typically occurs after an uptrend and precedes a downtrend.
+
+testing: |
+  Testing in VPA refers to price probes of support or resistance levels with specific
+  volume characteristics that reveal the strength of these levels.
+  
+  Key characteristics of testing:
+  1. Support test: Price moves below a previous low but with lower volume
+  2. Resistance test: Price moves above a previous high but with lower volume
+  
+  The outcome of these tests provides valuable information:
+  - If support holds on low volume, it's strong support
+  - If resistance breaks on high volume, it's a valid breakout
+  - If resistance fails on low volume, it's a false breakout
+
+phase_a: |
+  Phase A - Stopping Action: The phase where the previous trend is halted. For accumulation, it's marked by events like SC and AR. For distribution, by BC and AR.
+
+phase_b: |
+  Phase B - Building a Cause: The longest phase, where large operators build their positions (accumulating or distributing) within a defined trading range.
+
+phase_c: |
+  Phase C - Testing: The phase containing a decisive test of the remaining supply/demand, typically a Spring (in accumulation) or a UTAD (in distribution).
+
+phase_d: |
+  Phase D - Markup/Markdown: The phase where price moves out of the trading range, driven by the imbalance created in Phase B and tested in Phase C.
+
+phase_e: |
+  Phase E - Trend Continuation: The final phase where the new trend is clearly established and continues with market participation.
