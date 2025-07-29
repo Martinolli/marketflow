@@ -6,6 +6,7 @@ to interact with the advanced VPA and Wyckoff analysis engine.
 """
 
 import re
+import yaml
 from marketflow.marketflow_facade import MarketflowFacade
 from marketflow.marketflow_wyckoff import WyckoffEvent, WyckoffPhase
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
@@ -38,10 +39,9 @@ class MarketflowLLMInterface:
         # Load parameters or use default MarketFlowDataParameters
         if parameters is None:
             self.logger.info("Using default MarketFlowDataParameters.")
-        else:
-            self.logger.info("Using provided MarketFlowDataParameters.")
-
-        self.parameters = parameters or MarketFlowDataParameters()
+            parameters = MarketFlowDataParameters()
+        self.parameters = parameters
+        self.marketflow = MarketflowFacade(parameters=self.parameters)
 
         # Initialize the VPA facade with the provided configuration and logger
         self.logger.info("Initializing VPAFacade with the interface's configuration and logger.")
@@ -51,140 +51,15 @@ class MarketflowLLMInterface:
         # Pass the interface instance itself, which has a .logger attribute, to the facade.
         self.marketflow = MarketflowFacade()
 
-        # Load concept explanations for VPA and Wyckoff
-        self.marketflow_concepts = self._load_vpa_concept_explanations()
-        self.wyckoff_concepts = self._load_wyckoff_concept_explanations()
+        # Load concept explanations for VPA and Wyckoff from YAML files
+        self.marketflow_concepts = self._load_concepts_from_yaml('marketflow/concepts/vpa_concepts.yaml')
+        self.wyckoff_concepts = self._load_concepts_from_yaml('marketflow/concepts/wyckoff_concepts.yaml')
 
-    def _load_vpa_concept_explanations(self):
-        """Loads general VPA concepts, based on authors like Anna Coulling."""
-        # This remains largely the same, but could be expanded or loaded from a YAML/JSON file.
-        return {
-            "vpa_overview": """
-                Volume Price Analysis (VPA) is a trading methodology that analyzes the relationship 
-                between price action and volume to reveal market sentiment and identify trading opportunities.
-                
-                VPA is based on the work of iconic traders like Charles Dow, Jesse Livermore, and Richard Wyckoff,
-                and focuses on how volume confirms or contradicts price movements. The core principle is that
-                volume precedes price, meaning significant volume changes often signal upcoming price movements.
-                
-                Key concepts in VPA include:
-                1. Volume confirms price - When price and volume move in the same direction, it validates the move
-                2. Volume contradicts price - When price and volume move in opposite directions, it signals potential reversal
-                3. Effort vs. Result - Comparing the effort (volume) with the result (price movement)
-            """,
-            
-            "accumulation": """
-                Accumulation in VPA refers to a pattern where large operators or institutions are buying
-                an asset while trying to keep the price relatively stable to avoid driving it up before
-                they complete their buying.
-                
-                Key characteristics of accumulation:
-                1. Sideways price movement with narrowing range
-                2. High volume on down days but price doesn't fall much (absorption)
-                3. Low volume on up days
-                4. Tests of support that hold with decreasing volume
-                
-                Accumulation typically occurs after a downtrend and precedes an uptrend.
-            """,
-            
-            "distribution": """
-                Distribution in VPA refers to a pattern where large operators or institutions are selling
-                an asset while trying to keep the price relatively stable to avoid driving it down before
-                they complete their selling.
-                
-                Key characteristics of distribution:
-                1. Sideways price movement with narrowing range
-                2. High volume on up days but price doesn't rise much (supply)
-                3. Low volume on down days
-                4. Tests of resistance that fail with decreasing volume
-                
-                Distribution typically occurs after an uptrend and precedes a downtrend.
-            """,
-            
-            "buying_climax": """
-                A buying climax in VPA is a pattern that marks the end of an uptrend, characterized by:
-                
-                1. Extremely high volume (often the highest in the trend)
-                2. Wide range up candle
-                3. Price at or near the high of the trend
-                4. Often followed by a reversal or significant pullback
-                
-                A buying climax represents the last surge of buying before smart money begins to distribute.
-                It often shows exhaustion of buying pressure and is a bearish signal.
-            """,
-            
-            "selling_climax": """
-                A selling climax in VPA is a pattern that marks the end of a downtrend, characterized by:
-                
-                1. Extremely high volume (often the highest in the trend)
-                2. Wide range down candle
-                3. Price at or near the low of the trend
-                4. Often followed by a reversal or significant bounce
-                
-                A selling climax represents the last surge of selling before smart money begins to accumulate.
-                It often shows exhaustion of selling pressure and is a bullish signal.
-            """,
-            
-            "testing": """
-                Testing in VPA refers to price probes of support or resistance levels with specific
-                volume characteristics that reveal the strength of these levels.
-                
-                Key characteristics of testing:
-                1. Support test: Price moves below a previous low but with lower volume
-                2. Resistance test: Price moves above a previous high but with lower volume
-                
-                The outcome of these tests provides valuable information:
-                - If support holds on low volume, it's strong support
-                - If resistance breaks on high volume, it's a valid breakout
-                - If resistance fails on low volume, it's a false breakout
-            """,
-            
-            "effort_vs_result": """
-                Effort vs. Result is a core concept in VPA that compares the volume (effort)
-                with the price movement (result).
-                
-                Key principles:
-                1. High effort (volume) with small result (price movement) indicates potential reversal
-                2. Low effort with large result indicates weakness in the move
-                3. Equal effort and result indicates a healthy trend
-                
-                Examples:
-                - High volume up day with small price gain: supply is meeting demand (bearish)
-                - Low volume down day with large price drop: no support present (bearish)
-                - High volume down day with small price drop: demand is meeting supply (bullish)
-            """
-        }
-
-    def _load_wyckoff_concept_explanations(self):
-        """
-        Loads detailed Wyckoff event and phase explanations, based on the Wyckoff Methodology.
-        This maps directly to the WyckoffEvent and WyckoffPhase enums for dynamic lookup.
-        """
-        self.logger.debug("Loading Wyckoff concept explanations.")
-        return {
-            # Accumulation Events
-            WyckoffEvent.SC.value: "Selling Climax (SC): A climactic event with high volume and wide price spread that stops a downtrend. It signifies the entry of large interests absorbing selling pressure.",
-            WyckoffEvent.AR.value: "Automatic Rally (AR): A sharp rally that follows the Selling Climax. It defines the upper boundary of the subsequent trading range.",
-            WyckoffEvent.ST.value: "Secondary Test (ST): A revisit to the price area of the Selling Climax, but on lower volume and narrower spread, confirming that selling pressure is exhausted.",
-            WyckoffEvent.SPRING.value: "Spring: A terminal shakeout where price breaks below the support of the trading range, only to quickly reverse and close back inside the range. It is designed to mislead sellers and catch stop-losses. This is a high-quality buying opportunity.",
-            WyckoffEvent.SOS.value: "Sign of Strength (SOS): A strong upward move on increasing volume and spread, often breaking the resistance of the trading range (the 'Creek'). It shows buyers are in firm control.",
-            WyckoffEvent.LPS.value: "Last Point of Support (LPS): A pullback to a support level (often the old resistance) after a Sign of Strength. The pullback should occur on low volume, offering a lower-risk entry point before the main uptrend.",
-            WyckoffEvent.JAC.value: "Jump Across the Creek (JAC): A decisive version of the Sign of Strength, where price clearly and powerfully breaks out of the trading range resistance.",
-
-            # Distribution Events
-            WyckoffEvent.BC.value: "Buying Climax (BC): A climactic event with high volume that stops an uptrend, signaling that large interests are distributing (selling) shares to the public.",
-            WyckoffEvent.AUTO_REACTION.value: "Automatic Reaction (AR): A sharp decline following the Buying Climax, which establishes the support boundary of the new trading range.",
-            WyckoffEvent.UTAD.value: "Upthrust After Distribution (UTAD): A terminal shakeout in a distribution range. Price moves above the resistance, appears bullish, but then fails and turns down, trapping breakout buyers. This is a strong sign of weakness.",
-            WyckoffEvent.SOW.value: "Sign of Weakness (SOW): A significant downward move, often on increased spread and volume, that breaks the support of the trading range (the 'Ice'). It shows sellers are in control.",
-            WyckoffEvent.LPSY.value: "Last Point of Supply (LPSY): A weak rally attempt after a Sign of Weakness that fails at or near the old support level. It shows a lack of buying demand and is a high-quality shorting opportunity.",
-
-            # Phases
-            WyckoffPhase.A.value: "Phase A - Stopping Action: The phase where the previous trend is halted. For accumulation, it's marked by events like SC and AR. For distribution, by BC and AR.",
-            WyckoffPhase.B.value: "Phase B - Building a Cause: The longest phase, where large operators build their positions (accumulating or distributing) within a defined trading range.",
-            WyckoffPhase.C.value: "Phase C - Testing: The phase containing a decisive test of the remaining supply/demand, typically a Spring (in accumulation) or a UTAD (in distribution).",
-            WyckoffPhase.D.value: "Phase D - Markup/Markdown: The phase where price moves out of the trading range, driven by the imbalance created in Phase B and tested in Phase C.",
-            WyckoffPhase.E.value: "Phase E - Trend Continuation: The final phase where the new trend is clearly established and continues with market participation."
-        }
+    def _load_concepts_from_yaml(self, file_path):
+        """Loads concepts from a specified YAML file."""
+        self.logger.debug(f"Loading concepts from {file_path}.")
+        with open(file_path, 'r') as file:
+            return yaml.safe_load(file)
 
     def process_query(self, query: str):
         """
