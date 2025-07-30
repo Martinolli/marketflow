@@ -41,3 +41,6 @@ config.json
 *.h5
 data/
 cache/
+
+knowledgebase/embeddings/*.json
+knowledgebase/vectordb/*.bin
