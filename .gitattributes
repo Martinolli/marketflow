@@ -1,2 +1,4 @@
 *.json filter=lfs diff=lfs merge=lfs -text
 *.bin filter=lfs diff=lfs merge=lfs -text
+knowledgebase/vectordb/ba560bba-94ff-4961-9a8d-e64dbe5b4a9d/data_level0.bin filter=lfs diff=lfs merge=lfs -text
+knowledgebase/embeddings/Richard_D.Wyckoff_Methodology.json filter=lfs diff=lfs merge=lfs -text
