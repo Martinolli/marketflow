@@ -11,6 +11,7 @@ How to use:
 import fitz  # PyMuPDF
 import json
 import argparse
+from docx import Document
 from typing import List, Dict, Tuple
 from pathlib import Path
 from langchain_text_splitters import RecursiveCharacterTextSplitter
@@ -94,6 +95,27 @@ def save_chunks_to_json(chunks: List[Dict], output_path: Path):
         json.dump(chunks, f, ensure_ascii=False, indent=2)
     print(f"💾 Saved {len(chunks)} chunks to {output_path}")
 
+
+def extract_paragraphs_from_docx(docx_path: Path) -> List[Tuple[int, str]]:
+    """
+    Extracts paragraphs from a DOCX file.
+    Returns a list of (section_number, paragraph_text).
+    Section number is simply the running count.
+    """
+    logger.info(f"Opening DOCX file: {docx_path}")
+    doc = Document(str(docx_path))
+    paragraphs = []
+    count = 0
+    for para in doc.paragraphs:
+        text = para.text.strip()
+        if text:
+            paragraphs.append((count + 1, text))
+            count += 1
+    logger.info(f"Extracted {len(paragraphs)} paragraphs with content from DOCX.")
+    print(f"📄 Extracted {len(paragraphs)} paragraphs.")
+    return paragraphs
+
+
 def main():
     logger.info("Starting the chunking process...")
     print("🔍 Starting the chunking process...")
@@ -108,11 +130,15 @@ def main():
     logger.info(f"Chunking PDF: {args.source_path} with chunk size {args.chunk_size} and overlap {args.overlap}")
     
     # 1. Extract text page by page with real page numbers
-    pages = extract_pages_from_pdf(args.source_path)
-    if not pages:
-        print("❌ No text could be extracted from the PDF. Exiting.")
+    ext = args.source_path.suffix.lower()
+    if ext == ".pdf":
+        pages = extract_pages_from_pdf(args.source_path)
+    elif ext == ".docx":
+        pages = extract_paragraphs_from_docx(args.source_path)
+    else:
+        logger.error("Unsupported file type. Please provide a PDF or DOCX.")
         return
-
+    
     # 2. Get the source name from the file
     source_name = args.source_path.stem
 
