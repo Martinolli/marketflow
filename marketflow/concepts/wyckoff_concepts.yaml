@@ -1,89 +1,141 @@
-effort_vs_result: |
-  Effort vs. Result is a core concept in VPA that compares the volume (effort)
-  with the price movement (result).
-  
-  Key principles:
-  1. High effort (volume) with small result (price movement) indicates potential reversal
-  2. Low effort with large result indicates weakness in the move
-  3. Equal effort and result indicates a healthy trend
-  
-  Examples:
-  - High volume up day with small price gain: supply is meeting demand (bearish)
-  - Low volume down day with large price drop: no support present (bearish)
-  - High volume down day with small price drop: demand is meeting supply (bullish)
+Composite_Man:
+  name: Composite Man
+  definition: |
+    The Composite Man is Wyckoff’s metaphor for the “market operator” whose actions represent the collective influence of smart money—large institutions, professionals, and informed traders. He operates the market as if it were a single mind, accumulating, marking up, distributing, and marking down stocks in a calculated way to mislead and profit from the uninformed public.
+  details: |
+    Wyckoff advises traders to analyze every market move as if it were the intentional action of the Composite Man. All price and volume action—support, resistance, shakeouts, rallies—are planned to facilitate accumulation at low prices and distribution at high prices.
+  quotes:
+    - "The market is made by the Composite Man, who operates so as to fool most of the people most of the time."
 
-selling_climax: |
-  A selling climax in VPA is a pattern that marks the end of a downtrend, characterized by:
-  
-  1. Extremely high volume (often the highest in the trend)
-  2. Wide range down candle
-  3. Price at or near the low of the trend
-  4. Often followed by a reversal or significant bounce
-  
-  A selling climax represents the last surge of selling before smart money begins to accumulate.
-  It often shows exhaustion of selling pressure and is a bullish signal.
+Law_of_Supply_and_Demand:
+  name: Law of Supply and Demand
+  definition: |
+    Price movement is determined by the balance of supply and demand. When demand exceeds supply, prices rise; when supply exceeds demand, prices fall.
+  details: |
+    Wyckoff’s entire methodology is built upon reading the evidence of supply and demand in price and volume. Successful traders focus on what the market is doing, not what it “should” do.
+  quotes:
+    - "Study the market’s own actions rather than relying on outside opinions."
 
-buying_climax: |
-  A buying climax in VPA is a pattern that marks the end of an uptrend, characterized by:
-  
-  1. Extremely high volume (often the highest in the trend)
-  2. Wide range up candle
-  3. Price at or near the high of the trend
-  4. Often followed by a reversal or significant pullback
-  
-  A buying climax represents the last surge of buying before smart money begins to distribute.
-  It often shows exhaustion of buying pressure and is a bearish signal.
+Law_of_Cause_and_Effect:
+  name: Law of Cause and Effect
+  definition: |
+    The cause built during trading ranges—through accumulation or distribution—will result in an effect, which is the magnitude of the following trend or movement.
+  details: |
+    The “cause” can be measured by the size of the trading range (in points or time), and the “effect” is estimated using Point and Figure counts.
+  quotes:
+    - "Every effect must have a cause, and every cause must have an effect."
 
-accumulation: |
-  Accumulation in VPA refers to a pattern where large operators or institutions are buying
-  an asset while trying to keep the price relatively stable to avoid driving it up before
-  they complete their buying.
-  
-  Key characteristics of accumulation:
-  1. Sideways price movement with narrowing range
-  2. High volume on down days but price doesn't fall much (absorption)
-  3. Low volume on up days
-  4. Tests of support that hold with decreasing volume
-  
-  Accumulation typically occurs after a downtrend and precedes an uptrend.
+Law_of_Effort_vs_Result:
+  name: Law of Effort vs. Result
+  definition: |
+    Compare volume (“effort”) and the corresponding price movement (“result”). If there is harmony, the trend is likely to continue. If there is divergence (e.g., big volume with little progress), a turning point may be near.
+  details: |
+    Effort is represented by volume; result is the price movement. Analyze whether large effort produces a large or small result.
+  quotes:
+    - "When effort and result are not in harmony, a change in direction is probable."
 
-distribution: |
-  Distribution in VPA refers to a pattern where large operators or institutions are selling
-  an asset while trying to keep the price relatively stable to avoid driving it down before
-  they complete their selling.
-  
-  Key characteristics of distribution:
-  1. Sideways price movement with narrowing range
-  2. High volume on up days but price doesn't rise much (supply)
-  3. Low volume on down days
-  4. Tests of resistance that fail with decreasing volume
-  
-  Distribution typically occurs after an uptrend and precedes a downtrend.
+Phases_of_Market_Cycle:
+  name: Phases of the Market Cycle
+  definition: |
+    Wyckoff divides market movement into five phases: Accumulation (A), Markup (B), Distribution (C), Markdown (D), and Reaccumulation/Redistribution (as transitions).
+  details: |
+    Each phase has its own purpose: Accumulation (smart money buys), Markup (prices rise), Distribution (smart money sells), Markdown (prices fall).
+    Recognizing the current phase is crucial for anticipating the next major move.
 
-testing: |
-  Testing in VPA refers to price probes of support or resistance levels with specific
-  volume characteristics that reveal the strength of these levels.
-  
-  Key characteristics of testing:
-  1. Support test: Price moves below a previous low but with lower volume
-  2. Resistance test: Price moves above a previous high but with lower volume
-  
-  The outcome of these tests provides valuable information:
-  - If support holds on low volume, it's strong support
-  - If resistance breaks on high volume, it's a valid breakout
-  - If resistance fails on low volume, it's a false breakout
+Wyckoff_Events:
+  name: Wyckoff Events
+  definition: |
+    Key events that occur within accumulation and distribution ranges, helping traders identify the current phase and anticipate moves.
+  details: |
+    - Preliminary Support (PS): First sign of significant buying after a downtrend.
+    - Selling Climax (SC): Panic selling with very high volume and sharp price drop, usually marking the end of the down move.
+    - Automatic Rally (AR): Rapid price rebound after the SC, on reduced supply.
+    - Secondary Test (ST): Price revisits the SC area to test supply/demand.
+    - Spring: False breakdown below support, quickly reclaimed—bullish signal.
+    - Upthrust (UT/UTAD): False breakout above resistance, quickly reversed—bearish signal.
+    - Sign of Strength (SOS): Strong rally on high volume, breaking out of range.
+    - Last Point of Support/Last Point of Supply (LPS/LPSY): Final pullback before major uptrend/downtrend.
+  quotes:
+    - "The most reliable trading opportunities occur when several Wyckoff events confirm the end of accumulation or distribution."
 
-phase_a: |
-  Phase A - Stopping Action: The phase where the previous trend is halted. For accumulation, it's marked by events like SC and AR. For distribution, by BC and AR.
+Accumulation:
+  name: Accumulation
+  definition: |
+    A phase where the Composite Man absorbs shares from weak hands at low prices, often after a pronounced downtrend. Characterized by a sideways trading range, decreasing volatility, and signs of institutional buying.
+  details: |
+    Look for repeated support tests, springs, and increasing volume on rallies out of the range.
 
-phase_b: |
-  Phase B - Building a Cause: The longest phase, where large operators build their positions (accumulating or distributing) within a defined trading range.
+Distribution:
+  name: Distribution
+  definition: |
+    The process by which the Composite Man sells previously accumulated stock to the public at high prices. Occurs near market tops, often with wide, volatile trading ranges and upthrusts.
+  details: |
+    Watch for multiple resistance tests, upthrusts, and increasing volume on price declines.
 
-phase_c: |
-  Phase C - Testing: The phase containing a decisive test of the remaining supply/demand, typically a Spring (in accumulation) or a UTAD (in distribution).
+Spring:
+  name: Spring
+  definition: |
+    A price move below support that quickly reverses and reclaims the range. The purpose is to trigger stop-losses and “shake out” weak holders, allowing strong hands to accumulate more shares.
+  details: |
+    Springs are bullish and signal the end of an accumulation phase when followed by a rally (SOS).
 
-phase_d: |
-  Phase D - Markup/Markdown: The phase where price moves out of the trading range, driven by the imbalance created in Phase B and tested in Phase C.
+Upthrust:
+  name: Upthrust
+  definition: |
+    A temporary breakout above resistance, followed by a rapid reversal back into the range. Used by the Composite Man to trap breakout buyers and distribute more stock.
+  details: |
+    Upthrusts often signal the end of a distribution phase if confirmed by price weakness and high volume.
 
-phase_e: |
-  Phase E - Trend Continuation: The final phase where the new trend is clearly established and continues with market participation.
+Sign_of_Strength:
+  name: Sign of Strength (SOS)
+  definition: |
+    A powerful rally on expanding volume that breaks above the trading range resistance. Indicates strong demand and confirms the end of accumulation.
+  details: |
+    SOS should be accompanied by wide price spreads and follow-through.
+
+Last_Point_of_Support:
+  name: Last Point of Support (LPS)
+  definition: |
+    The final low or pullback after a spring or SOS, occurring with diminished supply. It’s often the best place to enter a long trade before the markup phase.
+  details: |
+    LPS is confirmed if price rallies from this level on strong volume.
+
+Last_Point_of_Supply:
+  name: Last Point of Supply (LPSY)
+  definition: |
+    The final high or rally after an upthrust or SOW (Sign of Weakness), usually with diminished demand. Best entry for shorts before markdown.
+  details: |
+    LPSY is confirmed if price falls sharply from this level on high volume.
+
+Test:
+  name: Test
+  definition: |
+    Occurs after a Spring or SC/AR; price revisits the support area on lower volume, confirming the absence of supply (bullish) or demand (bearish).
+  details: |
+    Successful tests confirm the strength or weakness of the preceding event.
+
+Buying_Climax:
+  name: Buying Climax (BC)
+  definition: |
+    A sharp, high-volume rally at the end of an uptrend, quickly followed by intense selling. Usually marks the start of a distribution phase.
+
+Selling_Climax:
+  name: Selling Climax (SC)
+  definition: |
+    A dramatic price drop with panic selling and heavy volume, often followed by automatic rally. Marks the start of an accumulation phase.
+
+Automatic_Rally:
+  name: Automatic Rally (AR)
+  definition: |
+    A strong price rebound after a selling climax, usually on lower volume, defining the upper boundary of the accumulation range.
+
+Secondary_Test:
+  name: Secondary Test (ST)
+  definition: |
+    Occurs when price returns to the area of the SC or BC to test supply or demand. If volume and price spread are diminished, the test is successful.
+
+Sign_of_Weakness:
+  name: Sign of Weakness (SOW)
+  definition: |
+    A sharp decline on high volume breaking support in a distribution phase, confirming supply dominance and often leading to markdown.
+
