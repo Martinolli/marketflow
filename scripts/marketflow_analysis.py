@@ -23,6 +23,7 @@ from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_utils import sanitize_filename
 
+# Ensure the logger is set up correctly
 logger = get_logger("marketflow_analysis")
 config_manager = create_app_config(logger=logger)
 
@@ -42,7 +43,7 @@ class CustomJSONEncoder(json.JSONEncoder):
 def safe_json_dump(data, file_path):
     """Safely dump data to JSON file with custom encoder."""
     try:
-        with open(file_path, "w") as f:
+        with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, cls=CustomJSONEncoder, ensure_ascii=False)
         return True
     except Exception as e:
@@ -55,7 +56,7 @@ def safe_json_dump(data, file_path):
                 "ticker": data.get("ticker", "unknown") if isinstance(data, dict) else "unknown",
                 "timestamp": datetime.now().isoformat()
             }
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(simplified_data, f, indent=4)
             logger.warning(f"Saved simplified error data to {file_path}")
             return False
