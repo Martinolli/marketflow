@@ -6,10 +6,12 @@
 """
 
 from flask import Flask, request, jsonify, render_template_string
+# The query_llm import is no longer needed here.
 from marketflow.marketflow_llm_query_engine import MarketflowLLMQueryEngine
 import uuid
 
 app = Flask(__name__)
+# The engine is the core of the application; it should be the single source for responses.
 engine = MarketflowLLMQueryEngine(enable_rag=True)
 
 HTML_TEMPLATE = '''
@@ -20,8 +22,8 @@ HTML_TEMPLATE = '''
     <style>
         body { font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
         .query-box { width: 100%; padding: 10px; margin: 10px 0; }
-        .response { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; }
-        button { padding: 10px 20px; background: #007cba; color: white; border: none; border-radius: 5px; }
+        .response { background: #f5f5f5; padding: 15px; margin: 10px 0; border-radius: 5px; white-space: pre-wrap; } /* Added pre-wrap for better formatting */
+        button { padding: 10px 20px; background: #007cba; color: white; border: none; border-radius: 5px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -49,7 +51,10 @@ HTML_TEMPLATE = '''
             })
             .then(response => response.json())
             .then(data => {
-                responseDiv.innerHTML = '<strong>Query:</strong> ' + query + '<br><br><strong>Response:</strong> ' + data.response;
+                // Corrected to handle Markdown-like newlines from the engine
+                const formattedResponse = data.response.replace(/\\n/g, '<br>');
+                // Updated to correctly display the query and the response from the server
+                responseDiv.innerHTML = '<strong>Query:</strong> ' + query + '<br><br><strong>Response:</strong><br>' + formattedResponse;
             })
             .catch(error => {
                 responseDiv.innerHTML = 'Error: ' + error;
@@ -60,21 +65,26 @@ HTML_TEMPLATE = '''
 </html>
 '''
 
-@app.route('/')
+@app.route("/", methods=["GET"])
 def home():
     return render_template_string(HTML_TEMPLATE)
 
-@app.route('/query', methods=['POST'])
+@app.route("/query", methods=["POST"])
 def query():
     data = request.json
-    query_text = data.get('query', '')
-    session_id = str(uuid.uuid4())
-    
-    try:
-        response = engine.process(query_text, session_id=session_id)
-        return jsonify({'response': response})
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
+    user_query = data.get("query", "")
+    session_id = data.get("session_id", "web-session-001")
+
+    # The engine.process() method is designed to be the complete pipeline.
+    # It already generates the final user-facing narrative.
+    # Calling another LLM on its output was redundant and causing errors.
+    engine_response = engine.process(user_query, session_id=session_id)
+
+    # The JSON response must match what the frontend JavaScript expects.
+    # The script expects a 'response' key.
+    return jsonify({
+        "response": engine_response
+    })
 
 if __name__ == '__main__':
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=True)
