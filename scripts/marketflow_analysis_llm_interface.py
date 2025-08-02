@@ -55,7 +55,7 @@ def safe_json_dump(data, file_path):
                 "ticker": data.get("ticker", "unknown") if isinstance(data, dict) else "unknown",
                 "timestamp": datetime.now().isoformat()
             }
-            with open(file_path, "w") as f:
+            with open(file_path, "w", encoding="utf-8") as f:
                 json.dump(simplified_data, f, indent=4)
             logger.warning(f"Saved simplified error data to {file_path}")
             return False
