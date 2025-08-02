@@ -27,6 +27,8 @@ from marketflow.marketflow_llm_narrative import generate_analysis_narrative
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.enums import QueryIntent, QueryConfidence
+# NEW: Import the query_llm utility for the synthesis step
+from marketflow.marketflow_utils import query_llm
 
 # RAG imports
 from rag.retriever import chroma_retrieve_top_chunks
@@ -859,7 +861,7 @@ class MarketflowLLMQueryEngine:
     def handle_rag_query(self, params: Dict[str, Any], user_input: str, 
                         context: QueryContext) -> str:
         """
-        Handle RAG-based knowledge queries
+        Handle RAG-based knowledge queries with a synthesis step.
         
         Args:
             params: Parsed parameters
@@ -867,22 +869,44 @@ class MarketflowLLMQueryEngine:
             context: Conversation context
             
         Returns:
-            RAG-based response string
+            A synthesized, coherent RAG-based response string.
         """
         try:
             if not self.enable_rag:
                 return "Knowledge base search is currently disabled."
             
-            self.logger.info(f"Performing RAG query: {user_input}")
+            self.logger.info(f"Performing RAG query with synthesis: {user_input}")
             
-            # Perform RAG search
-            rag_results = self._perform_rag_search(user_input, top_k=5)
+            # Perform RAG search to get context
+            rag_context = self._perform_rag_search(user_input, top_k=5)
             
-            if rag_results:
-                return f"Based on the knowledge base:\n\n{rag_results}"
+            if rag_context:
+                # Use the retrieved context to synthesize a final answer
+                self.logger.info("Synthesizing answer from RAG context.")
+                system_message = (
+                    "You are a helpful and concise financial analyst assistant. "
+                    "Synthesize the provided context from a knowledge base to answer the user's question directly. "
+                    "Do not mention 'the context' or 'the sources' in your answer. "
+                    "Provide a clear, direct response as if you know the information yourself. "
+                    "Use markdown (bolding, bullet points) for readability."
+                )
+                
+                synthesis_prompt = f"""
+                Context from knowledge base:
+                ---
+                {rag_context}
+                ---
+                User's question: {user_input}
+
+                Please provide a direct and synthesized answer to the user's question based on the context.
+                """
+                
+                # Call the LLM to generate the final, synthesized answer
+                synthesized_answer = query_llm(synthesis_prompt, system_message=system_message)
+                return synthesized_answer
             else:
                 return ("I couldn't find relevant information in the knowledge base. "
-                       "Try rephrasing your question or asking about specific VPA/Wyckoff concepts.")
+                       "Try rephrasing your question or asking about a specific VPA/Wyckoff concept.")
             
         except Exception as e:
             self.logger.error(f"Error in RAG query: {str(e)}", exc_info=True)
@@ -1178,16 +1202,31 @@ class MarketflowLLMQueryEngine:
         Returns:
             Helpful response string
         """
-        # If confidence is very low, try RAG as fallback
+        # If confidence is very low, try RAG as fallback with synthesis
         if intent_result.confidence == QueryConfidence.LOW and self.enable_rag:
+            self.logger.info("Handling unknown query with RAG fallback and synthesis.")
             try:
-                rag_results = self._perform_rag_search(user_input, top_k=3)
-                if rag_results:
-                    return f"I found this information that might help:\n\n{rag_results}"
+                rag_context = self._perform_rag_search(user_input, top_k=5)
+                if rag_context:
+                    system_message = (
+                        "You are a helpful assistant. The user asked a question I could not understand. "
+                        "Based on the following potentially relevant information, try to provide a helpful answer."
+                    )
+                    synthesis_prompt = f"""
+                    Context from knowledge base:
+                    ---
+                    {rag_context}
+                    ---
+                    User's original (unclear) question: {user_input}
+
+                    Please formulate a helpful response based on the context. If the context is not relevant, say you could not find an answer.
+                    """
+                    synthesized_answer = query_llm(synthesis_prompt, system_message=system_message)
+                    return f"I wasn't sure how to handle your request, but I found some information that might be helpful:\n\n{synthesized_answer}"
             except Exception as e:
                 self.logger.error(f"Error in fallback RAG search: {str(e)}")
         
-        # Provide helpful guidance
+        # Provide helpful guidance if RAG fails or is disabled
         help_text = """I'm not sure what you're asking for. Here are some things I can help with:
 
 • **Ticker Analysis**: "Analyze AAPL" or "What's the VPA signal for MSFT?"
@@ -1663,4 +1702,3 @@ Example queries:
 
 if __name__ == "__main__":
     exit(main())
-
