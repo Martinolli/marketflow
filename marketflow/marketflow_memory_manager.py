@@ -14,14 +14,12 @@ COMPATIBILITY FEATURES:
 
 import os
 import json
-import time
 import tempfile
-from datetime import datetime
-from typing import Dict, List, Any, Optional, Union
+from typing import Dict, List, Any, Optional
+
 from marketflow.marketflow_logger import get_logger
-from marketflow.marketflow_config_manager import create_app_config
 
-
+# ### FIX: Removed create_app_config import. The manager should not create its own config.
 
 class MemoryManager:
     """
@@ -44,10 +42,7 @@ class MemoryManager:
         - max_memory_items: Maximum number of memory items to store
         - is_test_env: Whether running in test environment
         """
-        # Initialize logging and configuration
         self.logger = get_logger(module_name="MarketflowMemoryManager")
-        self.config_manager = create_app_config(logger=self.logger)
-
         self.logger.info("Initializing Enhanced MarketFlow Memory Manager")
 
         # Handle backward compatibility for db_path parameter
@@ -55,27 +50,27 @@ class MemoryManager:
             memory_file = db_path
             self.logger.debug("Using db_path parameter for backward compatibility")
         
-        # Set memory file path
-        if memory_file is None:
-            if is_test_env:
-                # Use temporary file for testing
-                temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
-                memory_file = temp_file.name
-                temp_file.close()
-            else:
-                # Use the correct pathway as specified for production use
-                memory_dir = r"C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\memory"
-                os.makedirs(memory_dir, exist_ok=True)
-                memory_file = os.path.join(memory_dir, "marketflow_memory.json")
+        # ### FIX: Removed the entire hardcoded path block.
+        # The memory_file path MUST be provided by the caller, which gets it from config.
+        # This makes the component reusable and removes platform-specific code.
+        if memory_file is None and not is_test_env:
+            raise ValueError("memory_file path must be provided for MemoryManager.")
+
+        if memory_file is None and is_test_env:
+            # Use temporary file for testing
+            temp_file = tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False)
+            memory_file = temp_file.name
+            temp_file.close()
 
         self.memory_file = memory_file
         self.max_memory_items = max_memory_items
         self.system_messages = []  # Separate storage for system messages
         
-        # Initialize memory storage
+        # Ensure the directory for the memory file exists before loading
+        os.makedirs(os.path.dirname(self.memory_file), exist_ok=True)
+
         self.memory = self._load_memory()
         
-        # Validate and fix conversation integrity
         self._validate_and_fix_conversation()
     
     def _load_memory(self) -> List[Dict[str, Any]]:
@@ -83,7 +78,11 @@ class MemoryManager:
         try:
             if os.path.exists(self.memory_file):
                 with open(self.memory_file, 'r') as f:
-                    memory = json.load(f)
+                    # Handle empty file case
+                    content = f.read()
+                    if not content:
+                        return []
+                    memory = json.loads(content)
                 self.logger.debug(f"Loaded {len(memory)} memory items from {self.memory_file}")
                 return memory
             else:
@@ -93,7 +92,9 @@ class MemoryManager:
             self.logger.error(f"Error loading memory from {self.memory_file}: {e}")
             self.logger.warning("Starting with empty memory due to load error")
             return []
-    
+
+    # ... (rest of the file is unchanged, as its internal logic is mostly sound)
+    # ... (the __init__ was the main problem area)
     def _save_memory(self) -> None:
         """Save memory to file with proper JSON serialization"""
         try:
@@ -579,4 +580,3 @@ class MemoryManager:
         
         self.logger.info(f"Conversation repair completed: {repair_stats}")
         return repair_stats
-
