@@ -33,6 +33,8 @@ from marketflow.marketflow_utils import query_llm
 # RAG imports
 from rag.retriever import chroma_retrieve_top_chunks
 
+from marketflow.marketflow_config_manager import ConfigManager
+from marketflow.marketflow_memory_manager import MemoryManager
 
 @dataclass
 class IntentResult:
@@ -60,40 +62,43 @@ class MarketflowLLMQueryEngine:
     Enhanced LLM Query Engine for MarketFlow with robust architecture
     """
     
-    def __init__(self, 
+    def __init__(self,
+                 config: ConfigManager,
                  interface: Optional[MarketflowLLMInterface] = None,
                  enable_rag: bool = True,
-                 max_context_length: int = 5):
+                 ):
         """
         Initialize the enhanced query engine
         
         Args:
-            interface: Optional MarketflowLLMInterface instance
-            enable_rag: Whether to enable RAG functionality
-            max_context_length: Maximum conversation context length
+            config: The application's configuration manager instance.
+            interface: Optional MarketflowLLMInterface instance.
+            enable_rag: Whether to enable RAG functionality.
         """
         # Initialize logging and configuration
         self.logger = get_logger(module_name="MarketflowLLMQueryEngine")
-        self.config_manager = create_app_config(logger=self.logger)
+        self.config = config  # Use the passed-in config
         
         self.logger.info("Initializing Enhanced MarketFlow LLM Query Engine")
         
         try:
-            # Initialize core components
+            # ### FIX: The interface now also needs the config object
             self.interface = interface or MarketflowLLMInterface()
             self.enable_rag = enable_rag
-            self.max_context_length = max_context_length
             
-            # Initialize conversation contexts (keyed by session_id)
-            self.contexts: Dict[str, QueryContext] = {}
+            # ### FIX: The engine now owns the memory manager.
+            # It gets the memory path and other settings directly from its config.
+            self.memory = MemoryManager(
+                db_path=self.config.MEMORY_DB_PATH, 
+                max_memory_items=self.config.MAX_CONVERSATION_HISTORY
+            )
+            self.add_initial_system_messages()
+
+            self.contexts: Dict[str, QueryContext] = {} # For transient session data
+            self.max_context_length = getattr(self.config, "MAX_CONTEXT_WINDOW", 5)
             
-            # Initialize intent patterns for parsing
             self._initialize_intent_patterns()
-            
-            # Initialize ticker validation patterns
             self._initialize_ticker_patterns()
-            
-            # Load concepts from YAML files for enhanced explanations
             self._load_concepts()
             
             self.logger.info("MarketFlow LLM Query Engine initialized successfully")
@@ -102,6 +107,33 @@ class MarketflowLLMQueryEngine:
             self.logger.error(f"Failed to initialize query engine: {str(e)}", exc_info=True)
             raise
     
+    # ### FIX: Added a method to set up initial system messages
+    def add_initial_system_messages(self):
+        """Adds the initial system prompts to the memory manager."""
+        self.memory.add_system_message(
+            "You are a world-class financial analyst specializing in Volume-Price Analysis (Marketflow) and the Wyckoff Method. "
+            "You provide clear, structured, and insightful analysis. You must use the provided tools to answer user questions. "
+            "When asked to analyze a ticker, use 'get_full_analysis'. When asked to explain a concept, use 'explain_Marketflow_wyckoff_concept'."
+        )
+
+    # ### FIX: Added a method for clearing memory, encapsulating the logic.
+    def clear_memory(self):
+        """Clears the conversation history and re-adds the initial system message."""
+        self.memory.clear_memory()
+        self.add_initial_system_messages()
+        self.logger.info("Query engine memory cleared and re-initialized.")
+
+    # ### FIX: Added a helper method to get configuration status
+    def get_configuration_status(self) -> Dict[str, Any]:
+        """Returns a dictionary with the current configuration status."""
+        return {
+            "Provider": self.config.LLM_PROVIDER,
+            "Model": self.config.get_llm_model(),
+            "Memory DB": self.config.MEMORY_DB_PATH,
+            "Log Level": self.config.LOG_LEVEL,
+            "Validation Results": self.config.validate_configuration()
+        }
+
     def _initialize_intent_patterns(self):
         """Initialize regex patterns for intent recognition"""
         self.intent_patterns = {
