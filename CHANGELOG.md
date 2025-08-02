@@ -2,11 +2,78 @@
 
 All notable changes to this project are documented in this file.
 
+    **Version Date = 2025 August 03**
+
+| Date       | Revision |
+|------------|----------|
+| 2025-08-03 | v1.17    |
+| 2025-07-28 | v1.16    |
+| 2025-07-20 | v1.15    |
+| 2025-07-17 | v1.14    |
+| 2025-07-15 | v1.13    |
+| 2025-07-15 | v1.12    |
+| 2025-07-12 | v1.11    |
+| 2025-07-12 | v1.11    |
+| 2025-07-12 | v1.10    |
+| 2025-07-12 | v1.9     |
+| 2025-07-11 | v1.8     |
+| 2025-07-10 | v1.7     |
+| 2025-07-10 | v1.7     |
+| 2025-07-10 | v1.7     |
+| 2025-07-10 | v1.7     |
+| 2025-07-10 | v1.7     |
+| 2025-07-10 | v1.7     |
+| 2025-07-09 | v1.6     |
+| 2025-07-09 | v1.6     |
+| 2025-07-09 | v1.6     |
+| 2025-07-09 | v1.6     |
+| 2025-07-09 | v1.6     |
+| 2025-07-09 | v1.6     |
+| 2025-07-09 | v1.6     |
+| 2025-07-06 | v1.5     |
+| 2025-07-06 | v1.4     |
+| 2025-07-05 | v1.3     |
+| 2025-07-05 | v1.3     |
+| 2025-07-05 | v1.3     |
+| 2025-07-05 | v1.3     |
+| 2025-07-04 | v1.2     |
+| 2025-07-03 | v1.1     |
+| 2025-07-03 | v1.1     |
+| 2025-07-03 | v1.1     |
+| 2025-07-01 | v1.0     |
+
+---
+
+## [1.17.0]
+
+### Added 17 - 2025-08-03
+
+- Development of `marketflow_batch_report.py`
+    Script to run analysis for different tickers from a LIST
+
+- Refactor `marketflow_llm_interface.py`
+    Split the narrative to a different module to reduce the size of the code.
+    Create YAML files to store the concepts: VPA and Wyckoff Methods
+
+- First Version for `marketflow_llm_query_engine.py`
+    Provider-agnostic LLM interface with OpenAI as default
+    Advanced intent recognition with confidence scoring
+    RAG integration for knowledge retrieval
+    Multi-turn conversation support
+    Comprehensive error handling and logging
+    Input validation and sanitization
+
+- Refactor the `chunker.py`
+    To be able to chunk "DOCX" files
+    Update the knowledgebase with a new file: Wyckoff Method Original Book from Mr. Wyckoff
+    Update the Embeddings and vectors with the new chunks
+    Update the DB with the new embeddings vectors.
+
 ---
 
 ## [1.16.0]
 
-### Added 16
+### Added 16 - 2025-07-28
 
 - Development of `marketflow_llm_interface`
     LLM interface This module provides an intelligent, narrative-driven interface for LLMs
@@ -23,7 +90,7 @@ All notable changes to this project are documented in this file.
 
 ---
 
-## [1.15.0]
+## [1.15.0] - 2025-07-20
 
 ### Added 15
 
@@ -33,7 +100,7 @@ All notable changes to this project are documented in this file.
 
 ---
 
-## [1.14.0]
+## [1.14.0] - 2025-07-17
 
 ### Added 14
 
