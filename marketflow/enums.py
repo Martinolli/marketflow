@@ -81,6 +81,10 @@ class QueryIntent(Enum):
     COMPARISON = "comparison"
     HISTORICAL_ANALYSIS = "historical_analysis"
     MULTI_TIMEFRAME = "multi_timeframe"
+    MARKET_CONDITION = "market_condition"
+    PATTERN_RECOGNITION = "pattern_recognition"
+    TIMEFRAME_SPECIFIC = "timeframe_specific"
+    PORTFOLIO_ANALYSIS = "portfolio_analysis"
     UNKNOWN = "unknown"
 
 
