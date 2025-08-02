@@ -285,13 +285,13 @@ class MarketflowLLMQueryEngine:
         try:
             # Load VPA concepts
             vpa_path = 'marketflow/concepts/vpa_concepts.yaml'
-            with open(vpa_path, 'r') as file:
+            with open(vpa_path, 'r', encoding='utf-8') as file:
                 self.vpa_concepts = yaml.safe_load(file)
             self.logger.info(f"Loaded VPA concepts: {len(self.vpa_concepts)}")
             
             # Load Wyckoff concepts  
             wyckoff_path = 'marketflow/concepts/wyckoff_concepts.yaml'
-            with open(wyckoff_path, 'r') as file:
+            with open(wyckoff_path, 'r', encoding='utf-8') as file:
                 self.wyckoff_concepts = yaml.safe_load(file)
             self.logger.info(f"Loaded Wyckoff concepts: {len(self.wyckoff_concepts)}")
             
@@ -1041,7 +1041,7 @@ class MarketflowLLMQueryEngine:
                 self.logger.info(f"Looking for patterns in {ticker}")
                 
                 # Get analysis from interface which includes pattern recognition
-                analysis = self.interface.analyze_ticker(ticker)
+                analysis = self.interface.get_ticker_analysis(ticker)
                 
                 # Focus on pattern-related information
                 pattern_info = f"**Pattern Analysis for {ticker.upper()}:**\n\n{analysis}"
@@ -1094,7 +1094,7 @@ class MarketflowLLMQueryEngine:
                 self.logger.info(f"Analyzing {ticker} on {timeframe} timeframe")
                 
                 # Get analysis from interface
-                analysis = self.interface.analyze_ticker(ticker)
+                analysis = self.interface.get_ticker_analysis(ticker)
                 
                 response = f"**{ticker.upper()} Analysis ({timeframe.title()} Timeframe):**\n\n{analysis}"
                 
@@ -1145,7 +1145,7 @@ class MarketflowLLMQueryEngine:
                 analyses = []
                 for ticker in tickers[:5]:  # Limit to 5 tickers
                     try:
-                        analysis = self.interface.analyze_ticker(ticker)
+                        analysis = self.interface.get_ticker_analysis(ticker)
                         analyses.append(f"**{ticker.upper()}:**\n{analysis[:300]}...")
                     except Exception as e:
                         analyses.append(f"**{ticker.upper()}:** Error - {str(e)}")
