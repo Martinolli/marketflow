@@ -41,29 +41,35 @@ class MarketflowLLMInterface:
             self.logger.info("Using default MarketFlowDataParameters.")
             parameters = MarketFlowDataParameters()
         self.parameters = parameters
-        self.marketflow = MarketflowFacade(parameters=self.parameters)
 
         # Initialize the VPA facade with the provided configuration and logger
         self.logger.info("Initializing VPAFacade with the interface's configuration and logger.")
         if not isinstance(self.parameters, MarketFlowDataParameters):
             self.logger.error("Invalid configuration provided. Expected MarketFlowDataParameters instance.")
             raise ValueError("Invalid configuration provided. Expected MarketFlowDataParameters instance.")
-        # Pass the interface instance itself, which has a .logger attribute, to the facade.
-        self.marketflow = MarketflowFacade()
+        # Pass the parameters to the facade.
+        self.marketflow = MarketflowFacade(parameters=self.parameters)
 
         # Load concept explanations for VPA and Wyckoff from YAML files
         self.marketflow_concepts = self._load_concepts_from_yaml('marketflow/concepts/vpa_concepts.yaml')
+        self.logger.info(f"Loaded VPA concepts: {len(self.marketflow_concepts)}")
         self.wyckoff_concepts = self._load_concepts_from_yaml('marketflow/concepts/wyckoff_concepts.yaml')
+        self.logger.info(f"Loaded Wyckoff concepts: {len(self.wyckoff_concepts)}")
 
     def _load_concepts_from_yaml(self, file_path):
         """Loads concepts from a specified YAML file."""
         self.logger.debug(f"Loading concepts from {file_path}.")
-        with open(file_path, 'r') as file:
+        with open(file_path, 'r', encoding='utf-8') as file:
             return yaml.safe_load(file)
+        self.logger.error(f"Failed to load concepts from {file_path}.")
 
-    def process_query(self, query: str):
+    def process_query(self, query: str) -> str:
         """
         Processes a natural language query. (This can be simplified if using an LLM with function calling)
+        Args:
+            query (str): The natural language query to process.
+        Returns:
+            str: A response based on the query, either an analysis or an explanation.
         """
         self.logger.info(f"Processing query: {query}")
         query_lower = query.lower()
@@ -89,8 +95,15 @@ class MarketflowLLMInterface:
         return "I can help with VPA and Wyckoff analysis. Ask me to 'Analyze AAPL' or 'What is a Wyckoff Spring?'"
 
 
-    def explain_concept(self, concept_name: str):
-        """Explains a MarketFlow or Wyckoff concept dynamically, with logging."""
+    def explain_concept(self, concept_name: str) -> str:
+        """
+        Explains a MarketFlow or Wyckoff concept dynamically, with logging.
+        Args:
+            concept_name (str): Name of the concept to explain.
+        Returns:
+            str: Explanation of the concept.
+        
+        """
         self.logger.info(f"Explaining concept: {concept_name}")
         all_concepts = {**self.marketflow_concepts, **self.wyckoff_concepts}
         # Find the concept by case-insensitive matching if needed
@@ -101,9 +114,13 @@ class MarketflowLLMInterface:
         self.logger.warning(f"Concept '{concept_name}' not found.")
         return f"Concept '{concept_name}' not found."
 
-    def get_ticker_analysis(self, ticker: str):
+    def get_ticker_analysis(self, ticker: str) -> dict:
         """
         Get a complete, synthesized analysis for a ticker in a rich format for an LLM.
+        Args:
+            ticker (str): Ticker symbol to analyze.
+        Returns:
+            dict: Structured analysis data including VPA signals, Wyckoff phases, and narrative.
         """
         self.logger.info(f"Starting ticker analysis for: {ticker}")
         try:
@@ -149,7 +166,7 @@ class MarketflowLLMInterface:
             }
 
     # ...existing code...
-    def generate_code_example(self, task, ticker="AAPL"):
+    def generate_code_example(self, task, ticker="AAPL") -> str:
         """
         Generate code example for a specific VPA task
         
