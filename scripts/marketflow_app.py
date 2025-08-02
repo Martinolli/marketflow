@@ -14,7 +14,7 @@ from typing import Optional, Tuple
 
 from marketflow import marketflow_config_manager
 from marketflow.marketflow_logger import get_logger
-from marketflow.marketflow_config_manager import create_app_config
+from marketflow.marketflow_config_manager import create_app_config, get_marketflow_config_manager
 from marketflow.marketflow_llm_query_engine import MarketflowLLMQueryEngine
 from marketflow.marketflow_memory_manager import MemoryManager
 
@@ -30,11 +30,27 @@ BASIC_MODE = False
 logger = get_logger(module_name="MarketflowApp")
 config_manager = create_app_config(logger=logger)
 
+def setup_logging(config) -> logging.Logger:
+    """Set up logging configuration using the config manager."""
+    # Create log directory
+    log_dir = os.path.dirname(config.LOG_FILE_PATH)
+    os.makedirs(log_dir, exist_ok=True)
+    
+    # Configure logging
+    logging.basicConfig(
+        level=getattr(logging, config.LOG_LEVEL.upper()),
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.FileHandler(config.LOG_FILE_PATH),
+            logging.StreamHandler()
+        ]
+    )
+    return logging.getLogger("marketflow_app")
 
 def parse_args() -> argparse.Namespace:
     """Parse command line arguments."""
-    parser = argparse.ArgumentParser(description="VPA Analysis System - Refactored")
-    
+    parser = argparse.ArgumentParser(description="Marketflow Analysis System - Refactored")
+
     # Model and provider selection arguments
     parser.add_argument(
         "--model", 
@@ -152,7 +168,7 @@ def initialize_vpa_system(config, model_name: Optional[str] = None, provider: Op
     Returns:
     - VPAQueryEngine instance or None if in basic mode
     """
-    logger = logging.getLogger("vpa_app")
+    logger = get_logger("marketflow_app")
     
     if BASIC_MODE:
         logger.warning("Running in basic mode - VPA query engine not available")
@@ -412,7 +428,7 @@ def main() -> int:
     
     # Initialize configuration
     try:
-        config = marketflow_config_manager(logger)
+        config = get_marketflow_config_manager(args.config)
     except Exception as e:
         print(f"Error initializing configuration: {e}")
         return 1
@@ -422,8 +438,9 @@ def main() -> int:
         config.set_config_value('log_level', 'DEBUG')
     
     # Set up logging
-    logger.info("Starting VPA application (refactored version)")
-    
+    logger = setup_logging(config)
+    logger.info("Starting Marketflow application (refactored version)")
+
     # Handle --validate-config
     if args.validate_config:
         is_valid = validate_configuration(config)
