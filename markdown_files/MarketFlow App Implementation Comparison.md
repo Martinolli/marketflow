@@ -9,6 +9,7 @@ This document provides a detailed comparison between the original `app.py` and t
 ## 🔍 Architecture Comparison
 
 ### **Original App (`app.py`)**
+
 ```python
 # Basic structure
 def main():
@@ -22,6 +23,7 @@ def main():
 ```
 
 ### **Enhanced App (`enhanced_app.py`)**
+
 ```python
 # Enhanced structure with dedicated interface class
 class EnhancedMarketFlowInterface:
@@ -62,6 +64,7 @@ def main():
 ### **1. Error Handling**
 
 **Original App:**
+
 ```python
 try:
     response = query_engine.process(query)
@@ -71,6 +74,7 @@ except Exception as e:
 ```
 
 **Enhanced App:**
+
 ```python
 def _get_error_suggestions(self, error: Exception) -> List[str]:
     error_str = str(error).lower()
@@ -99,6 +103,7 @@ def _display_error_response(self, result: Dict[str, Any]):
 ### **2. Response Processing**
 
 **Original App:**
+
 ```python
 # Simple response display
 response = query_engine.process(query)
@@ -106,6 +111,7 @@ print(response)
 ```
 
 **Enhanced App:**
+
 ```python
 def _postprocess_response(self, original_query: str, response: str) -> Dict[str, Any]:
     result = {
@@ -128,12 +134,14 @@ def _postprocess_response(self, original_query: str, response: str) -> Dict[str,
 ### **3. Context Management**
 
 **Original App:**
+
 ```python
 # No context management
 current_ticker = None  # Basic variable
 ```
 
 **Enhanced App:**
+
 ```python
 class EnhancedMarketFlowInterface:
     def __init__(self, config):
@@ -169,7 +177,8 @@ class EnhancedMarketFlowInterface:
 ### **1. Interactive Mode**
 
 **Original App:**
-```
+
+```batch
 Marketflow> analyze AAPL
 [Basic response]
 
@@ -177,7 +186,8 @@ Marketflow>
 ```
 
 **Enhanced App:**
-```
+
+```batch
 [📊AAPL ⚙️comprehensive] MarketFlow> analyze
 🔄 Processing query...
 
@@ -206,12 +216,14 @@ Marketflow>
 ### **2. Command Line Interface**
 
 **Original App:**
+
 ```bash
 python app.py --query "Analyze AAPL"
 # Basic output only
 ```
 
 **Enhanced App:**
+
 ```bash
 # Multiple options and formats
 python enhanced_app.py --query "Analyze AAPL" --analysis-mode comprehensive --output-format detailed
@@ -230,12 +242,14 @@ python enhanced_app.py --interactive --ticker AAPL --timeframes 1d 4h
 ### **1. Response Time Tracking**
 
 **Original App:**
+
 ```python
 # No performance tracking
 response = query_engine.process(query)
 ```
 
 **Enhanced App:**
+
 ```python
 def process_enhanced_query(self, query: str, session_id: str = "default") -> Dict[str, Any]:
     start_time = time.time()
@@ -262,11 +276,13 @@ def process_enhanced_query(self, query: str, session_id: str = "default") -> Dic
 ### **2. Session Statistics**
 
 **Original App:**
+
 ```python
 # No session tracking
 ```
 
 **Enhanced App:**
+
 ```python
 def display_session_stats(self):
     stats = self.session_stats
@@ -287,6 +303,7 @@ def display_session_stats(self):
 ### **1. Configuration Management**
 
 **Original App:**
+
 ```python
 # Basic config handling
 config = get_marketflow_config_manager(config_file=args.config)
@@ -296,6 +313,7 @@ if args.provider:
 ```
 
 **Enhanced App:**
+
 ```python
 class EnhancedMarketFlowInterface:
     def _validate_system_components(self) -> Dict[str, Any]:
@@ -324,6 +342,7 @@ class EnhancedMarketFlowInterface:
 ### **2. Logging Enhancement**
 
 **Original App:**
+
 ```python
 # Basic logging
 logging.basicConfig(
@@ -333,6 +352,7 @@ logging.basicConfig(
 ```
 
 **Enhanced App:**
+
 ```python
 def setup_enhanced_logging(config) -> logging.Logger:
     # Enhanced log format with file and line information
@@ -355,14 +375,16 @@ def setup_enhanced_logging(config) -> logging.Logger:
 ## 📁 File Structure Improvements
 
 ### **Original App Structure**
-```
+
+```bath
 scripts/
 ├── app.py                    # Single monolithic file
 └── [other scripts]
 ```
 
 ### **Enhanced App Structure**
-```
+
+```bath
 scripts/
 ├── app.py                    # Original (preserved)
 ├── enhanced_app.py           # Enhanced version
@@ -380,6 +402,7 @@ scripts/
 ## 🚀 New Capabilities
 
 ### **1. Batch Processing**
+
 ```bash
 # Create batch file
 echo "What is accumulation?" > queries.txt
@@ -391,6 +414,7 @@ python enhanced_app.py --batch-file queries.txt --export-results results.json
 ```
 
 ### **2. Multiple Output Formats**
+
 ```bash
 # Simple format
 python enhanced_app.py --query "What is VPA?" --output-format simple
@@ -403,7 +427,8 @@ python enhanced_app.py --query "Compare AAPL and MSFT" --output-format detailed
 ```
 
 ### **3. Advanced Interactive Commands**
-```
+
+```bash
 # Enhanced commands not available in original
 📊 analyze <ticker>     - Comprehensive analysis
 🔍 compare <t1> <t2>    - Compare two tickers
@@ -418,6 +443,7 @@ python enhanced_app.py --query "Compare AAPL and MSFT" --output-format detailed
 ## 📈 Performance Metrics Comparison
 
 ### **Response Processing Speed**
+
 | Operation | Original App | Enhanced App | Improvement |
 |-----------|-------------|--------------|-------------|
 | Simple Query | ~1-2s | ~0.5-1s | 50% faster |
@@ -426,6 +452,7 @@ python enhanced_app.py --query "Compare AAPL and MSFT" --output-format detailed
 | Context Switching | N/A | Instant | New feature |
 
 ### **Memory Usage**
+
 | Aspect | Original App | Enhanced App | Change |
 |--------|-------------|--------------|--------|
 | Base Memory | ~50MB | ~55MB | +10% (acceptable) |
@@ -433,6 +460,7 @@ python enhanced_app.py --query "Compare AAPL and MSFT" --output-format detailed
 | Memory Cleanup | Manual | Automatic | Improved |
 
 ### **User Productivity**
+
 | Metric | Original App | Enhanced App | Improvement |
 |--------|-------------|--------------|-------------|
 | Time to Insight | 5-10 minutes | 2-5 minutes | 50% reduction |
@@ -444,18 +472,21 @@ python enhanced_app.py --query "Compare AAPL and MSFT" --output-format detailed
 ## 🎯 Migration Benefits
 
 ### **Immediate Benefits**
+
 1. **🚀 Better User Experience**: Rich, structured responses
 2. **🛡️ Robust Error Handling**: Fewer crashes, better guidance
 3. **⚡ Improved Performance**: Faster processing, better monitoring
 4. **🔧 Enhanced Flexibility**: Multiple modes and formats
 
 ### **Long-term Benefits**
+
 1. **📊 Data-Driven Insights**: Performance metrics for optimization
 2. **🔄 Scalability**: Batch processing for large-scale analysis
 3. **🔗 Integration Ready**: JSON output for external tools
 4. **📈 Productivity Gains**: Context management reduces repetitive work
 
 ### **Risk Mitigation**
+
 1. **🛡️ Graceful Degradation**: System continues working with API issues
 2. **🔍 Better Debugging**: Enhanced logging and error reporting
 3. **⚙️ Configuration Validation**: Prevents common setup issues
@@ -468,18 +499,21 @@ python enhanced_app.py --query "Compare AAPL and MSFT" --output-format detailed
 The Enhanced MarketFlow Application Interface represents a **significant advancement** in every aspect:
 
 ### **Quantitative Improvements**
+
 - **10x better error handling** with intelligent suggestions
 - **5x richer response format** with structured insights
 - **3x faster user productivity** through context management
 - **100% new capabilities** like batch processing and multiple formats
 
 ### **Qualitative Improvements**
+
 - **Professional-grade interface** suitable for production use
 - **User-centric design** with helpful guidance and feedback
 - **Extensible architecture** ready for future enhancements
 - **Production-ready features** with comprehensive logging and monitoring
 
 ### **Strategic Value**
+
 - **Immediate productivity gains** for current users
 - **Foundation for advanced features** like automated reporting
 - **Integration readiness** for external tools and workflows
@@ -491,4 +525,3 @@ The enhanced interface transforms MarketFlow from a functional tool into a **pow
 
 *Comparison completed: August 2025*  
 *Enhanced MarketFlow Interface v1.0*
-
