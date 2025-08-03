@@ -838,57 +838,101 @@ class MarketflowLLMQueryEngine:
             self.logger.error(f"Error in ticker analysis: {str(e)}", exc_info=True)
             return f"I encountered an error analyzing {params.get('primary_ticker', 'the ticker')}: {str(e)}"
     
-    def handle_concept_explanation(self, params: Dict[str, Any], 
-                                  context: QueryContext) -> str:
+
+    def handle_concept_explanation(self, params: Dict[str, Any],
+                                context: QueryContext) -> str:
         """
-        Handle concept explanation queries
-        
+        Handles concept explanation queries with support for multiple concepts and a robust RAG fallback.
+
+        This method follows a clear logic path:
+        1.  It first searches the user's query for any known concepts from the local YAML files.
+        2.  If one or more local concepts are found, it returns their explanations.
+        3.  If no local concepts are found, it proceeds to the RAG fallback (if enabled).
+        4.  The RAG search result is then synthesized by an LLM into a coherent answer.
+        5.  If RAG is disabled or finds no relevant information, it returns a helpful message.
+
         Args:
-            params: Parsed parameters containing concept information
-            context: Conversation context
-            
+            params: Parsed parameters from the intent recognizer.
+            context: The current conversation context.
+
         Returns:
-            Concept explanation string
+            A formatted string containing the explanation(s) or a helpful message.
         """
         try:
-            concept = params.get('concept', '').strip()
-            
-            if not concept:
+            # 1. PREPARE THE QUERY
+            # The 'concept' parameter contains the part of the query that triggered the intent.
+            user_query = params.get('concept', '').strip()
+            if not user_query:
                 return ("Please specify which concept you'd like me to explain. "
-                       "For example: 'What is a Wyckoff Spring?' or 'Explain accumulation'.")
-            
-            self.logger.info(f"Explaining concept: {concept}")
-            
-            # First, try to get explanation from loaded YAML concepts
-            yaml_explanation = self.get_concept_explanation(concept)
-            if yaml_explanation:
-                self.logger.info(f"Found concept explanation in YAML: {concept}")
-                return f"**{concept.title()}**\n\n{yaml_explanation}"
-            
-            # If not in YAML, try to get explanation from interface
-            explanation = self.interface.explain_concept(concept)
-            
-            # If not found, try RAG search as fallback
-            if "not found" in explanation.lower() and self.enable_rag:
-                self.logger.info(f"Concept not found in interface, trying RAG search for: {concept}")
-                rag_results = self._perform_rag_search(f"explain {concept}", top_k=3)
-                
-                if rag_results:
-                    explanation = f"**{concept.title()}** (from knowledge base)\n\n{rag_results}"
-                else:
-                    # Provide helpful suggestions based on available concepts
-                    available_concepts = list(self.all_concepts.keys())[:10]  # Show first 10
-                    suggestion = f"I don't have specific information about '{concept}'. "
-                    if available_concepts:
-                        suggestion += f"\n\nAvailable concepts include: {', '.join(available_concepts)}"
-                    suggestion += "\n\nCould you try asking about one of these or a related VPA/Wyckoff concept?"
-                    explanation = suggestion
-            
-            return explanation
-            
+                        "For example: 'What is a Wyckoff Spring?' or 'Explain accumulation'.")
+
+            self.logger.info(f"Attempting to explain concepts from query: '{user_query}'")
+            user_query_lower = user_query.lower()
+
+            # 2. SEARCH FOR LOCAL CONCEPTS (from YAML files)
+            found_explanations = []
+            # Use a set to prevent adding the same explanation twice if keys overlap (e.g., "Spring" and "Wyckoff Spring")
+            explained_concepts = set()
+
+            # We iterate through all known concepts and check if they are present in the user's query.
+            # Sorting by length descending ensures we match longer phrases first (e.g., "Wyckoff Spring" before "Spring").
+            sorted_concepts = sorted(self.all_concepts.keys(), key=len, reverse=True)
+
+            for concept_key in sorted_concepts:
+                # Use regex with word boundaries (\b) for a more precise match.
+                # This prevents matching "vpa" inside the word "spade", for example.
+                if re.search(r'\b' + re.escape(concept_key.lower()) + r'\b', user_query_lower):
+                    if concept_key not in explained_concepts:
+                        self.logger.info(f"Found locally defined concept in query: '{concept_key}'")
+                        explanation = self.all_concepts[concept_key]
+                        formatted_explanation = f"**{concept_key.title()}**\n\n{explanation}"
+                        found_explanations.append(formatted_explanation)
+                        explained_concepts.add(concept_key)
+
+            # 3. RETURN LOCAL EXPLANATIONS IF FOUND
+            if found_explanations:
+                # Join all found explanations with a clear separator and return.
+                return "\n\n---\n\n".join(found_explanations)
+
+            # 4. IF NO LOCAL CONCEPTS FOUND, PROCEED TO RAG FALLBACK
+            self.logger.info(f"No local concepts found in query. Falling back to RAG search for: '{user_query}'")
+
+            if not self.enable_rag:
+                return (f"I don't have a pre-defined explanation for '{user_query}'. "
+                        "Knowledge base search is currently disabled.")
+
+            # Perform the RAG search to get relevant context.
+            rag_context = self._perform_rag_search(user_query, top_k=5)
+
+            # 5. SYNTHESIZE RAG RESULTS OR PROVIDE FINAL HELPFUL MESSAGE
+            if rag_context:
+                self.logger.info("Synthesizing a final answer from RAG context.")
+                # Use the LLM to create a high-quality, synthesized answer from the retrieved chunks.
+                system_message = (
+                    "You are a helpful and concise financial analyst assistant. "
+                    "Synthesize the provided context from a knowledge base to answer the user's question directly and clearly. "
+                    "Do not mention 'the context' or 'the sources'. Format the answer for readability using markdown."
+                )
+                synthesis_prompt = f"""
+                Based on the following information:
+                ---
+                {rag_context}
+                ---
+                Please provide a comprehensive answer to the user's question: "{user_query}"
+                """
+                return query_llm(synthesis_prompt, system_message=system_message)
+            else:
+                # This is the final fallback if RAG also finds nothing.
+                self.logger.warning(f"RAG search yielded no results for query: '{user_query}'")
+                available_concepts = list(self.all_concepts.keys())[:10]
+                suggestion = f"I could not find any information about '{user_query}' in my knowledge base. "
+                if available_concepts:
+                    suggestion += f"\n\nYou could ask me about concepts I know, such as: {', '.join(available_concepts)}."
+                return suggestion
+
         except Exception as e:
-            self.logger.error(f"Error in concept explanation: {str(e)}", exc_info=True)
-            return f"I encountered an error explaining the concept: {str(e)}"
+            self.logger.error(f"Error in handle_concept_explanation: {str(e)}", exc_info=True)
+            return f"I encountered an unexpected error while trying to explain the concept: {str(e)}"
     
     def handle_rag_query(self, params: Dict[str, Any], user_input: str, 
                         context: QueryContext) -> str:
