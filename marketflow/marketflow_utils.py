@@ -20,7 +20,7 @@ def get_project_root() -> Path:
 def sanitize_filename(filename):
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
-def query_llm(prompt: str, model: str = "gpt-4", temperature: float = 0.8, system_message: str = "You are a helpful assistant.") -> str:
+def query_llm(prompt: str, model: str = "gpt-4.1", temperature: float = 0.8, system_message: str = "You are a helpful assistant.") -> str:
     """
     Send a prompt to the LLM and return its response.
 
