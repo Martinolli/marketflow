@@ -758,7 +758,7 @@ def enhanced_interactive_mode(interface: EnhancedMarketFlowInterface):
 
     # Save conversation history on exit
     if conversation_history:
-        default_filename = f"chat_history_{session_id}.json"
+        default_filename = f".marketflow/memory/chat_history_{session_id}.json"
         save_option = input(f"Do you want to save this conversation? (y/n) [default: {default_filename}]: ")
         if save_option.lower() != 'n':
             filename = input(f"Enter filename to save (or press Enter for default): ") or default_filename
