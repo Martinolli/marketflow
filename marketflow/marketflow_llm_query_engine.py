@@ -55,6 +55,10 @@ class QueryContext:
     last_ticker: Optional[str] = None
     last_timeframes: Optional[List[str]] = None
     context_window: int = 5  # Number of previous exchanges to keep
+    last_concept: Optional[str] = None
+    last_intent: Optional[str] = None
+    last_comparison: Optional[List[str]] = None
+
 
 
 class MarketflowLLMQueryEngine:
@@ -732,8 +736,21 @@ class MarketflowLLMQueryEngine:
             self.logger.info(f"Processing query with intent: {intent_result.intent.value} "
                            f"(confidence: {intent_result.confidence.value})")
             
+            if intent_result.confidence == QueryConfidence.LOW:
+                # Try to infer from context
+                if not intent_result.parameters.get('primary_ticker') and context.last_ticker:
+                    intent_result.parameters['primary_ticker'] = context.last_ticker
+                if not intent_result.parameters.get('concept') and context.last_concept:
+                    intent_result.parameters['concept'] = context.last_concept
+            
             # Route to appropriate handler
             response = self._route_query(intent_result, user_input, context)
+
+            context.last_intent = intent_result.intent
+            if intent_result.parameters.get('primary_ticker'):
+                context.last_ticker = intent_result.parameters['primary_ticker']
+            if intent_result.parameters.get('concept'):
+                context.last_concept = intent_result.parameters['concept']
             
             # Update conversation context
             self.update_context(context, user_input, response, intent_result)
@@ -741,9 +758,8 @@ class MarketflowLLMQueryEngine:
             return response
             
         except Exception as e:
-            error_msg = f"An error occurred while processing your query: {str(e)}"
-            self.logger.error(f"Error in process(): {str(e)}", exc_info=True)
-            return error_msg
+            self.logger.error(f"Unexpected error: {str(e)}", exc_info=True)
+            return f"An unexpected error occurred: {str(e)}"
     
     def _route_query(self, intent_result: IntentResult, user_input: str, 
                     context: QueryContext) -> str:
@@ -788,7 +804,6 @@ class MarketflowLLMQueryEngine:
             
             elif intent_result.intent == QueryIntent.PORTFOLIO_ANALYSIS:
                 return self.handle_portfolio_analysis_query(intent_result.parameters, context)
-            
             else:
                 return self._handle_unknown_query(user_input, intent_result, context)
                 
