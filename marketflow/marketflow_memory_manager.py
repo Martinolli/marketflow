@@ -119,6 +119,7 @@ class MemoryManager:
             # Ensure directory exists
             os.makedirs(os.path.dirname(self.memory_file), exist_ok=True)
             
+            print(f"Saving memory to {self.memory_file}")  # Add this for debugging
             with open(self.memory_file, 'w') as f:
                 json.dump(serializable_memory, f, indent=2)
             self.logger.debug(f"Saved {len(serializable_memory)} memory items to {self.memory_file}")

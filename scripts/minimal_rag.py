@@ -5,7 +5,10 @@ from typing import List
 from rag.retriever import chroma_retrieve_top_chunks  # adjust import if needed
 from marketflow.marketflow_config_manager import ConfigManager, create_app_config  # adjust import if needed
 from marketflow.marketflow_logger import get_logger
+from marketflow.marketflow_memory_manager import MemoryManager
 
+MEMORY_FILE = ".marketflow/memory/session_default.json"  # Or dynamic per-user/session
+memory_manager = MemoryManager(memory_file=MEMORY_FILE)
 
 class MinimalRAGQA:
     def __init__(self, model: str) -> None:
@@ -25,6 +28,22 @@ class MinimalRAGQA:
          # Log the initialization
         self.logger.info(f"Initialized MinimalRAGQA with model: {self.model}")
 
+        # Initialize memory manager
+        self.memory_manager = memory_manager
+        self.logger.info(f"Memory manager initialized with file: {MEMORY_FILE}")
+
+    def get_recent_history(self, n=5):
+        """Get the last n messages from memory and concatenate them for context.
+        Args:
+            memory_manager (MemoryManager): The memory manager instance.
+            n (int): Number of recent messages to retrieve.
+        Returns:
+            str: Concatenated string of the last n messages.
+        """
+        history = self.memory_manager.get_history()[-n:]  # Assumes get_history() returns a list of dicts
+        self.logger.debug(f"Recent history: {history}")
+        return "\n".join(f"{msg['role']}: {msg['content']}" for msg in history)
+
     def synthesize_with_openai(self, question: str, chunks: List[dict]) -> str:
         """Synthesizes an answer using OpenAI's LLM based on the provided question and context chunks.
         Args:
@@ -33,13 +52,15 @@ class MinimalRAGQA:
         Returns:
             str: The synthesized answer from the LLM.
         """
-
+        recent_history = self.get_recent_history(n=5)
+        self.logger.debug(f"Recent history for context:\n{recent_history}")
         self.logger.info(f"Synthesizing answer with OpenAI for question: {question}")
         context = "\n\n".join(chunk["text"] for chunk in chunks)
         self.logger.debug(f"Context for synthesis:\n{context}")
 
         prompt = (
             f"You are an assistant specializing in Wyckoff and Anna Coulling's VPA.\n"
+            f"Conversation history:\n{recent_history}\n"
             f"Given this information:\n---\n{context}\n---\n"
             f"**Question:** {question}\n"
             f"Provide a clear, concise answer."
@@ -80,6 +101,8 @@ def main():
         user_q = input("You: ").strip()
         if not user_q:
             continue
+        # Store user question in memory
+        memory_manager.add_message(role="user", content=user_q)
         rag_qa.logger.info(f"Received user question: {user_q}")
         if user_q.lower() in {"quit", "exit"}:
             print("Goodbye!")
@@ -95,6 +118,9 @@ def main():
         # 2. Synthesize answer with LLM
         try:
             answer = rag_qa.synthesize_with_openai(user_q, top_chunks)
+            # Memory management: store the answer
+            rag_qa.logger.info(f"Synthesized answer: {answer}")
+            memory_manager.add_message(role="assistant", content=answer)
         except Exception as e:
             rag_qa.logger.error("Error during LLM synthesis: %s", e)
             answer = "Sorry, there was an error generating the answer."
