@@ -8,11 +8,15 @@
 from flask import Flask, request, jsonify, render_template_string
 # The query_llm import is no longer needed here.
 from marketflow.marketflow_llm_query_engine import MarketflowLLMQueryEngine
+from marketflow.marketflow_config_manager import get_marketflow_config_manager
 import uuid
 
 app = Flask(__name__)
 # The engine is the core of the application; it should be the single source for responses.
-engine = MarketflowLLMQueryEngine(enable_rag=True)
+config= get_marketflow_config_manager()
+# Initialize the MarketflowLLMQueryEngine with RAG enabled.
+# This engine will handle all queries and responses.
+engine = MarketflowLLMQueryEngine(enable_rag=True, config=config)
 
 HTML_TEMPLATE = '''
 <!DOCTYPE html>
