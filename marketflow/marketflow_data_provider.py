@@ -14,8 +14,16 @@ import asyncio
 import inspect
 import pandas as pd
 import numpy as np
-from polygon import RESTClient
-from polygon.rest.models import Agg
+
+# Make polygon imports optional for now
+try:
+    from polygon import RESTClient
+    from polygon.rest.models import Agg
+    POLYGON_AVAILABLE = True
+except ImportError:
+    POLYGON_AVAILABLE = False
+    RESTClient = None
+    Agg = None
 
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
@@ -79,6 +87,12 @@ class PolygonIOProvider(DataProvider):
     
     def _initialize_client(self) -> None:
         """Initialize the Polygon.io REST client with error handling"""
+        if not POLYGON_AVAILABLE:
+            self.logger.warning("Polygon.io client not available - polygon package not installed")
+            self.client = None
+            self.async_client = None
+            return
+            
         try:
             api_key = self.config_manager.get_api_key('polygon')
             if not api_key:
