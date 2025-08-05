@@ -88,6 +88,7 @@ class EnhancedRAGQA:
                 "cite it using the format [1], [2], etc., corresponding to the source list."
             )
             self.memory_manager.add_system_message(system_prompt)
+        self.logger.info("System prompt added to memory.")
 
     def get_recent_history(self, n=5):
         """Get the last n messages from memory and concatenate them for context.
@@ -99,8 +100,8 @@ class EnhancedRAGQA:
         """
         history = self.memory_manager.get_history()[-n:]  # Assumes get_history() returns a list of dicts
         self.logger.debug(f"Recent history: {history}")
+        self.logger.info(f"Retrieved {n} recent messages from memory.")
         return "\n".join(f"{msg['role']}: {msg['content']}" for msg in history)
-    
 
     def _format_sources(self, chunks: List[Dict[str, Any]]) -> str:
         """
@@ -130,6 +131,8 @@ class EnhancedRAGQA:
                 location = f", ch. {chapter}"
 
             source_lines.append(f"[{i+1}] {source}{location}")
+        self.logger.debug(f"Formatted sources: {source_lines}")
+        self.logger.info(f"Formatted {len(source_lines)} sources for the prompt.")
         
         return "\n".join(source_lines)
 
@@ -173,7 +176,7 @@ class EnhancedRAGQA:
         
         # Add the augmented user message to the history for the API call
         history.append({"role": "user", "content": augmented_prompt})
-
+        # Log the payload for debugging purposes
         self.logger.debug(f"Payload for OpenAI: {history}")
 
         # 3. Generate
