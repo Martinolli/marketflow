@@ -4,13 +4,115 @@ Enhanced Minimal RAG QA Script
 A foundational RAG Q&A system for Wyckoff & VPA with comprehensive session management,
 improved prompt engineering, and extensibility hooks for MarketFlow integration.
 
-Features:
-- Session/user management with dynamic memory files
-- Enhanced MemoryManager integration (system messages, repair, history limits)
-- RAG chunk metadata display with source information
-- Customizable system prompts and improved context threading
-- Comprehensive error handling and logging
-- Extensibility hooks for intent detection and MarketFlow API integration
+## Features
+
+### Session Management
+- Multi-user/session support with dynamic memory files
+- Session-specific conversation history stored in `.marketflow/memory/session_{session_id}.json`
+- CLI argument `--session-id` for session management (default: 'default')
+
+### Enhanced MemoryManager Integration
+- System message initialization with customizable prompts
+- Memory repair functionality via `/repair` command
+- Conversation clearing via `/clear` command
+- Configurable history limits for context threading
+- Memory statistics via `/stats` command
+
+### RAG with Metadata
+- Chunk metadata display in context (source, page information)
+- Source information display via `/sources` command
+- Enhanced context formatting with metadata preservation
+
+### Prompt Engineering
+- Customizable system prompts via `--system-prompt` argument
+- Multi-turn conversation context threading
+- Improved prompt structure with conversation history integration
+- Configurable context history limits
+
+### Error Handling & Logging
+- Comprehensive error management for all major operations
+- Configurable logging levels (DEBUG, INFO, WARNING, ERROR)
+- User-friendly error messages and graceful degradation
+- Robust handling of missing dependencies
+
+### Extensibility Hooks
+- Intent detection framework (experimental, `--enable-intent-detection`)
+- MarketFlow API integration points (experimental, `--enable-marketflow-integration`)
+- Modular design for future feature expansion
+
+## Usage
+
+### Basic Usage
+```bash
+python scripts/minimal_rag.py
+```
+
+### Session Management
+```bash
+# Start with a specific session
+python scripts/minimal_rag.py --session-id user123
+
+# Use custom system prompt
+python scripts/minimal_rag.py --system-prompt "You are a Wyckoff expert focused on accumulation phases."
+
+# Adjust context history
+python scripts/minimal_rag.py --history-limit 10
+```
+
+### Advanced Options
+```bash
+# Enable experimental features
+python scripts/minimal_rag.py --enable-intent-detection --enable-marketflow-integration
+
+# Custom logging and memory directory
+python scripts/minimal_rag.py --log-level DEBUG --memory-dir ./custom_memory
+
+# Override model
+python scripts/minimal_rag.py --model gpt-3.5-turbo
+```
+
+## Interactive Commands
+
+During conversation, use these commands:
+- `/sources` - Show sources for the last answer
+- `/clear` - Clear conversation memory (keeps system messages)
+- `/repair` - Repair conversation memory (fix any issues)
+- `/stats` - Show memory statistics for current session
+- `/help` - Show available commands
+- `quit` or `exit` - Exit the program
+
+## Requirements
+
+- OpenAI API key (set OPENAI_API_KEY environment variable)
+- Python packages: openai, chromadb, pandas
+- MarketFlow MemoryManager and configuration components
+
+## Compatibility
+
+This enhanced version is fully compatible with the existing MarketFlow MemoryManager
+and maintains backward compatibility while adding new functionality.
+
+## Architecture
+
+### Core Components
+- `MinimalRAGQA`: Main class handling session management and synthesis
+- Session-specific memory management via MemoryManager
+- RAG retrieval with metadata preservation
+- Extensible command system for interactive use
+
+### Extensibility Points
+- `detect_intent()`: Hook for intent detection and routing
+- `call_marketflow_api()`: Hook for MarketFlow API integration
+- Modular command system for new interactive features
+- Configurable prompt engineering system
+
+## Future Integration
+
+The script provides clear integration points for:
+- Advanced intent detection and query routing
+- MarketFlow API calls based on detected intents
+- Additional interactive commands and features
+- Enhanced prompt engineering and context management
 """
 
 import sys
