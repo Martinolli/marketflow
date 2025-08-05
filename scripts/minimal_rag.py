@@ -1,13 +1,15 @@
 # minimal_rag_qa.py
 
 import openai
+import os
 from typing import List
 from rag.retriever import chroma_retrieve_top_chunks  # adjust import if needed
 from marketflow.marketflow_config_manager import ConfigManager, create_app_config  # adjust import if needed
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_memory_manager import MemoryManager
 
-MEMORY_FILE = ".marketflow/memory/session_default.json"  # Or dynamic per-user/session
+MEMORY_FILE = ".marketflow/memory/session_default.json"
+os.makedirs(os.path.dirname(MEMORY_FILE), exist_ok=True)
 memory_manager = MemoryManager(memory_file=MEMORY_FILE)
 
 class MinimalRAGQA:
