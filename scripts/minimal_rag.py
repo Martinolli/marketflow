@@ -1,43 +1,93 @@
 # minimal_rag_qa.py
 
+#!/usr/bin/env python3
+"""
+Enhanced Minimal RAG Q&A System for Wyckoff and VPA Knowledge
+
+This script provides a robust foundation for LLM-driven RAG Q&A with:
+- Session/user management support
+- MemoryManager integration with system prompts
+- CLI commands for memory management
+- RAG chunk metadata inclusion
+- Customizable system prompts
+- Intent detection for extensibility
+- Comprehensive error handling
+
+Usage:
+    python minimal_rag.py --session user123 --model gpt-4
+    
+Commands:
+    /help - Show available commands
+    /sources - Show sources from last query  
+    /clear - Clear session memory
+    /repair - Repair conversation memory
+    /stats - Show memory statistics
+    quit - Exit application
+"""
+
 import openai
 import argparse
 import os
 import sys
 import tempfile
-from typing import List, Optional
+import logging
+from typing import List, Optional, Dict, Any
 from pathlib import Path
+
+# Configure basic logging
+logging.basicConfig(level=logging.INFO, format='%(name)s - %(levelname)s - %(message)s')
 
 # Add the parent directory to sys.path to import modules  
 sys.path.append(str(Path(__file__).parent.parent))
 
+# Import dependencies with graceful fallbacks
+DEPENDENCIES_AVAILABLE = {
+    'retriever': False,
+    'memory_manager': False,
+    'config_manager': False,
+    'logger': False
+}
+
+# Try to import RAG retriever
 try:
     from rag.retriever import chroma_retrieve_top_chunks
+    DEPENDENCIES_AVAILABLE['retriever'] = True
 except ImportError as e:
-    print(f"Warning: Could not import retriever: {e}")
-    # Create a stub function for testing
+    print(f"ℹ️  RAG retriever not available: {e}")
+    print("   Using stub retriever (no actual document retrieval)")
     def chroma_retrieve_top_chunks(query, top_k=5):
-        return []
+        """Stub retriever for testing without dependencies."""
+        return [
+            {
+                "text": f"Sample content related to: {query}",
+                "metadata": {"source": "sample.pdf", "page": 1},
+                "distance": 0.8
+            }
+        ]
 
-# Import specific modules directly to avoid __init__.py dependencies
+# Try to import MarketFlow components
 try:
     sys.path.append(str(Path(__file__).parent.parent / "marketflow"))
     from marketflow_logger import get_logger
-    from marketflow_memory_manager import MemoryManager
-    from marketflow_config_manager import ConfigManager, create_app_config
-except ImportError as e:
-    print(f"Warning: Could not import some marketflow modules: {e}")
-    
-    # Create stubs for testing
+    DEPENDENCIES_AVAILABLE['logger'] = True
+except ImportError:
+    print("ℹ️  MarketFlow logger not available, using standard logging")
     def get_logger(name):
-        import logging
         return logging.getLogger(name)
+
+try:
+    from marketflow_memory_manager import MemoryManager as RealMemoryManager
+    DEPENDENCIES_AVAILABLE['memory_manager'] = True
+except ImportError:
+    print("ℹ️  MarketFlow MemoryManager not available, using stub implementation")
     
-    class StubMemoryManager:
+    class RealMemoryManager:
+        """Stub memory manager for testing without dependencies."""
         def __init__(self, memory_file=None, **kwargs):
             self.memory_file = memory_file or tempfile.mktemp(suffix='.json')
             self.memory = []
             self.system_messages = []
+            os.makedirs(os.path.dirname(self.memory_file), exist_ok=True)
             
         def add_message(self, role, content, **kwargs):
             self.memory.append({"role": role, "content": content})
@@ -50,7 +100,7 @@ except ImportError as e:
             if limit:
                 history.extend(self.memory[-limit:])
             else:
-                history.extend(self.memory)
+                history.extend(self.memory[-10:])  # Default limit
             return history
             
         def clear_memory(self):
@@ -61,10 +111,23 @@ except ImportError as e:
                    "messages_removed": 0, "orphaned_tool_calls_fixed": 0}
                    
         def get_memory_stats(self):
-            return {"total_messages": len(self.memory), "system_messages": len(self.system_messages),
-                   "max_items": 100, "messages_by_role": {}, "issues": []}
-    
-    MemoryManager = StubMemoryManager
+            role_counts = {}
+            for msg in self.memory:
+                role = msg.get('role', 'unknown')
+                role_counts[role] = role_counts.get(role, 0) + 1
+            return {
+                "total_messages": len(self.memory), 
+                "system_messages": len(self.system_messages),
+                "max_items": 100, 
+                "messages_by_role": role_counts, 
+                "issues": []
+            }
+
+try:
+    from marketflow_config_manager import create_app_config
+    DEPENDENCIES_AVAILABLE['config_manager'] = True
+except ImportError:
+    print("ℹ️  MarketFlow config manager not available, using defaults")
     
     class StubConfigManager:
         def get_llm_model(self):
@@ -97,17 +160,27 @@ class MinimalRAGQA:
         # Initialize session-specific memory
         self.session_id = session_id
         memory_file = f".marketflow/memory/session_{session_id}.json"
-        self.memory_manager = MemoryManager(memory_file=memory_file)
         
-        # Add system prompt if provided
+        # Ensure memory directory exists
+        os.makedirs(os.path.dirname(memory_file), exist_ok=True)
+        
+        self.memory_manager = RealMemoryManager(memory_file=memory_file)
+        
+        # Set up system prompt
         self.system_prompt = system_prompt or (
             "You are an assistant specializing in Wyckoff and Anna Coulling's VPA (Volume Price Analysis). "
-            "Provide clear, concise answers based on the provided context and conversation history."
+            "Provide clear, concise answers based on the provided context and conversation history. "
+            "Reference specific sources when available and maintain consistency with previous responses."
         )
         
         # Initialize system message if not already present
         if not self.memory_manager.system_messages:
             self.memory_manager.add_system_message(self.system_prompt)
+        
+        # Display dependency status
+        missing_deps = [k for k, v in DEPENDENCIES_AVAILABLE.items() if not v]
+        if missing_deps:
+            self.logger.info(f"Running with stub implementations for: {', '.join(missing_deps)}")
         
         self.logger.info(f"Initialized MinimalRAGQA with model: {self.model}, session: {session_id}")
         self.logger.info(f"Memory manager initialized with file: {memory_file}")
@@ -185,6 +258,8 @@ class MinimalRAGQA:
             return {'type': 'command', 'action': 'memory_stats'}
         elif user_input_lower in ['/help', '/?']:
             return {'type': 'command', 'action': 'help'}
+        elif user_input_lower in ['/status', '/system_status']:
+            return {'type': 'command', 'action': 'status'}
         elif user_input_lower in {'quit', 'exit', '/quit', '/exit'}:
             return {'type': 'command', 'action': 'quit'}
             
@@ -194,18 +269,49 @@ class MinimalRAGQA:
 
     def get_help_text(self) -> str:
         """Get help text for available commands."""
-        return """🔧 **Available Commands:**
+        dependency_status = "🟢 All dependencies available" if all(DEPENDENCIES_AVAILABLE.values()) else "🟡 Some dependencies unavailable (using stubs)"
+        
+        return f"""🔧 **Available Commands:**
   • `/sources` - Show sources from the last query
   • `/clear` - Clear conversation memory  
   • `/repair` - Repair conversation memory
   • `/stats` - Show memory statistics
+  • `/status` - Show system and dependency status
   • `/help` - Show this help message
   • `/quit` or `quit` - Exit the application
 
 💡 **Tips:**
   • Ask questions about Wyckoff method and VPA
   • The system remembers your conversation history
-  • Sources are automatically included in responses when available"""
+  • Sources are automatically included in responses when available
+
+📊 **System Status:**
+  • Session: {self.session_id}
+  • Model: {self.model}
+  • Dependencies: {dependency_status}"""
+
+    def get_system_status(self) -> str:
+        """Get detailed system status information."""
+        status_text = f"🖥️  **System Status for session '{self.session_id}':**\n"
+        status_text += f"  • Model: {self.model}\n"
+        status_text += f"  • Session ID: {self.session_id}\n"
+        status_text += f"  • Memory file: {self.memory_manager.memory_file}\n"
+        
+        status_text += "\n📦 **Dependencies:**\n"
+        for dep, available in DEPENDENCIES_AVAILABLE.items():
+            icon = "✅" if available else "❌"
+            status = "Available" if available else "Using stub"
+            status_text += f"  • {dep}: {icon} {status}\n"
+        
+        # Add memory stats
+        stats = self.memory_manager.get_memory_stats()
+        status_text += f"\n💾 **Memory:**\n"
+        status_text += f"  • Total messages: {stats['total_messages']}\n"
+        status_text += f"  • System messages: {stats['system_messages']}\n"
+        if stats['messages_by_role']:
+            status_text += f"  • Messages by role: {stats['messages_by_role']}\n"
+        
+        return status_text
 
     def synthesize_with_openai(self, question: str, chunks: List[dict], include_sources: bool = False) -> str:
         """Synthesizes an answer using OpenAI's LLM based on the provided question and context chunks.
@@ -385,6 +491,9 @@ def main():
                         continue
                     elif action == 'help':
                         print(rag_qa.get_help_text())
+                        continue
+                    elif action == 'status':
+                        print(rag_qa.get_system_status())
                         continue
                 
                 # Handle regular queries
