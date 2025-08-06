@@ -260,7 +260,7 @@ class MinimalRAGQA:
         """
         history = self.memory_manager.get_history(limit=n)
         self.logger.debug(f"Recent history: {history}")
-        return "\n".join(f"{msg['role']}: {msg['content']}" for msg in history if msg.get('role') != 'system')
+        return "\n".join(f"{msg.get('role', '')}: {msg.get('content', '')}" for msg in history if msg.get('role') != 'system')
 
     def synthesize_with_openai(self, question: str, chunks: List[dict]) -> str:
         """Synthesizes an answer using OpenAI's LLM based on the provided question and context chunks.
