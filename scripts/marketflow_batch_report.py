@@ -154,6 +154,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # You can load tickers from a file, user input, or define here:
-    tickers = ["IMA", "PFSA"]
+    tickers = ["PFSA"]
 
     run_batch_analysis(tickers, output_dir=args.output, timeframes=args.timeframes)
