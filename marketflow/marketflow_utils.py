@@ -7,6 +7,8 @@ modules to avoid code duplication and maintain a single source of truth.
 import re
 from pathlib import Path
 import openai
+import pandas as pd
+from datetime import datetime
 
 def get_project_root() -> Path:
     """Get the project root directory by locating the '.marketflow' marker."""
@@ -51,3 +53,32 @@ def query_llm(prompt: str, model: str = "gpt-4.1", temperature: float = 0.8, sys
         # It's good practice to log the error and return an informative message.
         print(f"Error calling LLM: {e}")
         return "An error occurred while communicating with the LLM."
+    
+def save_timeframe_data(ticker: str, timeframe_data: dict) -> None:
+    """
+    Save timeframe data to disk.
+
+    Parameters:
+    - ticker: Stock symbol (e.g., 'AAPL', 'MSFT')
+    - timeframe_data: Dictionary with timeframe as key and DataFrame as value
+
+    Returns:
+    - None
+    """
+    base_path = Path("data/timeframe_data")
+    base_path.mkdir(parents=True, exist_ok=True)
+
+    for timeframe, data in timeframe_data.items():
+        date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+        price_data = data.get('price_data')
+        volume_data = data.get('volume_data')
+
+        if price_data is not None and not price_data.empty:
+            file_path = base_path / f"{ticker}_{timeframe}_price_{date_str}.csv"
+            price_data.to_csv(file_path)
+            print(f"Saved {ticker} - {timeframe} price data to {file_path}")
+
+        if volume_data is not None and not volume_data.empty:
+            file_path = base_path / f"{ticker}_{timeframe}_volume_{date_str}.csv"
+            volume_data.to_csv(file_path)
+            print(f"Saved {ticker} - {timeframe} volume data to {file_path}")
