@@ -19,6 +19,7 @@ from polygon.rest.models import Agg
 
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
+from marketflow.marketflow_utils import save_timeframe_data  # Import the save_timeframe_data function
 
 # Constants for error handling
 MAX_RETRIES = 3
@@ -367,6 +368,15 @@ class MultiTimeframeProvider:
         self.logger = get_logger(module_name="MultiTimeframeProvider")
 
     def get_multi_timeframe_data(self, ticker: str, timeframes: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+
+        """
+        Fetches data for multiple timeframes synchronously.
+        Parameters:
+        - ticker: Stock symbol (e.g., 'AAPL', 'MSFT')
+        - timeframes: List of dictionaries with 'interval', 'period', 'start_date', and 'end_date'
+        Returns:
+        - Dictionary with timeframe as key and DataFrame as value
+        """
         timeframe_data = {}
         for tf_config in timeframes:
             interval = tf_config['interval']
@@ -390,6 +400,11 @@ class MultiTimeframeProvider:
                     'price_data': price_data,
                     'volume_data': volume_data
                 }
+
+                # Save the data for this timeframe
+                save_timeframe_data(ticker, {tf_key: timeframe_data[tf_key]})
+
+
             except Exception as e:
                 self.logger.error(f"Error fetching data for {ticker} at {interval} timeframe: {e}", exc_info=True)
         if not timeframe_data:
