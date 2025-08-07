@@ -65,7 +65,7 @@ def save_timeframe_data(ticker: str, timeframe_data: dict) -> None:
     Returns:
     - None
     """
-    base_path = Path("data/timeframe_data")
+    base_path = Path(f"data/timeframe_data/{ticker}")
     base_path.mkdir(parents=True, exist_ok=True)
 
     for timeframe, data in timeframe_data.items():
@@ -73,12 +73,19 @@ def save_timeframe_data(ticker: str, timeframe_data: dict) -> None:
         price_data = data.get('price_data')
         volume_data = data.get('volume_data')
 
-        if price_data is not None and not price_data.empty:
-            file_path = base_path / f"{ticker}_{timeframe}_price_{date_str}.csv"
-            price_data.to_csv(file_path)
-            print(f"Saved {ticker} - {timeframe} price data to {file_path}")
+        # Merge price_data and volume_data for each timeframe if both are present and not empty
+        if price_data is not None and not price_data.empty and volume_data is not None and not volume_data.empty:
+            merged_data = pd.merge(price_data, volume_data, left_index=True, right_index=True, suffixes=('_price', '_volume'))
+            file_path = base_path / f"{timeframe}_{date_str}.csv"
+            merged_data.to_csv(file_path)
+            print(f"Saved {ticker} - {timeframe} merged price and volume data to {file_path}")
+        else:
+            if price_data is not None and not price_data.empty:
+                file_path = base_path / f"{timeframe}_price_{date_str}.csv"
+                price_data.to_csv(file_path)
+                print(f"Saved {ticker} - {timeframe} price data to {file_path}")
 
-        if volume_data is not None and not volume_data.empty:
-            file_path = base_path / f"{ticker}_{timeframe}_volume_{date_str}.csv"
-            volume_data.to_csv(file_path)
-            print(f"Saved {ticker} - {timeframe} volume data to {file_path}")
+            if volume_data is not None and not volume_data.empty:
+                file_path = base_path / f"{timeframe}_volume_{date_str}.csv"
+                volume_data.to_csv(file_path)
+                print(f"Saved {ticker} - {timeframe} volume data to {file_path}")
