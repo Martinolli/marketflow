@@ -154,7 +154,6 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # You can load tickers from a file, user input, or define here:
-    tickers = ["AMD", "TSLA", "NVDA", "AAPL", "PLTR", "MSFT", "AMZN", "SHOP", "META", "SMCI", "ANET", "COIN", "UBER", "ALAB", "AVGO", "HOOD", "UNH", "NFLX", "APP", "DIS", "FIG",
-               "HIMS", "GOOG", "MSTR", "LLY", "COST", "ORCL", "VRTX", "MCD", "UPST", "RDDT", "V", "WMT", "ACN", "EMR", "U", "SNAP", "MELI", "ZET", "CSCO", "OKLO"]
+    tickers = ["IMA", "PFSA"]
 
     run_batch_analysis(tickers, output_dir=args.output, timeframes=args.timeframes)
