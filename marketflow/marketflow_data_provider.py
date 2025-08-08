@@ -19,7 +19,6 @@ from polygon.rest.models import Agg
 
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
-from marketflow.marketflow_utils import save_timeframe_data  # Import the save_timeframe_data function
 
 # Constants for error handling
 MAX_RETRIES = 3
@@ -400,10 +399,6 @@ class MultiTimeframeProvider:
                     'price_data': price_data,
                     'volume_data': volume_data
                 }
-
-                # Save the data for this timeframe
-                save_timeframe_data(ticker, {tf_key: timeframe_data[tf_key]})
-
 
             except Exception as e:
                 self.logger.error(f"Error fetching data for {ticker} at {interval} timeframe: {e}", exc_info=True)
