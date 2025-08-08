@@ -40,7 +40,7 @@ class CustomJSONEncoder(json.JSONEncoder):
             # Convert non-serializable objects to string representation
             return str(obj)
 
-def safe_json_dump(data, file_path):
+def safe_json_dump(data: dict, file_path: str) -> bool:
     """Safely dump data to JSON file with custom encoder."""
     try:
         with open(file_path, "w", encoding="utf-8") as f:

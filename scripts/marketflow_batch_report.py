@@ -34,7 +34,7 @@ CSV_FIELDNAMES = [
     "narrative_summary"
 ]
 
-def extract_summary_data(llm_result, ticker):
+def extract_summary_data(llm_result: dict, ticker: str) -> dict:
     """
     Extracts and flattens key information from the detailed JSON analysis 
     into a single dictionary suitable for a CSV row.

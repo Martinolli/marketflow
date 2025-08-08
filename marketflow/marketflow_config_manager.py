@@ -34,7 +34,7 @@ class ConfigManager:
     # Default LLM model to use if not specified
     DEFAULT_LLM_MODEL = "gpt-3.5-turbo"
     
-    def __init__(self, config_file: Optional[str] = None, logger=None):
+    def __init__(self, config_file: Optional[str] = None, logger=None) -> None:
         """
         Initialize the configuration manager.
         
@@ -69,7 +69,7 @@ class ConfigManager:
         if self.logger:
             self.logger.info("ConfigManager initialized successfully")
     
-    def _log(self, level: str, message: str):
+    def _log(self, level: str, message: str) -> None:
         """Internal logging method that works with or without logger"""
         if self.logger:
             getattr(self.logger, level.lower())(message)

@@ -56,7 +56,7 @@ class MarketflowLLMInterface:
         self.wyckoff_concepts = self._load_concepts_from_yaml('marketflow/concepts/wyckoff_concepts.yaml')
         self.logger.info(f"Loaded Wyckoff concepts: {len(self.wyckoff_concepts)}")
 
-    def _load_concepts_from_yaml(self, file_path):
+    def _load_concepts_from_yaml(self, file_path: str) -> dict:
         """Loads concepts from a specified YAML file."""
         self.logger.debug(f"Loading concepts from {file_path}.")
         with open(file_path, 'r', encoding='utf-8') as file:
