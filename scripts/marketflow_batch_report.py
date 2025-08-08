@@ -130,8 +130,9 @@ def run_batch_analysis(tickers, output_dir=".marketflow/batch_reports_data", tim
         print("\n⚠️ No analysis results found to generate a summary.")
         return
 
+    date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
     # Save the enriched summary to CSV
-    summary_path = os.path.join(output_dir, current_date, "batch_summary_enriched.csv")
+    summary_path = os.path.join(output_dir, current_date, f"batch_summary_enriched_{date_str}.csv")
     os.makedirs(os.path.dirname(summary_path), exist_ok=True)
     
     with open(summary_path, "w", newline="", encoding='utf-8') as f:
@@ -154,6 +155,55 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # You can load tickers from a file, user input, or define here:
-    tickers = ["PFSA"]
+    tickers = ["PFSA",
+               "AIM",
+               "VAPE",
+               "MGRT",
+               "GIBO",
+               "ALBT",
+               "CREV",
+               "CASK",
+               "CELC",
+               "SIDU",
+               "HCTI",
+               "LIDR",
+               "SDM",
+               "RMSG",
+               "GTI",
+               "SMX",
+               "ATNF",
+               "CRVO",
+               "NVNI",
+               "LGCL",
+               "YYGH",
+               "ABP",
+               "UPLD",
+               "BINI",
+               "LMFA",
+               "CLDI",
+               "MPU",
+               "GIBO",
+               "ALBT",
+               "CREV",
+               "CASK",
+               "CELC",
+               "SIDU",
+               "HCTI",
+               "LIDR",
+               "SDM",
+               "RMSG",
+               "GTI",
+               "SMX",
+               "ATNF",
+               "CRVO",
+               "NVNI",
+               "LGCL",
+               "YYGH",
+               "ABP",
+               "UPLD",
+               "BINI",
+               "LMFA",
+               "CLDI",
+               "MPU"]
 
     run_batch_analysis(tickers, output_dir=args.output, timeframes=args.timeframes)
