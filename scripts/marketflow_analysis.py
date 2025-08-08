@@ -22,6 +22,7 @@ from marketflow.marketflow_llm_interface import MarketflowLLMInterface
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_utils import sanitize_filename
+from marketflow.marketflow_utils import save_timeframe_data
 
 # Ensure the logger is set up correctly
 logger = get_logger("marketflow_analysis")
@@ -85,6 +86,17 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     else:
         results = facade.analyze_ticker(ticker)
         logger.info("Using default timeframes for analysis.")
+
+    if isinstance(results, dict) and 'timeframe_analyses' in results:
+        timeframe_data_to_save = results.get('timeframe_analyses', {})
+        if timeframe_data_to_save:
+            logger.info(f"Calling save_timeframe_data for {ticker}...")
+            save_timeframe_data(ticker, timeframe_data_to_save)
+            logger.info(f"Timeframe data save process for {ticker} completed.")
+        else:
+            logger.warning(f"Timeframe analysis data for {ticker} is empty. Skipping save.")
+    else:
+        logger.warning(f"Unexpected results format for {ticker} or 'timeframe_analyses' key missing.")
 
     extractor = MarketflowResultExtractor({ticker: results})
     logger.info("Extracting data from results...")
