@@ -54,38 +54,66 @@ def query_llm(prompt: str, model: str = "gpt-4.1", temperature: float = 0.8, sys
         print(f"Error calling LLM: {e}")
         return "An error occurred while communicating with the LLM."
     
-def save_timeframe_data(ticker: str, timeframe_data: dict) -> None:
+def save_timeframe_data(ticker: str, timeframe_analyses: dict) -> None:
     """
-    Save timeframe data to disk.
+    Save timeframe data to disk. This function has been corrected to handle
+    live pandas objects instead of expecting serialized dictionaries.
 
     Parameters:
     - ticker: Stock symbol (e.g., 'AAPL', 'MSFT')
-    - timeframe_data: Dictionary with timeframe as key and DataFrame as value
-
-    Returns:
-    - None
+    - timeframe_analyses: Dictionary with timeframe as key and analysis data as value.
+                          The analysis data is expected to contain a 'processed_data' key.
     """
-    base_path = Path(f"data/timeframe_data/{ticker}")
+    project_root = get_project_root()
+    # Build an absolute path from the project root
+    base_path = project_root / f"data/timeframe_data/{sanitize_filename(ticker)}"
+
+    print(f"Saving timeframe data for {ticker} to absolute path: {base_path}")
     base_path.mkdir(parents=True, exist_ok=True)
 
-    for timeframe, data in timeframe_data.items():
-        date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
-        price_data = data.get('price_data')
-        volume_data = data.get('volume_data')
+    if not timeframe_analyses:
+        print(f"Warning: No timeframe analyses available for {ticker}. Skipping save.")
+        return
 
-        # Merge price_data and volume_data for each timeframe if both are present and not empty
-        if price_data is not None and not price_data.empty and volume_data is not None and not volume_data.empty:
-            merged_data = pd.merge(price_data, volume_data, left_index=True, right_index=True, suffixes=('_price', '_volume'))
+    for timeframe, data in timeframe_analyses.items():
+        date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+
+        if not isinstance(data, dict):
+            print(f"Data for {ticker} - {timeframe} is not a dictionary. Skipping.")
+            continue
+
+        processed_data_dict = data.get("processed_data")
+        if not isinstance(processed_data_dict, dict):
+            print(f"Warning: 'processed_data' not found or not a dictionary for {timeframe} in {ticker}. Skipping.")
+            continue
+            
+        # --- CORRECTED LOGIC ---
+        # Directly use the pandas objects. The original code incorrectly tried to
+        # deserialize them from a dict format which they were not in.
+        price_data = processed_data_dict.get("price")  # This is a pd.DataFrame
+        volume_data = processed_data_dict.get("volume") # This is a pd.Series
+
+        # If volume is a Series, convert it to a DataFrame for merging.
+        if isinstance(volume_data, pd.Series):
+            volume_data = volume_data.to_frame(name='volume')
+
+        # Validate that we have actual dataframes.
+        price_data_valid = isinstance(price_data, pd.DataFrame) and not price_data.empty
+        volume_data_valid = isinstance(volume_data, pd.DataFrame) and not volume_data.empty
+
+        # Merge and save logic
+        if price_data_valid and volume_data_valid:
+            merged_data = pd.merge(price_data, volume_data, left_index=True, right_index=True, how='outer')
             file_path = base_path / f"{timeframe}_{date_str}.csv"
             merged_data.to_csv(file_path)
-            print(f"Saved {ticker} - {timeframe} merged price and volume data to {file_path}")
+            print(f"✅ Saved {ticker} - {timeframe} merged data ({merged_data.shape[0]} rows) to {file_path}")
+        elif price_data_valid:
+            file_path = base_path / f"{timeframe}_price_{date_str}.csv"
+            price_data.to_csv(file_path)
+            print(f"✅ Saved {ticker} - {timeframe} price data only ({price_data.shape[0]} rows) to {file_path}")
+        elif volume_data_valid:
+            file_path = base_path / f"{timeframe}_volume_{date_str}.csv"
+            volume_data.to_csv(file_path)
+            print(f"✅ Saved {ticker} - {timeframe} volume data only ({volume_data.shape[0]} rows) to {file_path}")
         else:
-            if price_data is not None and not price_data.empty:
-                file_path = base_path / f"{timeframe}_price_{date_str}.csv"
-                price_data.to_csv(file_path)
-                print(f"Saved {ticker} - {timeframe} price data to {file_path}")
-
-            if volume_data is not None and not volume_data.empty:
-                file_path = base_path / f"{timeframe}_volume_{date_str}.csv"
-                volume_data.to_csv(file_path)
-                print(f"Saved {ticker} - {timeframe} volume data to {file_path}")
+            print(f"No valid price or volume data to save for {ticker} - {timeframe}.")
