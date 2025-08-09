@@ -326,6 +326,9 @@ marketflow/
 |
 |
 ├── .vscode/
+|
+├── data/
+│   └── timeframe_data                                  # Tickers fetched data saved CSV files for future use, data saved by Tickers
 │
 ├── deprecated_backup/
 │   ├── backup_info.txt (✓ created)
@@ -356,6 +359,9 @@ marketflow/
 │
 ├── marketflow/                                         # Core Python package
 │   ├── __pycache__
+│   ├── concepts/
+│   │    ├── vpa_concepts.yaml (✓ new)                  # Concepts file to integrate to marketflow_llm_interface.py
+│   │    └── wyckoff_concepts.yaml (✓ new)              # Concepts file to integrate to marketflow_llm_interface.py
 │   ├── examples/
 │   │    └── integration_example.py (✓ new)             # Integration example script
 │   ├── __init__.py
@@ -397,11 +403,16 @@ marketflow/
 │
 ├── scripts/                                            # CLI, app entrypoints, notebooks, demos
 │   ├── __pycache__
-│   ├── marketflow_analysis_llm_interface.py  (✓ new)   # Analysis script and LLM interface generation
+│   ├── ai_studio_code.py  (✓ new)                      # Script to interact with LLM and the Embedded files
+│   ├── app.py  (✓ new)                                 # This script provides the main entry point for the Marketflow application, interact with llm_query_engine
+│   ├── enhanced_app.py  (✓ new)                        # Script to interact with LLM and the Embedded files
+│   ├── enhanced_appv1.py  (✓ new)                      # Script to interact with LLM and the Embedded files
+│   ├── marketflow_analysis_llm_interface.py  (✓ new)   # Script to collect data and pass through llm_interface
 │   ├── marketflow_analysis_snapshot.py  (✓ new)        # Analysis script and Snapshot Interface generation
 │   ├── marketflow_analysis.py  (✓ new)                 # Analysis script
 │   ├── marketflow_batch_report.py  (✓ new)             # Analysis script for a list of tickers
 │   ├── marketflow_integration_example.py               # Integration Example
+│   ├── minimal_rag.py                                  # Script to deploy a RAG development - test
 │   ├── plot_annotated_features.py  (✓ new)             # Plot script
 │   └── marketflow_app.py (TBD)                          # empty
 │
