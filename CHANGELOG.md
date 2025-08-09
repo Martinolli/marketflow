@@ -2,10 +2,11 @@
 
 All notable changes to this project are documented in this file.
 
-    **Version Date = 2025 August 03**
+    **Version Date = 2025 August 09**
 
 | Date       | Revision |
 |------------|----------|
+| 2025-08-09 | v1.18    |
 | 2025-08-03 | v1.17    |
 | 2025-07-28 | v1.16    |
 | 2025-07-20 | v1.15    |
@@ -41,6 +42,53 @@ All notable changes to this project are documented in this file.
 | 2025-07-03 | v1.1     |
 | 2025-07-03 | v1.1     |
 | 2025-07-01 | v1.0     |
+
+---
+
+## [1.18.0]
+
+### Added 18 - 2025-08-09
+
+- Creation Folder `data/timeframe_data` and function `save_timeframe_data` in `marketflow_utils.py`
+    The `save_timeframe_data` routine collect the data in a point in `marketflow_analysis.py` and
+    save the data in the `data/timeframe_data` by TICKER and date to use in the future or in the pipeline
+    to generate charts or calculate technical indicators using the OHLC and volume information.
+
+- Creation of different routines to test interaction with the modules to development of a LLM interface:
+  - `ai_studio_code.py`
+        Prototype Script
+        This script implements an advanced RAG (Retrieval-Augmented Generation) Q&A system
+        that allows users to ask questions about financial concepts, particularly focusing on the Wyckoff method
+        and Volume Price Analysis (VPA) by Anna Coulling. It supports session management,
+        enhanced memory features, and provides source citations in its answers.
+  - `app.py`
+        Prototype Script
+        This script provides the main entry point for the Marketflow application,
+        refactored to work with the updated Marketflow components and configuration system.
+        It uses the merged configuration manager and updated query engine.
+  - `enhanced_app.py`
+        Prototype Script
+        Enhanced MarketFlow Application Interface - Production Ready
+        This enhanced version provides a robust and flexible interface that leverages
+        the full potential of MarketFlow's VPA and Wyckoff analysis capabilities.
+        Key Enhancements:
+        - Advanced response processing with multi-format output
+        - Intelligent query preprocessing and context management
+        - Enhanced error handling with graceful degradation
+        - Rich analysis output with visualization support
+        - Session management with persistent memory
+        - Performance monitoring and optimization
+        - Comprehensive logging and debugging
+  - `enhanced_appv1.py`
+        Prototype Script
+        Similar to the `enhanced_app.py` with few differences.
+  - `minimal_rag.py`
+        Prototype Script
+        Minimal Script RAG only the embeddeds document sources
+        No interaction with the modules
+  - `web_interface.py`
+        Prototype Script
+        Web interface using `markeflow_llm_query_engine.py` module using all capabilities.
 
 ---
 
