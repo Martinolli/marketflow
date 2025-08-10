@@ -27,7 +27,6 @@ from marketflow.marketflow_utils import save_timeframe_data
 # marketflow_analysis.py (add near the end, after saving reports/LLM analysis)
 from marketflow.transient_vector_memory import TransientVectorMemory
 from rag.embedder import embed_batch  # your existing embed; ensure it returns fixed-length list
-from marketflow.marketflow_utils import embed_fn  # use the same embed function
 
 # Ensure the logger is set up correctly
 logger = get_logger("marketflow_analysis")
@@ -70,6 +69,10 @@ def safe_json_dump(data: dict, file_path: str) -> bool:
             logger.error(f"Failed to save even simplified data: {fallback_error}")
             return False
         
+def embed_fn(text):
+    # The model name must match your embedding dimension (1536 for text-embedding-3-small)
+    return embed_batch([text], model="text-embedding-3-small")[0]
+
 def run_analysis(ticker, output_dir="data", timeframes=None):
     """Run market analysis for a given ticker symbol.
 
@@ -158,6 +161,11 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     run_id = datetime.now().strftime("%Y%m%d_%H%M%S")
     namespace = f"session:joao:{run_id}:{sanitize_filename(ticker)}"
     logger.info(f"Creating TVM namespace for {ticker}: {namespace}")
+
+    ns_file = os.path.join(output_dir, ".tvm_namespace")
+    with open(ns_file, "w", encoding="utf-8") as f:
+        f.write(namespace)
+
 
     # Build a concise narrative from extractor or report content
     narrative_path = os.path.join(output_dir, f"{sanitize_filename(ticker)}_summary.txt")
