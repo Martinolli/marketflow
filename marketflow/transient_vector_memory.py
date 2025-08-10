@@ -30,6 +30,7 @@ class TVMStore:
         self.logger.debug(f"Adding {len(vecs)} vectors to TVM namespace: {ns}")
         index.add(vecs.astype(np.float32))
         metas_list.extend(metas)
+        self.logger.info(f"Added {len(vecs)} vectors to TVM namespace: {ns}")
 
     def search(self, ns: str, qvec: np.ndarray, top_k: int):
         if ns not in self.index_by_ns or self.index_by_ns[ns].ntotal == 0:
@@ -44,6 +45,7 @@ class TVMStore:
             m = dict(m)
             m["cosine"] = float(score)
             out.append(m)
+        self.logger.info(f"Search results for TVM namespace: {ns}, found {len(out)} entries")
         return out
 
     def prune_older_than(self, ns: str, cutoff_ts: int):
