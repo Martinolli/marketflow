@@ -40,11 +40,16 @@ def load_chunks(path: Path) -> List[Dict]:
     logger.info(f"Loading chunks from {path}")
     if not path.exists():
         raise FileNotFoundError(f"Chunks file {path} does not exist.")
-    print(f"📄 Loading chunks from {path}")
     with open(path, "r", encoding="utf-8") as f:
-        return json.load(f)
+        chunks = json.load(f)
     logger.info(f"Loaded {len(chunks)} chunks from {path}")
-    print(f"📄 Loaded {len(chunks)} chunks from {path}")
+    return chunks
+
+def embed_text(text: str, model: str = DEFAULT_MODEL) -> List[float]:
+    vec = embed_batch([text], model=model)[0]
+    if vec is None:
+        raise RuntimeError("Embedding failed (None returned).")
+    return vec
 
 def embed_batch(batch_texts: List[str], model: str) -> List[List[float]]:
     """Embeds a batch of texts using the OpenAI API."""
