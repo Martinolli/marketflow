@@ -10,8 +10,6 @@ import openai
 import pandas as pd
 from datetime import datetime
 
-from rag.embedder_vector_db import embed_batch
-
 def get_project_root() -> Path:
     """Get the project root directory by locating the '.marketflow' marker."""
     current_path = Path(__file__).resolve()
@@ -24,9 +22,6 @@ def get_project_root() -> Path:
 def sanitize_filename(filename):
     return re.sub(r'[<>:"/\\|?*]', '_', filename)
 
-def embed_fn(text):
-    # The model name must match your embedding dimension (1536 for text-embedding-3-small)
-    return embed_batch([text], model="text-embedding-3-small")[0]
 
 def query_llm(prompt: str, model: str = "gpt-4.1", temperature: float = 0.8, system_message: str = "You are a helpful assistant.") -> str:
     """
