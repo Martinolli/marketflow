@@ -26,7 +26,7 @@ from marketflow.marketflow_utils import save_timeframe_data
 
 # marketflow_analysis.py (add near the end, after saving reports/LLM analysis)
 from marketflow.transient_vector_memory import TransientVectorMemory
-from rag.embedder import embed_batch  # your existing embed; ensure it returns fixed-length list
+from rag.embedder import embed_text  # your existing embed; ensure it returns fixed-length list
 
 # Ensure the logger is set up correctly
 logger = get_logger("marketflow_analysis")
@@ -69,9 +69,59 @@ def safe_json_dump(data: dict, file_path: str) -> bool:
             logger.error(f"Failed to save even simplified data: {fallback_error}")
             return False
         
-def embed_fn(text):
-    # The model name must match your embedding dimension (1536 for text-embedding-3-small)
-    return embed_batch([text], model="text-embedding-3-small")[0]
+def embed_fn(text: str):
+    return embed_text(text)  # 1536-dim for text-embedding-3-small
+
+# --- add this helper near your imports ---
+from pathlib import Path
+import json
+
+def build_narrative(output_dir: str, ticker: str, extractor=None) -> str:
+    # 1) Try the summary TXT
+    p_txt = Path(output_dir) / f"{sanitize_filename(ticker)}_summary.txt"
+    if p_txt.exists():
+        txt = p_txt.read_text(encoding="utf-8").strip()
+        if isinstance(txt, str) and txt and txt.lower() not in ("true", "false", "null"):
+            return txt
+
+    # 2) Try LLM analysis JSON
+    p_llm = Path(output_dir) / f"{sanitize_filename(ticker)}_llm_analysis.json"
+    if p_llm.exists():
+        try:
+            data = json.loads(p_llm.read_text(encoding="utf-8"))
+            # common keys you might have saved
+            for key in ("narrative", "summary", "analysis_text", "final_text"):
+                val = data.get(key)
+                if isinstance(val, str) and val.strip():
+                    return val.strip()
+        except Exception:
+            pass
+
+    # 3) Try extractor (string or dict)
+    if extractor is not None:
+        try:
+            s = extractor.get_summary_for_ticker(ticker)
+            if isinstance(s, str) and s.strip():
+                return s.strip()
+            if isinstance(s, dict):
+                parts = []
+                for k in ("instrument", "timeframe", "date_range", "notes"):
+                    v = s.get(k)
+                    if isinstance(v, str) and v.strip():
+                        parts.append(v.strip())
+                # include events/signals if present
+                for k in ("wyckoff_events", "signals", "highlights"):
+                    v = s.get(k)
+                    if isinstance(v, list) and v:
+                        parts.append(" | ".join(map(str, v[:10])))
+                if parts:
+                    return " — ".join(parts)
+        except Exception:
+            pass
+
+    # 4) Last-resort fallback to something at least textual
+    return f"{ticker}: Analysis completed. See JSON/CSV reports for details."
+
 
 def run_analysis(ticker, output_dir="data", timeframes=None):
     """Run market analysis for a given ticker symbol.
@@ -109,14 +159,14 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     extractor = MarketflowResultExtractor({ticker: results})
     logger.info("Extracting data from results...")
     config = create_app_config()
-    report_dir = config.REPORT_DIR
-    output_dir = f"{report_dir}/{current_date}/{sanitize_filename(ticker)}"
+    report_root = output_dir or config.REPORT_DIR  # prefer CLI arg
+    output_dir = f"{report_root}/{current_date}/{sanitize_filename(ticker)}"
     logger.info(f"Report directory: {output_dir}")
     report = MarketflowReport(extractor, output_dir=output_dir)
     logger.info("Creating report...")
     success = report.generate_all_reports_for_ticker(ticker)
     if success:
-        logger.info(f"Summary report created successfully in {report_dir}")
+        logger.info(f"Summary report created successfully in {report_root}")
     else:
         logger.error("Report creation failed.")
     logger.info("MarketflowFacade real data test completed successfully.")
@@ -168,16 +218,16 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
 
 
     # Build a concise narrative from extractor or report content
-    narrative_path = os.path.join(output_dir, f"{sanitize_filename(ticker)}_summary.txt")
+    narrative = build_narrative(output_dir, ticker, extractor)
     logger.info(f"Building narrative for {ticker}...")
-    if os.path.exists(narrative_path):
-        with open(narrative_path, "r", encoding="utf-8") as f:
-            narrative = f.read()
-    else:
-        narrative = json.dumps(report.create_summary_report(ticker), ensure_ascii=False, indent=2)
+    # sanity check (avoid tiny/boolean-like content)
+    if not isinstance(narrative, str) or len(narrative.split()) < 15:
+        logger.warning("Narrative too short/invalid; falling back to generic text.")
+        narrative = f"{ticker}: Analysis summary unavailable; fallback narrative."
 
     # init TVM (dim must match your embedding model)
     tvm = TransientVectorMemory(embed_fn=embed_fn, dim=1536, ttl_seconds=24*3600)
+
     if not tvm:
         logger.error(f"Failed to create TVM for {ticker}.")
     tvm.upsert_text(
@@ -186,17 +236,11 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
         text=narrative,
         meta={"source": "marketflow_facade", "ticker": ticker}
     )
+
+    tvm_dir = os.path.join(output_dir, ".tvm_store")
+    tvm.save_namespace(namespace, tvm_dir)
+
     logger.info(f"Upserted narrative for {ticker} into TVM under namespace {namespace}")
-
-    # OPTIONAL: also upsert llm_interface narrative if useful
-    llm_json_path = os.path.join(output_dir, f"{sanitize_filename(ticker)}_llm_analysis.json")
-    logger.info(f"Checking for LLM analysis file at {llm_json_path}...")
-    if os.path.exists(llm_json_path):
-        with open(llm_json_path, "r", encoding="utf-8") as f:
-            tvm.upsert_text(namespace, f"{sanitize_filename(ticker)}_{run_id}_llm",
-                            text=f.read(), meta={"source": "llm_interface", "ticker": ticker})
-            logger.info(f"Upserted LLM analysis for {ticker} into TVM under namespace {namespace}")
-
             
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Marketflow analysis for a ticker.")
