@@ -2,8 +2,10 @@
 from __future__ import annotations
 from typing import Dict, Any, List, Optional
 import time, uuid, hashlib
+import json, os
 import faiss
 import numpy as np
+import re
 
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
@@ -90,8 +92,11 @@ class TransientVectorMemory:
         chunks = self._chunk(text)
         metas, vecs = [], []
         now = self._now()
+
         for ch in chunks:
             v = self.embed_fn(ch)  # -> List[float] length == dim
+            if len(v) != self.dim:
+                raise ValueError(f"Embedding dim {len(v)} != expected {self.dim}")
             metas.append({
                 "chunk_id": str(uuid.uuid4()),
                 "namespace": namespace,
@@ -122,3 +127,45 @@ class TransientVectorMemory:
             h["score"] = 0.70*h["cosine"] + 0.30*recency(h.get("created_at", now))
             self.logger.debug(f"Hit: {h}")
         return sorted(hits, key=lambda x: x["score"], reverse=True)[:top_k]
+    
+    import re, json, os, numpy as np, faiss
+
+    def _ns_to_filename(self, namespace: str) -> str:
+        # keep the in-memory namespace as-is; only sanitize the filename
+        # allow [A-Za-z0-9_.-]; replace others with '_'
+        return re.sub(r'[^A-Za-z0-9_.-]+', '_', namespace)
+
+    def save_namespace(self, namespace: str, dirpath: str):
+        os.makedirs(dirpath, exist_ok=True)
+        fname = self._ns_to_filename(namespace)
+        idx_path = os.path.join(dirpath, f"{fname}.faiss")
+        meta_path = os.path.join(dirpath, f"{fname}.meta.json")
+
+        index, metas = self.store._get_or_create(namespace)
+        faiss.write_index(index, idx_path)
+
+        serializable = []
+        for m in metas:
+            c = dict(m)
+            # ensure contiguous float32 vectors
+            c["vector"] = np.ascontiguousarray(c["vector"], dtype=np.float32).tolist()
+            serializable.append(c)
+
+        with open(meta_path, "w", encoding="utf-8") as f:
+            json.dump(serializable, f, ensure_ascii=False)
+
+    def load_namespace(self, namespace: str, dirpath: str) -> bool:
+        fname = self._ns_to_filename(namespace)
+        idx_path = os.path.join(dirpath, f"{fname}.faiss")
+        meta_path = os.path.join(dirpath, f"{fname}.meta.json")
+        if not (os.path.exists(idx_path) and os.path.exists(meta_path)):
+            return False
+
+        index = faiss.read_index(idx_path)
+        with open(meta_path, "r", encoding="utf-8") as f:
+            metas = json.load(f)
+        for m in metas:
+            m["vector"] = np.ascontiguousarray(np.array(m["vector"], dtype=np.float32))
+        self.store.index_by_ns[namespace] = index
+        self.store.meta_by_ns[namespace] = metas
+        return True
