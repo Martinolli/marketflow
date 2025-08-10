@@ -110,22 +110,22 @@ class EnhancedRAGQA:
             self.memory_manager.add_system_message(system_prompt)
         self.logger.info("System prompt set in memory.")
 
+    import os, glob
+
     def _load_latest_tvm_namespace(self):
         """Finds and loads the most recent TVM namespace file created by the analysis script."""
         report_root = self.config_manager.REPORT_DIR
-        # Search for the marker file recursively
         candidates = glob.glob(os.path.join(report_root, "**", ".tvm_namespace"), recursive=True)
         if candidates:
             latest_ns_file = max(candidates, key=os.path.getmtime)
             with open(latest_ns_file, "r", encoding="utf-8") as f:
-                self.namespace = f.read().strip()
-            
-            # Extract the ticker from the namespace string (e.g., "session:joao:20231121_143000:AAPL")
-            try:
-                self.namespace_ticker = self.namespace.split(':')[-1]
-                self.logger.info(f"Successfully loaded latest TVM namespace '{self.namespace}' for ticker '{self.namespace_ticker}'")
-            except IndexError:
-                self.logger.error(f"Could not extract ticker from namespace: {self.namespace}")
+                ns = f.read().strip()
+                self.namespace = ns
+                try:
+                    self.namespace_ticker = ns.split(":")[-1]
+                except IndexError:
+                    self.namespace_ticker = None
+                self.logger.info(f"Loaded TVM namespace '{self.namespace}' for ticker '{self.namespace_ticker}'.")
         else:
             self.logger.warning("No .tvm_namespace file found. Recent analysis retrieval will be disabled.")
 
