@@ -2,7 +2,6 @@
 from __future__ import annotations
 from typing import Dict, Any, List, Optional
 import time, uuid, hashlib
-from chromadb import logger
 import faiss
 import numpy as np
 
