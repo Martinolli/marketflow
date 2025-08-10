@@ -9,10 +9,12 @@ enhanced memory features, and provides source citations in its answers.
 """
 
 # Initialize OpenAI API key
+from pydoc import text
 import openai
 import datetime
 import uuid
 from typing import List, Dict, Any
+import glob, os
 
 from sympy import limit
 
@@ -22,7 +24,8 @@ from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_memory_manager import MemoryManager
 from marketflow.transient_vector_memory import TransientVectorMemory
-from marketflow.marketflow_utils import embed_fn  # use the same embed function
+from rag.embedder import embed_batch
+from scripts.marketflow_analysis import embed_fn  # your existing embed; ensure it returns fixed-length list
 
 # --- Mock Retriever Function (for demonstration) ---
 # This function simulates the retriever returning chunks with source metadata.
@@ -93,10 +96,16 @@ class EnhancedRAGQA:
         self.tvm = TransientVectorMemory(embed_fn=embed_fn, dim=1536, ttl_seconds=24*3600)
         self.logger.info("Initialized Transient Vector Memory (TVM) for session.")
         self.namespace = f"session:{self.session_id}"
-        self.logger.info(f"Using TVM namespace: {self.namespace}")
 
-    def fuse_chunks(static_chunks, tvm_hits, top_k=6):
-        # normalize to a common shape: {"text":..., "metadata": {...}, "score":...}
+        report_root = self.config_manager.REPORT_DIR
+        candidates = glob.glob(os.path.join(report_root, "**", ".tvm_namespace"), recursive=True)
+        if candidates:
+            latest = max(candidates, key=os.path.getmtime)
+            with open(latest, "r", encoding="utf-8") as f:
+                self.namespace = f.read().strip()
+            self.logger.info(f"Loaded TVM namespace: {self.namespace}")
+
+    def fuse_chunks(self, static_chunks, tvm_hits, top_k=6):
         a = [{"text": c["text"], "metadata": c.get("metadata", {}), "score": 0.6} for c in static_chunks]
         b = [{"text": h["text"], "metadata": {"source": h.get("source","TVM"), "ticker": h.get("ticker")},
             "score": h.get("score", 0.5)} for h in tvm_hits]
@@ -104,7 +113,21 @@ class EnhancedRAGQA:
         merged.sort(key=lambda x: x["score"], reverse=True)
         return merged[:top_k]
 
+    def embed_fn(self, text):
+        # 1536-dim for text-embedding-3-small
+        return embed_batch([text], model="text-embedding-3-small")[0]
 
+    def dedupe_chunks(self, chunks):
+        seen, out = set(), []
+        for c in chunks:
+            meta = c.get("metadata", {})
+            key = (meta.get("source"), meta.get("page"), hash(c.get("text","")))
+            if key in seen: 
+                continue
+            seen.add(key)
+            out.append(c)
+        return out
+    
     def get_recent_history(self, n=5) -> str:
         """Get the last n messages from memory and concatenate them for context.
         Args:
@@ -171,7 +194,7 @@ class EnhancedRAGQA:
         # Point 3: RAG Improvements - Assumes retriever returns metadata.
 
         # 1) Static retrieval
-        top_static = chroma_retrieve_top_chunks(question, top_k=6)
+        top_static = self.dedupe_chunks(chroma_retrieve_top_chunks(question, top_k=12))
 
         # 2) Transient retrieval (from session namespace)
         tvm_hits = self.tvm.query(self.namespace, question, top_k=6)
