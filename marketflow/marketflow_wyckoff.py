@@ -92,10 +92,10 @@ class WyckoffAnalyzer:
         self.logger.info("Running full Wyckoff analysis.")
         try:
             events = self.detect_events()
-            self.logger.info(f"Detected {len(events)} Wyckoff events.")
+            self.logger.debug(f"Detected {len(events)} Wyckoff events.")
             phases = self.detect_phases()
-            self.logger.info(f"Detected {len(phases)} Wyckoff phases.")
-            self.logger.info(f"Identified {len(self.trading_ranges)} trading ranges.")
+            self.logger.debug(f"Detected {len(phases)} Wyckoff phases.")
+            self.logger.debug(f"Identified {len(self.trading_ranges)} trading ranges.")
             return phases, events, self.trading_ranges
         except Exception as e:
             self.logger.error(f"Error during Wyckoff analysis: {e}", exc_info=True)
@@ -280,7 +280,7 @@ class WyckoffAnalyzer:
                             add_event(WyckoffEvent.AR, ar_idx)
                             last_reaction_idx = ar_idx
                             trading_range = {'support': df['low'].iloc[last_climax_idx], 'resistance': df['high'].iloc[ar_idx]}
-                            self.logger.info(f"Accumulation TR defined. Support: {trading_range['support']:.2f}, Resistance: {trading_range['resistance']:.2f}")
+                            self.logger.debug(f"Accumulation TR defined. Support: {trading_range['support']:.2f}, Resistance: {trading_range['resistance']:.2f}")
                 
                 elif market_context == MarketContext.DISTRIBUTION:
                     potential_ar_lows = [l for l in swing_lows if l > df.index[last_climax_idx]]
@@ -291,8 +291,8 @@ class WyckoffAnalyzer:
                             add_event(WyckoffEvent.AUTO_REACTION, ar_idx)
                             last_reaction_idx = ar_idx
                             trading_range = {'support': df['low'].iloc[ar_idx], 'resistance': df['high'].iloc[last_climax_idx]}
-                            self.logger.info(f"Distribution TR defined. Support: {trading_range['support']:.2f}, Resistance: {trading_range['resistance']:.2f}")
-                
+                            self.logger.debug(f"Distribution TR defined. Support: {trading_range['support']:.2f}, Resistance: {trading_range['resistance']:.2f}")
+
                 if trading_range: # If a TR was just defined
                     tr_full = trading_range.copy()
                     tr_full.update({
@@ -375,7 +375,7 @@ class WyckoffAnalyzer:
                     trading_range = None; last_reaction_idx = None; last_climax_idx = None
         self.events = sorted(events, key=lambda x: x['timestamp'])
         print(f"Detected {len(self.events)} Wyckoff events.")
-        self.logger.info(f"Detected {len(self.events)} Wyckoff events.")
+        self.logger.debug(f"Detected {len(self.events)} Wyckoff events.")
         return self.events
     
     def detect_phases(self) -> List[Dict[str, Any]]: 
