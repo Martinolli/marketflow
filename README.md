@@ -379,7 +379,7 @@ marketflow/
 │   ├── marketflow_polygon_tools.py (new)               # Polygon Tools Requesting Code
 │   ├── marketflow_processor.py  (✓ new)                # Data processing/cleaning
 │   ├── marketflow_report.py  (✓ new)                   # Report generation
-│   ├── marketflow_result_extractor.py  (✓ new)         # Extractor Data from Facade
+│   ├── marketflow_results_extractor.py  (✓ new)         # Extractor Data from Facade
 │   ├── marketflow_signals.py   (✓ new)                 # Signal detection algorithms
 │   ├── marketflow_snapshot.py   (✓ new)                # This module provides advanced functionality for capturing, storing, and retrieving MarketFlow
 │   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
