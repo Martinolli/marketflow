@@ -21,6 +21,8 @@ from rag.retriever import chroma_retrieve_top_chunks
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_memory_manager import MemoryManager
+from marketflow.transient_vector_memory import TransientVectorMemory
+from marketflow.marketflow_utils import embed_fn  # use the same embed function
 
 # --- Mock Retriever Function (for demonstration) ---
 # This function simulates the retriever returning chunks with source metadata.
@@ -88,6 +90,21 @@ class EnhancedRAGQA:
             self.memory_manager.add_system_message(system_prompt)
         self.logger.info("System prompt added to memory.")
 
+        self.tvm = TransientVectorMemory(embed_fn=embed_fn, dim=1536, ttl_seconds=24*3600)
+        self.logger.info("Initialized Transient Vector Memory (TVM) for session.")
+        self.namespace = f"session:{self.session_id}"
+        self.logger.info(f"Using TVM namespace: {self.namespace}")
+
+    def fuse_chunks(static_chunks, tvm_hits, top_k=6):
+        # normalize to a common shape: {"text":..., "metadata": {...}, "score":...}
+        a = [{"text": c["text"], "metadata": c.get("metadata", {}), "score": 0.6} for c in static_chunks]
+        b = [{"text": h["text"], "metadata": {"source": h.get("source","TVM"), "ticker": h.get("ticker")},
+            "score": h.get("score", 0.5)} for h in tvm_hits]
+        merged = a + b
+        merged.sort(key=lambda x: x["score"], reverse=True)
+        return merged[:top_k]
+
+
     def get_recent_history(self, n=5) -> str:
         """Get the last n messages from memory and concatenate them for context.
         Args:
@@ -152,7 +169,16 @@ class EnhancedRAGQA:
         
         # 1. Retrieve
         # Point 3: RAG Improvements - Assumes retriever returns metadata.
-        top_chunks = chroma_retrieve_top_chunks(question, top_k=6)
+
+        # 1) Static retrieval
+        top_static = chroma_retrieve_top_chunks(question, top_k=6)
+
+        # 2) Transient retrieval (from session namespace)
+        tvm_hits = self.tvm.query(self.namespace, question, top_k=6)
+
+        # 3) Fuse
+        top_chunks = self.fuse_chunks(top_static, tvm_hits, top_k=6)
+        
         if not top_chunks:
             self.logger.warning("No relevant chunks found.")
             return "Sorry, I couldn't find any relevant information in the knowledge base to answer your question."
