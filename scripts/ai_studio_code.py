@@ -43,8 +43,6 @@ def mock_chroma_retrieve_top_chunks(query: str, top_k: int = 3) -> List[Dict[str
         }
     ]
 # --- End Mock ---
-
-
 class EnhancedRAGQA:
     """
     An enhanced RAG Q&A system that supports sessions, uses advanced memory features,
@@ -90,7 +88,7 @@ class EnhancedRAGQA:
             self.memory_manager.add_system_message(system_prompt)
         self.logger.info("System prompt added to memory.")
 
-    def get_recent_history(self, n=5):
+    def get_recent_history(self, n=5) -> str:
         """Get the last n messages from memory and concatenate them for context.
         Args:
             memory_manager (MemoryManager): The memory manager instance.
