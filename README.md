@@ -375,7 +375,7 @@ marketflow/
 │   ├── marketflow_llm_narrative.py  (✓ new)            # Refactor llm_interface to reduce the code size, the narrative for llm_interface
 │   ├── marketflow_llm_query_engine.py  (✓ new)         # Handles all LLM-driven query processing for MarketFlow with robust architecture.
 │   ├── marketflow_logger.py (✓ replaced)               # Centralized logging
-│   ├── marketflow_memory_manager.py (TBD)              # Conversation/session memory for LLMs
+│   ├── marketflow_memory_manager.py ✓ new)             # Conversation/session memory for LLMs
 │   ├── marketflow_polygon_tools.py (new)               # Polygon Tools Requesting Code
 │   ├── marketflow_processor.py  (✓ new)                # Data processing/cleaning
 │   ├── marketflow_report.py  (✓ new)                   # Report generation
