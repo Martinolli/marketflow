@@ -176,7 +176,12 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     # Create a LLM interface for further analysis
     try:
         llm_interface = MarketflowLLMInterface()
-        llm_interface_analysis = llm_interface.get_ticker_analysis(ticker)
+        # Reuse the already computed 'results' to avoid a second analysis/data fetch.
+        llm_interface_analysis = llm_interface.get_ticker_analysis(
+            ticker,
+            analysis=results,
+            timeframes=timeframes
+        )
         if llm_interface_analysis:
             logger.info(f"LLM analysis for {ticker} retrieved successfully.")
         else:
