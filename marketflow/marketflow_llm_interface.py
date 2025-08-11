@@ -7,6 +7,7 @@ to interact with the advanced VPA and Wyckoff analysis engine.
 
 import re
 import yaml
+from typing import Optional, List
 from marketflow.marketflow_facade import MarketflowFacade
 from marketflow.marketflow_wyckoff import WyckoffEvent, WyckoffPhase
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
@@ -114,7 +115,12 @@ class MarketflowLLMInterface:
         self.logger.warning(f"Concept '{concept_name}' not found.")
         return f"Concept '{concept_name}' not found."
 
-    def get_ticker_analysis(self, ticker: str) -> dict:
+    def get_ticker_analysis(
+        self,
+        ticker: str,
+        analysis: Optional[dict] = None,
+        timeframes: Optional[List[str]] = None
+    ) -> dict:
         """
         Get a complete, synthesized analysis for a ticker in a rich format for an LLM.
         Args:
@@ -124,7 +130,15 @@ class MarketflowLLMInterface:
         """
         self.logger.info(f"Starting ticker analysis for: {ticker}")
         try:
-            analysis = self.marketflow.analyze_ticker(ticker)
+            # Reuse precomputed analysis if provided, else compute it here.
+            if analysis is None:
+                if timeframes:
+                    self.logger.info(f"No precomputed analysis provided; analyzing {ticker} with timeframes: {timeframes}")
+                    analysis = self.marketflow.analyze_ticker(ticker, timeframes=timeframes)
+                else:
+                    self.logger.info(f"No precomputed analysis provided; analyzing {ticker} with default timeframes.")
+                    analysis = self.marketflow.analyze_ticker(ticker)
+
             if "error" in analysis:
                 self.logger.error(f"Analysis error for {ticker}: {analysis['error']}")
                 return analysis
