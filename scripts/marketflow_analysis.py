@@ -12,6 +12,7 @@ Use:
 """
 import argparse
 import os
+from pathlib import Path
 import json
 from datetime import datetime
 from enum import Enum
@@ -23,10 +24,8 @@ from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_utils import sanitize_filename
 from marketflow.marketflow_utils import save_timeframe_data
-
-# marketflow_analysis.py (add near the end, after saving reports/LLM analysis)
 from marketflow.transient_vector_memory import TransientVectorMemory
-from rag.embedder import embed_text  # your existing embed; ensure it returns fixed-length list
+from rag.embedder import embed_text
 
 # Ensure the logger is set up correctly
 logger = get_logger("marketflow_analysis")
@@ -38,11 +37,11 @@ class CustomJSONEncoder(json.JSONEncoder):
     def default(self, obj):
         if isinstance(obj, Enum):
             return obj.value
-        # Add other custom type handling as needed
+        if isinstance(obj, set):
+            return list(obj)
         try:
             return super().default(obj)
         except TypeError:
-            # Convert non-serializable objects to string representation
             return str(obj)
 
 def safe_json_dump(data: dict, file_path: str) -> bool:
@@ -53,7 +52,6 @@ def safe_json_dump(data: dict, file_path: str) -> bool:
         return True
     except Exception as e:
         logger.error(f"Failed to save JSON to {file_path}: {e}")
-        # Try to save a simplified version
         try:
             simplified_data = {
                 "error": "Original data could not be serialized",
@@ -71,10 +69,6 @@ def safe_json_dump(data: dict, file_path: str) -> bool:
         
 def embed_fn(text: str):
     return embed_text(text)  # 1536-dim for text-embedding-3-small
-
-# --- add this helper near your imports ---
-from pathlib import Path
-import json
 
 def build_narrative(output_dir: str, ticker: str, extractor=None) -> str:
     # 1) Try the summary TXT
@@ -159,7 +153,7 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     extractor = MarketflowResultExtractor({ticker: results})
     logger.info("Extracting data from results...")
     config = create_app_config()
-    report_root = output_dir or config.REPORT_DIR  # prefer CLI arg
+    report_root = output_dir or config.REPORT_DIR
     output_dir = f"{report_root}/{current_date}/{sanitize_filename(ticker)}"
     logger.info(f"Report directory: {output_dir}")
     report = MarketflowReport(extractor, output_dir=output_dir)
