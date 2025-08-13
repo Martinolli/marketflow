@@ -116,6 +116,144 @@ def build_narrative(output_dir: str, ticker: str, extractor=None) -> str:
     # 4) Last-resort fallback to something at least textual
     return f"{ticker}: Analysis completed. See JSON/CSV reports for details."
 
+def _compose_richer_narrative(
+    ticker: str,
+    llm_analysis: dict,
+    extractor: MarketflowResultExtractor | None,
+    results: dict | None
+) -> str:
+    """Build a richer narrative using extractor methods with safe fallbacks."""
+    parts: list[str] = [f"{ticker} analysis"]
+
+    if extractor:
+        # Price
+        try:
+            cp = extractor.get_current_price(ticker)
+            if isinstance(cp, (int, float)) and cp > 0:
+                parts.append(f"price {cp}")
+        except Exception:
+            pass
+
+        # Signal
+        try:
+            sig = extractor.get_signal(ticker) or {}
+            stype = sig.get("type") or sig.get("signal_type")
+            sstrength = sig.get("strength") or sig.get("score")
+            if stype or sstrength:
+                parts.append(f"signal={stype or 'NA'} strength={sstrength or 'NA'}")
+        except Exception:
+            pass
+
+        # Risk assessment
+        try:
+            ra = extractor.get_risk_assessment(ticker) or {}
+            sl = ra.get("stop_loss"); tp = ra.get("take_profit"); rr = ra.get("risk_reward_ratio")
+            if any(v is not None for v in (sl, tp, rr)):
+                parts.append(
+                    "risk:"
+                    f" SL={sl if sl is not None else 'NA'}"
+                    f" TP={tp if tp is not None else 'NA'}"
+                    f" RR={rr if rr is not None else 'NA'}"
+                )
+        except Exception:
+            pass
+
+        # Timeframes summary: trend, S/R, Wyckoff events
+        tf_summary = []
+        try:
+            tfs = extractor.get_timeframes(ticker) or []
+            preferred = ["1d", "4h", "1h", "15m"]
+            ordered = [tf for tf in preferred if tf in tfs] + [tf for tf in tfs if tf not in preferred]
+            for tf in ordered[:4]:
+                # Trend
+                trend_dir = slope = conf = None
+                try:
+                    trend = extractor.get_trend_analysis(ticker, tf) or {}
+                    trend_dir = trend.get("trend_direction") or trend.get("direction") or trend.get("trend")
+                    slope = trend.get("slope")
+                    conf = trend.get("confidence") or trend.get("score")
+                except Exception:
+                    pass
+
+                # Support/Resistance nearest
+                s_lvl = r_lvl = None
+                try:
+                    sr = extractor.get_support_resistance(ticker, tf) or {}
+                    s_levels = sr.get("support") or []
+                    r_levels = sr.get("resistance") or []
+                    if s_levels:
+                        s0 = s_levels[0]
+                        s_lvl = (s0.get("price") or s0.get("level") or s0.get("value")) if isinstance(s0, dict) else s0
+                    if r_levels:
+                        r0 = r_levels[0]
+                        r_lvl = (r0.get("price") or r0.get("level") or r0.get("value")) if isinstance(r0, dict) else r0
+                except Exception:
+                    pass
+
+                # Wyckoff events (top 2)
+                wy_tags = []
+                try:
+                    wy = extractor.get_wyckoff_events(ticker, tf)
+                    if isinstance(wy, list) and wy:
+                        wy_tags = [e.get("label") if isinstance(e, dict) else str(e) for e in wy[:2]]
+                except Exception:
+                    pass
+
+                seg = f"{tf}:trend={trend_dir or 'NA'}"
+                if slope is not None:
+                    seg += f" slope={slope}"
+                if conf is not None:
+                    seg += f" conf={conf}"
+                if (s_lvl is not None) or (r_lvl is not None):
+                    seg += f" S={s_lvl if s_lvl is not None else 'NA'} R={r_lvl if r_lvl is not None else 'NA'}"
+                if wy_tags:
+                    seg += f" wy={','.join(wy_tags)}"
+                tf_summary.append(seg)
+        except Exception:
+            pass
+        if tf_summary:
+            parts.append(" | ".join(tf_summary))
+
+        # Pattern highlights (from the most relevant TF if available)
+        try:
+            first_tf = ordered[0] if 'ordered' in locals() and ordered else None
+            if first_tf:
+                patt = extractor.get_pattern_analysis(ticker, first_tf) or {}
+                active = patt.get("active") or patt.get("detected") or []
+                if isinstance(active, list) and active:
+                    names = []
+                    for x in active[:5]:
+                        if isinstance(x, dict):
+                            names.append(str(x.get("name") or x.get("type") or x))
+                        else:
+                            names.append(str(x))
+                    if names:
+                        parts.append("patterns=" + ",".join(names))
+        except Exception:
+            pass
+
+    # Fallback: enrich with LLM analysis if still too short
+    if llm_analysis and len(" ".join(parts).split()) < 20:
+        try:
+            sig = llm_analysis.get("vpa_signal", {}) or {}
+            stype = sig.get("type"); sstrength = sig.get("strength")
+            if stype or sstrength:
+                parts.append(f"llm_signal={stype or 'NA'} {sstrength or ''}".strip())
+            tf = llm_analysis.get("timeframe_data", {}) or {}
+            d1 = tf.get("1d", {}) or {}
+            trend = (d1.get("trend") or {}).get("trend_direction")
+            if trend:
+                parts.append(f"llm_1d_trend={trend}")
+        except Exception:
+            pass
+
+    # Timestamp and dedup
+    parts.append(f"ts={datetime.now().strftime('%Y-%m-%d %H:%M')}")
+    seen, ordered_parts = set(), []
+    for p in parts:
+        if p and p not in seen:
+            ordered_parts.append(p); seen.add(p)
+    return " | ".join(ordered_parts)
 
 def run_analysis(ticker, output_dir="data", timeframes=None):
     """Run market analysis for a given ticker symbol.
@@ -153,7 +291,7 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     extractor = MarketflowResultExtractor({ticker: results})
     logger.info("Extracting data from results...")
     config = create_app_config()
-    report_root = output_dir or config.REPORT_DIR
+    report_root = config.REPORT_DIR
     output_dir = f"{report_root}/{current_date}/{sanitize_filename(ticker)}"
     logger.info(f"Report directory: {output_dir}")
     report = MarketflowReport(extractor, output_dir=output_dir)
@@ -221,8 +359,12 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
     logger.info(f"Building narrative for {ticker}...")
     # sanity check (avoid tiny/boolean-like content)
     if not isinstance(narrative, str) or len(narrative.split()) < 15:
-        logger.warning("Narrative too short/invalid; falling back to generic text.")
-        narrative = f"{ticker}: Analysis summary unavailable; fallback narrative."
+        logger.warning("Narrative too short/invalid; constructing richer fallback.")
+        narrative = _compose_richer_narrative(ticker, llm_interface_analysis, extractor, results)
+        logger.info(f"Richer narrative for {ticker}: {narrative}")
+
+    if len(narrative.split()) < 8:
+        narrative = f"{ticker}: Analysis summary unavailable; minimal fallback narrative."
 
     # init TVM (dim must match your embedding model)
     tvm = TransientVectorMemory(embed_fn=embed_fn, dim=1536, ttl_seconds=24*3600)

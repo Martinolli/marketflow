@@ -91,11 +91,8 @@ def run_batch_analysis(tickers, output_dir=".marketflow/batch_reports_data", tim
 
     for ticker in tickers:
         print(f"Analyzing {ticker}...")
-        
-        config = create_app_config()
-        report_dir = config.REPORT_DIR 
-        analysis_dir = f"{report_dir}/{current_date}/{sanitize_filename(ticker)}"
-        run_analysis(ticker, analysis_dir) 
+
+        run_analysis(ticker) 
         logger.info(f"Analysis for {ticker} completed.")
 
         # Construct the path to the LLM analysis result file
@@ -156,6 +153,59 @@ if __name__ == "__main__":
     args = parser.parse_args()
     
     # You can load tickers from a file, user input, or define here:
-    tickers = ["AMD", "TSLA", "NVDA", "AAPL", "PLTR", "MSFT", "AMZN", "SHOP"]
+    tickers = [
+        "IMA",
+        "VWAV",
+        "PFSA",
+        "AIM",
+        "VAPE",
+        "MGRT",
+        "GIBO",
+        "ALBT",
+        "CREV",
+        "CASK",
+        "CELC",
+        "SIDU",
+        "HCTI",
+        "LIDR",
+        "SDM",
+        "RMSG",
+        "GTI",
+        "SMX",
+        "ATNF",
+        "CRVO",
+        "NVNI",
+        "LGCL",
+        "YYGH",
+        "ABP",
+        "UPLD",
+        "BINI",
+        "LMFA",
+        "CLDI",
+        "MPU",
+        "GIBO",
+        "ALBT",
+        "CREV",
+        "CASK",
+        "CELC",
+        "SIDU",
+        "HCTI",
+        "LIDR",
+        "SDM",
+        "RMSG",
+        "GTI",
+        "SMX",
+        "ATNF",
+        "CRVO",
+        "NVNI",
+        "LGCL",
+        "YYGH",
+        "ABP",
+        "UPLD",
+        "BINI",
+        "LMFA",
+        "CLDI",
+        "MPU"
+    ]
 
     run_batch_analysis(tickers, output_dir=args.output, timeframes=args.timeframes)
