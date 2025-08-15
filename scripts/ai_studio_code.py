@@ -126,19 +126,30 @@ class EnhancedRAGQA:
         self.logger.info("System prompt set in memory.")
     
     def _load_latest_tvm_namespace(self):
-        """Finds and loads the most recent TVM namespace file created by the analysis script."""
+        """Finds and loads the most recent TVM namespace file and its associated vector data."""
         report_root = self.config_manager.REPORT_DIR
         candidates = glob.glob(os.path.join(report_root, "**", ".tvm_namespace"), recursive=True)
         if candidates:
             latest_ns_file = max(candidates, key=os.path.getmtime)
+            ns_file_dir = os.path.dirname(latest_ns_file)
+            tvm_dir = os.path.join(ns_file_dir, ".tvm_store")
+
             with open(latest_ns_file, "r", encoding="utf-8") as f:
                 ns = f.read().strip()
-                self.namespace = ns
-                try:
-                    self.namespace_ticker = ns.split(":")[-1]
-                except IndexError:
-                    self.namespace_ticker = None
-                self.logger.info(f"Loaded TVM namespace '{self.namespace}' for ticker '{self.namespace_ticker}'.")
+
+            # Load the actual vector data from the corresponding store directory
+            loaded = self.tvm.load_namespace(namespace=ns, dirpath=tvm_dir)
+            if not loaded:
+                self.logger.error(f"Found namespace file for '{ns}' but failed to load data from {tvm_dir}.")
+                return
+
+            self.namespace = ns
+            try:
+                # The ticker is the last part of the namespace string
+                self.namespace_ticker = ns.split(":")[-1]
+            except IndexError:
+                self.namespace_ticker = None
+            self.logger.info(f"Successfully loaded TVM namespace '{self.namespace}' for ticker '{self.namespace_ticker}'.")
         else:
             self.logger.warning("No .tvm_namespace file found. Recent analysis retrieval will be disabled.")
 
@@ -232,7 +243,7 @@ class EnhancedRAGQA:
 
         # Always retrieve from the static knowledge base for general context
         self.logger.info("Querying ChromaDB for general knowledge.")
-        chroma_chunks = chroma_retrieve_top_chunks(question, top_k=3)
+        chroma_chunks = chroma_retrieve_top_chunks(question, top_k=5)
         self.logger.info(f"Retrieved {len(chroma_chunks)} chunks from ChromaDB.")
 
         if not tvm_chunks and not chroma_chunks:
