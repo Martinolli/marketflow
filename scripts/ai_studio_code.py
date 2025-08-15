@@ -12,15 +12,21 @@ enhanced memory features, and provides source citations in its answers.
 import openai
 import datetime
 import uuid
-from typing import List, Dict, Any
-import glob, os
+import glob
+import os
+import re
+import numpy as np
+from typing import List, Dict, Any, Optional
 
 
 # We assume these modules are in the python path
-from rag.retriever import chroma_retrieve_top_chunks
+from rag.retriever import chroma_retrieve_top_chunks, embed_query
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
-from marketflow.marketflow_memory_manager import MemoryManager
+from marketflow.marketflow_memory_manager import MemoryManager# ai_studio_code.py
+from marketflow.transient_vector_memory import TransientVectorMemory
+from rag.embedder import embed_text
+
 
 # --- Mock Retriever Function (for demonstration) ---
 # This function simulates the retriever returning chunks with source metadata.
@@ -43,72 +49,109 @@ def mock_chroma_retrieve_top_chunks(query: str, top_k: int = 3) -> List[Dict[str
         }
     ]
 # --- End Mock ---
+
+class TickerExtractor:
+    """Extracts ticker symbols from text, filtering out common words and jargon."""
+    def __init__(self):
+        # A comprehensive blacklist to avoid misinterpreting common words as tickers.
+        self.blacklist = {
+            'VPA', 'SOW', 'SOS', 'LPS', 'LPSY', 'PS', 'SC', 'AR', 'ST', 'BC',
+            'UTAD', 'SPRING', 'TEST', 'PHASE', 'RSI', 'MACD', 'EMA', 'SMA',
+            'NYSE', 'NASDAQ', 'SPX', 'DJI', 'QQQ', 'SPY', 'IWM', 'VIX',
+            'FOREX', 'CRYPTO', 'ETF', 'TODAY', 'WEEK', 'MONTH', 'YEAR', 'THE',
+            'AND', 'FOR', 'WITH', 'WHAT', 'SHOW', 'TELL', 'ABOUT', 'ANALYSIS',
+            'REPORT', 'CHART', 'PRICE', 'VOLUME', 'YOU', 'YOUR', 'ME', 'IS',
+            'CAN', 'PLEASE', 'HELP', 'VS', 'BUY', 'SELL', 'HOLD', 'EVENTS'
+        }
+        self.logger = get_logger("TickerExtractor")
+
+    def extract_tickers(self, text: str) -> List[str]:
+        """Extracts potential ticker symbols from a string."""
+        # Pattern for standard stock tickers (e.g., AAPL, GOOGL)
+        standard_tickers = re.findall(r'\b[A-Z]{1,5}\b', text.upper())
+        # Pattern for crypto/forex tickers (e.g., X:BTCUSD, BTC:USD)
+        crypto_tickers = re.findall(r'\b[A-Z]+:[A-Z]+\b', text.upper())
+
+        potential_tickers = set(standard_tickers + crypto_tickers)
+
+        # Filter out blacklisted words
+        filtered_tickers = [t for t in potential_tickers if t not in self.blacklist]
+
+        if filtered_tickers:
+            self.logger.info(f"Extracted tickers: {filtered_tickers} from text: '{text[:100]}...'")
+        return sorted(list(set(filtered_tickers)))
 class EnhancedRAGQA:
     """
-    An enhanced RAG Q&A system that supports sessions, uses advanced memory features,
-    and provides source citations in its answers.
+    A dual-source RAG Q&A system using both static and transient memory.
     """
 
     def __init__(self, session_id: str, model: str = None):
         """
         Initialize the EnhancedRAGQA class for a specific session.
-
-        Args:
-            session_id (str): A unique identifier for the user or conversation session.
-            model (str, optional): The OpenAI model to use. Defaults to config.
         """
         self.logger = get_logger(f"EnhancedRAGQA_{session_id}")
         self.session_id = session_id
-        
-        # Point 1: Session & User Management
-        # The memory file is now dynamically created based on the session_id.
-        memory_file = f".marketflow/memory/session_{self.session_id}.json"
 
-        # The MemoryManager is now an instance variable, tied to the session.
-        self.memory_manager = MemoryManager(memory_file=memory_file)
-        self.logger.info(f"Initialized RAG QA for session '{self.session_id}' with memory at '{memory_file}'")
-
-        # Configuration
+        # --- Configuration and Session Management ---
         self.config_manager = create_app_config(logger=self.logger)
+        memory_file = f".marketflow/memory/session_{self.session_id}.json"
+        self.memory_manager = MemoryManager(memory_file=memory_file)
         self.model = model or self.config_manager.get_llm_model()
         if not self.model:
             raise ValueError("No LLM model configured.")
-        self.logger.info(f"Using LLM model: {self.model}")
+        self.logger.info(f"Initialized RAG QA for session '{self.session_id}' using model '{self.model}'")
 
-        # Point 2: Enhanced Conversation Memory (System Messages)
-        # Set a system message once per session to guide the assistant's behavior.
-        # We check if system messages are empty to avoid adding it on every run.
+        # --- Component Initialization ---
+        self.ticker_extractor = TickerExtractor()
+        
+        # Initialize Transient Vector Memory to query recent analysis
+        # The embedding dimension must match the model used in marketflow_analysis.py
+        self.dim = 1536  # For "text-embedding-3-small"
+        self.tvm = TransientVectorMemory(embed_fn=embed_query, dim=self.dim, ttl_seconds=48*3600)
+        
+        self.namespace = None
+        self.namespace_ticker = None
+        self._load_latest_tvm_namespace()
+
+        # --- System Prompt Setup ---
         if not self.memory_manager.system_messages:
             system_prompt = (
                 "You are an expert financial assistant specializing in the Wyckoff method and "
-                "Anna Coulling's Volume Price Analysis (VPA). Your answers should be clear, concise, and "
-                "directly based on the provided context. When you use information from a source, "
-                "cite it using the format [1], [2], etc., corresponding to the source list."
+                "Volume Price Analysis (VPA). Your answers should be clear, concise, and directly based on the provided context. "
+                "Prioritize the 'RECENT ANALYSIS' section for ticker-specific questions. "
+                "Use the 'GENERAL KNOWLEDGE' section for definitions and principles. "
+                "Cite your sources using [Source: Recent Analysis] and [Source: Knowledge Base]."
             )
             self.memory_manager.add_system_message(system_prompt)
-        self.logger.info("System prompt added to memory.")
-
+        self.logger.info("System prompt set in memory.")
+    
+    def _load_latest_tvm_namespace(self):
+        """Finds and loads the most recent TVM namespace file created by the analysis script."""
         report_root = self.config_manager.REPORT_DIR
         candidates = glob.glob(os.path.join(report_root, "**", ".tvm_namespace"), recursive=True)
         if candidates:
-            latest = max(candidates, key=os.path.getmtime)
-            with open(latest, "r", encoding="utf-8") as f:
-                self.namespace = f.read().strip()
-            self.logger.info(f"Loaded TVM namespace: {self.namespace}")
+            latest_ns_file = max(candidates, key=os.path.getmtime)
+            with open(latest_ns_file, "r", encoding="utf-8") as f:
+                ns = f.read().strip()
+                self.namespace = ns
+                try:
+                    self.namespace_ticker = ns.split(":")[-1]
+                except IndexError:
+                    self.namespace_ticker = None
+                self.logger.info(f"Loaded TVM namespace '{self.namespace}' for ticker '{self.namespace_ticker}'.")
+        else:
+            self.logger.warning("No .tvm_namespace file found. Recent analysis retrieval will be disabled.")
 
-    
-    def get_recent_history(self, n=5) -> str:
-        """Get the last n messages from memory and concatenate them for context.
-        Args:
-            memory_manager (MemoryManager): The memory manager instance.
-            n (int): Number of recent messages to retrieve.
+    def get_recent_history(self, n=5) -> list:
+        """Get the last n messages from memory as a list of dicts for chat context.
         Returns:
-            str: Concatenated string of the last n messages.
+            list: List of dicts with 'role' and 'content' keys.
         """
         history = self.memory_manager.get_history()[-n:]  # Assumes get_history() returns a list of dicts
         self.logger.debug(f"Recent history: {history}")
         self.logger.info(f"Retrieved {n} recent messages from memory.")
-        return "\n".join(f"{msg['role']}: {msg['content']}" for msg in history)
+        # Only include 'role' and 'content' for OpenAI API
+        return [{"role": msg["role"], "content": msg["content"]} for msg in history]
 
     def _format_sources(self, chunks: List[Dict[str, Any]]) -> str:
         """
@@ -142,84 +185,92 @@ class EnhancedRAGQA:
         self.logger.info(f"Formatted {len(source_lines)} sources for the prompt.")
         
         return "\n".join(source_lines)
+    
+    def _format_context(self, tvm_chunks: List[Dict], chroma_chunks: List[Dict]) -> str:
+        """Formats the retrieved chunks from both sources into a single context string for the LLM."""
+        context_parts = []
+        
+        # Format TVM chunks (Recent Analysis)
+        if tvm_chunks:
+            tvm_content = "\n\n".join(
+                f"[Source: Recent Analysis]\n{chunk['text']}" for chunk in tvm_chunks
+            )
+            context_parts.append(f"--- RECENT ANALYSIS ({self.namespace_ticker}) ---\n{tvm_content}")
+
+        # Format ChromaDB chunks (General Knowledge)
+        if chroma_chunks:
+            chroma_content = "\n\n".join(
+                f"[Source: Knowledge Base - {chunk.get('metadata', {}).get('source', 'Unknown')}]\n{chunk['text']}" 
+                for chunk in chroma_chunks
+            )
+            context_parts.append(f"--- GENERAL KNOWLEDGE ---\n{chroma_content}")
+
+        if not context_parts:
+            return "No context found."
+
+        return "\n\n".join(context_parts)
 
     def answer_question(self, question: str) -> str:
         """
-        Processes a user question through the RAG pipeline: retrieve, augment, generate.
-
-        Args:
-            question (str): The user's question.
-
-        Returns:
-            str: The AI-generated answer.
+        Processes a user question through the dual-source RAG pipeline.
         """
-        # Point 2: Enhanced Conversation Memory (Store Metadata)
-        # We can add arbitrary metadata, like a timestamp, to each message.
-        timestamp = datetime.datetime.now().isoformat()
-        self.memory_manager.add_message(role="user", content=question, timestamp=timestamp)
+        self.memory_manager.add_message(
+            role="user", content=question, timestamp=datetime.datetime.now().isoformat()
+        )
         self.logger.info(f"Received user question: {question}")
         
-        # 1. Retrieve
-    
-        top_chunks = chroma_retrieve_top_chunks(question, top_k=6)
-        
-        if not top_chunks:
-            self.logger.warning("No relevant chunks found.")
-            return "Sorry, I couldn't find any relevant information in the knowledge base to answer your question."
+        # 1. Extract Tickers from the question
+        tickers = self.ticker_extractor.extract_tickers(question)
 
-        # 2. Augment
-        context = "\n\n".join(chunk["text"] for chunk in top_chunks)
-        formatted_sources = self._format_sources(top_chunks)
-        
-        # Get history from memory manager. It will be combined with the system prompt.
-        history = self.memory_manager.get_history(limit=5)
+        # 2. Retrieve from both sources
+        tvm_chunks = []
+        # Check if the user is asking about the ticker for which we have recent analysis
+        if self.namespace and self.namespace_ticker and self.namespace_ticker in tickers:
+            self.logger.info(f"Querying TVM with namespace '{self.namespace}' for ticker '{self.namespace_ticker}'.")
+            tvm_chunks = self.tvm.query(self.namespace, question, top_k=4)
+            self.logger.info(f"Retrieved {len(tvm_chunks)} chunks from TVM.")
 
-        # The final prompt message is augmented with the retrieved context and sources.
+        # Always retrieve from the static knowledge base for general context
+        self.logger.info("Querying ChromaDB for general knowledge.")
+        chroma_chunks = chroma_retrieve_top_chunks(question, top_k=3)
+        self.logger.info(f"Retrieved {len(chroma_chunks)} chunks from ChromaDB.")
+
+        if not tvm_chunks and not chroma_chunks:
+            self.logger.warning("No relevant chunks found from any source.")
+            return "Sorry, I couldn't find any relevant information to answer your question."
+
+        # 3. Augment the prompt with dual-source context
+        context = self._format_context(tvm_chunks, chroma_chunks)
+        history = self.get_recent_history(n=5)
+
         augmented_prompt = (
-            "Please answer the following question based on the conversation history and the context provided below.\n\n"
+            "Please answer the question based on the conversation history and the context provided below.\n\n"
             f"--- CONTEXT ---\n{context}\n\n"
-            f"--- SOURCES ---\n{formatted_sources}\n\n"
             f"--- QUESTION ---\n{question}"
         )
-        
-        # Add the augmented user message to the history for the API call
-        history.append({"role": "user", "content": augmented_prompt})
-        # Log the payload for debugging purposes
-        self.logger.debug(f"Payload for OpenAI: {history}")
 
-        # 3. Generate
+        messages_for_api = history + [{"role": "user", "content": augmented_prompt}]
+        self.logger.debug(f"Payload for OpenAI: {messages_for_api}")
+        # 4. Generate
         try:
-            # For openai>=1.x
             client = openai.OpenAI()
             response = client.chat.completions.create(
                 model=self.model,
-                messages=[{"role": "user", "content": augmented_prompt}],
-                max_tokens=512,
-                temperature=0.6,
+                messages=messages_for_api,
+                max_tokens=1024,
+                temperature=0.5,
             )
             answer = response.choices[0].message.content.strip()
-            self.logger.info("Successfully synthesized answer from OpenAI.")
-        except AttributeError:
-            # For openai==0.x
-            response = openai.ChatCompletion.create(
-                model=self.model,
-                messages=[{"role": "user", "content": augmented_prompt}],
-                max_tokens=512,
-                temperature=0.6,
-            )
-            answer = response.choices[0].message.content.strip()
-            self.logger.info("Received answer from OpenAI. (0.x version)")
-            self.logger.debug(f"Answer: {answer}")
-        # Handle potential errors in the API call
-        
+            self.logger.info("Successfully generated answer from OpenAI.")
         except Exception as e:
             self.logger.error(f"Error during OpenAI API call: {e}", exc_info=True)
             answer = "I'm sorry, but I encountered an error while generating a response."
 
-        # Store the assistant's response in memory with a timestamp
+        # Store assistant's response in memory
         if answer:
-            self.logger.info(f"Storing assistant's answer: {answer}")
-            # Point 4: Enhanced Memory - Store assistant's response with metadata
+            self.memory_manager.add_message(
+                role="assistant", content=answer, timestamp=datetime.datetime.now().isoformat()
+            )
         return answer
 
 def main():
@@ -241,7 +292,6 @@ def main():
         user_q = input("\nYou: ").strip()
         if not user_q:
             continue
-
         if user_q.lower() == '/quit':
             print("Goodbye!")
             break
@@ -252,11 +302,10 @@ def main():
         elif user_q.lower() == '/history':
             history = rag_qa.memory_manager.get_history(limit=20)
             print("\n--- Session History ---")
-            for msg in history:
+            for msg in history[-20:]:
                 print(f"- {msg['role']}: {msg['content'][:80]}...")
             print("-----------------------\n")
             continue
-        # Point 2: Enhanced Memory - Leveraging validation and repair
         elif user_q.lower() == '/repair':
             print("\n--- Repairing Conversation ---")
             stats = rag_qa.memory_manager.repair_conversation()
@@ -264,13 +313,6 @@ def main():
             continue
 
         answer = rag_qa.answer_question(user_q)
-
-        # Store the assistant's response in memory with a timestamp
-        rag_qa.memory_manager.add_message(
-                role="assistant", 
-                content=answer, 
-                timestamp=datetime.datetime.now().isoformat()
-            )
         print(f"\nAI: {answer}")
 
 
