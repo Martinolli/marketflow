@@ -1,3 +1,8 @@
+"""
+This script implements a transient vector memory (TVM) system using FAISS for efficient similarity search.
+It allows for the storage and retrieval of high-dimensional vectors with associated metadata,
+supporting use cases like chat history management and contextual awareness in AI applications.
+"""
 # marketflow/transient_vector_memory.py
 from __future__ import annotations
 from typing import Dict, Any, List, Optional

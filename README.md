@@ -328,17 +328,28 @@ marketflow/
 ├── .vscode/
 |
 ├── data/
-│   └── timeframe_data                                  # Tickers fetched data saved CSV files for future use, data saved by Tickers
+│   └── timeframe_data                                  # Tickers fetched data saved CSV files for future use, data saved by Tickers and Date to retrieve
 │
 ├── deprecated_backup/
 │   ├── backup_info.txt (✓ created)
 │   └── modules/
+│       ├── app.py (✓ backup)
+│       ├── enhanced_ai_studio_code.py (✓ backup)
+│       ├── enhanced_app.py (✓ backup)
+│       ├── enhanced_appv1.py (✓ backup)
+│       ├── marketflow_analysis.py (✓ backup)
+│       ├── marketflow_analyzer.py (✓ backup)
 │       ├── marketflow_config_manager_original.py (✓ backup)
+│       ├── marketflow_ibkr_demo.py (✓ backup)
+│       ├── marketflow_llm_query_engine_original.py (✓ backup)
 │       ├── marketflow_logger_original.py (✓ backup)
-│       ├── marketflow_analyzer.py  (✓ backup)
+│       ├── marketflow_risk_placement.py (✓ backup)
+│       ├── minimal_rag.py  (✓ backup)
+│       ├── quick_connect_test.py  (✓ backup)
 │       ├── README.md  (✓ backup)
+│       ├── repair_tvm_namespace.py  (✓ backup)
 │       ├── retriever_original.py  (✓ backup)
-│       └── marketflow_analysis.py (✓ backup)                 
+│       └── web_interface.py (✓ backup)                 
 │
 ├── env                                                 # (Not committed) Environment
 |
@@ -365,8 +376,10 @@ marketflow/
 │   ├── examples/
 │   │    └── integration_example.py (✓ new)             # Integration example script
 │   ├── __init__.py
+│   ├── batch_utils.py (✓ new)                          # This script generates a CSV file containing summary data from a JSON analysis file.
 │   ├── candle_analyzer.py  (✓ new)                     # Enum definitions
 │   ├── enums.py                                        # Enum definitions
+│   ├── marketflow_analysis.py (✓ new)                  # This script runs a market analysis for a given ticker symbol using the MarketflowFacade.
 │   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
 │   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
 │   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
@@ -388,6 +401,7 @@ marketflow/
 │   ├── pattern_recognizer.py (✓ new)                   # Pattern recognition algorithms
 │   ├── point_in_time_analyzer.py (✓ new)               # Point in time analytics
 │   ├── support_resistance_analyzer.py (✓ new)          # Support and Resistance algorithms
+│   ├── transient_vector_memory.py (✓ new)              # This script implements a transient vector memory (TVM) system using FAISS for efficient similarity search.
 │   ├── trend_analyzer.py (✓ new)                       # Trend Analyzer algorithms
 │   ├── marketflow_llm_providers.py (TBD)               # LLM abstraction layer
 │   ├──
@@ -404,17 +418,15 @@ marketflow/
 ├── scripts/                                            # CLI, app entrypoints, notebooks, demos
 │   ├── __pycache__
 │   ├── ai_studio_code.py  (✓ new)                      # Script to interact with LLM and the Embedded files
-│   ├── app.py  (✓ new)                                 # This script provides the main entry point for the Marketflow application, interact with llm_query_engine
-│   ├── enhanced_app.py  (✓ new)                        # Script to interact with LLM and the Embedded files
-│   ├── enhanced_appv1.py  (✓ new)                      # Script to interact with LLM and the Embedded files
+│   ├── ai_studio.py  (✓ new)                           # This script provides the main entry point for the Marketflow application, interact with llm_query_engine
 │   ├── marketflow_analysis_llm_interface.py  (✓ new)   # Script to collect data and pass through llm_interface
 │   ├── marketflow_analysis_snapshot.py  (✓ new)        # Analysis script and Snapshot Interface generation
 │   ├── marketflow_analysis.py  (✓ new)                 # Analysis script
+│   ├── marketflow_batch_analysis.py  (✓ new)           # Marketflow Batch Analysis Orchestrator
 │   ├── marketflow_batch_report.py  (✓ new)             # Analysis script for a list of tickers
 │   ├── marketflow_integration_example.py               # Integration Example
-│   ├── minimal_rag.py                                  # Script to deploy a RAG development - test
 │   ├── plot_annotated_features.py  (✓ new)             # Plot script
-│   └── marketflow_app.py (TBD)                          # empty
+│   └── marketflow_app.py (TBD)                         # Empty to be developed
 │
 ├── tests_outputs/                                      # Outputs Tests Files
 │   └── tests_files                                     # HTML, JSON, TXT files
@@ -442,12 +454,15 @@ marketflow/
 │   ├── test_wyckoff.py (✓ new)
 │   └── ...
 │
+├── trading_dashboard/                                  # To be developed
 │
 ├── .env                                                # (Not committed) Your API keys and secrets
+├── .gitattributes                                      # Define long files to be ignored
 ├── .gitignore                                          # Standard ignore file
 ├── LICENSE                                             # MIT license
 ├── requirements.txt                                    # Python dependencies
 ├── README.md                                           # This file
+├── CHANGELOG.md                                        # Document the Changes
 ├── backup_and_replace.bat (✓ created)
 ├── setup.py (✓ created)
 │  

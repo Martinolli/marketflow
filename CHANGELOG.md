@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 | Date       | Revision |
 |------------|----------|
+| 2025-08-16 | v1.19    |
 | 2025-08-09 | v1.18    |
 | 2025-08-03 | v1.17    |
 | 2025-07-28 | v1.16    |
@@ -42,6 +43,45 @@ All notable changes to this project are documented in this file.
 | 2025-07-03 | v1.1     |
 | 2025-07-03 | v1.1     |
 | 2025-07-01 | v1.0     |
+
+---
+
+## [1.19.0]
+
+### Added 19 - 2025-08-16
+
+- Creating and updated the following scripts for a CLI interface:
+  - `ai_studio_code.py` [1]
+    Enhanced RAG Q&A System with Session Management and Source Citations
+    Supports retrieving source citations for retrieved chunks.
+    Retrieves source citations for retrieved chunks.
+    This script implements an advanced RAG (Retrieval-Augmented Generation) Q&A system
+    that allows users to ask questions about financial concepts, particularly focusing on the Wyckoff method
+    and Volume Price Analysis (VPA) by Anna Coulling. It supports session management,
+    enhanced memory features, and provides source citations in its answers.
+  - `marketflow_analysis.py` [2]
+    Is a new code in `marketflow` folder.
+    Marketflow Analysis Script
+    This script runs a market analysis for a given ticker symbol using the MarketflowFacade.
+    It generates reports and saves them in the specified output directory.
+  - `marketflow_batch_analysis.py` [3]
+    Marketflow Batch Analysis Orchestrator
+    This script runs market analysis for multiple tickers, generates reports,
+    and consolidates all analysis narratives into a single Transient Vector Memory (TVM) store.
+    This allows the RAG Q&A system to query and compare across all tickers in the batch.
+  - `transient_vector_memory.py` [4]
+    This script implements a transient vector memory (TVM) system using FAISS for efficient similarity search.
+    It allows for the storage and retrieval of high-dimensional vectors with associated metadata,
+    supporting use cases like chat history management and contextual awareness in AI applications.
+  - `batch_utils.py` [5]
+    This script generates a CSV file containing summary data from a JSON analysis file.
+
+#### Remarks
+
+The scripts above, 3, 2 and 5 were developed to work as a pipeline, the batch_analysis call for analysis and the files are saved
+in a format to be ready to used by the `ai_studio_code.py` script during the chat.
+Different features were added to the `ai_studio_code.py` with the goal to develop a structured and organized code be used in a friendly interface.
+These codes can be seem like a prototype for future development.
 
 ---
 
