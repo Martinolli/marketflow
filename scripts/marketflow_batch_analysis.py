@@ -11,8 +11,6 @@ import argparse
 import os
 from datetime import datetime
 
-# We will modify run_analysis to be importable
-
 from marketflow.marketflow_analysis import run_analysis, embed_fn
 from marketflow.transient_vector_memory import TransientVectorMemory
 from marketflow.marketflow_config_manager import create_app_config
