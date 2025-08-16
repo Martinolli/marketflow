@@ -18,6 +18,7 @@ from marketflow.transient_vector_memory import TransientVectorMemory
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_utils import sanitize_filename
+from marketflow.batch_utils import write_batch_summary_csv
 
 def main():
     parser = argparse.ArgumentParser(description="Run batch Marketflow analysis for multiple tickers.")
@@ -77,6 +78,13 @@ def main():
     logger.info(f"Successfully saved TVM data to {tvm_dir}")
     logger.info(f"Namespace '{namespace}' written to {ns_file}")
     print(f"\n✅ Batch analysis complete. Consolidated report data saved in {batch_output_dir}")
+
+    # NEW: Generate CSV summary
+    logger.info("Generating batch summary CSV...")
+    output_summary_csv_data = os.path.join(report_root, f"batch_csv_{run_id}")
+    summary_path = write_batch_summary_csv(args.tickers, output_summary_csv_data, logger)
+    if summary_path:
+        print(f"\n✅ Enriched batch summary saved to {summary_path}")
 
 if __name__ == "__main__":
     main()
