@@ -23,15 +23,16 @@ from typing import List, Dict, Any, Optional
 from rag.retriever import chroma_retrieve_top_chunks, embed_query
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
-from marketflow.marketflow_memory_manager import MemoryManager# ai_studio_code.py
+from marketflow.marketflow_memory_manager import MemoryManager
 from marketflow.transient_vector_memory import TransientVectorMemory
 from rag.embedder import embed_text
+import tiktoken
 
 
 # --- Mock Retriever Function (for demonstration) ---
 # This function simulates the retriever returning chunks with source metadata.
 # Replace this with your actual retriever function.
-def mock_chroma_retrieve_top_chunks(query: str, top_k: int = 3) -> List[Dict[str, Any]]:
+def mock_chroma_retrieve_top_chunks(query: str, top_k: int = 6) -> List[Dict[str, Any]]:
     """Mocks the retrieval of chunks with source metadata."""
     print(f"--- (Mock) Retrieving chunks for query: '{query}' ---")
     return [
@@ -111,6 +112,7 @@ class EnhancedRAGQA:
         
         self.namespace = None
         self.namespace_ticker = None
+        self.display_name = "Recent Analysis"
         self._load_latest_tvm_namespace()
 
         # --- System Prompt Setup ---
@@ -144,12 +146,15 @@ class EnhancedRAGQA:
                 return
 
             self.namespace = ns
-            try:
-                # The ticker is the last part of the namespace string
-                self.namespace_ticker = ns.split(":")[-1]
-            except IndexError:
-                self.namespace_ticker = None
-            self.logger.info(f"Successfully loaded TVM namespace '{self.namespace}' for ticker '{self.namespace_ticker}'.")
+            if ns.startswith("batch:"):
+                    self.display_name = f"Batch Analysis ({ns.split(':')[1]})"
+            else:
+                try:
+                    self.display_name = f"Single Analysis ({ns.split(':')[-1]})"
+                except IndexError:
+                    self.display_name = "Recent Analysis"
+            
+            self.logger.info(f"Successfully loaded TVM namespace '{self.namespace}' ({self.display_name}).")
         else:
             self.logger.warning("No .tvm_namespace file found. Recent analysis retrieval will be disabled.")
 
@@ -201,14 +206,17 @@ class EnhancedRAGQA:
         """Formats the retrieved chunks from both sources into a single context string for the LLM."""
         context_parts = []
         
-        # Format TVM chunks (Recent Analysis)
         if tvm_chunks:
-            tvm_content = "\n\n".join(
-                f"[Source: Recent Analysis]\n{chunk['text']}" for chunk in tvm_chunks
-            )
-            context_parts.append(f"--- RECENT ANALYSIS ({self.namespace_ticker}) ---\n{tvm_content}")
+            # Use the display name we set during loading
+            header = f"--- RECENT ANALYSIS ({self.display_name}) ---"
+            tvm_content_lines = []
+            for chunk in tvm_chunks:
+                # Add the specific ticker from metadata to each chunk's context
+                ticker = chunk.get('metadata', {}).get('ticker', 'Unknown Ticker')
+                tvm_content_lines.append(f"[Source: Recent Analysis for {ticker}]\n{chunk['text']}")
+            
+            context_parts.append(f"{header}\n" + "\n\n".join(tvm_content_lines))
 
-        # Format ChromaDB chunks (General Knowledge)
         if chroma_chunks:
             chroma_content = "\n\n".join(
                 f"[Source: Knowledge Base - {chunk.get('metadata', {}).get('source', 'Unknown')}]\n{chunk['text']}" 
@@ -221,6 +229,30 @@ class EnhancedRAGQA:
 
         return "\n\n".join(context_parts)
 
+    # Build a token-aware, dynamic conversation history based on available context window
+    def _estimate_tokens(self, txt: str) -> int:
+        try:
+            enc = tiktoken.encoding_for_model(self.model)
+            return len(enc.encode(txt or ""))
+        except Exception:
+        # Fallback rough estimate: ~4 chars per token
+            return max(1, len((txt or "").strip()) // 4)
+
+    def _ctx_window_for_model(self, model_name: str) -> int:
+        # Best-effort mapping; fallback to 8192 if unknown
+        mapping = {
+        "gpt-4o": 128000,
+        "gpt-4o-mini": 128000,
+        "gpt-4.1": 128000,
+        "gpt-4-turbo": 128000,
+        "gpt-3.5-turbo": 16385,
+        "text-davinci-003": 4097,
+        }
+        for k, v in mapping.items():
+            if model_name.startswith(k):
+                return v
+        return 8192
+    
     def answer_question(self, question: str) -> str:
         """
         Processes a user question through the dual-source RAG pipeline.
@@ -236,14 +268,16 @@ class EnhancedRAGQA:
         # 2. Retrieve from both sources
         tvm_chunks = []
         # Check if the user is asking about the ticker for which we have recent analysis
-        if self.namespace and self.namespace_ticker and self.namespace_ticker in tickers:
-            self.logger.info(f"Querying TVM with namespace '{self.namespace}' for ticker '{self.namespace_ticker}'.")
-            tvm_chunks = self.tvm.query(self.namespace, question, top_k=4)
+        if self.namespace:
+            self.logger.info(f"Querying TVM namespace '{self.namespace}' for recent analysis.")
+            tvm_chunks = self.tvm.query(self.namespace, question, top_k=6)
             self.logger.info(f"Retrieved {len(tvm_chunks)} chunks from TVM.")
+        else:
+            self.logger.info("No TVM namespace loaded, skipping recent analysis retrieval.")
 
         # Always retrieve from the static knowledge base for general context
         self.logger.info("Querying ChromaDB for general knowledge.")
-        chroma_chunks = chroma_retrieve_top_chunks(question, top_k=5)
+        chroma_chunks = chroma_retrieve_top_chunks(question, top_k=6)
         self.logger.info(f"Retrieved {len(chroma_chunks)} chunks from ChromaDB.")
 
         if not tvm_chunks and not chroma_chunks:
@@ -252,26 +286,74 @@ class EnhancedRAGQA:
 
         # 3. Augment the prompt with dual-source context
         context = self._format_context(tvm_chunks, chroma_chunks)
-        history = self.get_recent_history(n=5)
+
+        # Reserve tokens for the model's completion and prompt overhead
+        context_window = self._ctx_window_for_model(self.model)
+        reserved_for_completion = 1024  # matches max_tokens below
+        prompt_overhead = 600  # safety buffer for formatting, system text, etc.
+
+        # Estimate tokens consumed by the context and question
+        context_tokens = self._estimate_tokens(context)
+        question_tokens = self._estimate_tokens(question)
+
+        # Budget for history messages
+        history_budget = max(
+            0,
+            context_window - reserved_for_completion - prompt_overhead - context_tokens - question_tokens,
+        )
+
+        # Accumulate messages from the end until we hit the budget
+        full_history = self.memory_manager.get_history()
+        role_content_history = [{"role": m["role"], "content": m["content"]} for m in full_history[:-1]]
+
+        tokens_used = 0
+        selected = []
+        for msg in reversed(role_content_history):
+            msg_tokens = self._estimate_tokens(msg["content"]) + 8  # small per-message overhead
+            if tokens_used + msg_tokens > history_budget and selected:
+                break
+            if tokens_used + msg_tokens > history_budget:
+            # If nothing selected yet and even this one doesn't fit, skip it
+                break
+            selected.append(msg)
+            tokens_used += msg_tokens
+
+        history = list(reversed(selected))
+        self.logger.info(f"Dynamically selected {len(history)} messages for conversation history ({tokens_used} tokens).")
 
         augmented_prompt = (
             "Please answer the question based on the conversation history and the context provided below.\n\n"
-            f"--- CONTEXT ---\n{context}\n\n"
-            f"--- QUESTION ---\n{question}"
-        )
+            "<context>\n{context}\n</context>\n\n"
+            "<question>{question}</question>\n\n"
+            "Answer:"
+        ).format(context=context, question=question)
 
+        # The 'history' list is prepended here, which is the correct OpenAI format.
         messages_for_api = history + [{"role": "user", "content": augmented_prompt}]
         self.logger.debug(f"Payload for OpenAI: {messages_for_api}")
+        
         # 4. Generate
         try:
             client = openai.OpenAI()
-            response = client.chat.completions.create(
+            response_stream = client.chat.completions.create(
                 model=self.model,
                 messages=messages_for_api,
                 max_tokens=1024,
                 temperature=0.5,
+                stream=True  # Enable streaming
             )
-            answer = response.choices[0].message.content.strip()
+
+            full_answer = ""
+            # In a web UI, you would yield these chunk. In the console, we print them.
+            print("\nAI: ", end="", flush=True)
+            for chunk in response_stream:
+                content = chunk.choices[0].delta.content
+                if content:
+                    print(content, end="", flush=True)
+                    full_answer += content
+
+            answer = full_answer.strip()
+            print() # New line after AI response
             self.logger.info("Successfully generated answer from OpenAI.")
         except Exception as e:
             self.logger.error(f"Error during OpenAI API call: {e}", exc_info=True)
