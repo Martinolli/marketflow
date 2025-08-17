@@ -1,0 +1,2 @@
+[console_scripts]
+marketflow = marketflow.__main__:main
