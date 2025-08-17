@@ -41,11 +41,13 @@ def main():
     os.makedirs(batch_output_dir, exist_ok=True)
 
     # 3. Loop through tickers and process them
+    runs = []  # collect per-ticker output_dir for robust CSV summary
     for ticker in args.tickers:
         logger.info(f"--- Processing ticker: {ticker} ---")
         try:
             # We will modify run_analysis to return the narrative text
             narrative, ticker_output_dir = run_analysis(ticker)
+            runs.append({"ticker": ticker, "output_dir": ticker_output_dir})
 
             if narrative:
                 logger.info(f"Upserting narrative for {ticker} into shared namespace.")
@@ -80,7 +82,7 @@ def main():
     # NEW: Generate CSV summary
     logger.info("Generating batch summary CSV...")
     output_summary_csv_data = os.path.join(report_root, f"batch_csv_{run_id}")
-    summary_path = write_batch_summary_csv(args.tickers, output_summary_csv_data, logger)
+    summary_path = write_batch_summary_csv(runs, output_summary_csv_data, logger)
     if summary_path:
         print(f"\n✅ Enriched batch summary saved to {summary_path}")
 

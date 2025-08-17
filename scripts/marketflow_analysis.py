@@ -28,7 +28,7 @@ from marketflow.transient_vector_memory import TransientVectorMemory
 from rag.embedder import embed_text
 
 # Ensure the logger is set up correctly
-logger = get_logger("marketflow_analysis")
+logger = get_logger("marketflow_analysis_1")
 config_manager = create_app_config(logger=logger)
 
 class CustomJSONEncoder(json.JSONEncoder):
@@ -386,7 +386,8 @@ def run_analysis(ticker, output_dir="data", timeframes=None):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Run Marketflow analysis for a ticker.")
     parser.add_argument("ticker", type=str, help="Ticker symbol (e.g., AAPL or X:BTCUSD)")
-    parser.add_argument("--output", type=str, default="C:\\Users\\Aspire5 15 i7 4G2050\\marketflow\\.marketflow\\reports", help="Output directory for reports")
+    # Use a portable default; the actual report path will be resolved via config inside run_analysis
+    parser.add_argument("--output", type=str, default=".marketflow/reports", help="Base output directory for reports (optional)")
     parser.add_argument("--timeframes", type=str, nargs="*", default=None,
                         help="List of timeframes (e.g., 1d 4h 1h). If not provided, uses default timeframes.")
     args = parser.parse_args()
