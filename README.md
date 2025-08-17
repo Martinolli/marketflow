@@ -33,17 +33,41 @@ is designed for clarity, testability, and ease of extension.
 2. **Set up your `.env` file with API keys:**
 
     ```bash
-    cp .env.example .env  # or create .env manually
-    # Edit .env and add your API keys, e.g.:
-    # POLYGON_API_KEY=your_polygon_api_key
-    # OPENAI_API_KEY=your_openai_api_key
-    # OLLAMA_BASE_URL=http://localhost:11434
+    # Create a .env file and add (examples):
+    POLYGON_API_KEY=your_polygon_api_key
+    OPENAI_API_KEY=your_openai_api_key
+    OLLAMA_BASE_URL=http://localhost:11434
     ```
 
-3. **Run the CLI app:**
+3. **Run an analysis:**
 
     ```bash
-    python scripts/marketflow_app.py --query "Analyze AAPL"
+    # Analyze a single ticker (default timeframes)
+    python scripts/marketflow_analysis.py AAPL
+
+    # Optional: specify timeframes
+    python scripts/marketflow_analysis.py AAPL --timeframes 1d 4h 1h
+    ```
+
+    Notes:
+
+    - Recent changes and new scripts are summarized in `CHANGELOG.md`.
+    - Reports are saved under `.marketflow/reports/<YYYY-MM-DD>/<TICKER>/` by default.
+
+4. **Use the CLI (module form):**
+
+    ```bash
+    python -m marketflow analyze AAPL
+    python -m marketflow analyze AAPL --timeframes 1d 4h 1h
+    ```
+
+5. **Install as a CLI (optional):**
+
+    ```bash
+    # from the repo root
+    pip install -e .
+    marketflow analyze AAPL
+    marketflow analyze AAPL --timeframes 1d 4h 1h
     ```
 
 ## Overview: Main Data Flow in MarketFlow
@@ -308,6 +332,12 @@ UML: Shows class relationships (not full attributes/methods for brevity) and how
 ### MarketflowReport
 
 ## 🏗️ Project Structure
+
+Development Notes
+
+- Some folders/files are intentionally present as placeholders for future work (for example, `trading_dashboard/*` and `scripts/marketflow_app.py`). These may be empty until those features are implemented.
+- Several files under `tests/` are demonstration or real-data exercises with `main()` entry points and may require valid API keys (Polygon) and network access to run.
+- For a minimal, network-free check, run the mocked provider test: `pytest tests/test_data_provider.py -q`.
 
 ```bash
 marketflow/
