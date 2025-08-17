@@ -15,6 +15,13 @@ CSV_FIELDNAMES = [
     "risk_reward_ratio", "nearest_support_1d", "nearest_resistance_1d", "narrative_summary"
 ]
 
+def _fmt2(x) -> str:
+    """Format numeric-like values to '%.2f' or return 'N/A' on failure."""
+    try:
+        return f"{float(x):.2f}"
+    except Exception:
+        return "N/A"
+
 def extract_summary_data(llm_result: dict, ticker: str) -> dict:
     """
     Extracts and flattens key information from the detailed JSON analysis 
@@ -45,35 +52,50 @@ def extract_summary_data(llm_result: dict, ticker: str) -> dict:
     # Extract nearest support/resistance, checking if the list exists and is not empty
     support_levels = sr_1d.get("support", [])
     resistance_levels = sr_1d.get("resistance", [])
-    nearest_support = f"{support_levels[0]['price']:.2f}" if support_levels else "N/A"
-    nearest_resistance = f"{resistance_levels[0]['price']:.2f}" if resistance_levels else "N/A"
+    if support_levels and isinstance(support_levels[0], dict):
+        nearest_support = _fmt2(support_levels[0].get("price"))
+    else:
+        nearest_support = _fmt2(support_levels[0]) if support_levels else "N/A"
+    if resistance_levels and isinstance(resistance_levels[0], dict):
+        nearest_resistance = _fmt2(resistance_levels[0].get("price"))
+    else:
+        nearest_resistance = _fmt2(resistance_levels[0]) if resistance_levels else "N/A"
     
     # Clean up the narrative for better CSV display (remove newlines and asterisks)
     narrative = llm_result.get("analysis_narrative", "N/A").replace("\n", " ").replace("**", "")
 
     return {
         "ticker": llm_result.get("ticker", ticker),
-        "current_price": llm_result.get("current_price", "N/A"),
+        "current_price": _fmt2(llm_result.get("current_price")),
         "signal_type": vpa_signal.get("type", "N/A"),
         "signal_strength": vpa_signal.get("strength", "N/A"),
         "trend_1d": trend_1d.get("trend_direction", "N/A"),
         "wyckoff_context_1d": wyckoff_1d.get("context", "N/A"),
         "wyckoff_context_4h": wyckoff_4h.get("context", "N/A"),
-        "stop_loss": f"{risk_assessment.get('stop_loss', 0):.2f}",
-        "take_profit": f"{risk_assessment.get('take_profit', 0):.2f}",
-        "risk_reward_ratio": f"{risk_assessment.get('risk_reward_ratio', 0):.2f}",
+        "stop_loss": _fmt2(risk_assessment.get('stop_loss')),
+        "take_profit": _fmt2(risk_assessment.get('take_profit')),
+        "risk_reward_ratio": _fmt2(risk_assessment.get('risk_reward_ratio')),
         "nearest_support_1d": nearest_support,
         "nearest_resistance_1d": nearest_resistance,
         "narrative_summary": narrative
     }
 
-def write_batch_summary_csv(tickers, output_dir, logger):
+def write_batch_summary_csv(runs, output_dir, logger):
+    """
+    Write a CSV summary for a batch of runs.
+
+    Args:
+        runs: Iterable of {"ticker": str, "output_dir": str} entries from run_analysis.
+        output_dir: Destination directory for the CSV file.
+        logger: Logger for status messages.
+    """
     summary_rows = []
-    current_date = datetime.now().strftime("%Y-%m-%d")
-    for ticker in tickers:
-        llm_path = f".marketflow/reports/{current_date}/{sanitize_filename(ticker)}/{sanitize_filename(ticker)}_llm_analysis.json"
+    for run in runs:
+        ticker = run.get("ticker")
+        t_dir = run.get("output_dir") or ""
+        llm_path = os.path.join(t_dir, f"{sanitize_filename(ticker)}_llm_analysis.json")
         if os.path.exists(llm_path):
-            with open(llm_path, "r") as f:
+            with open(llm_path, "r", encoding="utf-8") as f:
                 llm_result = json.load(f)
             summary_row = extract_summary_data(llm_result, ticker)
             summary_rows.append(summary_row)

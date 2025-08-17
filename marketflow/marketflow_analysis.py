@@ -62,8 +62,8 @@ def safe_json_dump(data: dict, file_path: str) -> bool:
             return False
 
 def build_narrative(output_dir: str, ticker: str, extractor=None) -> str:
-    # 1) Try the summary TXT
-    p_txt = Path(output_dir) / f"{sanitize_filename(ticker)}_summary.txt"
+    # 1) Try the summary TXT (match MarketflowReport naming)
+    p_txt = Path(output_dir) / f"{sanitize_filename(ticker)}_summary_report.txt"
     if p_txt.exists():
         txt = p_txt.read_text(encoding="utf-8").strip()
         if isinstance(txt, str) and txt and txt.lower() not in ("true", "false", "null"):
@@ -75,7 +75,7 @@ def build_narrative(output_dir: str, ticker: str, extractor=None) -> str:
         try:
             data = json.loads(p_llm.read_text(encoding="utf-8"))
             # common keys you might have saved
-            for key in ("narrative", "summary", "analysis_text", "final_text"):
+            for key in ("analysis_narrative", "narrative", "summary", "analysis_text", "final_text"):
                 val = data.get(key)
                 if isinstance(val, str) and val.strip():
                     return val.strip()
