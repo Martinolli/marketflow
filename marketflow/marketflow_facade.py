@@ -13,6 +13,9 @@ from marketflow.marketflow_signals import SignalGenerator, RiskAssessor
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_wyckoff import WyckoffAnalyzer
+from marketflow.marketflow_wyckoff_confirmation_adapter import WyckoffConfirmationAdapter, ConfirmCfg
+from marketflow.marketflow_utils import make_higher_tf_state
+
 
 class MarketflowFacade:
     """Simplified API for Marketflow Analysis analysis"""
@@ -119,6 +122,75 @@ class MarketflowFacade:
                     # This line correctly unpacks all three results.
                     phases, events, trading_ranges = wyckoff.run_analysis()                              # 14 - Run Wyckoff analysis and unpack results
                     annotated_data = wyckoff.annotate_chart()  # Optional: Annotate the chart with Wyckoff phases and events
+
+                    # Wyckoff confirmation/scoring (conservative)
+                    conf_adapter = WyckoffConfirmationAdapter()
+                    self.logger.debug(f"Scoring Wyckoff annotated data for {ticker} on {tf} with conservative settings.")
+                    annotated_data, confirmed_events = conf_adapter.score_annotated(annotated_data)
+
+                    # plumb into the TF bundle
+                    tf_analysis_data["wyckoff_confirmed_events"] = confirmed_events or []
+                    tf_analysis_data["wyckoff_annotated_data"] = annotated_data  # enriched (adds: tr_low, tr_high, wyckoff_confirmed_event, wyckoff_confidence, wyckoff_reasons)
+                    self.logger.debug(f"Wyckoff confirmed events for {ticker} on {tf}: {confirmed_events}")
+
+                    adapter_fast = WyckoffConfirmationAdapter(
+                    ConfirmCfg(spring_undercut_max=0.015, ut_overshoot_max=0.015)  # optional intraday tightening
+                    )
+                    self.logger.debug(f"Preparing for Wyckoff multi-timeframe gating for {ticker} on {tf}.")
+
+                    # Safely perform multi-timeframe gating only if required annotated data already exists
+                    try:
+                        # Required higher timeframe (1H) plus at least one fast TF
+                        if ("1H" in timeframe_analyses and
+                            "wyckoff_annotated_data" in timeframe_analyses["1H"] and
+                            isinstance(timeframe_analyses["1H"]["wyckoff_annotated_data"], pd.DataFrame) and
+                            not timeframe_analyses["1H"]["wyckoff_annotated_data"].empty):
+
+                            state_1h = make_higher_tf_state(timeframe_analyses["1H"]["wyckoff_annotated_data"])
+                            self.logger.debug(f"1H higher timeframe state for {ticker}: {state_1h}")
+                            state_4h = {}
+                            if ("4H" in timeframe_analyses and
+                                "wyckoff_annotated_data" in timeframe_analyses["4H"] and
+                                isinstance(timeframe_analyses["4H"]["wyckoff_annotated_data"], pd.DataFrame) and
+                                not timeframe_analyses["4H"]["wyckoff_annotated_data"].empty):
+                                state_4h = make_higher_tf_state(timeframe_analyses["4H"]["wyckoff_annotated_data"])
+
+                            higher_gate = {
+                                "trend": state_1h.get("trend"),
+                                "near_lower": state_1h.get("near_lower"),
+                                "near_upper": state_1h.get("near_upper"),
+                                "sow_recent": state_1h.get("sow_recent", False) or state_4h.get("sow_recent", False),
+                                "sos_recent": state_1h.get("sos_recent", False) or state_4h.get("sos_recent", False),
+                            }
+
+                            # Score 15M if available
+                            if ("15M" in timeframe_analyses and
+                                "wyckoff_annotated_data" in timeframe_analyses["15M"] and
+                                isinstance(timeframe_analyses["15M"]["wyckoff_annotated_data"], pd.DataFrame) and
+                                not timeframe_analyses["15M"]["wyckoff_annotated_data"].empty):
+                                df_15m_enriched, ev_15m = adapter_fast.score_annotated(
+                                    timeframe_analyses["15M"]["wyckoff_annotated_data"], higher_tf_state=higher_gate
+                                )
+                                timeframe_analyses["15M"]["wyckoff_annotated_data"] = df_15m_enriched
+                                timeframe_analyses["15M"]["wyckoff_confirmed_events"] = ev_15m
+                                self.logger.debug(f"15M Wyckoff events after gating for {ticker}: {ev_15m}")
+
+                            # Score 5M if available
+                            if ("5M" in timeframe_analyses and
+                                "wyckoff_annotated_data" in timeframe_analyses["5M"] and
+                                isinstance(timeframe_analyses["5M"]["wyckoff_annotated_data"], pd.DataFrame) and
+                                not timeframe_analyses["5M"]["wyckoff_annotated_data"].empty):
+                                df_5m_enriched, ev_5m = adapter_fast.score_annotated(
+                                    timeframe_analyses["5M"]["wyckoff_annotated_data"], higher_tf_state=higher_gate
+                                )
+                                timeframe_analyses["5M"]["wyckoff_annotated_data"] = df_5m_enriched
+                                timeframe_analyses["5M"]["wyckoff_confirmed_events"] = ev_5m
+                                self.logger.debug(f"5M Wyckoff events after gating for {ticker}: {ev_5m}")
+                        else:
+                            self.logger.debug("Skipping Wyckoff multi-timeframe gating (insufficient annotated higher timeframe data yet).")
+                    except Exception as gate_e:
+                        self.logger.warning(f"Wyckoff multi-timeframe gating step skipped due to error: {gate_e}")
+
                     # --- Add candle/volume features to annotated_data DataFrame (if available) ---
                     # List of extra fields to propagate
                     # In the loop for each timeframe in marketflow_facade.py, after getting annotated_data:
