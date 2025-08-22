@@ -481,20 +481,35 @@ class RiskAssessor:
         take_profit = self.calculate_take_profit(signal, current_price, support_resistance)
         self.logger.debug(f"Calculated take_profit: {take_profit}")
         
-        # Calculate risk-reward ratio
-        if signal["type"] == SignalType.BUY:
-            risk = current_price - stop_loss
-            reward = take_profit - current_price
-        else:  # SELL or NO_ACTION
-            risk = stop_loss - current_price
-            reward = current_price - take_profit
+        # --- FIX: Normalize risk/reward distance so NO_ACTION (and any edge cases) produce a positive ratio ---
+        sig_type = signal.get("type")
+        if sig_type == SignalType.BUY:
+            raw_risk = current_price - stop_loss
+            raw_reward = take_profit - current_price
+        elif sig_type == SignalType.SELL:
+            raw_risk = stop_loss - current_price
+            raw_reward = current_price - take_profit
+        else:
+            # NO_ACTION or unknown: infer orientation from relative TP/SL placement
+            # If TP above price, treat like BUY orientation; else SELL orientation
+            if take_profit >= current_price:
+                raw_risk = current_price - stop_loss
+                raw_reward = take_profit - current_price
+            else:
+                raw_risk = stop_loss - current_price
+                raw_reward = current_price - take_profit
 
-        self.logger.debug(f"Risk: {risk}, Reward: {reward}")
+        self.logger.debug(f"Raw risk: {raw_risk}, Raw reward: {raw_reward}")
+
+        # Ensure positive distances
+        risk = abs(raw_risk)
+        reward = max(0.0, raw_reward if raw_reward >= 0 else abs(raw_reward))  # reward should be non-negative distance
+        self.logger.debug(f"Normalized risk: {risk}, Normalized reward: {reward}")
 
         risk_reward_ratio = reward / risk if risk > 0 else 0
         self.logger.debug(f"Risk-reward ratio: {risk_reward_ratio}")
 
-        # Determine position size based on risk
+        # Determine position size based on normalized risk
         position_size = self.calculate_position_size(current_price, stop_loss)
         self.logger.debug(f"Calculated position_size: {position_size}")
 
