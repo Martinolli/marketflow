@@ -118,3 +118,30 @@ def save_timeframe_data(ticker: str, timeframe_analyses: dict) -> None:
             print(f"✅ Saved {ticker} - {timeframe} volume data only ({volume_data.shape[0]} rows) to {file_path}")
         else:
             print(f"No valid price or volume data to save for {ticker} - {timeframe}.")
+
+def make_higher_tf_state(enriched_df, lookback=40):
+    df = enriched_df.copy()
+    # EMAs for simple trend proxy
+    df["ema20"] = df["close"].ewm(span=20, adjust=False).mean()
+    df["ema50"] = df["close"].ewm(span=50, adjust=False).mean()
+    trend = "up" if df["ema20"].iloc[-1] > df["ema50"].iloc[-1] else ("down" if df["ema20"].iloc[-1] < df["ema50"].iloc[-1] else "flat")
+
+    # Quartile on higher TF TR
+    lo = float(df["tr_low"].iloc[-1]) if "tr_low" in df.columns else float(df["low"].tail(120).min())
+    hi = float(df["tr_high"].iloc[-1]) if "tr_high" in df.columns else float(df["high"].tail(120).max())
+    q = 0.5 if hi <= lo else (df["close"].iloc[-1] - lo) / (hi - lo)
+
+    # Recent SOS/SOW on higher TF (either from confirmed or raw events if present)
+    tail = df.tail(lookback)
+    def _has(label):
+        cols = [c for c in ["wyckoff_confirmed_event","wyckoff_event"] if c in tail.columns]
+        if not cols: return False
+        s = tail[cols[0]].astype(str)
+        return s.str.contains(label, case=False, na=False).any()
+    return {
+        "trend": trend,
+        "near_lower": q <= 0.25,
+        "near_upper": q >= 0.75,
+        "sow_recent": _has("SOW"),
+        "sos_recent": _has("SOS"),
+    }
