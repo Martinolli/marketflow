@@ -129,6 +129,14 @@ def fetch_financials_ttm(ticker: str):
     # --- Use the most recent report (fin_q[0]) for Balance Sheet and Shares data ---
     latest_bs = fin_q[0].financials.balance_sheet
     latest_is = fin_q[0].financials.income_statement
+    latest_cfs = fin_q[0].financials.cash_flow_statement
+    latest_ci = fin_q[0].financials.comprehensive_income
+
+    print("Latest Cash Flow Statement:")
+    print(latest_cfs)
+    print()
+    print("Latest Comprehensive Income:")
+    print(latest_ci)
 
     # Get Debt (Long Term + Short Term if available)
     long_term_debt, _ = _pick(latest_bs, "long_term_debt")
