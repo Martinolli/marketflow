@@ -1,3 +1,8 @@
+"""
+This code retrieves and processes financial data from the Polygon API.
+To calculate fair prices, it uses various data points from the API.
+"""
+
 from polygon import RESTClient
 import numbers
 import re
@@ -7,7 +12,7 @@ from typing import Any, Optional
 # It's safer to load your API key from an environment variable
 # rather than hardcoding it directly in the script.
 # You can set this in your terminal before running the script:
-# export POLYGON_API_KEY="DkNggqg61EGpZXikjekWBHvD32ugCEC3"
+# export POLYGON_API_KEY="YOUR_API_KEY_HERE"
 
 from marketflow.marketflow_config_manager import create_app_config
 config_manager = create_app_config()
@@ -224,10 +229,14 @@ def fetch_financials_ttm(ticker: str):
                 "capital_expenditures",
             ),
             patterns=(
-                r"(purchase|purchases|payments|acquisition|additions?).*(property|pp&e|ppe).*(equipment|plant)",
+                # FIX 1: Broadened the main regex to be more flexible. It now looks
+                # for a verb (purchase, payment, etc.) followed by any common
+                # fixed asset noun (property, plant, equipment, etc.).
+                r"(purchase|payment|acquisition|addition)s?.*(property|plant|equipment|pp&e|ppe|fixed_asset)s?",
                 r"capital[_\s]?expend",  # capital_expenditure / capital expenditures
             ),
-            debug_label="CapEx (quarter)" if 'TTM' in __name__ or True else "CapEx"
+            # FIX 4 (minor): Simplified the debug label logic.
+            debug_label="CapEx (quarter)"
         )
         if capex_key is None:
             dump_non_null(cf, "Cash Flow Statement (quarter)", limit=80)
@@ -241,22 +250,34 @@ def fetch_financials_ttm(ticker: str):
         if taken == 4:
             # store latest balance sheet once (from most recent f)
             if not latest_seen:
+                # FIX 2: Added debug labels to all pickers for clarity.
                 ltd, _ = _pick_smart(bs,
                     aliases=("long_term_debt","long_term_debt_noncurrent"),
-                    patterns=(r"long.*term.*debt",))
+                    patterns=(r"long.*term.*debt",),
+                    debug_label="L/T Debt")
                 std, _ = _pick_smart(bs,
                     aliases=("current_debt","short_term_debt",
                              "current_portion_of_long_term_debt"),
-                    patterns=(r"(current|short).*debt",))
+                    patterns=(r"(current|short).*debt",),
+                    debug_label="S/T Debt")
                 latest_debt = (ltd or 0.0) + (std or 0.0)
 
+                # FIX 3: Used the more comprehensive list of aliases/patterns for cash.
                 cash, _ = _pick_smart(bs,
-                    aliases=("cash_and_cash_equivalents",
-                             "cash_and_cash_equivalents_at_carrying_value",
-                             "cash_cash_equivalents_and_short_term_investments"),
-                    patterns=(r"cash.*equivalents.*short.*invest",
-                              r"cash.*equivalents.*carrying",
-                              r"^cash.*equivalents$"))
+                    aliases=(
+                        "cash_and_cash_equivalents",
+                        "cash_and_cash_equivalents_at_carrying_value",
+                        "cash_cash_equivalents_and_short_term_investments",
+                        "cash_and_short_term_investments",
+                        "cash_cash_equivalents_and_marketable_securities",
+                    ),
+                    patterns=(
+                        r"cash.*equivalents.*short.*invest",
+                        r"cash.*equivalents.*marketable.*secur",
+                        r"cash.*short.*invest",
+                        r"^cash.*equivalents$",
+                    ),
+                    debug_label="Cash & Equiv")
                 latest_cash = cash
                 latest_seen = True
             break
@@ -335,10 +356,10 @@ def fetch_financials(ticker: str):
             "capital_expenditures",
         ),
         patterns=(
-            r"(purchase|purchases|payments|acquisition|additions?).*(property|pp&e|ppe).*(equipment|plant)",
+            r"(purchase|payment|acquisition|addition)s?.*(property|plant|equipment|pp&e|ppe|fixed_asset)s?",
             r"capital[_\s]?expend",  # capital_expenditure / capital expenditures
         ),
-        debug_label="CapEx (quarter)" if 'TTM' in __name__ or True else "CapEx"
+        debug_label="CapEx"
     )
     # If CapEx missing, treat as 0 but warn
     if capex_key is None:
@@ -428,6 +449,7 @@ def fetch_financials(ticker: str):
         "debt": float(debt),
         "cash": float(cash)
     }
+
 
 def project_cash_flows(fcf, growth_rate=0.08, years=5):
     """Projects future cash flows for a number of years."""
