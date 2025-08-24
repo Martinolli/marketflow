@@ -1,0 +1,129 @@
+["AMD", "TSLA", "NVDA", "AAPL", "PLTR", "MSFT", "AMZN", "SHOP", "META", "SMCI", "ANET", "COIN", "UBER", "ALAB", "AVGO", "HOOD", "UNH", "NFLX", "APP", "DIS", "FIG", "HIMS", "GOOG", "MSTR", "LLY", "COST", "ORCL", "VRTX", "MCD", "UPST", "RDDT", "V", "WMT", "ACN", "EMR", "U", "SNAP", "MELI", "ZET", "CSCO", OKLO"]
+["IMA", "VWAV",
+               "PFSA",
+               "AIM",
+               "VAPE",
+               "MGRT",
+               "GIBO",
+               "ALBT",
+               "CREV",
+               "CASK",
+               "CELC",
+               "SIDU",
+               "HCTI",
+               "LIDR",
+               "SDM",
+               "RMSG",
+               "GTI",
+               "SMX",
+               "ATNF",
+               "CRVO",
+               "NVNI",
+               "LGCL",
+               "YYGH",
+               "ABP",
+               "UPLD",
+               "BINI",
+               "LMFA",
+               "CLDI",
+               "MPU",
+               "GIBO",
+               "ALBT",
+               "CREV",
+               "CASK",
+               "CELC",
+               "SIDU",
+               "HCTI",
+               "LIDR",
+               "SDM",
+               "RMSG",
+               "GTI",
+               "SMX",
+               "ATNF",
+               "CRVO",
+               "NVNI",
+               "LGCL",
+               "YYGH",
+               "ABP",
+               "UPLD",
+               "BINI",
+               "LMFA",
+               "CLDI",
+               "MPU"]
+
+1	GE	General Electric Company	282.64B	-0.81%	5,228,493	41.61B
+2	RTX	RTX Corporation	209.13B	-0.05%	4,252,281	83.60B
+3	BA	The Boeing Company	174.01B	2.52%	8,676,476	75.33B
+4	LMT	Lockheed Martin Corporation	104.17B	-0.22%	1,607,251	71.84B
+5	GD	General Dynamics Corporation	85.84B	0.97%	917,192	50.27B
+6	NOC	Northrop Grumman Corporation	84.83B	-0.80%	616,724	40.50B
+7	TDG	TransDigm Group Incorporated	79.37B	1.10%	251,153	8.58B
+8	HWM	Howmet Aerospace Inc.	68.93B	-1.30%	2,995,755	7.72B
+9	AXON	Axon Enterprise, Inc.	60.15B	0.36%	391,501	2.39B
+10	LHX	L3Harris Technologies, Inc.	51.60B	-0.12%	754,934	21.37B
+11	HEI	HEICO Corporation	43.07B	0.61%	422,193	4.13B
+12	HEI.A	HEICO Corporation	37.52B	1.67%	229,872	4.13B
+13	RKLB	Rocket Lab Corporation	21.41B	6.86%	18,816,164	504.26M
+14	ESLT	Elbit Systems Ltd.	21.15B	-1.84%	86,073	7.52B
+15	CW	Curtiss-Wright Corporation	18.12B	-0.71%	226,341	3.31B
+16	BWXT	BWX Technologies, Inc.	14.91B	-1.36%	1,278,249	2.86B
+17	WWD	Woodward, Inc.	14.87B	0.08%	365,521	3.43B
+18	TXT	Textron Inc.	14.53B	2.58%	876,704	14.06B
+19	AVAV	AeroVironment, Inc.	11.92B	2.03%	801,577	820.63M
+20	KTOS	Kratos Defense & Security Solutions, Inc.	11.26B	2.98%	2,983,127	1.21B
+21	DRS	Leonardo DRS, Inc.	10.96B	0.37%	853,486	3.42B
+22	HII	Huntington Ingalls Industries, Inc.	10.59B	1.31%	358,982	11.57B
+23	ERJ	Embraer S.A.	10.51B	1.15%	1,332,790	7.31B
+24	SARO	StandardAero, Inc.	9.11B	1.34%	2,542,205	5.62B
+25	CAE	CAE Inc.	8.77B	1.86%	669,723	3.47B
+26	KRMN	Karman Holdings Inc.	6.91B	0.02%	1,050,144	392.43M
+27	LOAR	Loar Holdings Inc.	6.78B	-0.81%	1,236,756	451.74M
+28	FLY	Firefly Aerospace Inc.	6.62B	-0.35%	1,016,550	108.33M
+29	MOG.A	Moog Inc.	6.26B	2.53%	132,350	3.73B
+30	MOG.B	Moog Inc.	6.25B	4.99%	173	3.73B
+31	ACHR	Archer Aviation Inc.	6.24B	3.09%	25,188,698	-
+32	HXL	Hexcel Corporation	5.05B	1.65%	609,183	1.88B
+33	SPR	Spirit AeroSystems Holdings, Inc.	4.81B	2.79%	931,981	6.28B
+34	MRCY	Mercury Systems, Inc.	4.00B	1.81%	445,912	912.02M
+35	VSEC	VSE Corporation	3.45B	2.50%	262,574	1.25B
+36	AIR	AAR Corp.	2.69B	5.70%	422,874	2.78B
+37	PL	Planet Labs PBC	2.06B	4.94%	5,216,274	250.18M
+38	VVX	V2X, Inc.	1.87B	1.92%	547,093	4.33B
+39	VOYG	Voyager Technologies, Inc.	1.81B	0.59%	726,678	157.49M
+40	LUNR	Intuitive Machines, Inc.	1.60B	3.76%	6,227,330	225.98M
+41	EVEX	Eve Holding, Inc.	1.40B	1.77%	2,080,066	-
+42	DCO	Ducommun Incorporated	1.39B	3.92%	133,028	795.08M
+43	EH	EHang Holdings Limited	1.33B	6.07%	3,166,195	57.95M
+44	RDW	Redwire Corporation	1.31B	4.60%	3,242,318	261.35M
+45	ATRO	Astronics Corporation	1.29B	2.08%	798,691	822.85M
+46	CDRE	Cadre Holdings, Inc.	1.26B	4.83%	305,582	572.61M
+47	RCAT	Red Cat Holdings, Inc.	979.68M	0.82%	6,018,433	-910.00K
+48	NPK	National Presto Industries, Inc.	785.66M	4.57%	51,207	450.60M
+49	AIRO	AIRO Group Holdings, Inc.	670.17M	4.94%	1,162,156	99.76M
+50	RGR	Sturm, Ruger & Company, Inc.	564.22M	2.62%	151,342	536.29M
+51	EVTL	Vertical Aerospace Ltd.	501.76M	11.37%	1,466,346	-
+52	TATT	TAT Technologies Ltd.	476.99M	1.18%	146,277	166.75M
+53	BYRN	Byrna Technologies Inc.	458.62M	5.15%	324,302	103.53M
+54	PKE	Park Aerospace Corp.	378.25M	3.76%	145,401	63.46M
+55	SATL	Satellogic Inc.	370.54M	-1.13%	1,481,980	13.87M
+56	SWBI	Smith & Wesson Brands, Inc.	364.67M	3.52%	758,319	474.66M
+57	ISSC	Innovative Solutions and Support, Inc.	250.85M	5.10%	673,469	77.43M
+58	SPCE	Virgin Galactic Holdings, Inc.	181.41M	5.35%	2,850,518	1.70M
+59	PEW	GrabAGun Digital Holdings Inc.	178.89M	4.04%	1,093,664	90.69M
+60	POWW	Outdoor Holding Company	173.32M	4.96%	492,642	45.28M
+61	VWAV	VisionWave Holdings, Inc.	122.76M	-6.62%	332,622	-
+62	SPAI	Safe Pro Group Inc.	98.86M	12.23%	474,041	1.50M
+63	DPRO	Draganfly Inc.	92.15M	8.09%	1,159,906	5.25M
+64	CODA	Coda Octopus Group, Inc.	85.27M	3.13%	81,820	22.76M
+65	OPXS	Optex Systems Holdings, Inc	71.66M	0.78%	39,961	39.48M
+66	HOVR	New Horizon Aircraft Ltd.	65.09M	5.06%	508,975	-
+67	SIF	SIFCO Industries, Inc.	43.88M	4.11%	67,064	83.66M
+68	MOB	Mobilicom Limited	35.64M	8.99%	494,291	2.83M
+69	XTIA	XTI Aerospace, Inc.	34.84M	-1.15%	490,737	3.04M
+70	KITT	Nauticus Robotics, Inc.	34.52M	3.43%	1,122,842	3.08M
+71	CVU	CPI Aerostructures, Inc.	33.52M	-7.48%	61,865	71.77M
+72	SIDU	Sidus Space, Inc.	30.03M	0.85%	689,501	4.19M
+73	PRZO	ParaZero Technologies Ltd.	24.40M	2.14%	581,902	932.15K
+74	GPUS	Hyperscale Data, Inc.	18.93M	1.62%	1,535,842	101.38M
+75	MNTS	Momentus Inc.	16.87M	13.28%	2,099,513	905.00K
+76	AIRI	Air Industries Group	14.84M	2.30%	27,645	52.28M
