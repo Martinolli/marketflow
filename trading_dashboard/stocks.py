@@ -1,9 +1,19 @@
 # ========================================================= #
-from .. import base_client
+import base_client
 from os import cpu_count
+from polygon import RESTClient
 
 # ========================================================= #
+from marketflow.marketflow_config_manager import create_app_config
+from marketflow.marketflow_logger import get_logger
 
+logger = get_logger("STOCKS_DATA_CLIENTS")
+config_manager = create_app_config(logger=logger)
+api_key = config_manager.get_api_key('polygon')
+if not api_key:
+    raise ValueError("Please set the POLYGON_API_KEY environment variable.")
+
+client = RESTClient(api_key)
 
 def StocksClient(
     api_key: str,
