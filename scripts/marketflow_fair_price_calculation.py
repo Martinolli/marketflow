@@ -1,3 +1,10 @@
+"""Calculate the fair price of a stock using DCF and Venture-DCF methods.
+Usage:
+    python scripts/marketflow_fair_price_calculation.py TICKER1 [TICKER2 ...]
+Example:   python scripts/marketflow_fair_price_calculation.py AAPL MSFT GME
+
+"""
+
 from polygon import RESTClient
 import numbers
 import re
