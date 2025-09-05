@@ -227,7 +227,7 @@ def plot_point_and_figure(df, output_dir, box_size=None, reversal=3):
     fig.show()
 
 
-def plot_features(csv_file, features=None, nrows=1000, box_size=None, reversal=3):
+def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3):
     """Plot features from a MarketFlow annotated CSV file.
     Args:
         csv_file (str): Path to the annotated CSV file.
@@ -247,7 +247,7 @@ def plot_features(csv_file, features=None, nrows=1000, box_size=None, reversal=3
     logger.info(f"Data loaded successfully with {len(df)} rows.")
     
     # Limit to nrows
-    df = df.head(nrows)
+    df = df.tail(nrows)
 
     # NEW: Plot Volume Profile
     plot_volume_profile(df.copy(), output_dir)
@@ -284,7 +284,7 @@ def plot_features(csv_file, features=None, nrows=1000, box_size=None, reversal=3
         yaxis_title="Closed Price",
         yaxis2_title="Volume"
     )
-    fig.update_xaxes(rangeslider_visible=True, row=2, col=1)
+    fig.update_xaxes(type='date', rangeslider_visible=True, row=2, col=1)
     price_volume_path = os.path.join(output_dir, "price_volume_combined_plot.html")
     fig.write_html(price_volume_path)
     logger.info(f"Combined price and volume plot saved as {price_volume_path}")
@@ -371,13 +371,13 @@ def plot_features(csv_file, features=None, nrows=1000, box_size=None, reversal=3
         logger.info(f"Volume direction plot saved as {volume_direction_path}")
         fig.show()
 
-if __name__ == "__main__":
+def main():
     parser = argparse.ArgumentParser(description="Plot features from MarketFlow annotated CSV.")
     parser.add_argument("csv", type=str, help="Path to annotated CSV file")
     parser.add_argument("--features", type=str, nargs="*", default=None,
                         help="Features/columns to plot (e.g., close spread volume_class)")
-    parser.add_argument("--nrows", type=int, default=100,
-                        help="Number of rows to plot (default 100)")
+    parser.add_argument("--nrows", type=int, default=4000,
+                        help="Number of rows to plot (default 4000)")
     # New arguments for Point & Figure Chart
     parser.add_argument("--box-size", type=float, default=None,
                         help="Box size for the Point & Figure chart. Default is auto-calculated.")
@@ -385,3 +385,6 @@ if __name__ == "__main__":
                         help="Reversal amount in boxes for the P&F chart (default 3)")
     args = parser.parse_args()
     plot_features(args.csv, args.features, args.nrows, args.box_size, args.reversal)
+
+if __name__ == "__main__":
+    main()

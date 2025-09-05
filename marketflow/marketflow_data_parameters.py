@@ -270,8 +270,8 @@ default_config = {
         {"interval": "4h", "period": "60d"},
         {"interval": "1h", "period": "30d"},    
         {"interval": "30m", "period": "10d"},
-        {"interval": "15m", "period": "4d"},
-        {"interval": "5m", "period": "4d"},
-        {"interval": "1m", "period": "3d"}
+        {"interval": "15m", "period": "10d"},
+        {"interval": "5m", "period": "10d"},
+        {"interval": "1m", "period": "5d"}
     ]
 }
