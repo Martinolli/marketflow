@@ -93,8 +93,35 @@ def plot_volume_profile(df, output_dir):
     logger.info(f"Volume Profile plot saved as {profile_path}")
     fig.show()
 
+def add_wyckoff_phase_overlay_pnf(fig, df_with_cols):
+    """
+    Overlay Wyckoff phases on a P&F chart that uses integer column indices.
+    Expects columns: wyckoff_phase, pnf_column.
+    """
+    if 'wyckoff_phase' not in df_with_cols.columns or 'pnf_column' not in df_with_cols.columns:
+        return
+    phase_colors = {
+        "A": "rgba(255, 255, 0, 0.18)",  # YELLOW
+        "B": "rgba(255, 165, 0, 0.18)",  # ORANGE
+        "C": "rgba(0, 255, 0, 0.18)",  # GREEN
+        "D": "rgba(0, 128, 255, 0.18)",  # BLUE
+        "E": "rgba(128, 0, 128, 0.18)"  # PURPLE
+    }
+    for phase, color in phase_colors.items():
+        phase_df = df_with_cols[df_with_cols['wyckoff_phase'] == phase]
+        if phase_df.empty:
+            continue
+        x0 = phase_df['pnf_column'].min() - 0.5
+        x1 = phase_df['pnf_column'].max() + 0.5
+        fig.add_vrect(
+            x0=x0, x1=x1,
+            fillcolor=color,
+            opacity=0.35,
+            layer="below",
+            line_width=0
+        )
 
-def plot_point_and_figure(df, output_dir, box_size=None, reversal=3):
+def plot_point_and_figure(df, output_dir, box_size=None, reversal=3, wyckoff_overlay=False):
     """
     Generates and plots a Point & Figure (P&F) chart.
 
@@ -103,6 +130,7 @@ def plot_point_and_figure(df, output_dir, box_size=None, reversal=3):
         output_dir (str): Directory to save the output HTML file.
         box_size (float, optional): The size of each box. If None, it's auto-calculated.
         reversal (int, optional): The reversal amount in boxes (typically 3).
+        wyckoff_overlay (bool): If True and 'wyckoff_phase' present, overlay phases.
     """
     logger.info("Generating Point & Figure chart...")
 
@@ -128,6 +156,11 @@ def plot_point_and_figure(df, output_dir, box_size=None, reversal=3):
     start_price = highs.iloc[0]
     box_floor = np.floor(start_price / box_size) * box_size
     box_ceil = box_floor + box_size
+
+    # Track which P&F column each row belongs to
+    row_column_index = [0] * len(df)
+    column_index = 0
+
 
     for i in range(1, len(df)):
         high = highs.iloc[i]
@@ -187,6 +220,8 @@ def plot_point_and_figure(df, output_dir, box_size=None, reversal=3):
                     box_floor = box_ceil
                     box_ceil += box_size
 
+        row_column_index[i] = column_index
+
     # Add the last column
     if current_col:
         pnf_columns.append({'type': 'X' if direction == 1 else 'O', 'values': current_col})
@@ -209,10 +244,15 @@ def plot_point_and_figure(df, output_dir, box_size=None, reversal=3):
                 marker=dict(symbol='circle-open', color='red', size=8, line=dict(width=2)),
                 name='Down Column' if any(c['type'] == 'X' for c in pnf_columns[:i+1]) == False else '', showlegend=(any(c['type'] == 'O' for c in pnf_columns[:i]))==False
             ))
+
+    if wyckoff_overlay and 'wyckoff_phase' in df.columns:
+        df_cols = df.copy()
+        df_cols['pnf_column'] = row_column_index
+        add_wyckoff_phase_overlay_pnf(fig, df_cols)
             
     fig.update_layout(
         title=f"Point & Figure Chart (Box Size: {box_size}, Reversal: {reversal}) - {os.path.basename(output_dir)}",
-        xaxis_title="Column",
+        xaxis_title="P&F Column",
         yaxis_title="Price",
         yaxis=dict(tickformat=".2f", gridwidth=1, gridcolor='LightGrey'),
         xaxis=dict(gridwidth=1, gridcolor='LightGrey', dtick=1)
@@ -250,7 +290,7 @@ def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3
     plot_volume_profile(df.copy(), output_dir)
 
     # NEW: Plot Point & Figure Chart
-    plot_point_and_figure(df.copy(), output_dir, box_size=box_size, reversal=reversal)
+    plot_point_and_figure(df.copy(), output_dir, box_size=box_size, reversal=reversal, wyckoff_overlay=True)
 
     # Check if the specified features are in the DataFrame
     if features is None:
