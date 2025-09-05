@@ -38,14 +38,17 @@ class CustomJSONEncoder(json.JSONEncoder):
             return super().default(obj)
         except TypeError:
             return str(obj)
-def safe_json_dump(data: dict, file_path: str) -> bool:
+def safe_json_dump(data: dict, file_path: str, logger=None) -> bool:
     """Safely dump data to JSON file with custom encoder."""
     try:
         with open(file_path, "w", encoding="utf-8") as f:
             json.dump(data, f, indent=4, cls=CustomJSONEncoder, ensure_ascii=False)
         return True
     except Exception as e:
-        logger.error(f"Failed to save JSON to {file_path}: {e}")
+        if logger:
+            logger.error(f"Failed to save JSON to {file_path}: {e}")
+        else:
+            print(f"Failed to save JSON to {file_path}: {e}")
         try:
             simplified_data = {
                 "error": "Original data could not be serialized",
@@ -249,7 +252,7 @@ def _compose_richer_narrative(
 def embed_fn(text: str):
     return embed_text(text)  # 1536-dim for text-embedding-3-small
 
-def run_analysis(ticker, timeframes=None):
+def run_analysis(ticker, timeframes=None, logger=None) -> tuple[str, str]:
     """
     Run market analysis for a given ticker symbol.
     This function now returns the generated narrative and the output directory path.
@@ -301,7 +304,7 @@ def run_analysis(ticker, timeframes=None):
     
     llm_analysis_file = os.path.join(output_dir, f"{sanitize_filename(ticker)}_llm_analysis.json")
     os.makedirs(output_dir, exist_ok=True)
-    safe_json_dump(llm_interface_analysis, llm_analysis_file)
+    safe_json_dump(llm_interface_analysis, llm_analysis_file, logger=logger)
 
     # Build the narrative
     narrative = build_narrative(output_dir, ticker, extractor)
