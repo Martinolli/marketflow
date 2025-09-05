@@ -46,7 +46,7 @@ def main():
         logger.info(f"--- Processing ticker: {ticker} ---")
         try:
             # We will modify run_analysis to return the narrative text
-            narrative, ticker_output_dir = run_analysis(ticker)
+            narrative, ticker_output_dir = run_analysis(ticker, logger=logger)
             runs.append({"ticker": ticker, "output_dir": ticker_output_dir})
 
             if narrative:
