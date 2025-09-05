@@ -37,14 +37,11 @@ import plotly.graph_objs as go
 import os
 
 # Assuming marketflow is a local package or installed
-# from marketflow.marketflow_config_manager import create_app_config
-# from marketflow.marketflow_logger import get_logger
+from marketflow.marketflow_config_manager import create_app_config
+from marketflow.marketflow_logger import get_logger
 
-# Standalone logger and config for demonstration if marketflow package is not available
-import logging
-logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(name)s - %(levelname)s - %(message)s')
-logger = logging.getLogger("plot_annotated_features")
-# config_manager = create_app_config(logger=logger)
+logger = get_logger("plot_annotated_features")
+config_manager = create_app_config(logger=logger)
 
 
 def plot_volume_profile(df, output_dir):
