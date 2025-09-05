@@ -1,3 +1,9 @@
+"""Calculate the expected return, beta, and volatility of a portfolio using CAPM and plot the Security Market Line (SML).
+Usage:
+    python scripts/marketflow_macp.py
+Example:   python scripts/marketflow_macp.py
+"""
+
 import requests
 import pandas as pd
 import numpy as np
