@@ -398,42 +398,43 @@ marketflow/
 │
 │       
 │
-├── marketflow/                                         # Core Python package
+├── marketflow/                                                 # Core Python package
 │   ├── __pycache__
 │   ├── concepts/
-│   │    ├── vpa_concepts.yaml (✓ new)                  # Concepts file to integrate to marketflow_llm_interface.py
-│   │    └── wyckoff_concepts.yaml (✓ new)              # Concepts file to integrate to marketflow_llm_interface.py
+│   │    ├── vpa_concepts.yaml (✓ new)                         # Concepts file to integrate to marketflow_llm_interface.py
+│   │    └── wyckoff_concepts.yaml (✓ new)                     # Concepts file to integrate to marketflow_llm_interface.py
 │   ├── examples/
-│   │    └── integration_example.py (✓ new)             # Integration example script
+│   │    └── integration_example.py (✓ new)                    # Integration example script
 │   ├── __init__.py
-│   ├── batch_utils.py (✓ new)                          # This script generates a CSV file containing summary data from a JSON analysis file.
-│   ├── candle_analyzer.py  (✓ new)                     # Enum definitions
-│   ├── enums.py                                        # Enum definitions
-│   ├── marketflow_analysis.py (✓ new)                  # This script runs a market analysis for a given ticker symbol using the MarketflowFacade.
-│   ├── marketflow_config_manager.py (✓ replaced)       # Central config/env loader
-│   ├── marketflow_data_parameters.py (✓ new)           # This module contains the data parameters to be used by processor
-│   ├── marketflow_data_provider.py (✓ replaced)        # Abstract + provider-specific data fetchers
-│   ├── marketflow_facade.py  (✓ new)                   # Orchestrator: unified API for analytics, charting, reporting
-│   ├── marketflow_llm_interface.py  (✓ new)            # Human-friendly narrative/report generator for LLM
-│   ├── marketflow_llm_narrative.py  (✓ new)            # Refactor llm_interface to reduce the code size, the narrative for llm_interface
-│   ├── marketflow_llm_query_engine.py  (✓ new)         # Handles all LLM-driven query processing for MarketFlow with robust architecture.
-│   ├── marketflow_logger.py (✓ replaced)               # Centralized logging
-│   ├── marketflow_memory_manager.py ✓ new)             # Conversation/session memory for LLMs
-│   ├── marketflow_polygon_tools.py (new)               # Polygon Tools Requesting Code
-│   ├── marketflow_processor.py  (✓ new)                # Data processing/cleaning
-│   ├── marketflow_report.py  (✓ new)                   # Report generation
-│   ├── marketflow_results_extractor.py  (✓ new)         # Extractor Data from Facade
-│   ├── marketflow_signals.py   (✓ new)                 # Signal detection algorithms
-│   ├── marketflow_snapshot.py   (✓ new)                # This module provides advanced functionality for capturing, storing, and retrieving MarketFlow
-│   ├── marketflow_utils.py (✓ new)                     # This module contains common, reusable functions that are shared across different
-│   ├── marketflow_wyckoff.py (✓ new)                   # Wyckoff method analytics
-│   ├── multi_timeframe_analyzer.py (✓ new)             # Multi timeframe analytics
-│   ├── pattern_recognizer.py (✓ new)                   # Pattern recognition algorithms
-│   ├── point_in_time_analyzer.py (✓ new)               # Point in time analytics
-│   ├── support_resistance_analyzer.py (✓ new)          # Support and Resistance algorithms
-│   ├── transient_vector_memory.py (✓ new)              # This script implements a transient vector memory (TVM) system using FAISS for efficient similarity search.
-│   ├── trend_analyzer.py (✓ new)                       # Trend Analyzer algorithms
-│   ├── marketflow_llm_providers.py (TBD)               # LLM abstraction layer
+│   ├── batch_utils.py (✓ new)                                 # This script generates a CSV file containing summary data from a JSON analysis file.
+│   ├── candle_analyzer.py  (✓ new)                            # Analyze Candles Script
+│   ├── enums.py                                                # Enum definitions
+│   ├── marketflow_analysis.py (✓ new)                         # This script runs a market analysis for a given ticker symbol using the MarketflowFacade.
+│   ├── marketflow_config_manager.py (✓ replaced)              # Central config/env loader
+│   ├── marketflow_data_parameters.py (✓ new)                  # This module contains the data parameters to be used by processor
+│   ├── marketflow_data_provider.py (✓ replaced)               # Abstract + provider-specific data fetchers
+│   ├── marketflow_facade.py  (✓ new)                          # Orchestrator: unified API for analytics, charting, reporting
+│   ├── marketflow_llm_interface.py  (✓ new)                   # Human-friendly narrative/report generator for LLM
+│   ├── marketflow_llm_narrative.py  (✓ new)                   # Refactor llm_interface to reduce the code size, the narrative for llm_interface
+│   ├── marketflow_llm_query_engine.py  (✓ new)                # Handles all LLM-driven query processing for MarketFlow with robust architecture.
+│   ├── marketflow_logger.py (✓ replaced)                      # Centralized logging
+│   ├── marketflow_memory_manager.py ✓ new)                    # Conversation/session memory for LLMs
+│   ├── marketflow_polygon_tools.py (new)                       # Polygon Tools Requesting Code
+│   ├── marketflow_processor.py  (✓ new)                       # Data processing/cleaning
+│   ├── marketflow_report.py  (✓ new)                          # Report generation
+│   ├── marketflow_results_extractor.py  (✓ new)               # Extractor Data from Facade
+│   ├── marketflow_signals.py   (✓ new)                        # Signal detection algorithms
+│   ├── marketflow_snapshot.py   (✓ new)                       # This module provides advanced functionality for capturing, storing, and retrieving MarketFlow
+│   ├── marketflow_utils.py (✓ new)                            # This module contains common, reusable functions that are shared across different
+│   ├── marketflow_wyckoff_confirmation_adapter.py (✓ new)     # Adds conservative confirmation and scoring to events.
+│   ├── marketflow_wyckoff.py (✓ new)                          # Wyckoff method analytics
+│   ├── multi_timeframe_analyzer.py (✓ new)                    # Multi timeframe analytics
+│   ├── pattern_recognizer.py (✓ new)                          # Pattern recognition algorithms
+│   ├── point_in_time_analyzer.py (✓ new)                      # Point in time analytics
+│   ├── support_resistance_analyzer.py (✓ new)                 # Support and Resistance algorithms
+│   ├── transient_vector_memory.py (✓ new)                     # This script implements a transient vector memory (TVM) system using FAISS for efficient similarity search.
+│   ├── trend_analyzer.py (✓ new)                              # Trend Analyzer algorithms
+│   ├── marketflow_llm_providers.py (TBD)                       # LLM abstraction layer
 │   ├──
 │   └── ...                                             # (Other modules as needed)
 │
@@ -454,7 +455,9 @@ marketflow/
 │   ├── marketflow_analysis.py  (✓ new)                 # Analysis script
 │   ├── marketflow_batch_analysis.py  (✓ new)           # Marketflow Batch Analysis Orchestrator
 │   ├── marketflow_batch_report.py  (✓ new)             # Analysis script for a list of tickers
+│   ├── marketflow_fair_price_calculation.py  (✓ new)   # Calculate the fair price of a stock using DCF and Venture-DCF methods
 │   ├── marketflow_integration_example.py               # Integration Example
+│   ├── marketflow_macp.py                              # MACP calculation for a given portfolio
 │   ├── plot_annotated_features.py  (✓ new)             # Plot script
 │   └── marketflow_app.py (TBD)                         # Empty to be developed
 │

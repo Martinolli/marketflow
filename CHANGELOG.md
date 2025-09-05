@@ -6,6 +6,7 @@ All notable changes to this project are documented in this file.
 
 | Date       | Revision |
 |------------|----------|
+| 2025-09-05 | v1.20    |
 | 2025-08-16 | v1.19    |
 | 2025-08-09 | v1.18    |
 | 2025-08-03 | v1.17    |
@@ -43,6 +44,40 @@ All notable changes to this project are documented in this file.
 | 2025-07-03 | v1.1     |
 | 2025-07-03 | v1.1     |
 | 2025-07-01 | v1.0     |
+
+---
+
+## [1.20.0]
+
+### Added 20 - 2025-09-05
+
+- Creating the following features to improve the data analysis
+  - `marketflow_wyckoff_confirmation_adapter.py`[1]
+    Marketflow Wyckoff Confirmation Adapter
+    Adds conservative confirmation and scoring to events created by
+    `marketflow_wyckoff.WyckoffAnalyzer.annotate_chart()`.
+
+    Drop this file into your `marketflow/` package and import the adapter
+    from the Facade right after you call `WyckoffAnalyzer().annotate_chart()`.
+    Output:
+    - Enriched annotated DataFrame with columns:
+      wyckoff_confirmed_event (str; pipe-separated labels added or re-tagged)
+      wyckoff_confidence (float; 0..1 per bar for the most material event)
+      wyckoff_reasons (str; semicolon-joined rationale)
+      tr_low, tr_high (floats; detected TR for the timeframe)
+    A compact list of high-confidence events you can store at `timeframe_analyses[tf]['wyckoff_confirmed_events']`
+    The adapter is self-contained (no external imports from the CLI tool),
+    but mirrors its logic and thresholds so you can keep one mental model.
+  - `marketflow_macp.py`
+    Calculate the expected return, beta, and volatility of a portfolio using CAPM and plot the Security Market Line (SML).
+    Usage:
+      python scripts/marketflow_macp.py
+      Example:   python scripts/marketflow_macp.py
+  - `marketflow_fair_price_calculation.py`
+    Calculate the fair price of a stock using DCF and Venture-DCF methods.
+    Usage:
+      python scripts/marketflow_fair_price_calculation.py TICKER1 [TICKER2 ...]
+    Example:   python scripts/marketflow_fair_price_calculation.py AAPL MSFT GME
 
 ---
 
