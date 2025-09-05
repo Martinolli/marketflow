@@ -227,7 +227,7 @@ def plot_point_and_figure(df, output_dir, box_size=None, reversal=3):
     fig.show()
 
 
-def plot_features(csv_file, features=None, nrows=100, box_size=None, reversal=3):
+def plot_features(csv_file, features=None, nrows=1000, box_size=None, reversal=3):
     """Plot features from a MarketFlow annotated CSV file.
     Args:
         csv_file (str): Path to the annotated CSV file.
