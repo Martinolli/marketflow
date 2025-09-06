@@ -77,7 +77,7 @@ def plot_volume_profile(df, output_dir):
         y=volume_by_price.index,
         x=volume_by_price.values,
         orientation='h',
-        marker_color='rgba(100,100,100,0.6)'
+        marker_color='rgba(252,100,100,100)'
     ))
     
     fig.update_layout(
@@ -101,11 +101,11 @@ def add_wyckoff_phase_overlay_pnf(fig, df_with_cols):
     if 'wyckoff_phase' not in df_with_cols.columns or 'pnf_column' not in df_with_cols.columns:
         return
     phase_colors = {
-        "A": "rgba(255, 255, 0, 0.18)",  # YELLOW
-        "B": "rgba(255, 165, 0, 0.18)",  # ORANGE
-        "C": "rgba(0, 255, 0, 0.18)",  # GREEN
-        "D": "rgba(0, 128, 255, 0.18)",  # BLUE
-        "E": "rgba(128, 0, 128, 0.18)"  # PURPLE
+        "A": "rgba(0, 2, 252, 1)",  # BLUE
+        "B": "rgba(252, 19, 0, 1)",  # RED
+        "C": "rgba(0, 255, 0, 1)",  # GREEN
+        "D": "rgba(255, 242, 0, 1)",  # YELLOW
+        "E": "rgba(163, 0, 255, 1)"  # PURPLE
     }
     for phase, color in phase_colors.items():
         phase_df = df_with_cols[df_with_cols['wyckoff_phase'] == phase]
@@ -263,6 +263,107 @@ def plot_point_and_figure(df, output_dir, box_size=None, reversal=3, wyckoff_ove
     logger.info(f"Point & Figure plot saved as {pnf_path}")
     fig.show()
 
+def plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name):
+    """
+    Generates a comprehensive candlestick chart with Wyckoff phases and event annotations.
+    """
+    logger.info("Generating annotated Wyckoff Candlestick chart...")
+
+    fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                        vertical_spacing=0.03,
+                        subplot_titles=(f"Wyckoff Analysis: {csv_file_name}", "Volume"),
+                        row_heights=[0.7, 0.3])
+
+    # 1. Candlestick chart
+    fig.add_trace(go.Ohlc(x=df['timestamp'],
+                                 open=df['open'],
+                                 high=df['high'],
+                                 low=df['low'],
+                                 close=df['close'],
+                                 name='Price'),
+                  row=1, col=1)
+
+    # 2. Volume chart with color coding
+    colors = ['green' if row['close'] >= row['open'] else 'red' for index, row in df.iterrows()]
+    fig.add_trace(go.Bar(x=df['timestamp'], y=df['volume'],
+                         marker_color=colors,
+                         name='Volume'),
+                  row=2, col=1)
+
+    # 3. Add Wyckoff Phase overlays
+    phase_colors = {
+        "A": "rgba(255, 165, 0, 0.1)", "B": "rgba(0, 0, 255, 0.1)",
+        "C": "rgba(128, 0, 128, 0.1)", "D": "rgba(0, 128, 0, 0.1)",
+        "E": "rgba(139, 69, 19, 0.1)", "UNKNOWN": "rgba(128, 128, 128, 0.05)"
+    }
+    
+    df['phase_shifted'] = df['wyckoff_phase'].shift(1)
+    phase_changes = df[df['wyckoff_phase'] != df['phase_shifted']]
+
+    for i in range(len(phase_changes)):
+        start_date = phase_changes.iloc[i]['timestamp']
+        phase = phase_changes.iloc[i]['wyckoff_phase']
+        end_date = df.iloc[-1]['timestamp'] if i == len(phase_changes) - 1 else phase_changes.iloc[i+1]['timestamp']
+        
+        fig.add_vrect(x0=start_date, x1=end_date,
+                      fillcolor=phase_colors.get(phase, "rgba(200,200,200,0.1)"),
+                      opacity=0.5, layer="below", line_width=0,
+                      annotation_text=f"Phase {phase}", annotation_position="top left",
+                      row=1, col=1)
+
+    # 4. Add Event Annotations
+    df_events = df.dropna(subset=['wyckoff_event', 'wyckoff_confirmed_event'], how='all')
+    df_events = df_events[ (df_events['wyckoff_event'] != '') | (df_events['wyckoff_confirmed_event'] != '')]
+
+    for index, row in df_events.iterrows():
+        event_text = str(row['wyckoff_event'] or '')
+        confirmed_event_text = str(row['wyckoff_confirmed_event'] or '')
+
+        # Combine and prioritize confirmed events
+        full_text = f"<b>{confirmed_event_text}</b>" if confirmed_event_text else event_text
+        if confirmed_event_text and event_text:
+            full_text = f"<b>{confirmed_event_text}</b><br>({event_text})"
+        
+        # Determine annotation position (above high or below low)
+        is_bullish = any(e in full_text for e in ["SPRING", "SOS", "JAC", "LPS", "SC"])
+        y_pos = row['low'] - (df['high'].max() - df['low'].min()) * 0.05 if is_bullish else \
+                row['high'] + (df['high'].max() - df['low'].min()) * 0.05
+        ay = -40 if is_bullish else 40
+        
+        fig.add_annotation(x=row['timestamp'], y=y_pos,
+                           ax=0, ay=ay,
+                           text=full_text,
+                           arrowhead=2, arrowsize=1, arrowwidth=2,
+                           bordercolor="#c7c7c7", borderwidth=2, borderpad=4,
+                           bgcolor="rgba(255,255,141,0.8)",
+                           row=1, col=1)
+
+    # 5. Add Trading Range lines
+    if 'tr_low' in df.columns and 'tr_high' in df.columns:
+      tr_low = df['tr_low'].iloc[-1]
+      tr_high = df['tr_high'].iloc[-1]
+      if pd.notna(tr_low) and pd.notna(tr_high):
+          fig.add_hline(y=tr_low, line_dash="dash", line_color="red",
+                        annotation_text=f"TR Support {tr_low:.2f}",
+                        annotation_position="bottom right", row=1, col=1)
+          fig.add_hline(y=tr_high, line_dash="dash", line_color="green",
+                        annotation_text=f"TR Resistance {tr_high:.2f}",
+                        annotation_position="top right", row=1, col=1)
+
+    # Final layout updates
+    fig.update_layout(
+        height=800,
+        showlegend=False,
+        xaxis_rangeslider_visible=False,
+        xaxis2_rangeslider_visible=True,
+    )
+    fig.update_yaxes(title_text="Price", row=1, col=1)
+    fig.update_yaxes(title_text="Volume", row=2, col=1)
+    
+    chart_path = os.path.join(output_dir, "wyckoff_candlestick_chart.html")
+    fig.write_html(chart_path)
+    logger.info(f"Wyckoff candlestick chart saved as {chart_path}")
+    fig.show()
 
 def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3):
     """Plot features from a MarketFlow annotated CSV file.
@@ -274,6 +375,7 @@ def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3
         reversal (int, optional): Reversal amount for P&F chart.
     """
     output_dir = os.path.dirname(csv_file)
+    csv_file_name = os.path.basename(csv_file)
 
     logger.info(f"Loading data from {csv_file}...")
     if not os.path.exists(csv_file):
@@ -281,10 +383,18 @@ def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3
         return
     # Load the CSV file into a DataFrame
     df = pd.read_csv(csv_file)
+    # Convert timestamp to datetime object for Plotly
+    df['timestamp'] = pd.to_datetime(df['timestamp'])
     logger.info(f"Data loaded successfully with {len(df)} rows.")
     
     # Limit to nrows
-    df = df.tail(nrows)
+    if nrows < len(df):
+        df = df.tail(nrows).copy()
+    else:
+        df = df.copy()
+
+    # Call the new comprehensive chart function
+    plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name)
 
     # NEW: Plot Volume Profile
     plot_volume_profile(df.copy(), output_dir)
