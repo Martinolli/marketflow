@@ -116,7 +116,7 @@ def add_wyckoff_phase_overlay_pnf(fig, df_with_cols):
         fig.add_vrect(
             x0=x0, x1=x1,
             fillcolor=color,
-            opacity=0.35,
+            opacity=1.0,
             layer="below",
             line_width=0
         )
