@@ -38,7 +38,6 @@ import os
 import datetime
 
 # Assuming marketflow is a local package or installed
-from deprecated_backup.modules.plot_annotated_features_v1 import add_wyckoff_phase_overlay_pnf, plot_features, plot_point_and_figure, plot_volume_profile, plot_wyckoff_candlestick_chart
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 
@@ -259,7 +258,7 @@ class PlotAnnotations:
         if wyckoff_overlay and 'wyckoff_phase' in df.columns:
             df_cols = df.copy()
             df_cols['pnf_column'] = row_column_index
-            add_wyckoff_phase_overlay_pnf(fig, df_cols)
+            self.add_wyckoff_phase_overlay_pnf(fig, df_cols)
 
         fig.update_layout(
             title=f"Point & Figure Chart - Box Size: {box_size}, Reversal: {reversal} - {csv_file_name}",
@@ -405,13 +404,13 @@ class PlotAnnotations:
             df = df.copy()
 
         # Call the new comprehensive chart function
-        plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name)
+        self.plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name)
 
         # NEW: Plot Volume Profile
-        plot_volume_profile(df.copy(), output_dir, csv_file_name)
+        self.plot_volume_profile(df.copy(), output_dir, csv_file_name)
 
         # NEW: Plot Point & Figure Chart
-        plot_point_and_figure(df.copy(), output_dir, csv_file_name, box_size=box_size, reversal=reversal, wyckoff_overlay=True)
+        self.plot_point_and_figure(df.copy(), output_dir, csv_file_name, box_size=box_size, reversal=reversal, wyckoff_overlay=True)
 
         # Check if the specified features are in the DataFrame
         if features is None:
