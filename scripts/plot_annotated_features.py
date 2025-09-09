@@ -27,6 +27,7 @@ Usage:
     python plot_annotated_features.py "LLY_5m_wyckoff_annotated.csv" --nrows 150 --features close volume_class
 """
 
+from html import parser
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -40,6 +41,7 @@ import datetime
 # Assuming marketflow is a local package or installed
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
+from marketflow.marketflow_data_parameters import MarketFlowDataParameters
 
 logger = get_logger("plot_annotated_features")
 config_manager = create_app_config(logger=logger)
@@ -121,148 +123,244 @@ def add_wyckoff_phase_overlay_pnf(fig, df_with_cols):
             layer="below",
             line_width=0
         )
+# --- P&F helpers -------------------------------------------------------------
 
-def plot_point_and_figure(df, output_dir, csv_file_name, box_size=None, reversal=3, wyckoff_overlay=False):
+from dataclasses import dataclass
+
+@dataclass
+class PnFParams:
+    box: float
+    reversal: int = 3
+    method: str = "high_low"  # "close" also allowed
+
+def _compute_box(df, mode="fixed", value=1.0, atr_len=14):
     """
-    Generates and plots a Point & Figure (P&F) chart.
+    mode: "fixed" (points), "percent" (e.g. 0.005 = 0.5%), "atr" (fraction of ATR)
+    """
+    last = float(df["close"].iloc[-1])
+    if mode == "fixed":
+        return float(value)
+    if mode == "percent":
+        return max(1e-6, last * float(value))
+    if mode == "atr":
+        tr = np.maximum(df["high"]-df["low"],
+                        np.maximum(abs(df["high"]-df["close"].shift(1)),
+                                   abs(df["low"]-df["close"].shift(1))))
+        atr = pd.Series(tr).rolling(int(atr_len), min_periods=int(atr_len)).mean().iloc[-1]
+        return max(1e-6, float(value) * float(atr))
+    raise ValueError("mode must be fixed|percent|atr")
 
-    Args:
-        df (pd.DataFrame): Input dataframe with high and low prices.
-        output_dir (str): Directory to save the output HTML file.
-        box_size (float, optional): The size of each box. If None, it's auto-calculated.
-        reversal (int, optional): The reversal amount in boxes (typically 3).
-        wyckoff_overlay (bool): If True and 'wyckoff_phase' present, overlay phases.
+def _snap(price, box, up=None):
+    """Snap to grid. up=True => ceil; up=False => floor; up=None => round."""
+    q = price / box
+    if up is True:  return np.ceil(q) * box
+    if up is False: return np.floor(q) * box
+    return np.round(q) * box
+
+def _build_pnf_columns(df, params: PnFParams):
+    """
+    Classic high/low P&F with 3-box reversal (default).
+    Returns: columns[], row_column_index[]
+    Each column: {"type":"X|O", "high":float, "low":float, "boxes":int}
+    """
+    hi = df["high"].to_numpy()
+    lo = df["low"].to_numpy()
+    cl = df["close"].to_numpy()
+
+    # Anchor on first close snapped to grid
+    anchor = _snap(cl[0], params.box, False)
+    columns = []
+    direction = 0  # 0 unknown, +1 X, -1 O
+    col = {"type":"X", "high":anchor, "low":anchor, "boxes":1}  # start with 1-box X anchor
+    columns.append(col)
+
+    row_col_idx = np.zeros(len(df), dtype=int)
+    col_idx = 0
+
+    for i in range(1, len(df)):
+        # bar extremes
+        bar_hi = float(hi[i]) if params.method == "high_low" else float(cl[i])
+        bar_lo = float(lo[i]) if params.method == "high_low" else float(cl[i])
+
+        col = columns[-1]
+        if col["type"] == "X":
+            # try to extend up
+            while bar_hi >= col["high"] + params.box:
+                col["high"] += params.box
+                col["boxes"] += 1
+            # check reversal: >= reversal boxes below the column high
+            if bar_lo <= col["high"] - params.reversal * params.box:
+                # finish X column, start O one box below previous high
+                new_low = col["high"] - params.box
+                boxes = int(np.floor((col["high"] - bar_lo) / params.box))
+                boxes = max(1, boxes)  # at least one box prints
+                columns.append({"type":"O", "high":new_low, "low":new_low - (boxes-1)*params.box, "boxes":boxes})
+                col_idx += 1
+        else:
+            # current O column: extend down
+            while bar_lo <= col["low"] - params.box:
+                col["low"] -= params.box
+                col["boxes"] += 1
+            # check reversal up
+            if bar_hi >= col["low"] + params.reversal * params.box:
+                new_high = col["low"] + params.box
+                boxes = int(np.floor((bar_hi - col["low"]) / params.box))
+                boxes = max(1, boxes)
+                columns.append({"type":"X", "high":new_high + (boxes-1)*params.box, "low":new_high, "boxes":boxes})
+                col_idx += 1
+
+        row_col_idx[i] = col_idx
+
+    return columns, row_col_idx
+
+def _find_breakouts(columns, box, reversal):
+    brks = []
+    tops, bots = [], []
+    for i, c in enumerate(columns):
+        if c["type"] == "X":
+            tops.append((i, c["high"]))
+            prev_top = max([h for _, h in tops[:-1]] or [-np.inf])
+            if c["high"] >= prev_top:
+                kind = "double_top" if [h for _, h in tops[:-1]].count(prev_top) == 1 else "triple_top_or_more"
+                brks.append({"i": i, "type": kind, "price": c["high"]})
+                # Upthrust: immediate O-column erases ≥ reversal boxes beneath the breakout
+                if i + 1 < len(columns) and columns[i + 1]["type"] == "O":
+                    if columns[i + 1]["high"] <= c["high"] - reversal * box:
+                        brks.append({"i": i + 1, "type": "upthrust", "price": columns[i + 1]["high"], "ref": c["high"]})
+        else:
+            bots.append((i, c["low"]))
+            prev_bot = min([l for _, l in bots[:-1]] or [np.inf])
+            if c["low"] <= prev_bot:
+                kind = "double_bottom" if [l for _, l in bots[:-1]].count(prev_bot) == 1 else "triple_bottom_or_more"
+                brks.append({"i": i, "type": kind, "price": c["low"]})
+
+
+def _last_congestion_count(columns, box, reversal, direction="up", max_cols=9):
+    """Conservative count over the most recent congestion."""
+    if len(columns) < 6:
+        return None
+    end = len(columns) - 1
+    start = max(0, end - max_cols)
+    cols_slice = columns[start:end+1]
+    ncols = len(cols_slice)
+    if direction == "up":
+        breakout = max(c["high"] for c in columns if c["type"]=="X")
+        objective = breakout + ncols * box * reversal
+    else:
+        breakout = min(c["low"] for c in columns if c["type"]=="O")
+        objective = breakout - ncols * box * reversal
+    return {"start":start, "end":end, "columns":ncols, "breakout":breakout, "objective":objective}
+
+def plot_point_and_figure(df, output_dir, csv_file_name, show=True, box_size=None, reversal=3, wyckoff_overlay=False, pnf_scale=None, pnf_scale_value=None):
+    """
+    P&F with symbol-aware auto box sizing, correct column indexing, breakouts and counts.
+    Saves HTML and returns a small JSON sidecar for logging.
     """
     logger.info("Generating Point & Figure chart...")
 
+    # --- Auto box size (prefer percent or ATR fraction) ---
+    # --- Auto box size (prefer percent or ATR fraction) ---
     if box_size is None:
-        if 'atr14' in df.columns and df['atr14'].iloc[-1] > 0:
-            box_size = round(df['atr14'].mean(), 2)
-            logger.info(f"Auto-detected box_size based on ATR: {box_size}")
+        cfg_mode = cfg_val = None
+        try:
+            cfg_mode = getattr(config_manager, "pnf_scale", None)
+            cfg_val  = getattr(config_manager, "pnf_scale_value", None)
+        except NameError:
+            cfg_mode = cfg_val = None
+
+        if cfg_mode is not None or cfg_val is not None:
+            mode  = cfg_mode  or "percent"
+            value = cfg_val   or 0.005
+            box_size = _compute_box(df, mode=mode, value=value)
+        elif pnf_scale is not None and pnf_scale_value is not None:
+            box_size = _compute_box(df, mode=pnf_scale, value=pnf_scale_value)
         else:
-            box_size = round((df['high'] - df['low']).mean(), 2)
-            logger.info(f"Auto-detected box_size based on average candle spread: {box_size}")
-        if box_size == 0:
-            box_size = 1.0 # Fallback
-            logger.warning("Could not determine a valid box_size, falling back to 1.0")
+            # filename heuristic...
+            name = str(csv_file_name).lower()
+            pct_map = {"1d":0.01, "4h":0.005, "1h":0.003, "30m":0.002, "15m":0.0015, "5m":0.001, "1m":0.0005}
+            pct = next((v for k,v in pct_map.items() if k in name), 0.005)
+            box_size = _compute_box(df, mode="percent", value=pct)
+
+    # Sanity guard (prevents ERJ/PANW scale mix-ups)
+    last_price = float(df["close"].iloc[-1])
+    if not (8 <= last_price/box_size <= 20000):
+        logger.warning(f"Box size {box_size} looks off for price {last_price}. Consider --box-size or percent/ATR mode.")
+
+    params = PnFParams(box=float(box_size), reversal=int(reversal), method="high_low")
+    columns, row_column_index = _build_pnf_columns(df, params)
+
+    # Breakouts & count
+    brks = _find_breakouts(columns, params.box, params.reversal)
+
+    direction = "up" if columns[-1]["type"] == "X" else "down"
+    cnt = _last_congestion_count(columns, params.box, params.reversal, direction=direction)
 
 
-    highs = df['high']
-    lows = df['low']
-    
-    pnf_columns = []
-    current_col = []
-    direction = 0  # 1 for up (X), -1 for down (O)
-    
-    start_price = highs.iloc[0]
-    box_floor = np.floor(start_price / box_size) * box_size
-    box_ceil = box_floor + box_size
-
-    # Track which P&F column each row belongs to
-    row_column_index = [0] * len(df)
-    column_index = 0
-
-
-    for i in range(1, len(df)):
-        high = highs.iloc[i]
-        low = lows.iloc[i]
-
-        if direction == 0: # Undetermined trend
-            if high >= box_ceil + (reversal - 1) * box_size:
-                direction = 1
-                current_col.append(box_ceil)
-                box_floor = box_ceil
-                box_ceil += box_size
-            elif low < box_floor - (reversal - 1) * box_size:
-                direction = -1
-                current_col.append(box_floor)
-                box_ceil = box_floor
-                box_floor -= box_size
-        
-        if direction == 1: # Up-trend (X column)
-            # Add new boxes if price continues up
-            while high >= box_ceil:
-                current_col.append(box_ceil)
-                box_floor = box_ceil
-                box_ceil += box_size
-            
-            # Check for reversal
-            if low < box_floor - (reversal - 1) * box_size:
-                pnf_columns.append({'type': 'X', 'values': current_col})
-                direction = -1
-                start_rev_box = box_floor - box_size
-                current_col = [start_rev_box]
-                box_ceil = start_rev_box
-                box_floor = start_rev_box - box_size
-                # Add more boxes if reversal is large
-                while low < box_floor:
-                    current_col.append(box_floor)
-                    box_ceil = box_floor
-                    box_floor -= box_size
-        
-        elif direction == -1: # Down-trend (O column)
-            # Add new boxes if price continues down
-            while low < box_floor:
-                current_col.append(box_floor)
-                box_ceil = box_floor
-                box_floor -= box_size
-            
-            # Check for reversal
-            if high >= box_ceil + (reversal - 1) * box_size:
-                pnf_columns.append({'type': 'O', 'values': current_col})
-                direction = 1
-                start_rev_box = box_ceil + box_size
-                current_col = [start_rev_box]
-                box_floor = start_rev_box
-                box_ceil = start_rev_box + box_size
-                # Add more boxes if reversal is large
-                while high >= box_ceil:
-                    current_col.append(box_ceil)
-                    box_floor = box_ceil
-                    box_ceil += box_size
-
-        row_column_index[i] = column_index
-
-    # Add the last column
-    if current_col:
-        pnf_columns.append({'type': 'X' if direction == 1 else 'O', 'values': current_col})
-
-    # Prepare data for plotting
+    # --- Plot ---
     fig = go.Figure()
-    for i, col_data in enumerate(pnf_columns):
-        x_vals = [i + 1] * len(col_data['values'])
-        y_vals = col_data['values']
-        
-        if col_data['type'] == 'X':
-            fig.add_trace(go.Scatter(
-                x=x_vals, y=y_vals, mode='markers',
-                marker=dict(symbol='x', color='green', size=8),
-                name='Up Column' if i == 0 else '', showlegend=(i==0)
-            ))
+    for i, c in enumerate(columns):
+        # expand y levels for this column
+        if c["type"] == "X":
+            y_vals = list(np.arange(c["low"], c["high"]+params.box*0.5, params.box))
+            fig.add_trace(go.Scatter(x=[i+1]*len(y_vals), y=y_vals, mode='markers',
+                                     marker=dict(symbol='x', color='green', size=8),
+                                     name='Up Column' if i==0 else '', showlegend=(i==0)))
         else:
-            fig.add_trace(go.Scatter(
-                x=x_vals, y=y_vals, mode='markers',
-                marker=dict(symbol='circle-open', color='red', size=8, line=dict(width=2)),
-                name='Down Column' if any(c['type'] == 'X' for c in pnf_columns[:i+1]) == False else '', showlegend=(any(c['type'] == 'O' for c in pnf_columns[:i]))==False
-            ))
+            y_vals = list(np.arange(c["high"], c["low"]-params.box*0.5, -params.box))
+            fig.add_trace(go.Scatter(x=[i+1]*len(y_vals), y=y_vals, mode='markers',
+                                     marker=dict(symbol='circle-open', color='red', size=8, line=dict(width=2)),
+                                     name='Down Column' if i==0 else '', showlegend=(i==0)))
 
+    # Wyckoff overlay (now correct, because row_column_index is real)
     if wyckoff_overlay and 'wyckoff_phase' in df.columns:
         df_cols = df.copy()
         df_cols['pnf_column'] = row_column_index
         add_wyckoff_phase_overlay_pnf(fig, df_cols)
-            
+
+    # Draw breakout line & count objective (if available)
+    if cnt is not None:
+        fig.add_vrect(
+            x0=cnt["start"] + 0.5, x1=cnt["end"] + 0.5,
+            fillcolor="rgba(46,204,113,0.06)", line_color="rgba(46,204,113,0.4)",
+            annotation_text=f"Count: {cnt['columns']} cols", annotation_position="top left"
+        )
+        fig.add_hline(y=cnt["breakout"],  line_dash="dot",  line_color="dodgerblue",
+                    annotation_text=f"Breakout {cnt['breakout']:.2f}", annotation_position="top left")
+        fig.add_hline(y=cnt["objective"], line_dash="dash", line_color="seagreen",
+                    annotation_text=f"Objective {cnt['objective']:.2f}", annotation_position="bottom left")
+
+    if brks:
+        last_up_brk = next((b for b in reversed(brks) if b["type"].startswith("double_top")), None)
+        if last_up_brk:
+            i = last_up_brk["i"]
+            fig.add_vline(x=i+1, line_color="dodgerblue", line_dash="dot",
+                        annotation_text=f"{last_up_brk['type']} @ {last_up_brk['price']:.2f}",
+                        annotation_position="top right")
+
     fig.update_layout(
-        title=f"Point & Figure Chart - Box Size: {box_size}, Reversal: {reversal} - {csv_file_name}",
+        title=f"Point & Figure Chart — Box: {params.box:.4f}, Reversal: {params.reversal} — {csv_file_name}",
         xaxis_title="P&F Column",
         yaxis_title="Price",
         yaxis=dict(tickformat=".2f", gridwidth=1, gridcolor='LightGrey'),
-        xaxis=dict(gridwidth=1, gridcolor='LightGrey', dtick=1)
+        xaxis=dict(gridwidth=1, gridcolor='LightGrey', dtick=1),
+        showlegend=True
     )
 
     pnf_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_point_and_figure_plot.html")
     fig.write_html(pnf_path)
     logger.info(f"Point & Figure plot saved as {pnf_path}")
-    fig.show()
+    if show:
+        fig.show()
+
+    # Sidecar JSON (handy for logging)
+    sidecar = {
+        "box": params.box, "reversal": params.reversal, "last_price": last_price,
+        "columns": columns, "breakouts": brks, "count": cnt
+    }
+    with open(os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_pnf_meta.json"), "w") as fh:
+        import json; json.dump(sidecar, fh, indent=2, default=float)
+
+    return {"path": pnf_path, **sidecar}
 
 def plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name):
     """
@@ -366,7 +464,7 @@ def plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name):
     logger.info(f"Wyckoff candlestick chart saved as {chart_path}")
     fig.show()
 
-def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3):
+def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3, pnf_scale=None, pnf_scale_value=None):
     """Plot features from a MarketFlow annotated CSV file.
     Args:
         csv_file (str): Path to the annotated CSV file.
@@ -401,7 +499,16 @@ def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3
     plot_volume_profile(df.copy(), output_dir, csv_file_name)
 
     # NEW: Plot Point & Figure Chart
-    plot_point_and_figure(df.copy(), output_dir, csv_file_name, box_size=box_size, reversal=reversal, wyckoff_overlay=True)
+    plot_point_and_figure(
+        df.copy(),
+        output_dir=output_dir,
+        csv_file_name=csv_file_name,
+        box_size=box_size,
+        reversal=reversal,
+        wyckoff_overlay=True,
+        pnf_scale=pnf_scale,
+        pnf_scale_value=pnf_scale_value,
+    )
 
     # Check if the specified features are in the DataFrame
     if features is None:
@@ -531,8 +638,18 @@ def main():
                         help="Box size for the Point & Figure chart. Default is auto-calculated.")
     parser.add_argument("--reversal", type=int, default=3,
                         help="Reversal amount in boxes for the P&F chart (default 3)")
+    parser.add_argument("--pnf-scale", choices=["fixed", "percent", "atr"], default=None)
+    parser.add_argument("--pnf-scale-value", type=float, default=None)
     args = parser.parse_args()
-    plot_features(args.csv, args.features, args.nrows, args.box_size, args.reversal)
+    plot_features(
+        args.csv,
+        args.features,
+        args.nrows,
+        args.box_size,
+        args.reversal,
+        pnf_scale=args.pnf_scale,
+        pnf_scale_value=args.pnf_scale_value,
+    )
 
 if __name__ == "__main__":
     main()

@@ -25,17 +25,10 @@ client = RESTClient(api_key)
 
 # Step 2: Define your portfolio and total investment
 portfolio = {
-    'NVDA': 0.15,
-    'PLTR': 0.075,
-    'GOOGL': 0.10,
-    'LMT': 0.125,
-    'AVAV': 0.075,
-    'NOC': 0.075,
-    'LLY': 0.15,
-    'TDOC': 0.075,
-    'GH': 0.075
+    'ERJ': 0.55,
+    'PANW': 0.45,
 }
-total_investment = 20000 # Your total investment amount
+total_investment = 1000 # Your total investment amount
 
 # Step 3: Define market parameters
 risk_free_rate = 0.042  # 4.2%

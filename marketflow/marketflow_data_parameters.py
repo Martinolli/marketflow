@@ -26,6 +26,10 @@ class MarketFlowDataParameters:
         # Initialize wyckoff_config from the loaded config
         self.wyckoff_config = self.config.get("wyckoff_config", {})
 
+        # Ensure Point & Figure defaults are present
+        self.config.setdefault("pnf_scale", "percent")        # fixed | percent | atr
+        self.config.setdefault("pnf_scale_value", 0.005) 
+
     def _load_config(self, config_file):
         """Load configuration from file or use defaults"""
         if config_file:
@@ -67,6 +71,8 @@ class MarketFlowDataParameters:
             # Account
             "account_size": lambda v: isinstance(v, (float, int)) and v > 0,
             "risk_per_trade": lambda v: isinstance(v, (float, int)) and 0 < v < 1,
+            "pnf_scale": lambda v: v in {"fixed", "percent", "atr"},
+            "pnf_scale_value": lambda v: isinstance(v, (float, int)) and v > 0,
         }
         if key in validation_rules:
             if not validation_rules[key](value):
@@ -164,6 +170,36 @@ class MarketFlowDataParameters:
         self.wyckoff_config[param_name] = value
         # Also update the main config dictionary
         self.config["wyckoff_config"] = self.wyckoff_config
+
+    # --- Point & Figure helpers ---
+    def get_pnf_scale(self):
+        """Return the P&F scaling mode: fixed | percent | atr"""
+        return self.config.get("pnf_scale", "percent")
+
+    def get_pnf_scale_value(self):
+        """Return the P&F scale value (points, percent, or ATR multiplier)"""
+        return float(self.config.get("pnf_scale_value", 0.005))
+
+    def get_pnf_params(self):
+        """Return both P&F parameters"""
+        return {
+            "pnf_scale": self.get_pnf_scale(),
+            "pnf_scale_value": self.get_pnf_scale_value(),
+        }
+
+    def set_pnf_params(self, scale=None, scale_value=None):
+        """Update P&F scaling parameters with validation"""
+        if scale is not None:
+            if self._validate_param("pnf_scale", scale):
+                self.config["pnf_scale"] = scale
+            else:
+                self.logger.warning(f"pnf_scale not updated (invalid): {scale}")
+        if scale_value is not None:
+            if self._validate_param("pnf_scale_value", scale_value):
+                self.config["pnf_scale_value"] = float(scale_value)
+            else:
+                self.logger.warning(f"pnf_scale_value not updated (invalid): {scale_value}")
+        return self.get_pnf_params()
 
     def update_parameters(self, params):
         """
@@ -265,6 +301,9 @@ default_config = {
             'breakout_vol_multiplier': 1.5,
             'tr_max_duration': 100
     },
+    # --- Point & Figure defaults ---
+    "pnf_scale": "percent",     # fixed | percent | atr
+    "pnf_scale_value": 0.005,   # 0.5% default when using percent
     "timeframes": [
         {"interval": "1d", "period": "90d"},
         {"interval": "4h", "period": "60d"},
