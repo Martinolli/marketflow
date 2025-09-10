@@ -104,11 +104,11 @@ def add_wyckoff_phase_overlay_pnf(fig, df_with_cols):
     if 'wyckoff_phase' not in df_with_cols.columns or 'pnf_column' not in df_with_cols.columns:
         return
     phase_colors = {
-        "A": "rgba(0, 2, 252, 1)",  # BLUE
-        "B": "rgba(252, 19, 0, 1)",  # RED
-        "C": "rgba(0, 255, 0, 1)",  # GREEN
-        "D": "rgba(255, 242, 0, 1)",  # YELLOW
-        "E": "rgba(163, 0, 255, 1)"  # PURPLE
+        "A": "rgba(0, 2, 252, 0.4)",  # BLUE
+        "B": "rgba(252, 19, 0, 0.5)",  # RED
+        "C": "rgba(0, 255, 0, 0.4)",  # GREEN
+        "D": "rgba(255, 242, 0, 0.5)",  # YELLOW
+        "E": "rgba(163, 0, 255, 0.3)"  # PURPLE
     }
     for phase, color in phase_colors.items():
         phase_df = df_with_cols[df_with_cols['wyckoff_phase'] == phase]
@@ -321,7 +321,7 @@ def plot_point_and_figure(df, output_dir, csv_file_name, show=True, box_size=Non
     if cnt is not None:
         fig.add_vrect(
             x0=cnt["start"] + 0.5, x1=cnt["end"] + 0.5,
-            fillcolor="rgba(46,204,113,0.06)", line_color="rgba(46,204,113,0.4)",
+            fillcolor="rgba(46,204,113,0.06)", line_color="rgba(46,204,113,1.0)",
             annotation_text=f"Count: {cnt['columns']} cols", annotation_position="top left"
         )
         fig.add_hline(y=cnt["breakout"],  line_dash="dot",  line_color="dodgerblue",
@@ -391,9 +391,9 @@ def plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name):
 
     # 3. Add Wyckoff Phase overlays
     phase_colors = {
-        "A": "rgba(255, 165, 0, 0.1)", "B": "rgba(0, 0, 255, 0.1)",
-        "C": "rgba(128, 0, 128, 0.1)", "D": "rgba(0, 128, 0, 0.1)",
-        "E": "rgba(139, 69, 19, 0.1)", "UNKNOWN": "rgba(128, 128, 128, 0.05)"
+        "A": "rgba(255, 165, 0, 0.4)", "B": "rgba(0, 0, 255, 0.4)",
+        "C": "rgba(128, 0, 128, 0.4)", "D": "rgba(0, 128, 0, 0.4)",
+        "E": "rgba(139, 69, 19, 0.4)", "UNKNOWN": "rgba(128, 128, 128, 0.4)"
     }
     
     df['phase_shifted'] = df['wyckoff_phase'].shift(1)
@@ -434,7 +434,7 @@ def plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name):
                            text=full_text,
                            arrowhead=2, arrowsize=1, arrowwidth=2,
                            bordercolor="#c7c7c7", borderwidth=2, borderpad=4,
-                           bgcolor="rgba(255,255,141,0.8)",
+                           bgcolor="rgba(255,255,141,1.0)",
                            row=1, col=1)
 
     # 5. Add Trading Range lines
@@ -529,7 +529,7 @@ def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3
     )
     # Volume (bottom)
     fig.add_trace(
-        go.Bar(x=df['timestamp'], y=df['volume'], name='Volume', marker_color='rgba(100,150,255,0.6)'),
+        go.Bar(x=df['timestamp'], y=df['volume'], name='Volume', marker_color='rgba(100,150,255,1.0)'),
         row=2, col=1
     )
     fig.update_layout(
