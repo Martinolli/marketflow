@@ -35,7 +35,7 @@ import plotly.express as px
 import argparse
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
-import os
+import os, json
 import datetime
 
 # Assuming marketflow is a local package or installed
@@ -252,6 +252,91 @@ def _last_congestion_count(columns, box, reversal, direction="up", max_cols=9):
         objective = breakout - ncols * box * reversal
     return {"start":start, "end":end, "columns":ncols, "breakout":breakout, "objective":objective}
 
+# --- MC POP gauge helpers ----------------------------------------------------
+
+def _load_latest_mc_for(csv_path: str, directory: str) -> dict | None:
+    """Return the newest MC summary whose 'csv' matches the given CSV (robust name normalization).
+    
+    Matches case-insensitively and ignores suffixes like '_wyckoff_annotated' or '_annotated'.
+    Examples matched as equal:
+      - 'PANW_1d_wyckoff_annotated.csv'  <->  'PANW_1d.csv' (or 'PANW_1D.csv')
+    """
+    def _norm(name: str) -> str:
+        b = os.path.basename(name).lower()
+        if b.endswith(".csv"):
+            b = b[:-4]
+        # strip common suffixes added by pipelines
+        for suf in ("_wyckoff_annotated", "_annotated", "_wyckoff"):
+            if b.endswith(suf):
+                b = b[: -len(suf)]
+        # collapse double underscores, keep symbol_tf shape
+        while "__" in b:
+            b = b.replace("__", "_")
+        return b  # without .csv
+
+    try:
+        files = [f for f in os.listdir(directory) if f.endswith("_mc_summary.json")]
+        files.sort(key=lambda f: os.path.getmtime(os.path.join(directory, f)), reverse=True)
+        want_norm = _norm(csv_path)
+        for fn in files:
+            try:
+                fp = os.path.join(directory, fn)
+                with open(fp, "r") as fh:
+                    data = json.load(fh)
+                mc_csv = data.get("csv")
+                if not mc_csv:
+                    continue
+                if _norm(mc_csv) == want_norm:
+                    return data
+            except Exception:
+                continue
+    except Exception:
+        pass
+    return None
+
+def add_pop_gauge(fig: go.Figure, mc_data: dict | None, corner: str = "br") -> None:
+    """Overlay a small POP gauge (TP-first %) and median bars-to-TP on the figure."""
+    if not mc_data:
+        return
+    m = mc_data.get("metrics_from_now", {})
+    pop = m.get("pop_tp_first")
+    if pop is None:
+        return
+    # corner placement (domain in paper coords)
+    corners = {
+        "br": dict(x=[0.80, 0.99], y=[0.03, 0.23]),
+        "tr": dict(x=[0.80, 0.99], y=[0.77, 0.97]),
+        "bl": dict(x=[0.01, 0.20], y=[0.03, 0.23]),
+        "tl": dict(x=[0.01, 0.20], y=[0.77, 0.97]),
+    }
+    dom = corners.get(corner, corners["br"])
+
+    fig.add_trace(go.Indicator(
+        mode="gauge+number",
+        value=round(pop * 100.0, 1),
+        number=dict(suffix="% POP", valueformat=".1f"),
+        gauge=dict(
+            axis=dict(range=[0, 100]),
+            bar=dict(thickness=0.7),
+            threshold=dict(
+                line=dict(width=2),
+                value=50  # visual midline
+            )
+        ),
+        domain=dom,
+        name="TP-first"
+    ))
+
+    t_med = m.get("t_hit_tp_median")
+    if t_med is not None:
+        # small caption under the gauge
+        cx = (dom["x"][0] + dom["x"][1]) / 2
+        fig.add_annotation(
+            x=cx, y=dom["y"][0] - 0.02, xref="paper", yref="paper",
+            text=f"Median bars → TP: {int(t_med)}",
+            showarrow=False, font=dict(size=10)
+        )
+
 def plot_point_and_figure(df, output_dir, csv_file_name, show=True, box_size=None, reversal=3, wyckoff_overlay=False, pnf_scale=None, pnf_scale_value=None):
     """
     P&F with symbol-aware auto box sizing, correct column indexing, breakouts and counts.
@@ -356,6 +441,12 @@ def plot_point_and_figure(df, output_dir, csv_file_name, show=True, box_size=Non
     )
 
     pnf_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_point_and_figure_plot.html")
+    # ... after you finish fig.update_layout(...)
+    # Look for latest MC summary saved in the same output dir
+    csv_basename = os.path.basename(csv_file_name)
+    mc_data = _load_latest_mc_for(csv_basename, directory=output_dir)
+    add_pop_gauge(fig, mc_data, corner="br")  # move to "tr"/"tl"/"bl" if it overlaps
+
     fig.write_html(pnf_path)
     logger.info(f"Point & Figure plot saved as {pnf_path}")
     if show:
