@@ -170,6 +170,7 @@ def _build_pnf_columns(df, params: PnFParams):
     # Anchor on first close snapped to grid
     anchor = _snap(cl[0], params.box, False)
     columns = []
+    
     direction = 0  # 0 unknown, +1 X, -1 O
     col = {"type":"X", "high":anchor, "low":anchor, "boxes":1}  # start with 1-box X anchor
     columns.append(col)
@@ -294,6 +295,14 @@ def plot_point_and_figure(df, output_dir, csv_file_name, show=True, box_size=Non
 
     direction = "up" if columns[-1]["type"] == "X" else "down"
     cnt = _last_congestion_count(columns, params.box, params.reversal, direction=direction)
+    cnt_up = _last_congestion_count(columns, params.box, params.reversal, direction="up")
+    cnt_dn = _last_congestion_count(columns, params.box, params.reversal, direction="down")
+
+    sidecar = {
+        "box": params.box, "reversal": params.reversal, "last_price": last_price,
+        "columns": columns, "breakouts": brks,
+        "count_up": cnt_up, "count_down": cnt_dn
+    }
 
 
     # --- Plot ---
