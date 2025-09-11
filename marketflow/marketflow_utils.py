@@ -67,7 +67,7 @@ def save_timeframe_data(ticker: str, timeframe_analyses: dict) -> None:
     """
     project_root = get_project_root()
     # Build an absolute path from the project root
-    base_path = project_root / f"data/timeframe_data/{sanitize_filename(ticker)}"
+    base_path = project_root / f".marketflow/reports/{datetime.now().strftime('%Y-%m-%d')}/{sanitize_filename(ticker)}"
 
     print(f"Saving timeframe data for {ticker} to absolute path: {base_path}")
     base_path.mkdir(parents=True, exist_ok=True)
