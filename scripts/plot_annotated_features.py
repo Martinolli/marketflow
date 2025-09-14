@@ -47,7 +47,7 @@ logger = get_logger("plot_annotated_features")
 config_manager = create_app_config(logger=logger)
 
 
-def plot_volume_profile(df, output_dir, csv_file_name):
+def plot_volume_profile(df: pd.DataFrame, output_dir: str, csv_file_name: str) -> None:
     """
     Plots a Volume Profile (Volume by Price) chart.
 
@@ -96,7 +96,7 @@ def plot_volume_profile(df, output_dir, csv_file_name):
     logger.info(f"Volume Profile plot saved as {profile_path}")
     fig.show()
 
-def add_wyckoff_phase_overlay_pnf(fig, df_with_cols):
+def add_wyckoff_phase_overlay_pnf(fig: go.Figure, df_with_cols: pd.DataFrame) -> None:
     """
     Overlay Wyckoff phases on a P&F chart that uses integer column indices.
     Expects columns: wyckoff_phase, pnf_column.
@@ -133,7 +133,7 @@ class PnFParams:
     reversal: int = 3
     method: str = "high_low"  # "close" also allowed
 
-def _compute_box(df, mode="fixed", value=1.0, atr_len=14):
+def _compute_box(df: pd.DataFrame, mode="fixed", value=1.0, atr_len=14) -> float:
     """
     mode: "fixed" (points), "percent" (e.g. 0.005 = 0.5%), "atr" (fraction of ATR)
     """
@@ -157,7 +157,7 @@ def _snap(price, box, up=None):
     if up is False: return np.floor(q) * box
     return np.round(q) * box
 
-def _build_pnf_columns(df, params: PnFParams):
+def _build_pnf_columns(df: pd.DataFrame, params: PnFParams) -> tuple[list[dict], np.ndarray]:
     """
     Classic high/low P&F with 3-box reversal (default).
     Returns: columns[], row_column_index[]
@@ -214,7 +214,7 @@ def _build_pnf_columns(df, params: PnFParams):
 
     return columns, row_col_idx
 
-def _find_breakouts(columns, box, reversal):
+def _find_breakouts(columns: list[dict], box: float, reversal: float) -> list[dict]:
     brks = []
     tops, bots = [], []
     for i, c in enumerate(columns):
@@ -236,7 +236,7 @@ def _find_breakouts(columns, box, reversal):
                 brks.append({"i": i, "type": kind, "price": c["low"]})
 
 
-def _last_congestion_count(columns, box, reversal, direction="up", max_cols=9):
+def _last_congestion_count(columns: list[dict], box: float, reversal: float, direction="up", max_cols=9) -> dict | None:
     """Conservative count over the most recent congestion."""
     if len(columns) < 6:
         return None
@@ -337,7 +337,7 @@ def add_pop_gauge(fig: go.Figure, mc_data: dict | None, corner: str = "br") -> N
             showarrow=False, font=dict(size=10)
         )
 
-def plot_point_and_figure(df, output_dir, csv_file_name, show=True, box_size=None, reversal=3, wyckoff_overlay=False, pnf_scale=None, pnf_scale_value=None):
+def plot_point_and_figure(df: pd.DataFrame, output_dir: str, csv_file_name: str, show=True, box_size=None, reversal=3, wyckoff_overlay=False, pnf_scale=None, pnf_scale_value=None) -> dict:
     """
     P&F with symbol-aware auto box sizing, correct column indexing, breakouts and counts.
     Saves HTML and returns a small JSON sidecar for logging.
@@ -462,7 +462,7 @@ def plot_point_and_figure(df, output_dir, csv_file_name, show=True, box_size=Non
 
     return {"path": pnf_path, **sidecar}
 
-def plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name):
+def plot_wyckoff_candlestick_chart(df: pd.DataFrame, output_dir: str, csv_file_name: str) -> None:
     """
     Generates a comprehensive candlestick chart with Wyckoff phases and event annotations.
     """
@@ -564,7 +564,7 @@ def plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name):
     logger.info(f"Wyckoff candlestick chart saved as {chart_path}")
     fig.show()
 
-def plot_features(csv_file, features=None, nrows=4000, box_size=None, reversal=3, pnf_scale=None, pnf_scale_value=None):
+def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, box_size: float = None, reversal: int = 3, pnf_scale: str = None, pnf_scale_value: float = None) -> None:
     """Plot features from a MarketFlow annotated CSV file.
     Args:
         csv_file (str): Path to the annotated CSV file.
