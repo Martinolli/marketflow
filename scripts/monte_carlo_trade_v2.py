@@ -42,25 +42,18 @@ from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 
 class MonteCarloTradeSimulator:
-    def __init__(self, csv_path, df, tp, sl, entry, tf, horizon, model, paths, block=None, seed=None):
-        self.csv_path = csv_path
-        self.df = df
-        self.tp = tp
-        self.sl = sl
-        self.entry = entry
-        self.tf = tf
-        self.horizon = horizon
-        self.model = model
-        self.paths = paths
-        self.block = block
-        self.seed = seed
+    """A class to simulate trade outcomes using Monte Carlo methods."""
 
-        if seed is not None:
-            np.random.seed(seed)
+    def __init__(self, model_type: str = "garch", **params):
+        """Initialize the simulator with a model type and parameters."""
+        self.model_type = model_type
+        self.params = params
+        self.model = None
+        self.returns = None
+        self.S0 = None
 
         self.logger = get_logger("MonteCarloTradeSimulator")
         self.config_manager = create_app_config(logger=self.logger)
-        self.results = {}
 
     # ------------------------------
     # IO helpers
@@ -481,6 +474,87 @@ class MonteCarloTradeSimulator:
 
         return out
 
+    def simulate_backtest_trades(self, csv_path: str,
+                             TP_pips: float, SL_pips: float,
+                             tf: str | None = None, Horizon: int = 20,
+                             step: int = 5, lookback_windows: int = 40,
+                             model: str = "bootstrap", paths: int = 5000,
+                             block_len: int = 8, seed: int = 42,
+                             nrows: int | None = 4000,
+                             save_json: bool = False,
+                             verbose: bool = True) -> dict:
+        """
+        Slide back in time and run simulate_trade_for_csv at multiple decision points.
+        TP_pips/SL_pips are price offsets from the entry close at each decision point.
+        """
+        df = self.load_ohlcv(csv_path, nrows=nrows)
+        n = len(df)
+        if n < max(50, Horizon + 5):
+            raise ValueError("Not enough rows for backtest.")
+
+        start_bar = n - Horizon - 1
+        indices = list(range(start_bar, start_bar - step * lookback_windows, -step))
+        # Ensure enough bars exist for calibration (>=20 diffs)
+        indices = [i for i in indices if i >= 20]
+        if not indices:
+            raise ValueError("No valid decision points after filtering.")
+
+        results: list[dict] = []
+
+        for i in indices:
+            entry_price = float(df['close'].iloc[i])
+            tp_price = entry_price + TP_pips
+            sl_price = entry_price - SL_pips
+
+            if verbose:
+                self.logger.info(f"Backtest @ idx {i}: entry {entry_price:.4f}, tp {tp_price:.4f}, sl {sl_price:.4f}")
+
+            try:
+                res = self.simulate_trade_for_csv(
+                    csv_path=csv_path,
+                    tp=tp_price, sl=sl_price, entry=entry_price,
+                    tf=tf, horizon_bars=Horizon,
+                    model=model, n_paths=paths, block_len=block_len,
+                    seed=seed, nrows=nrows, end_idx=i,
+                    save_plots=False, full_df=df, save_json=save_json,
+                )
+                results.append(res)
+            except Exception as e:
+                self.logger.warning(f"Skipping idx {i} due to error: {e}")
+
+        summary = {}
+        if results:
+            predicted_pops = [r['metrics_from_entry']['pop_tp_first'] for r in results]
+            actual_outcomes = [1 if r['actual_outcome']['outcome'] == 'tp_first' else 0 for r in results]
+
+            df_results = pd.DataFrame({
+                'index': indices[:len(predicted_pops)],
+                'predicted_pop': predicted_pops,
+                'actual_win': actual_outcomes
+            })
+
+            # Calibration by buckets
+            bins = pd.cut(df_results['predicted_pop'], bins=[0, 0.2, 0.4, 0.6, 0.8, 1.0], include_lowest=True)
+            calibration = df_results.groupby(bins, observed=False)['actual_win'].mean().rename("actual_win_rate")
+
+            acc = float(df_results['actual_win'].mean())
+            summary = {
+                "n_tests": int(len(df_results)),
+                "accuracy": acc,
+                "predicted_pop_median": float(df_results['predicted_pop'].median()),
+                "calibration": calibration.to_dict(),
+            }
+
+            if verbose:
+                print("\n--- Backtest Summary ---")
+                print(df_results)
+                print("\n--- Model Calibration ---")
+                print("(Avg predicted POP bucket vs actual win rate)")
+                print(calibration)
+
+        return {"summary": summary, "results": results}
+
+
 def main():
     p = argparse.ArgumentParser(description="Monte Carlo trade simulator for OHLCV CSVs")
     # Core single-trade simulation
@@ -496,9 +570,46 @@ def main():
     p.add_argument("--seed", type=int, default=42, help="RNG seed")
     p.add_argument("--nrows", type=int, default=4000, help="Number of most recent rows to load")
     p.add_argument("--no-plots", action="store_true", help="Do not write HTML plots")
+
+    # Rolling backtest
+    p.add_argument("--simulate-backtest", action="store_true", help="Run rolling backtest across decision points.")
+    p.add_argument("--bt-tp-pips", type=float, help="Backtest TP offset from entry (price units).")
+    p.add_argument("--bt-sl-pips", type=float, help="Backtest SL offset from entry (price units).")
+    p.add_argument("--bt-horizon", type=int, default=None, help="Override horizon for backtest (defaults to --horizon).")
+    p.add_argument("--bt-step", type=int, default=5, help="Bars between decision points.")
+    p.add_argument("--bt-windows", type=int, default=40, help="Number of decision points to test.")
+    p.add_argument("--bt-paths", type=int, default=5000, help="Simulation paths per decision point.")
+    p.add_argument("--bt-model", type=str, choices=["bootstrap","gbm"], default=None, help="Override model for backtest.")
+    p.add_argument("--bt-no-json", action="store_true", help="Do not save per-window JSON during backtest.")
     args = p.parse_args()
 
     simulator = MonteCarloTradeSimulator()
+    back_test_mode = simulator.simulate_backtest_trades
+
+    if args.simulate_backtest:
+        if args.bt_tp_pips is None or args.bt_sl_pips is None:
+            p.error("--bt-tp-pips and --bt-sl-pips are required when --simulate-backtest is set.")
+
+        bt_res = back_test_mode(
+            csv_path=args.csv,
+            TP_pips=args.bt_tp_pips,
+            SL_pips=args.bt_sl_pips,
+            tf=args.tf,
+            Horizon=(args.bt_horizon if args.bt_horizon is not None else args.horizon),
+            step=args.bt_step,
+            lookback_windows=args.bt_windows,
+            model=(args.bt_model if args.bt_model is not None else args.model),
+            paths=args.bt_paths,
+            block_len=args.block,
+            seed=args.seed,
+            nrows=args.nrows,
+            save_json=(not args.bt_no_json),
+        )
+        # Brief summary
+        s = bt_res.get("summary", {})
+        if s:
+            print(f"\nBacktest ran {s.get('n_tests', 0)} tests; accuracy: {s.get('accuracy', 0.0):.2%}; median POP: {s.get('predicted_pop_median', 0.0):.2%}")
+        return
     if args.tp is None or args.sl is None:
         p.error("In single-run mode you must provide --tp and --sl.")
 
