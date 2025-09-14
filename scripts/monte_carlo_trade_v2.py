@@ -136,6 +136,8 @@ class MonteCarloTradeSimulator:
         self.model = None
         self.returns = None
         self.S0 = None
+        self.lgb_model = None  # Placeholder for the ML model
+        self.ml_feat_cols = ['atr_14', 'rsi_14', 'volume_change', 'return_MA_10']  # consistent feature set
 
         self.logger = get_logger("MonteCarloTradeSimulator")
         self.config_manager = create_app_config(logger=self.logger)
@@ -151,21 +153,22 @@ class MonteCarloTradeSimulator:
         """Simulate GBM paths using volatility predicted by an ML model."""
         
         # 1. Load your pre-trained model
-        # lgb_model = joblib.load('volatility_predictor.pkl')
-        
-        # 2. Create features for the MOST RECENT data point
-        latest_features = self.create_features(historical_df.tail(30)) # Need enough data for indicators
-        latest_features_row = latest_features.iloc[-1:].drop(columns=['target_vol'])
+        if self.lgb_model is None:
+            raise ValueError("ML model not initialized. Train it first or load via --ml-model.")
 
-        # 3. Predict volatility for the upcoming period
-        predicted_sigma_bar = self.lgb_model.predict(latest_features_row)[0]
-        
-        # Ensure volatility is not negative or zero
-        predicted_sigma_bar = max(predicted_sigma_bar, 1e-6) 
+        # 2 Build recent features and select the same columns used for training
+        feat_cols = self.ml_feat_cols
+        latest_features = self.create_features(historical_df.tail(120))  # give indicators enough history
+        if latest_features.empty or not set(feat_cols).issubset(latest_features.columns):
+            raise ValueError("Insufficient latest features for ML prediction.")
+        latest_row = latest_features[feat_cols].tail(1).astype(float)
 
+        # 3. Predict volatility
+        predicted_sigma_bar = float(self.lgb_model.predict(latest_row)[0])
+        predicted_sigma_bar = max(predicted_sigma_bar, 1e-6)  # ensure > 0
+
+        # 4. Simulate paths using predicted volatility
         self.logger.info(f"Using ML-predicted sigma: {predicted_sigma_bar:.6f}")
-
-        # 4. Run the standard GBM simulation with the predicted volatility
         return self.simulate_gbm_paths(S0, mu_bar, predicted_sigma_bar, steps, n, rng)
 
     def load_ohlcv(self, csv_path: str, nrows: int | None = None) -> pd.DataFrame:
@@ -391,18 +394,40 @@ class MonteCarloTradeSimulator:
         np.ndarray
             The simulated price paths.
         """
-        am = arch_model(returns * 100, vol='Garch', p=1, q=1)
+        am = arch_model(returns * 100, vol='Garch', p=1, q=1, mean='Zero')
         res = am.fit(update_freq=5, disp='off')
         
-        sims = res.simulate(npaths=n, nobs=steps)
-        sim_returns = sims.residual_variances.values.T**0.5 / 100 * rng.standard_normal((n, steps))
-        
+        # Extract parameters
+        omega = float(res.params['omega'])
+        alpha = float(res.params['alpha[1]'])
+        beta  = float(res.params['beta[1]'])
+
+        # Initial variance and residual from the fitted model
+        h0 = float(res.conditional_volatility[-1]) ** 2
+        eps0 = float(res.resid[-1])
+
         paths = np.empty((n, steps + 1), dtype=float)
         paths[:, 0] = S0
-        paths[:, 1:] = S0 * np.exp(np.cumsum(sim_returns, axis=1))
+        
+        # Simulate n paths
+        for i in range(n):
+            h = h0
+            eps = eps0
+            rets = np.empty(steps, dtype=float)
+
+            for t in range(steps):
+                # GARCH variance update: h_t = omega + alpha*eps_{t-1}^2 + beta*h_{t-1}
+                h = omega + alpha * (eps ** 2) + beta * h
+                z = rng.standard_normal()
+                eps = z * np.sqrt(h)
+                rets[t] = eps  # zero mean
+
+            prices = S0 * np.exp(np.cumsum(rets))
+            paths[i, 1:] = prices
+        
         return paths
     
-    def create_features(df: pd.DataFrame) -> pd.DataFrame:
+    def create_features(self, df: pd.DataFrame) -> pd.DataFrame:
         """Create features for volatility prediction.
         Parameters
         ----------
@@ -414,33 +439,33 @@ class MonteCarloTradeSimulator:
         """
         df_feat = df.copy()
         df_feat['log_return'] = np.log(df_feat['close']).diff()
-        
+
         # Target variable: Realized volatility over the next 5 bars
         df_feat['target_vol'] = df_feat['log_return'].rolling(5).std(ddof=1).shift(-5)
-        
-        # Calculate Average True Range (ATR) over 14 periods
-        high = df_feat['high']
-        low = df_feat['low']
-        close = df_feat['close']
+
+        # ATR(14)
+        high = df_feat['high']; low = df_feat['low']; close = df_feat['close']
         prev_close = close.shift(1)
         tr1 = high - low
         tr2 = (high - prev_close).abs()
         tr3 = (low - prev_close).abs()
         tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+        df_feat['atr_14'] = tr.rolling(14).mean()
 
-        # Calculate the RSI over 14 periods
+        # RSI(14)
         delta = df_feat['log_return']
         gain = (delta.where(delta > 0, 0)).rolling(14).mean()
         loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
         rs = gain / loss
-        
-
-        df_feat['atr_14'] = tr.rolling(14).mean()
+        rs = rs.replace([np.inf, -np.inf], np.nan)  # avoid inf when loss ~ 0
         df_feat['rsi_14'] = 100 - (100 / (1 + rs))
+
+        # Other features
         df_feat['volume_change'] = df_feat['volume'].pct_change()
         df_feat['return_MA_10'] = df_feat['log_return'].rolling(10).mean()
-        
-        df_feat = df_feat.dropna()
+
+        # Final cleanup
+        df_feat = df_feat.replace([np.inf, -np.inf], np.nan).dropna()
         return df_feat
 
     # ------------------------------
@@ -509,7 +534,8 @@ class MonteCarloTradeSimulator:
         end_idx: int | None = None,
         save_plots: bool = True,
         full_df: pd.DataFrame | None = None,
-        save_json: bool = True
+        save_json: bool = True,
+        ml_model: str | None = None,
         ) -> dict:
 
         """Simulate trade outcomes for a given OHLCV CSV file.
@@ -550,6 +576,8 @@ class MonteCarloTradeSimulator:
         dict
             A dictionary containing the simulation results and metrics.
         """
+
+        out_dir = os.path.dirname(csv_path) or "."
         
         # Load once (allows caller to pass preloaded DataFrame, e.g., backtest loop)
         if full_df is None:
@@ -569,18 +597,6 @@ class MonteCarloTradeSimulator:
         # The actual future data for comparison (not used in simulation)
         df_future = full_df.iloc[end_idx+1:].copy()
 
-        # Create or load the ML model for volatility prediction
-        feature_df = self.create_features(df_future)
-        X = feature_df[['atr_14', 'rsi_14', 'volume_change', 'return_MA_10']]
-        y = feature_df['target_vol']
-
-        # Train the model
-        lgb_model = lgb.LGBMRegressor(objective='regression_l1', n_estimators=100, random_state=42)
-        lgb_model.fit(X, y)
-
-        # Save the model for later use
-        joblib.dump(lgb_model, 'volatility_predictor.pkl')
-
         closes = df_history["close"]
         S0_now = float(closes.iloc[-1])  # The price at the 'end_idx'
         S0 = float(entry) if entry is not None else S0_now
@@ -598,8 +614,45 @@ class MonteCarloTradeSimulator:
             paths_now = self.simulate_garch_paths(S0_now, r, horizon_bars, n_paths, rng)
         # NEW OPTION
         elif model == "ml_gbm":
-            # Pass the historical dataframe needed for feature creation
-            paths_now = self.simulate_ml_gbm_paths(S0_now, mu_bar, df_history, horizon_bars, n_paths, rng) 
+            paths_now = None
+            try:
+                if self.lgb_model is None:
+                    if ml_model is not None and os.path.exists(ml_model):
+                        self.lgb_model = joblib.load(ml_model)
+                        self.logger.info(f"Loaded ML model from: {ml_model}")
+                    else:
+                        self.logger.info("Training new ML volatility model from historical data...")
+                        # Train a new model
+                    feat = self.create_features(df_history).dropna(subset=['target_vol'])
+                    feat_cols = self.ml_feat_cols
+                    if not feat.empty and set(feat_cols).issubset(feat.columns):
+                        X = feat[feat_cols].astype(float)
+                        y = feat['target_vol'].astype(float)
+                        if len(X) > 0 and len(y) > 0:
+                            self.lgb_model = lgb.LGBMRegressor(
+                                objective='regression_l1', n_estimators=200, random_state=seed
+                            )
+                            self.lgb_model.fit(X, y)
+                        else:
+                            self.logger.warning("Insufficient ML features/labels; falling back to GBM.")
+                    else:
+                        self.logger.warning("Not enough data to train ML model; falling back to GBM.")
+
+                if self.lgb_model is not None:
+                    paths_now = self.simulate_ml_gbm_paths(S0_now, mu_bar, df_history, horizon_bars, n_paths, rng)
+
+                if paths_now is None:
+                    paths_now = self.simulate_gbm_paths(S0_now, mu_bar, sigma_bar, horizon_bars, n_paths, rng)
+
+                if self.lgb_model is not None:
+                    # Save the trained model for inspection
+                    model_filename = "volatility_predictor.pkl"
+                    model_path = os.path.join(out_dir, model_filename)
+                    joblib.dump(self.lgb_model, model_path)
+                    self.logger.info(f"Saved ML volatility model to: {model_path}")
+            except Exception as e:
+                self.logger.warning(f"ML GBM failed ({e}); falling back to GBM.")
+                paths_now = self.simulate_gbm_paths(S0_now, mu_bar, sigma_bar, horizon_bars, n_paths, rng)
         else:
             raise ValueError(f"Unknown model: {model}")
 
@@ -613,8 +666,7 @@ class MonteCarloTradeSimulator:
         }
 
         ts = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        out_dir = os.path.dirname(csv_path) or "."
-
+        
         # Compute actual outcome from future bars
         actual_outcome = {"outcome": "neither", "bars_to_hit": None}
         for i, row in df_future.iterrows():
@@ -738,12 +790,13 @@ def main():
     p.add_argument("--entry", type=float, default=None, help="Entry price (optional; defaults to last close)")
     p.add_argument("--tf", type=str, default=None, choices=["1d","4h","1h","30m","15m","5m","1m"], help="Timeframe (infer from filename if omitted)")
     p.add_argument("--horizon", type=int, default=20, help="Number of bars to simulate ahead")
-    p.add_argument("--model", type=str, default="garch", choices=["bootstrap", "gbm", "garch"], help="Path generator model")
+    p.add_argument("--model", type=str, default="garch", choices=["bootstrap", "gbm", "garch","ml_gbm"], help="Path generator model")
     p.add_argument("--paths", type=int, default=20000, help="Number of simulation paths")
     p.add_argument("--block", type=int, default=8, help="Block length for bootstrap model")
     p.add_argument("--seed", type=int, default=42, help="RNG seed")
     p.add_argument("--nrows", type=int, default=4000, help="Number of most recent rows to load")
     p.add_argument("--no-plots", action="store_true", help="Do not write HTML plots")
+    p.add_argument("--ml-model", type=str, default=None, help="Path to a pre-trained LightGBM volatility model (.pkl)")
 
     # Rolling backtest
     p.add_argument("--simulate-backtest", action="store_true", help="Run rolling backtest across decision points.")
@@ -753,12 +806,22 @@ def main():
     p.add_argument("--bt-step", type=int, default=5, help="Bars between decision points.")
     p.add_argument("--bt-windows", type=int, default=40, help="Number of decision points to test.")
     p.add_argument("--bt-paths", type=int, default=5000, help="Simulation paths per decision point.")
-    p.add_argument("--bt-model", type=str, choices=["bootstrap","gbm"], default=None, help="Override model for backtest.")
+    p.add_argument("--bt-model", type=str, choices=["bootstrap","gbm","ml_gbm"], default=None, help="Override model for backtest.")
     p.add_argument("--bt-no-json", action="store_true", help="Do not save per-window JSON during backtest.")
     args = p.parse_args()
 
     simulator = MonteCarloTradeSimulator()
     back_test_mode = simulator.simulate_backtest_trades
+
+    if args.ml_model:
+        args.ml_model = os.path.abspath(args.ml_model)
+
+    if args.model == "ml_gbm" and args.ml_model:
+        if os.path.exists(args.ml_model):
+            simulator.lgb_model = joblib.load(args.ml_model)
+            simulator.logger.info(f"Loaded ML model from: {args.ml_model}")
+        else:
+            simulator.logger.warning(f"ML model not found at {args.ml_model}; will train on the fly.")
 
     if args.simulate_backtest:
         if args.bt_tp_pips is None or args.bt_sl_pips is None:
@@ -794,6 +857,7 @@ def main():
         model=args.model, n_paths=args.paths,
         block_len=args.block, seed=args.seed,
         nrows=args.nrows, save_plots=(not args.no_plots),
+        ml_model=args.ml_model
     )
 
     # Pretty print a brief summary to stdout
