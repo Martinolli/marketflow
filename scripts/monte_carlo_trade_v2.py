@@ -1,6 +1,88 @@
 """
-Monte Carlo simulator for trade outcomes (TP-first vs SL-first) using
-either GBM or block bootstrap on OHLCV CSVs you already export.
+================================================================================
+Monte Carlo Trade Outcome Simulator (v2)
+================================================================================
+Purpose:
+This script simulates the probable outcomes of a financial trade by generating
+a large number of possible future price paths. It helps traders and analysts
+quantify the probability of a trade hitting its take-profit (TP) level before
+its stop-loss (SL) level within a specified time horizon.
+
+The simulation can be run in two modes:
+1.  Single-Run Mode: Analyzes a specific trade setup (entry, TP, SL) from the
+    most recent data point in a given CSV file.
+2.  Backtest Mode: Systematically steps back in time through the historical
+    data, running simulations at each point to evaluate the model's
+    performance and calibration over time.
+
+Key Features:
+-   **Multiple Simulation Models**: Supports three distinct path generation models:
+    -   Geometric Brownian Motion (GBM): A standard model assuming log-returns
+        are normally distributed with constant drift and volatility.
+    -   Block Bootstrap: A non-parametric model that resamples blocks of
+        historical returns, preserving some of the observed auto-correlation
+        and volatility clustering.
+    -   GARCH(1,1): A model that captures volatility clustering, where periods
+        of high volatility are followed by more high volatility, and vice-versa.
+-   **Statistical Outputs**: Generates a JSON summary file with key metrics,
+    including Probability of Profit (POP), median time-to-hit for both TP
+    and SL, and statistics on the distribution of returns (R-multiples).
+-   **Visualizations**: Produces interactive HTML plots using Plotly:
+    -   A fan chart showing the distribution of simulated price paths over time.
+    -   A histogram of the median time for trades to hit their targets.
+
+--------------------------------------------------------------------------------
+VARIABLES & PARAMETERS
+--------------------------------------------------------------------------------
+
+Core Class Parameters (MonteCarloTradeSimulator):
+- model_type (str): The default simulation model ('gbm', 'bootstrap', 'garch').
+- params (dict): A dictionary for any additional model-specific parameters.
+
+Key Method Parameters (simulate_trade_for_csv):
+- csv_path (str): Path to the input OHLCV CSV file. Must contain
+                  'timestamp', 'open', 'high', 'low', 'close', 'volume'.
+- tp (float): The take-profit price level for the trade.
+- sl (float): The stop-loss price level for the trade.
+- entry (float | None): The entry price of the trade. If None, the last
+                        closing price in the dataset is used.
+- tf (str | None): The time frame of the data (e.g., '1h', '4h'). If None,
+                   it's inferred from the filename.
+- horizon_bars (int): The number of future bars (time steps) to simulate.
+- model (str): The simulation model to use for this specific run.
+- n_paths (int): The total number of price paths to generate.
+- block_len (int): The size of the blocks for the 'bootstrap' model.
+- seed (int): A random seed for ensuring reproducibility.
+- end_idx (int | None): The index of the historical bar to simulate from. If
+                        None, simulation starts from the very last bar.
+
+Backtest Parameters (simulate_backtest_trades):
+- TP_pips (float): The take-profit distance from the entry price, in price
+                   units (not pips/ticks in the traditional sense).
+- SL_pips (float): The stop-loss distance from the entry price.
+- step (int): The number of bars to step back between each backtest simulation.
+- lookback_windows (int): The total number of past decision points to test.
+
+Command-Line Arguments (via argparse):
+- csv (str): Positional argument for the CSV file path.
+- --tp (float): Take-profit price (required for single-run mode).
+- --sl (float): Stop-loss price (required for single-run mode).
+- --entry (float): Optional entry price.
+- --tf (str): Optional time frame.
+- --horizon (int): Simulation horizon in bars. Default: 20.
+- --model (str): Model type ('gbm', 'bootstrap', 'garch'). Default: 'garch'.
+- --paths (int): Number of simulation paths. Default: 20000.
+- --block (int): Block length for bootstrap. Default: 8.
+- --seed (int): RNG seed. Default: 42.
+- --nrows (int): Number of recent CSV rows to load. Default: 4000.
+- --no-plots (bool): Flag to disable saving HTML plots.
+- --simulate-backtest (bool): Flag to enable backtesting mode.
+- --bt-tp-pips (float): TP offset for backtesting.
+- --bt-sl-pips (float): SL offset for backtesting.
+- --bt-step (int): Step size for backtesting. Default: 5.
+- --bt-windows (int): Number of windows for backtesting. Default: 40.
+- --bt-paths (int): Number of paths per backtest run. Default: 5000.
+
 
 Outputs per run (saved next to the CSV):
 - <timestamp>_mc_summary.json    # metrics (POP, time-to-hit, R stats)
@@ -25,7 +107,7 @@ Single run:
 Backtest, 40 decision points stepping 5 bars, 5k paths each:
         - py monte_carlo_trade_v1.py .\data\AAPL_1h.csv --simulate-backtest --bt-tp-pips 2.0 --bt-sl-pips 1.0 --bt-windows 40 
         --bt-step 5 --bt-paths 5000 --horizon 40 --block 8 --seed 42 --bt-no-json
-
+--------------------------------------------------------------------------------
 """
 
 from __future__ import annotations
@@ -37,6 +119,9 @@ import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
 from arch import arch_model
+import lightgbm as lgb
+import joblib
+
 
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
@@ -59,6 +144,30 @@ class MonteCarloTradeSimulator:
     # IO helpers
     # ------------------------------
 
+    def simulate_ml_gbm_paths(self, S0: float, mu_bar: float,
+                            historical_df: pd.DataFrame, # Pass recent data for features
+                            steps: int, n: int, rng: np.random.Generator
+                            ) -> np.ndarray:
+        """Simulate GBM paths using volatility predicted by an ML model."""
+        
+        # 1. Load your pre-trained model
+        # lgb_model = joblib.load('volatility_predictor.pkl')
+        
+        # 2. Create features for the MOST RECENT data point
+        latest_features = self.create_features(historical_df.tail(30)) # Need enough data for indicators
+        latest_features_row = latest_features.iloc[-1:].drop(columns=['target_vol'])
+
+        # 3. Predict volatility for the upcoming period
+        predicted_sigma_bar = self.lgb_model.predict(latest_features_row)[0]
+        
+        # Ensure volatility is not negative or zero
+        predicted_sigma_bar = max(predicted_sigma_bar, 1e-6) 
+
+        self.logger.info(f"Using ML-predicted sigma: {predicted_sigma_bar:.6f}")
+
+        # 4. Run the standard GBM simulation with the predicted volatility
+        return self.simulate_gbm_paths(S0, mu_bar, predicted_sigma_bar, steps, n, rng)
+
     def load_ohlcv(self, csv_path: str, nrows: int | None = None) -> pd.DataFrame:
         """
         Load OHLCV data from a CSV file.
@@ -68,7 +177,8 @@ class MonteCarloTradeSimulator:
             Path to the CSV file.
         nrows: int | None
             Number of rows to read from the CSV file. If None, read all rows.
-        Returns -------
+        Returns
+        -------
         pd.DataFrame
         """
         if not os.path.exists(csv_path):
@@ -94,7 +204,8 @@ class MonteCarloTradeSimulator:
         ----------
         name: str
             The name of the file from which to infer the time frame.
-        Returns -------
+        Returns
+        -------
         str | None
             The inferred time frame (e.g., "1d", "4h", "1h", "30m", "15m", "5m", "1m"),
             or None if no common indicators are found.
@@ -116,7 +227,8 @@ class MonteCarloTradeSimulator:
             The closing prices for which to calibrate the model.
         window: int
             The number of most recent bars to consider for calibration.
-        Returns -------
+        Returns
+        -------
         tuple[float,float,np.ndarray]
         """
         r = np.log(closes).diff().dropna()
@@ -146,7 +258,8 @@ class MonteCarloTradeSimulator:
             The number of paths to simulate.
         rng: np.random.Generator
             The random number generator to use.
-        Returns -------
+        Returns
+        -------
         np.ndarray
             An array of shape (n, steps+1) containing the simulated price paths.
         """
@@ -180,7 +293,8 @@ class MonteCarloTradeSimulator:
             The length of each block to sample.
         rng: np.random.Generator
             The random number generator to use.
-        Returns -------
+        Returns
+        -------
         np.ndarray
             An array of shape (n, steps+1) containing the simulated price paths.
         """
@@ -272,7 +386,8 @@ class MonteCarloTradeSimulator:
             The number of paths to simulate.
         rng: np.random.Generator
             The random number generator to use.
-        Returns -------
+        Returns
+        -------
         np.ndarray
             The simulated price paths.
         """
@@ -286,6 +401,47 @@ class MonteCarloTradeSimulator:
         paths[:, 0] = S0
         paths[:, 1:] = S0 * np.exp(np.cumsum(sim_returns, axis=1))
         return paths
+    
+    def create_features(df: pd.DataFrame) -> pd.DataFrame:
+        """Create features for volatility prediction.
+        Parameters
+        ----------
+        df: pd.DataFrame
+            The input OHLCV DataFrame.
+        Returns
+        -------
+            pd.DataFrame
+        """
+        df_feat = df.copy()
+        df_feat['log_return'] = np.log(df_feat['close']).diff()
+        
+        # Target variable: Realized volatility over the next 5 bars
+        df_feat['target_vol'] = df_feat['log_return'].rolling(5).std(ddof=1).shift(-5)
+        
+        # Calculate Average True Range (ATR) over 14 periods
+        high = df_feat['high']
+        low = df_feat['low']
+        close = df_feat['close']
+        prev_close = close.shift(1)
+        tr1 = high - low
+        tr2 = (high - prev_close).abs()
+        tr3 = (low - prev_close).abs()
+        tr = pd.concat([tr1, tr2, tr3], axis=1).max(axis=1)
+
+        # Calculate the RSI over 14 periods
+        delta = df_feat['log_return']
+        gain = (delta.where(delta > 0, 0)).rolling(14).mean()
+        loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
+        rs = gain / loss
+        
+
+        df_feat['atr_14'] = tr.rolling(14).mean()
+        df_feat['rsi_14'] = 100 - (100 / (1 + rs))
+        df_feat['volume_change'] = df_feat['volume'].pct_change()
+        df_feat['return_MA_10'] = df_feat['log_return'].rolling(10).mean()
+        
+        df_feat = df_feat.dropna()
+        return df_feat
 
     # ------------------------------
     # Plot helpers (Plotly)
@@ -320,7 +476,8 @@ class MonteCarloTradeSimulator:
             The trade outcome statistics.
         title: str
             The title of the plot.
-        Returns -------
+        Returns
+        -------
         go.Figure
             The histogram figure.
         """
@@ -388,7 +545,8 @@ class MonteCarloTradeSimulator:
             Preloaded OHLCV DataFrame. If None, load from CSV.
         save_json: bool
             Whether to save the summary JSON file.
-        Returns -------
+        Returns
+        -------
         dict
             A dictionary containing the simulation results and metrics.
         """
@@ -411,6 +569,18 @@ class MonteCarloTradeSimulator:
         # The actual future data for comparison (not used in simulation)
         df_future = full_df.iloc[end_idx+1:].copy()
 
+        # Create or load the ML model for volatility prediction
+        feature_df = self.create_features(df_future)
+        X = feature_df[['atr_14', 'rsi_14', 'volume_change', 'return_MA_10']]
+        y = feature_df['target_vol']
+
+        # Train the model
+        lgb_model = lgb.LGBMRegressor(objective='regression_l1', n_estimators=100, random_state=42)
+        lgb_model.fit(X, y)
+
+        # Save the model for later use
+        joblib.dump(lgb_model, 'volatility_predictor.pkl')
+
         closes = df_history["close"]
         S0_now = float(closes.iloc[-1])  # The price at the 'end_idx'
         S0 = float(entry) if entry is not None else S0_now
@@ -426,8 +596,12 @@ class MonteCarloTradeSimulator:
             paths_now = self.simulate_bootstrap_paths(S0_now, r, horizon_bars, n_paths, block_len, rng)
         elif model == "garch":
             paths_now = self.simulate_garch_paths(S0_now, r, horizon_bars, n_paths, rng)
+        # NEW OPTION
+        elif model == "ml_gbm":
+            # Pass the historical dataframe needed for feature creation
+            paths_now = self.simulate_ml_gbm_paths(S0_now, mu_bar, df_history, horizon_bars, n_paths, rng) 
         else:
-            raise ValueError("model must be 'gbm' or 'bootstrap'")
+            raise ValueError(f"Unknown model: {model}")
 
         m_now   = self.barrier_stats(paths_now, tp, sl)
         out = {
@@ -524,7 +698,7 @@ class MonteCarloTradeSimulator:
 
         summary = {}
         if results:
-            predicted_pops = [r['metrics_from_entry']['pop_tp_first'] for r in results]
+            predicted_pops = [r['metrics_from_now']['pop_tp_first'] for r in results]
             actual_outcomes = [1 if r['actual_outcome']['outcome'] == 'tp_first' else 0 for r in results]
 
             df_results = pd.DataFrame({
