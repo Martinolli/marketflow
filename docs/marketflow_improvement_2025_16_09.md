@@ -348,3 +348,138 @@ what --sigma-unit and --sigma-blend settings make the most sense for your curren
     * UT fail: 3 boxes back below B within 1 column.
 
     * MC horizon: 20 bars (4H), paths 20k, block 8.
+
+## 1) target layout (lean)
+
+```bash
+/src
+  /utils
+    io.py           # load/sanitize OHLCV, timezone, dedupe
+    pnf.py          # build P&F cols, breakouts, counts (your fixed code)
+    mc.py           # MC runners (gbm, bootstrap, garch optional)
+    scoring.py      # VPA/P&F/MC scores + composite
+    position.py     # stop, size, R math, time-stops
+    checks.py       # break&hold, backup, upthrust filter
+  strategy.py       # Wyckoff–P&F–POP long breakout (glue)
+  scan.py           # batch over tickers → ranked table + JSON
+  decide.py         # prints final Go/No-Go + entry plan
+/config
+  strategy.yaml     # thresholds/weights
+```
+
+## 2) minimal interfaces (copy these signatures)
+
+```python
+# utils/io.py
+def load_ohlcv(path: str, nrows: int|None=None, tz="Asia/Dubai"):
+    ...
+
+# utils/pnf.py
+def pnf_features(df, box: float, reversal: int=3) -> dict:
+    """return {"breakout":B, "objective":obj, "ut_flag":bool, "o_lows":[...], "x_highs":[...]}"""
+
+# utils/mc.py
+def mc_4h_pop(df_4h, tp: float, sl: float, horizon: int=20, paths: int=20000, block:int=8)->dict:
+    """return {"pop":float, "p_sl":float, "rbar":float, "t_tp_med":int}"""
+
+# utils/scoring.py
+def score_mc(pop, p_sl, rbar) -> float: ...
+def score_pnf(obj_R, ut_flag, near_break_ok) -> float: ...
+def score_vpa(sos_jac: bool, test_ok: bool) -> float: ...
+def composite(scores: dict, weights: dict) -> float: ...
+
+# utils/position.py
+def compute_stop(breakout: float, box1h: float, o_low_4h: float) -> float: ...
+def position_size(entry: float, stop: float, acct: float=1000, risk_pct: float=0.01) -> int: ...
+
+# utils/checks.py
+def break_and_hold_ok(df_1h, B: float, box1h: float) -> bool: ...
+def backup_ok(df_30m, B: float, box1h: float) -> bool: ...
+def upthrust_after_break(pnf_cols, B: float) -> bool: ...
+```
+
+## 3) config you can tweak (strategy.yaml)
+
+```yaml
+risk:
+  account: 1000
+  risk_pct: 0.01
+
+filters:
+  min_price: 5
+  min_dollar_vol: 2.0e7
+  min_adr20: 0.02
+  max_spread_bps: 15
+
+pf:
+  box_4h_pct: 0.006 # 0.6%
+  box_1h_pct: 0.003 # 0.3%
+  reversal: 3
+  min_obj_R: 1.5
+
+mc:
+  horizon_bars: 20
+  paths: 20000
+  block: 8
+  go_pop_min: 0.52
+  backup_pop_min: 0.45
+  max_p_sl: 0.28
+  min_rbar: 0.15
+
+weights:
+  mc: 0.30
+  pnf: 0.25
+  vpa: 0.25
+  rr: 0.10
+  liq: 0.10
+min_score: 70
+```
+
+## 4) scan → decide flow (CLI)
+
+```bash
+# scan a watchlist and rank
+python -m src.scan --tickers AAAU,ACHR,... --out batch_rank.json
+
+# print final plan for top candidates
+python -m src.decide --rank batch_rank.json --top 2
+```
+
+## 5) decision logic (succinct)
+
+Go if: filters pass AND score ≥ min_score AND obj_R ≥ 1.5 AND
+(pop ≥ 0.52 OR (pop ≥ 0.45 AND entry_type == backup)).
+
+Entry A (break&hold): need 1h close ≥ B AND next 1–2 bars hold ≥ B − 0.5×box1h, vol ≥ 1.2× 1h-20.
+
+Entry B (jump→backup): jump above B, then low-vol pullback holding B..B−1×box1h, enter on wide up-bar.
+
+Upthrust filter: 3-box O back below B shortly after break ⇒ no entry.
+
+Stops/size: stop = min(4h O-low − 0.5×box4h, B − 3×box1h − tick); size = floor($risk / (entry−stop)).
+
+TP1: nearest small-box objective with ≥2R; after TP1, stop to BE; trail by 1h swing-low.
+
+## 6) quick tests (so you know it works)
+
+Unit tests (pseudo):
+
+P&F: given synthetic cols, ut_flag true when reversal ≥ 3 boxes under B.
+
+MC: with zero σ, POP = 1 if S0 < TP and > SL; POP = 0 if S0 > SL and < TP.
+
+Sizing: entry 100, stop 98, risk $10 ⇒ size = 5.
+
+Smoke: run scan on 3–5 tickers; ensure ranks, triggers B, and sizes print; no exceptions.
+
+## 7) refactor tips (keep it safe)
+
+Keep I/O + plotting out of core utils; pass DataFrames in, dicts out.
+
+Fix the RNG seed in MC for reproducible comparisons (seed=42).
+
+Respect Asia/Dubai timezone in loaders; localize then convert if needed.
+
+Log config + git hash in outputs so runs are traceable.
+
+When you’re ready with a first prototype, toss me your strategy.yaml and one sample ticker bundle—I’ll do a pass on the scores, triggers, and edge cases before you run the full universe.
