@@ -605,7 +605,7 @@ def main():
     p.add_argument("--tp", type=float, help="Take-profit price (single-run mode)")
     p.add_argument("--sl", type=float, help="Stop-loss price (single-run mode)")
     p.add_argument("--entry", type=float, default=None, help="Entry price (optional; defaults to last close)")
-    p.add_argument("--tf", type=str, default=None, choices=["1d","4h","1h","30m","15m","5m","1m"], help="Timeframe (infer from filename if omitted)")
+    p.add_argument("--tf", type=str, default=None, choices=["mo", "1w","1d","4h","1h","30m","15m","5m","1m"], help="Timeframe (infer from filename if omitted)")
     p.add_argument("--horizon", type=int, default=20, help="Number of bars to simulate ahead")
     p.add_argument("--model", type=str, default="garch", choices=["bootstrap", "gbm", "garch","ml_gbm"], help="Path generator model")
     p.add_argument("--paths", type=int, default=20000, help="Number of simulation paths")

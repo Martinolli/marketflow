@@ -305,6 +305,7 @@ default_config = {
     "pnf_scale": "percent",     # fixed | percent | atr
     "pnf_scale_value": 0.005,   # 0.5% default when using percent
     "timeframes": [
+        {"interval": "1mo", "period": "5y"},
         {"interval": "1w", "period": "2y"},
         {"interval": "1d", "period": "365d"},
         {"interval": "4h", "period": "100d"},

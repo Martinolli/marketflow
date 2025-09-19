@@ -330,6 +330,9 @@ class PolygonIOProvider(DataProvider):
             elif interval.endswith('w'):
                 self.logger.info(f"Parsing interval: {interval} as week timeframe")
                 return int(interval[:-1]), 'week'
+            elif interval.endswith('mo'):
+                self.logger.info(f"Parsing interval: {interval} as month timeframe")
+                return int(interval[:-2]), 'month'
             else:
                 self.logger.error(f"Unsupported interval format: {interval}")
                 return None, None
