@@ -170,7 +170,30 @@ class MonteCarloTradeSimulator:
                             historical_df: pd.DataFrame, # Pass recent data for features
                             steps: int, n: int, rng: np.random.Generator
                             ) -> np.ndarray:
-        """Simulate GBM paths using volatility predicted by an ML model."""
+        """Simulate GBM paths using volatility predicted by an ML model.
+        Parameters
+        ----------
+        S0: float
+            The initial stock price.
+        mu_bar: float
+            The per-bar drift.
+        historical_df: pd.DataFrame
+            Recent historical OHLCV data for feature extraction.
+        steps: int
+            The number of time steps to simulate.
+        n: int
+            The number of paths to simulate.
+        rng: np.random.Generator
+            The random number generator to use.
+        Returns
+        -------
+        np.ndarray
+            An array of shape (n, steps+1) containing the simulated price paths.
+        Raises
+        ------
+        ValueError
+            If the ML model is not initialized or if there are insufficient features for prediction.
+        """
         
         # 1. Load your pre-trained model
         if self.lgb_model is None:
@@ -532,6 +555,45 @@ class MonteCarloTradeSimulator:
         """
         Slide back in time and run simulate_trade_for_csv at multiple decision points.
         TP_pips/SL_pips are price offsets from the entry close at each decision point.
+        Parameters
+        ----------
+        csv_path: str
+            Path to the OHLCV CSV file.
+            The CSV file should contain at least 'open', 'high', 'low', and 'close' columns.
+        TP_pips: float
+            Take-profit offset from entry price (in price units).
+        SL_pips: float
+            Stop-loss offset from entry price (in price units).
+        tf: str | None
+            Time frame of the data (e.g., "1d", "4h"). If None, infer from file name.
+        Horizon: int
+            Number of bars to simulate into the future.
+        step: int
+            Number of bars to step back between each backtest simulation.
+        lookback_windows: int
+            Total number of past decision points to test.
+        model: str
+            Simulation model to use ("gbm", "bootstrap", or "garch").
+        paths: int
+            Number of Monte Carlo paths to simulate per decision point.
+        block_len: int
+            Block length for bootstrap model (ignored for other models).
+        seed: int
+            Random seed for reproducibility.
+        nrows: int | None
+            Number of rows to read from the CSV file. If None, read all rows.
+        save_json: bool
+            Whether to save the summary JSON file for each decision point.
+        verbose: bool
+            Whether to print progress and summary information.
+        Returns
+        -------
+        dict
+            A dictionary containing the backtest summary and individual results.
+        Raises
+        ------
+        ValueError
+            If there are not enough rows in the CSV for the backtest.
         """
         df = load_ohlcv(csv_path, nrows=nrows)
         n = len(df)
