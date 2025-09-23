@@ -309,6 +309,7 @@ default_config = {
         {"interval": "1w", "period": "2y"},
         {"interval": "1d", "period": "365d"},
         {"interval": "4h", "period": "100d"},
+        {"interval": "2h", "period": "60d"},
         {"interval": "1h", "period": "40d"},    
         {"interval": "30m", "period": "20d"},
         {"interval": "15m", "period": "20d"},
