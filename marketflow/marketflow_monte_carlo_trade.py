@@ -107,6 +107,8 @@ Single run:
 Backtest, 40 decision points stepping 5 bars, 5k paths each:
         - py monte_carlo_trade_v1.py .\data\AAPL_1h.csv --simulate-backtest --bt-tp-pips 2.0 --bt-sl-pips 1.0 --bt-windows 40 
         --bt-step 5 --bt-paths 5000 --horizon 40 --block 8 --seed 42 --bt-no-json
+        - python marketflow/marketflow_monte_carlo_trade.py ".marketflow/reports/2025-09-23/PANW/PANW_1w.csv" --simulate-backtest
+        --bt-tp-pips 6.0 --bt-sl-pips 2.0 --bt-windows 80 --bt-step 5 --bt-paths 10000 --horizon 40 --block 8 --seed 42 
 Volatility ML-GBM model:
         - python scripts/monte_carlo_trade_v2.py ".marketflow/reports/2025-09-15/PANW/PANW_1d.csv" --tp 206.54 --sl 192.78 
         --entry 197.21 --tf 1d --horizon 40 --model ml_gbm --ml-model ".marketflow/reports/2025-09-15/PANW/volatility_predictor.pkl"
@@ -605,7 +607,7 @@ def main():
     p.add_argument("--tp", type=float, help="Take-profit price (single-run mode)")
     p.add_argument("--sl", type=float, help="Stop-loss price (single-run mode)")
     p.add_argument("--entry", type=float, default=None, help="Entry price (optional; defaults to last close)")
-    p.add_argument("--tf", type=str, default=None, choices=["mo", "1w","1d","4h","1h","30m","15m","5m","1m"], help="Timeframe (infer from filename if omitted)")
+    p.add_argument("--tf", type=str, default=None, choices=["mo", "1w","1d","4h","2h","1h","30m","15m","5m","1m"], help="Timeframe (infer from filename if omitted)")
     p.add_argument("--horizon", type=int, default=20, help="Number of bars to simulate ahead")
     p.add_argument("--model", type=str, default="garch", choices=["bootstrap", "gbm", "garch","ml_gbm"], help="Path generator model")
     p.add_argument("--paths", type=int, default=20000, help="Number of simulation paths")
