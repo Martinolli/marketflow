@@ -34,7 +34,6 @@ def main():
 
     # 2. Initialize one TVM for the whole batch
     tvm = TransientVectorMemory(embed_fn=embed_fn, dim=1536, ttl_seconds=48*3600)
-
     # Prepare the directory for this batch run's consolidated TVM store
     # The Q&A app will find this by looking for the most recent .tvm_namespace file
     batch_output_dir = os.path.join(report_root, f"batch_{run_id}")
