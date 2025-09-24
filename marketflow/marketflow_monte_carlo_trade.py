@@ -128,6 +128,12 @@ import lightgbm as lgb
 import joblib
 
 try:
+    from statsmodels.tsa.statespace.sarimax import SARIMAX
+    HAVE_STATSM = True
+except Exception:
+    HAVE_STATSM = False
+    
+try:
     from arch import arch_model
     HAVE_ARCH = True
 except Exception:
@@ -166,6 +172,80 @@ class MonteCarloTradeSimulator:
         self.logger = get_logger("MonteCarloTradeSimulator")
         self.config_manager = create_app_config(logger=self.logger)
 
+    def simulate_arima_garch_paths(
+        self,
+        S0: float,
+        returns: np.ndarray,
+        steps: int,
+        n: int,
+        rng: np.random.Generator,
+        arima_order: tuple[int,int,int] | None = None,
+        seasonal_order: tuple[int,int,int,int] | None = None,
+    ) -> np.ndarray:
+        """
+        Simulate paths with ARIMA/SARIMA conditional mean + GARCH(1,1) volatility.
+        Parameters
+        ----------
+        S0: float
+            The initial stock price.
+        returns: np.ndarray
+            The historical log-returns to fit the models.
+        steps: int
+            The number of time steps to simulate.
+        n: int
+            The number of paths to simulate.
+        rng: np.random.Generator
+            The random number generator to use.
+        arima_order: tuple[int,int,int] | None
+            The (p,d,q) order for the ARIMA model. Defaults to (1,0,0) if None.
+        seasonal_order: tuple[int,int,int,int] | None
+            The (P,D,Q,s) seasonal order for SARIMA. Defaults to (0,0,0,0) if None.
+        Returns
+        -------
+        np.ndarray
+            An array of shape (n, steps+1) containing the simulated price paths.
+        """
+        if not HAVE_STATSM:
+            raise RuntimeError("statsmodels not installed. pip install statsmodels")
+        if not HAVE_ARCH:
+            raise RuntimeError("arch not installed. pip install arch")
+
+        # Default to a small AR component if none provided
+        arima_order = arima_order or (1, 0, 0)
+        seasonal_order = seasonal_order or (0, 0, 0, 0)
+
+        # 1) Fit SARIMAX to model conditional mean of returns
+        sarimax = SARIMAX(returns, order=arima_order, seasonal_order=seasonal_order, trend="n", enforce_stationarity=False, enforce_invertibility=False)
+        sarimax_res = sarimax.fit(disp=False)
+        mu_fore = sarimax_res.get_forecast(steps=steps).predicted_mean.astype(float)
+
+        # 2) Fit GARCH(1,1) on returns to model conditional variance of shocks
+        am = arch_model(returns * 100, vol='Garch', p=1, q=1, mean='Zero')
+        garch_res = am.fit(update_freq=5, disp='off')
+        omega = float(garch_res.params['omega'])
+        alpha = float(garch_res.params['alpha[1]'])
+        beta  = float(garch_res.params['beta[1]'])
+        h0 = float(garch_res.conditional_volatility[-1]) ** 2
+        eps0 = float(garch_res.resid[-1])
+
+        paths = np.empty((n, steps + 1), dtype=float)
+        paths[:, 0] = S0
+
+        # 3) Simulate returns path: r_t = mu_t + eps_t, eps_t ~ GARCH(1,1)
+        for i in range(n):
+            h = h0
+            eps = eps0
+            rets = np.empty(steps, dtype=float)
+            for t in range(steps):
+                h = omega + alpha * (eps ** 2) + beta * h
+                z = rng.standard_normal()
+                eps = z * np.sqrt(h)
+                rets[t] = mu_fore[t] + (eps / 100.0)  # convert back to return units
+            prices = S0 * np.exp(np.cumsum(rets))
+            paths[i, 1:] = prices
+
+        return paths
+    
     def simulate_ml_gbm_paths(self, S0: float, mu_bar: float,
                             historical_df: pd.DataFrame, # Pass recent data for features
                             steps: int, n: int, rng: np.random.Generator
@@ -434,6 +514,9 @@ class MonteCarloTradeSimulator:
             paths_now = self.simulate_bootstrap_paths(S0_now, r, horizon_bars, n_paths, block_len, rng)
         elif model == "garch":
             paths_now = self.simulate_garch_paths(S0_now, r, horizon_bars, n_paths, rng)
+        elif model == "arima_garch":
+            # Optional: tune seasonal_order based on tf (e.g., (1,0,0,24) for 1h data)
+            paths_now = self.simulate_arima_garch_paths(S0_now, r, horizon_bars, n_paths, rng)
         # NEW OPTION
         elif model == "ml_gbm":
             paths_now = None
@@ -475,6 +558,7 @@ class MonteCarloTradeSimulator:
             except Exception as e:
                 self.logger.warning(f"ML GBM failed ({e}); falling back to GBM.")
                 paths_now = self.simulate_gbm_paths(S0_now, mu_bar, sigma_bar, horizon_bars, n_paths, rng)
+            pass
         else:
             raise ValueError(f"Unknown model: {model}")
 
@@ -488,11 +572,14 @@ class MonteCarloTradeSimulator:
                 paths_entry = self.simulate_bootstrap_paths(float(entry), r, horizon_bars, n_paths, block_len, rng)
             elif model == "garch":
                 paths_entry = self.simulate_garch_paths(float(entry), r, horizon_bars, n_paths, rng)
+            elif model == "arima_garch":
+                paths_entry = self.simulate_arima_garch_paths(float(entry), r, horizon_bars, n_paths, rng)
             elif model == "ml_gbm":
                 if self.lgb_model is not None:
                     paths_entry = self.simulate_ml_gbm_paths(float(entry), mu_bar, df_history, horizon_bars, n_paths, rng)
                 else:
                     paths_entry = self.simulate_gbm_paths(float(entry), mu_bar, sigma_bar, horizon_bars, n_paths, rng)
+                pass
             else:
                 raise ValueError(f"Unknown model: {model}")
             m_entry = barrier_stats(paths_entry, tp, sl)
@@ -669,9 +756,9 @@ def main():
     p.add_argument("--tp", type=float, help="Take-profit price (single-run mode)")
     p.add_argument("--sl", type=float, help="Stop-loss price (single-run mode)")
     p.add_argument("--entry", type=float, default=None, help="Entry price (optional; defaults to last close)")
-    p.add_argument("--tf", type=str, default=None, choices=["mo", "1w","1d","4h","2h","1h","30m","15m","5m","1m"], help="Timeframe (infer from filename if omitted)")
+    p.add_argument("--tf", type=str, default=None, choices=["mo","1w","1d","4h","2h","1h","30m","15m","5m","1m"], help="Timeframe (infer from filename if omitted)")
     p.add_argument("--horizon", type=int, default=20, help="Number of bars to simulate ahead")
-    p.add_argument("--model", type=str, default="garch", choices=["bootstrap", "gbm", "garch","ml_gbm"], help="Path generator model")
+    p.add_argument("--model", type=str, default="garch", choices=["bootstrap", "gbm", "garch","ml_gbm", "arima_garch"], help="Path generator model")
     p.add_argument("--paths", type=int, default=20000, help="Number of simulation paths")
     p.add_argument("--block", type=int, default=8, help="Block length for bootstrap model")
     p.add_argument("--seed", type=int, default=42, help="RNG seed")
@@ -700,6 +787,8 @@ def main():
         p.error("GARCH model requested but 'arch' not installed. pip install arch")
     if args.model == "ml_gbm" and not HAVE_LGB:
         p.error("ml_gbm requested but 'lightgbm' not installed. pip install lightgbm")
+    if args.model == "arima_garch" and not HAVE_STATSM:
+        p.error("arima_garch requested but 'statsmodels' not installed. pip install statsmodels")
 
     if args.ml_model:
         args.ml_model = os.path.abspath(args.ml_model)
