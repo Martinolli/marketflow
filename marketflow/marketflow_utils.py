@@ -75,6 +75,8 @@ def save_timeframe_data(ticker: str, timeframe_analyses: dict) -> None:
     if not timeframe_analyses:
         print(f"Warning: No timeframe analyses available for {ticker}. Skipping save.")
         return
+    
+    safe_ticker = sanitize_filename(ticker)  # <-- ensure filenames are safe on Windows
 
     for timeframe, data in timeframe_analyses.items():
         date_str = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
@@ -105,15 +107,15 @@ def save_timeframe_data(ticker: str, timeframe_analyses: dict) -> None:
         # Merge and save logic
         if price_data_valid and volume_data_valid:
             merged_data = pd.merge(price_data, volume_data, left_index=True, right_index=True, how='outer')
-            file_path = base_path / f"{ticker}_{timeframe}.csv"
+            file_path = base_path / f"{safe_ticker}_{timeframe}.csv"
             merged_data.to_csv(file_path)
             print(f"✅ Saved {ticker} - {timeframe} merged data ({merged_data.shape[0]} rows) to {file_path}")
         elif price_data_valid:
-            file_path = base_path / f"{ticker}_{timeframe}_price.csv"
+            file_path = base_path / f"{safe_ticker}_{timeframe}_price.csv"
             price_data.to_csv(file_path)
             print(f"✅ Saved {ticker} - {timeframe} price data only ({price_data.shape[0]} rows) to {file_path}")
         elif volume_data_valid:
-            file_path = base_path / f"{ticker}_{timeframe}_volume_{date_str}.csv"
+            file_path = base_path / f"{safe_ticker}_{timeframe}_volume_{date_str}.csv"
             volume_data.to_csv(file_path)
             print(f"✅ Saved {ticker} - {timeframe} volume data only ({volume_data.shape[0]} rows) to {file_path}")
         else:
