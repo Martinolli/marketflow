@@ -21,6 +21,7 @@ from __future__ import annotations
 import argparse, os, json, glob
 from dataclasses import dataclass, field
 from typing import Iterable, List, Dict, Optional, Tuple
+from datetime import datetime, timedelta
 import pandas as pd
 
 from marketflow.marketflow_config_manager import create_app_config
@@ -370,7 +371,7 @@ def main():
 
         # Save per-timeframe JSON to avoid overwriting
         current_directory = os.getcwd()
-        out_path_tf = os.path.join(current_directory,".marketflow/reports/strategy_data", f"strategy_candidates_{tf}.json")
+        out_path_tf = os.path.join(current_directory,".marketflow/reports/strategy_data", f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_strategy_candidates_{tf}.json")
         with open(out_path_tf, "w", encoding="utf-8") as f:
             json.dump(results, f, indent=2)
         print(f"✅ Saved candidates for {tf} to {out_path_tf}")
@@ -380,7 +381,7 @@ def main():
 
     # Also save a consolidated JSON with all timeframes
     current_directory = os.getcwd()
-    out_path_all = os.path.join(current_directory, ".marketflow/reports/strategy_data", "strategy_candidates.json")
+    out_path_all = os.path.join(current_directory, ".marketflow/reports/strategy_data", f"{datetime.now().strftime('%Y%m%d_%H%M%S')}_strategy_candidates.json")
     with open(out_path_all, "w", encoding="utf-8") as f:
         json.dump(all_results, f, indent=2)
     print(f"\n✅ Saved consolidated candidates to {out_path_all}")

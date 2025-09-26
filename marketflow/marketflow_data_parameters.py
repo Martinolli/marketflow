@@ -290,7 +290,7 @@ default_config = {
         "default_risk_reward": 2.0 # 2:1 risk/reward ratio
     },
     "account": {
-        "account_size": 10000, # Example account size
+        "account_size": 1000, # Example account size
         "risk_per_trade": 0.02 # 2% risk per trade
     },
     "wyckoff_config": {
