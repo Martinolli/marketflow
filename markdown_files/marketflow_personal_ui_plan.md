@@ -179,7 +179,7 @@ Duplicated logic
 
 Create the first usable local page.
 
-### Add
+### Add -1
 
 ```text
 apps/marketflow_studio.py
@@ -245,7 +245,7 @@ Phase 1 is complete when:
 
 Make generated reports easier to inspect.
 
-### Add to UI
+### Add to UI - 1
 
 A report browser section with:
 
@@ -344,7 +344,7 @@ Phase 3 is complete when:
 
 Support the normal personal workflow for multiple tickers.
 
-### Add to UI
+### Add to UI - 2
 
 Input:
 
@@ -409,7 +409,7 @@ Phase 4 is complete when:
 
 Expose the existing strategy ranking in the UI.
 
-### Existing Logic
+### Existing Logic - 1
 
 Use:
 
@@ -423,7 +423,7 @@ Especially:
 rank_long_candidates()
 ```
 
-### Add Service
+### Add Service - 1
 
 ```text
 marketflow/services/strategy_service.py
@@ -482,7 +482,7 @@ Phase 5 is complete when:
 
 Allow optional Monte Carlo analysis from the UI.
 
-### Existing Logic
+### Existing Logic -2
 
 Use:
 
@@ -496,7 +496,7 @@ Main class:
 MonteCarloTradeSimulator
 ```
 
-### Add Service
+### Add Service -2
 
 ```text
 marketflow/services/monte_carlo_service.py
@@ -611,7 +611,7 @@ marketflow/marketflow_analyst_packet.py
 }
 ```
 
-### Purpose
+### Purpose - 1
 
 The packet should help the LLM answer better by separating:
 
@@ -638,7 +638,7 @@ Phase 7 is complete when:
 
 Create a simple local chat interface for asking questions about the latest analysis.
 
-### Existing Logic
+### Existing Logic - 3
 
 Use existing LLM/RAG modules where possible:
 
@@ -648,7 +648,7 @@ marketflow/marketflow_llm_query_engine.py
 scripts/ai_studio.py
 ```
 
-### UI
+### UI -1
 
 Add tab:
 
