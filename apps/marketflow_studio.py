@@ -339,6 +339,62 @@ def _render_strategy_error(strategy_result: dict[str, Any]) -> None:
             st.code(strategy_result["traceback"], language="python")
 
 
+def _strategy_diagnostics_dataframe(diagnostics: dict[str, Any]) -> Any:
+    """Return a compact ticker-check table for strategy diagnostics."""
+    ticker_checks = diagnostics.get("ticker_checks") or {}
+    rows = []
+    for ticker, check in ticker_checks.items():
+        rows.append(
+            {
+                "ticker": ticker,
+                "ticker_folder_found": check.get("ticker_folder_found", False),
+                "matching_csv_count": len(check.get("matching_timeframe_csvs") or []),
+                "csv_count": len(check.get("csv_candidates") or []),
+                "ticker_folder": check.get("ticker_folder"),
+            }
+        )
+    return rows
+
+
+def _render_strategy_diagnostics(strategy_result: dict[str, Any]) -> None:
+    """Render strategy diagnostics in a collapsed expander."""
+    diagnostics = strategy_result.get("diagnostics") or {}
+    if not diagnostics:
+        return
+
+    with st.expander("Strategy diagnostics"):
+        st.write(f"Report root: `{diagnostics.get('report_root')}`")
+        st.write(f"Report root exists: `{diagnostics.get('report_root_exists')}`")
+        latest_batch = diagnostics.get("latest_batch_folder")
+        if latest_batch:
+            st.write(f"Latest batch folder: `{latest_batch}`")
+        else:
+            st.write("Latest batch folder: none found")
+        st.write(
+            f"Latest batch folder exists: `{diagnostics.get('latest_batch_folder_exists')}`"
+        )
+        st.write(f"Requested tickers: `{', '.join(diagnostics.get('requested_tickers') or [])}`")
+        st.write(f"Selected timeframe: `{diagnostics.get('requested_timeframe')}`")
+
+        filters = diagnostics.get("filters") or {}
+        st.write("Filters")
+        st.json(filters)
+
+        notes = diagnostics.get("notes") or []
+        if notes:
+            st.write("Notes")
+            for note in notes:
+                st.write(f"- {note}")
+
+        ticker_rows = _strategy_diagnostics_dataframe(diagnostics)
+        if ticker_rows:
+            st.write("Ticker checks")
+            st.dataframe(ticker_rows, use_container_width=True)
+
+        st.write("Raw diagnostics")
+        st.json(diagnostics)
+
+
 def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
     """Render strategy ranking output."""
     if not strategy_result:
@@ -351,6 +407,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
 
     if not strategy_result.get("success"):
         _render_strategy_error(strategy_result)
+        _render_strategy_diagnostics(strategy_result)
         return
 
     dataframe = strategy_result.get("dataframe")
@@ -359,10 +416,12 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
             "No candidates passed the filters. Try a lower min RR, a different timeframe, "
             "or confirm reports exist for those tickers."
         )
+        _render_strategy_diagnostics(strategy_result)
         return
 
     st.write(f"Result count: `{len(dataframe)}`")
     st.dataframe(dataframe, use_container_width=True)
+    _render_strategy_diagnostics(strategy_result)
 
     results = strategy_result.get("results") or []
     labels = [

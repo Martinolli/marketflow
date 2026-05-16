@@ -97,6 +97,7 @@ streamlit run apps/marketflow_studio.py
 - Milestone 2: Report Browser and CSV Preview - implemented
 - Milestone 3: Basic Chart Tab - implemented
 - Milestone 4: Strategy Ranking tab - implemented on `feature/personal-ui-milestone-1`
+- Strategy Ranking diagnostics - implemented
 - Next planned milestone: Monte Carlo tab
 
 ---
