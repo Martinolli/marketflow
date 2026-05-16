@@ -26,12 +26,19 @@ from marketflow.services.report_index import (
     load_report_json,
     load_summary_text,
 )
+from marketflow.services.strategy_service import (
+    get_report_root,
+    normalize_tickers,
+    rank_latest_candidates,
+)
 
 
 DEFAULT_TIMEFRAMES = ["1d", "4h", "1h"]
 TIMEFRAME_OPTIONS = ["1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
 CSV_PREVIEW_ROW_OPTIONS = [100, 250, 500, 1000]
 CHART_ROW_OPTIONS = [200, 500, 1000, 2000]
+STRATEGY_TIMEFRAMES = ["1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
+WYCKOFF_PHASE_OPTIONS = ["A", "B", "C", "D", "E", "UNKNOWN"]
 
 
 def _load_latest_result(ticker: str) -> dict[str, Any]:
@@ -311,6 +318,135 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             st.code(str(exc))
 
 
+def _default_strategy_ticker_text(result: dict[str, Any] | None) -> str:
+    """Return the currently loaded ticker as the strategy ticker default."""
+    if result and result.get("ticker"):
+        return str(result["ticker"])
+    return "AAPL"
+
+
+def _render_strategy_error(strategy_result: dict[str, Any]) -> None:
+    """Render strategy ranking errors with traceback hidden by default."""
+    error_type = strategy_result.get("error_type")
+    error_message = strategy_result.get("error") or "Strategy ranking failed."
+    if error_type:
+        st.error(f"{error_type}: {error_message}")
+    else:
+        st.error(error_message)
+
+    if strategy_result.get("traceback"):
+        with st.expander("Strategy error details"):
+            st.code(strategy_result["traceback"], language="python")
+
+
+def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
+    """Render strategy ranking output."""
+    if not strategy_result:
+        st.info("Choose tickers and click Rank Candidates to scan existing reports.")
+        return
+
+    st.caption(f"Using report root: `{strategy_result.get('report_root')}`")
+    st.caption("Strategy source: latest batch folder when available")
+    st.caption(f"Selected timeframe: `{strategy_result.get('timeframe')}`")
+
+    if not strategy_result.get("success"):
+        _render_strategy_error(strategy_result)
+        return
+
+    dataframe = strategy_result.get("dataframe")
+    if dataframe is None or dataframe.empty:
+        st.info(
+            "No candidates passed the filters. Try a lower min RR, a different timeframe, "
+            "or confirm reports exist for those tickers."
+        )
+        return
+
+    st.write(f"Result count: `{len(dataframe)}`")
+    st.dataframe(dataframe, use_container_width=True)
+
+    results = strategy_result.get("results") or []
+    labels = [
+        f"{candidate.get('ticker', 'UNKNOWN')} | {candidate.get('tf', '')} | "
+        f"score {candidate.get('score', 'NA')}"
+        for candidate in results
+    ]
+    selected_label = st.selectbox("Select candidate", options=labels)
+    selected_index = labels.index(selected_label)
+    st.json(results[selected_index])
+
+
+def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
+    """Render the Strategy Ranking tab."""
+    st.write(
+        "Rank long candidates from generated MarketFlow reports using the existing "
+        "`marketflow_strategy` logic."
+    )
+    st.caption(f"Configured report root: `{get_report_root()}`")
+    st.caption("This scan uses the latest batch/report namespace when available.")
+
+    if "strategy_tickers" not in st.session_state:
+        st.session_state.strategy_tickers = _default_strategy_ticker_text(result)
+
+    ticker_text = st.text_area(
+        "Tickers",
+        key="strategy_tickers",
+        help="Enter tickers separated by spaces, commas, or new lines.",
+    )
+    strategy_tf = st.selectbox(
+        "Timeframe",
+        options=STRATEGY_TIMEFRAMES,
+        index=1,
+    )
+    min_rr = st.number_input(
+        "Minimum Risk/Reward",
+        min_value=0.1,
+        value=1.5,
+        step=0.1,
+    )
+    max_sl_atr = st.number_input(
+        "Max Stop ATR",
+        min_value=0.1,
+        value=2.0,
+        step=0.1,
+    )
+    prefer_phases = st.multiselect(
+        "Preferred Wyckoff Phases",
+        options=WYCKOFF_PHASE_OPTIONS,
+        default=["C", "D", "E"],
+    )
+    use_mc = st.checkbox(
+        "Use Monte Carlo POP if available",
+        value=False,
+        help="Optional. If no MC files exist, strategy logic should use neutral defaults.",
+    )
+
+    if st.button("Rank Candidates"):
+        tickers = normalize_tickers(ticker_text)
+        if not tickers:
+            st.session_state.strategy_result = {
+                "success": False,
+                "error": "Enter at least one ticker.",
+                "error_type": "ValidationError",
+                "traceback": None,
+                "results": [],
+                "dataframe": None,
+                "report_root": get_report_root(),
+                "timeframe": strategy_tf,
+            }
+        else:
+            with st.spinner("Ranking strategy candidates..."):
+                st.session_state.strategy_result = rank_latest_candidates(
+                    tickers=tickers,
+                    timeframe=strategy_tf,
+                    min_rr=float(min_rr),
+                    max_sl_atr=float(max_sl_atr),
+                    prefer_phases=tuple(prefer_phases),
+                    use_mc=use_mc,
+                )
+
+    _render_strategy_results(st.session_state.get("strategy_result"))
+
+
 def _render_raw_json(result: dict[str, Any] | None) -> None:
     """Render the Raw JSON tab."""
     report_json = result.get("report_json") if result else None
@@ -327,6 +463,8 @@ def main() -> None:
 
     if "analysis_result" not in st.session_state:
         st.session_state.analysis_result = None
+    if "strategy_result" not in st.session_state:
+        st.session_state.strategy_result = None
 
     with st.sidebar:
         st.header("Analysis")
@@ -347,8 +485,8 @@ def main() -> None:
         _render_loaded_report_caption(st.session_state.analysis_result)
 
     result = st.session_state.analysis_result
-    overview_tab, reports_tab, csv_tab, charts_tab, raw_json_tab = st.tabs(
-        ["Overview", "Reports", "CSV Preview", "Charts", "Raw JSON"]
+    overview_tab, reports_tab, csv_tab, charts_tab, strategy_tab, raw_json_tab = st.tabs(
+        ["Overview", "Reports", "CSV Preview", "Charts", "Strategy Ranking", "Raw JSON"]
     )
 
     with overview_tab:
@@ -362,6 +500,9 @@ def main() -> None:
 
     with charts_tab:
         _render_charts(result)
+
+    with strategy_tab:
+        _render_strategy_ranking(result)
 
     with raw_json_tab:
         _render_raw_json(result)
