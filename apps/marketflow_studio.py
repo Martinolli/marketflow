@@ -15,7 +15,12 @@ if str(PROJECT_ROOT) not in sys.path:
 from marketflow.services.analysis_service import run_single_ticker
 from marketflow.services.report_index import (
     find_latest_ticker_report,
+    infer_timeframe_from_csv_name,
+    list_annotated_csv_files,
+    list_available_tickers,
+    list_report_date_folders,
     list_report_files,
+    load_csv_preview,
     load_report_json,
     load_summary_text,
 )
@@ -113,9 +118,10 @@ def _render_reports(result: dict[str, Any] | None) -> None:
         st.info("No report directory loaded.")
         return
 
-    st.write(f"Report directory: `{result['output_dir']}`")
+    report_dir = result["output_dir"]
+    st.write(f"Report directory: `{report_dir}`")
 
-    files = result.get("report_files") or []
+    files = list_report_files(report_dir) or result.get("report_files") or []
     if files:
         st.markdown("#### Generated Files")
         for file_path in files:
@@ -123,10 +129,66 @@ def _render_reports(result: dict[str, Any] | None) -> None:
     else:
         st.info("No generated files found in this directory.")
 
+    date_folders = list_report_date_folders()
+    if date_folders:
+        st.markdown("#### Report Date / Batch Folders")
+        for folder in date_folders:
+            st.write(f"- `{folder}`")
+
+    report_parent = str(Path(report_dir).parent)
+    tickers = list_available_tickers(report_parent)
+    if tickers:
+        st.markdown("#### Available Ticker Folders")
+        st.write(", ".join(f"`{ticker}`" for ticker in tickers))
+
     summary_text = result.get("summary_text")
     if summary_text:
         st.markdown("#### Summary")
         st.text(summary_text)
+
+
+def _render_csv_preview(result: dict[str, Any] | None) -> None:
+    """Render the CSV Preview tab."""
+    if not result or not result.get("output_dir"):
+        st.info("Load a report or run an analysis before previewing CSV files.")
+        return
+
+    report_dir = result["output_dir"]
+    report_path = Path(report_dir)
+    if not report_path.exists() or not report_path.is_dir():
+        st.warning(f"Report directory does not exist: {report_dir}")
+        return
+
+    csv_files = list_annotated_csv_files(report_dir)
+    if not csv_files:
+        st.info("No annotated CSV files found in this report directory.")
+        return
+
+    selected_csv = st.selectbox(
+        "CSV file",
+        options=csv_files,
+        format_func=lambda path: Path(path).name,
+    )
+    preview_rows = st.selectbox("Preview rows", options=[100, 250, 500, 1000], index=2)
+
+    timeframe = infer_timeframe_from_csv_name(selected_csv)
+    st.write(f"Filename: `{Path(selected_csv).name}`")
+    if timeframe:
+        st.write(f"Timeframe: `{timeframe}`")
+    else:
+        st.write("Timeframe: unknown")
+
+    dataframe = load_csv_preview(selected_csv, nrows=preview_rows)
+    if dataframe is None:
+        st.error("Could not load this CSV file for preview.")
+        return
+
+    st.write(f"Rows in preview: `{len(dataframe)}`")
+    st.write(f"Column count: `{len(dataframe.columns)}`")
+    st.write("Columns:")
+    st.write(", ".join(f"`{column}`" for column in dataframe.columns))
+
+    st.dataframe(dataframe, use_container_width=True)
 
 
 def _render_raw_json(result: dict[str, Any] | None) -> None:
@@ -163,13 +225,18 @@ def main() -> None:
             st.session_state.analysis_result = _load_latest_result(ticker)
 
     result = st.session_state.analysis_result
-    overview_tab, reports_tab, raw_json_tab = st.tabs(["Overview", "Reports", "Raw JSON"])
+    overview_tab, reports_tab, csv_tab, raw_json_tab = st.tabs(
+        ["Overview", "Reports", "CSV Preview", "Raw JSON"]
+    )
 
     with overview_tab:
         _render_overview(result)
 
     with reports_tab:
         _render_reports(result)
+
+    with csv_tab:
+        _render_csv_preview(result)
 
     with raw_json_tab:
         _render_raw_json(result)
