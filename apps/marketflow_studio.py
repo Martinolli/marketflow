@@ -22,7 +22,7 @@ from marketflow.services.report_index import (
 
 
 DEFAULT_TIMEFRAMES = ["1d", "4h", "1h"]
-TIMEFRAME_OPTIONS = ["1d", "4h", "1h", "15m", "5m"]
+TIMEFRAME_OPTIONS = ["1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
 
 
 def _load_latest_result(ticker: str) -> dict[str, Any]:
@@ -37,6 +37,8 @@ def _load_latest_result(ticker: str) -> dict[str, Any]:
         "output_dir": report_dir,
         "success": bool(report_dir),
         "error": None if report_dir else f"No report found for {ticker}.",
+        "error_type": None,
+        "traceback": None,
         "report_json": report_json,
         "summary_text": summary_text,
         "report_files": list_report_files(report_dir) if report_dir else [],
@@ -74,7 +76,14 @@ def _render_overview(result: dict[str, Any] | None) -> None:
         st.caption(f"Output directory: {result['output_dir']}")
 
     if result.get("error"):
-        st.warning(result["error"])
+        st.error(result["error"])
+        with st.expander("Error details"):
+            if result.get("error_type"):
+                st.write(f"Type: `{result['error_type']}`")
+            if result.get("traceback"):
+                st.code(result["traceback"], language="python")
+            else:
+                st.write("No additional debug details are available.")
 
     col1, col2, col3 = st.columns(3)
     with col1:
