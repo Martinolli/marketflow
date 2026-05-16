@@ -210,3 +210,12 @@ def load_csv_preview(csv_path: str, nrows: int = 500) -> pd.DataFrame | None:
         return last_chunk.tail(nrows)
     except Exception:
         return None
+
+
+def load_csv_for_chart(csv_path: str, nrows: int = 1000) -> pd.DataFrame | None:
+    """
+    Load recent rows from a CSV for chart rendering.
+
+    Return None on failure.
+    """
+    return load_csv_preview(csv_path, nrows=nrows)

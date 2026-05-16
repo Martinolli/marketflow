@@ -12,6 +12,7 @@ PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+from marketflow.charts.wyckoff_chart import build_basic_wyckoff_candlestick_chart
 from marketflow.services.analysis_service import run_single_ticker
 from marketflow.services.report_index import (
     find_latest_ticker_report,
@@ -20,6 +21,7 @@ from marketflow.services.report_index import (
     list_available_tickers,
     list_report_date_folders,
     list_report_files,
+    load_csv_for_chart,
     load_csv_preview,
     load_report_json,
     load_summary_text,
@@ -168,8 +170,14 @@ def _render_csv_preview(result: dict[str, Any] | None) -> None:
         "CSV file",
         options=csv_files,
         format_func=lambda path: Path(path).name,
+        key="csv_preview_file",
     )
-    preview_rows = st.selectbox("Preview rows", options=[100, 250, 500, 1000], index=2)
+    preview_rows = st.selectbox(
+        "Preview rows",
+        options=[100, 250, 500, 1000],
+        index=2,
+        key="csv_preview_rows",
+    )
 
     timeframe = infer_timeframe_from_csv_name(selected_csv)
     st.write(f"Filename: `{Path(selected_csv).name}`")
@@ -189,6 +197,64 @@ def _render_csv_preview(result: dict[str, Any] | None) -> None:
     st.write(", ".join(f"`{column}`" for column in dataframe.columns))
 
     st.dataframe(dataframe, use_container_width=True)
+
+
+def _render_charts(result: dict[str, Any] | None) -> None:
+    """Render the Charts tab."""
+    if not result or not result.get("output_dir"):
+        st.info("Run an analysis or load a report first.")
+        return
+
+    report_dir = result["output_dir"]
+    report_path = Path(report_dir)
+    if not report_path.exists() or not report_path.is_dir():
+        st.warning(f"Report directory does not exist: {report_dir}")
+        return
+
+    csv_files = list_annotated_csv_files(report_dir)
+    if not csv_files:
+        st.info("No annotated CSV files found for charting.")
+        return
+
+    selected_csv = st.selectbox(
+        "Chart CSV file",
+        options=csv_files,
+        format_func=lambda path: Path(path).name,
+        key="chart_csv_file",
+    )
+    chart_rows = st.selectbox(
+        "Chart rows",
+        options=[200, 500, 1000, 2000],
+        index=1,
+        key="chart_rows",
+    )
+
+    timeframe = infer_timeframe_from_csv_name(selected_csv)
+    st.write(f"Filename: `{Path(selected_csv).name}`")
+    if timeframe:
+        st.write(f"Timeframe: `{timeframe}`")
+    else:
+        st.write("Timeframe: unknown")
+
+    dataframe = load_csv_for_chart(selected_csv, nrows=chart_rows)
+    if dataframe is None:
+        st.error("Could not load this CSV file for charting.")
+        return
+
+    try:
+        title_parts = [Path(selected_csv).stem]
+        if timeframe:
+            title_parts.append(timeframe)
+        fig = build_basic_wyckoff_candlestick_chart(
+            dataframe,
+            title=" - ".join(title_parts),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as exc:
+        st.error("Could not build chart.")
+        with st.expander("Chart error details"):
+            st.write(f"Type: `{type(exc).__name__}`")
+            st.code(str(exc))
 
 
 def _render_raw_json(result: dict[str, Any] | None) -> None:
@@ -225,8 +291,8 @@ def main() -> None:
             st.session_state.analysis_result = _load_latest_result(ticker)
 
     result = st.session_state.analysis_result
-    overview_tab, reports_tab, csv_tab, raw_json_tab = st.tabs(
-        ["Overview", "Reports", "CSV Preview", "Raw JSON"]
+    overview_tab, reports_tab, csv_tab, charts_tab, raw_json_tab = st.tabs(
+        ["Overview", "Reports", "CSV Preview", "Charts", "Raw JSON"]
     )
 
     with overview_tab:
@@ -237,6 +303,9 @@ def main() -> None:
 
     with csv_tab:
         _render_csv_preview(result)
+
+    with charts_tab:
+        _render_charts(result)
 
     with raw_json_tab:
         _render_raw_json(result)
