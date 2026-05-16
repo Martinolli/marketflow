@@ -14,6 +14,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from marketflow.charts.wyckoff_chart import build_basic_wyckoff_candlestick_chart
 from marketflow.services.analysis_service import run_single_ticker
+from marketflow.services.monte_carlo_service import (
+    load_latest_close,
+    run_monte_carlo_for_csv,
+)
 from marketflow.services.report_index import (
     find_latest_ticker_report,
     infer_timeframe_from_csv_name,
@@ -39,6 +43,7 @@ CSV_PREVIEW_ROW_OPTIONS = [100, 250, 500, 1000]
 CHART_ROW_OPTIONS = [200, 500, 1000, 2000]
 STRATEGY_TIMEFRAMES = ["1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
 WYCKOFF_PHASE_OPTIONS = ["A", "B", "C", "D", "E", "UNKNOWN"]
+MONTE_CARLO_MODELS = ["bootstrap", "gbm", "garch"]
 
 
 def _load_latest_result(ticker: str) -> dict[str, Any]:
@@ -74,6 +79,34 @@ def _nested_get(data: dict[str, Any] | None, keys: list[str]) -> Any:
 def _display_value(label: str, value: Any) -> None:
     """Display a scalar value if it is available."""
     if value is not None and value != "":
+        st.metric(label, value)
+
+
+def _format_probability(value: Any) -> str | None:
+    """Format a probability-like value for display."""
+    if value is None:
+        return None
+    try:
+        return f"{float(value) * 100:.1f}%"
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_number(value: Any, decimals: int = 4) -> str | None:
+    """Format a numeric value for compact metric display."""
+    if value is None:
+        return None
+    try:
+        return f"{float(value):.{decimals}f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _display_optional_metric(label: str, value: Any) -> None:
+    """Display a metric when available, otherwise show a muted missing value."""
+    if value is None or value == "":
+        st.caption(f"{label}: not available")
+    else:
         st.metric(label, value)
 
 
@@ -514,6 +547,170 @@ def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
     _render_strategy_results(st.session_state.get("strategy_result"))
 
 
+def _default_trade_levels(latest_close: float | None) -> tuple[float, float, float]:
+    """Return sensible entry, stop, and take-profit defaults."""
+    if latest_close is None or latest_close <= 0:
+        return 0.0, 0.0, 0.0
+    return latest_close, latest_close * 0.98, latest_close * 1.05
+
+
+def _render_monte_carlo_error(monte_carlo_result: dict[str, Any]) -> None:
+    """Render Monte Carlo service errors with traceback hidden by default."""
+    error_type = monte_carlo_result.get("error_type")
+    error_message = monte_carlo_result.get("error") or "Monte Carlo simulation failed."
+    if error_type:
+        st.error(f"{error_type}: {error_message}")
+    else:
+        st.error(error_message)
+
+    if monte_carlo_result.get("traceback"):
+        with st.expander("Monte Carlo error details"):
+            st.code(monte_carlo_result["traceback"], language="python")
+
+
+def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> None:
+    """Render Monte Carlo output metrics and raw result data."""
+    if not monte_carlo_result:
+        st.info("Select a CSV and click Run Monte Carlo to simulate a single trade.")
+        return
+
+    if not monte_carlo_result.get("success"):
+        _render_monte_carlo_error(monte_carlo_result)
+        return
+
+    result = monte_carlo_result.get("result") or {}
+    params = result.get("params") or {}
+    metrics = result.get("metrics_from_entry") or result.get("metrics_from_now") or {}
+
+    st.success("Monte Carlo simulation completed.")
+    st.caption(f"CSV: `{Path(monte_carlo_result.get('csv_path') or '').name}`")
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        _display_optional_metric("Model", params.get("model"))
+        _display_optional_metric("Entry", _format_number(params.get("entry")))
+    with col2:
+        _display_optional_metric("Stop Loss", _format_number(params.get("sl")))
+        _display_optional_metric("Take Profit", _format_number(params.get("tp")))
+    with col3:
+        _display_optional_metric("Spot S0", _format_number(_nested_get(result, ["spot", "S0_now"])))
+        _display_optional_metric(
+            "Calibration Model",
+            _nested_get(result, ["calibration", "model_used"]),
+        )
+    with col4:
+        _display_optional_metric("TP First", _format_probability(metrics.get("pop_tp_first")))
+        _display_optional_metric("SL First", _format_probability(metrics.get("p_sl_first")))
+
+    col5, col6 = st.columns(2)
+    with col5:
+        _display_optional_metric("Median Bars to TP", metrics.get("t_hit_tp_median"))
+    with col6:
+        _display_optional_metric("Median Bars to SL", metrics.get("t_hit_sl_median"))
+
+    st.info("Monte Carlo JSON/HTML outputs were saved next to the selected CSV by the existing simulator.")
+    with st.expander("Raw Monte Carlo result"):
+        st.json(result)
+
+
+def _render_monte_carlo(result: dict[str, Any] | None) -> None:
+    """Render the Monte Carlo tab."""
+    report_dir = _report_dir_from_result(result, "Run an analysis or load a report first.")
+    if not report_dir:
+        return
+
+    csv_files = _annotated_csv_files_for_report(report_dir)
+    if not csv_files:
+        st.info("No annotated CSV files found for Monte Carlo simulation.")
+        st.caption("Run Analysis first, then return here to select a generated OHLC CSV.")
+        return
+
+    selected_csv = _select_annotated_csv(csv_files, "Monte Carlo CSV file", "monte_carlo_csv_file")
+    timeframe = _render_csv_file_context(selected_csv)
+    latest_close = load_latest_close(selected_csv)
+    if latest_close is not None:
+        st.caption(f"Latest close loaded from CSV: `{latest_close:.4f}`")
+    else:
+        st.warning("Could not load the latest close from this CSV. Enter trade levels manually.")
+
+    default_entry, default_stop, default_take = _default_trade_levels(latest_close)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        entry = st.number_input(
+            "Entry",
+            min_value=0.0,
+            value=float(default_entry),
+            step=0.01,
+            format="%.4f",
+        )
+    with col2:
+        stop_loss = st.number_input(
+            "Stop Loss",
+            min_value=0.0,
+            value=float(default_stop),
+            step=0.01,
+            format="%.4f",
+        )
+    with col3:
+        take_profit = st.number_input(
+            "Take Profit",
+            min_value=0.0,
+            value=float(default_take),
+            step=0.01,
+            format="%.4f",
+        )
+
+    col4, col5, col6, col7 = st.columns(4)
+    with col4:
+        model = st.selectbox("Model", options=MONTE_CARLO_MODELS, index=0)
+    with col5:
+        paths = st.number_input("Paths", min_value=1000, max_value=50000, value=10000, step=1000)
+    with col6:
+        horizon = st.number_input("Horizon", min_value=1, max_value=250, value=20, step=1)
+    with col7:
+        block_len = st.number_input("Block Length", min_value=1, max_value=100, value=8, step=1)
+
+    seed = st.number_input("Seed", value=42, step=1)
+    save_plots = st.checkbox("Save plots", value=True)
+
+    if st.button("Run Monte Carlo"):
+        validation_errors = []
+        if not Path(selected_csv).exists():
+            validation_errors.append("Selected CSV file does not exist.")
+        if entry <= 0:
+            validation_errors.append("Entry must be greater than zero.")
+        if stop_loss >= entry:
+            validation_errors.append("Stop loss must be below entry.")
+        if take_profit <= entry:
+            validation_errors.append("Take profit must be above entry.")
+        if paths <= 0:
+            validation_errors.append("Paths must be positive.")
+        if horizon <= 0:
+            validation_errors.append("Horizon must be positive.")
+
+        if validation_errors:
+            for message in validation_errors:
+                st.warning(message)
+        else:
+            with st.spinner("Running Monte Carlo simulation..."):
+                st.session_state.monte_carlo_result = run_monte_carlo_for_csv(
+                    csv_path=selected_csv,
+                    entry=float(entry),
+                    stop_loss=float(stop_loss),
+                    take_profit=float(take_profit),
+                    timeframe=timeframe,
+                    model=model,
+                    paths=int(paths),
+                    horizon=int(horizon),
+                    block_len=int(block_len),
+                    seed=int(seed),
+                    save_plots=save_plots,
+                )
+
+    _render_monte_carlo_results(st.session_state.get("monte_carlo_result"))
+
+
 def _render_raw_json(result: dict[str, Any] | None) -> None:
     """Render the Raw JSON tab."""
     report_json = result.get("report_json") if result else None
@@ -532,6 +729,8 @@ def main() -> None:
         st.session_state.analysis_result = None
     if "strategy_result" not in st.session_state:
         st.session_state.strategy_result = None
+    if "monte_carlo_result" not in st.session_state:
+        st.session_state.monte_carlo_result = None
 
     with st.sidebar:
         st.header("Analysis")
@@ -552,8 +751,24 @@ def main() -> None:
         _render_loaded_report_caption(st.session_state.analysis_result)
 
     result = st.session_state.analysis_result
-    overview_tab, reports_tab, csv_tab, charts_tab, strategy_tab, raw_json_tab = st.tabs(
-        ["Overview", "Reports", "CSV Preview", "Charts", "Strategy Ranking", "Raw JSON"]
+    (
+        overview_tab,
+        reports_tab,
+        csv_tab,
+        charts_tab,
+        strategy_tab,
+        monte_carlo_tab,
+        raw_json_tab,
+    ) = st.tabs(
+        [
+            "Overview",
+            "Reports",
+            "CSV Preview",
+            "Charts",
+            "Strategy Ranking",
+            "Monte Carlo",
+            "Raw JSON",
+        ]
     )
 
     with overview_tab:
@@ -570,6 +785,9 @@ def main() -> None:
 
     with strategy_tab:
         _render_strategy_ranking(result)
+
+    with monte_carlo_tab:
+        _render_monte_carlo(result)
 
     with raw_json_tab:
         _render_raw_json(result)

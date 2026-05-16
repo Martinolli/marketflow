@@ -99,7 +99,8 @@ streamlit run apps/marketflow_studio.py
 - Milestone 4: Strategy Ranking tab - implemented on `feature/personal-ui-milestone-1`
 - Strategy Ranking diagnostics - implemented
 - Strategy latest-batch diagnostics refinement - implemented
-- Next planned milestone: Monte Carlo tab
+- Monte Carlo tab, simple single-run mode - implemented
+- Next planned milestone: Wyckoff Volume Analyst
 
 ---
 
