@@ -28,6 +28,8 @@ STRATEGY_COLUMNS = [
     "score",
     "csv",
 ]
+BATCH_RUN_PATTERN = re.compile(r"^batch_(\d{8})_(\d{6})$")
+BATCH_LIKE_PATTERN = re.compile(r"^batch_")
 
 
 def get_report_root() -> str:
@@ -71,24 +73,66 @@ def _results_dataframe(results: list[dict[str, Any]]) -> pd.DataFrame:
     return dataframe[[*ordered_columns, *extra_columns]]
 
 
-def find_latest_batch_folder(report_root: str) -> str | None:
+def is_batch_run_folder(path: str | Path) -> bool:
     """
-    Find latest batch_* folder under report_root.
+    Return True only for real batch run folders named batch_YYYYMMDD_HHMMSS.
 
-    Return path or None.
+    Excludes batch_csv_* and other summary folders.
+    """
+    path_obj = Path(path)
+    return path_obj.is_dir() and bool(BATCH_RUN_PATTERN.fullmatch(path_obj.name))
+
+
+def _batch_run_sort_key(path: Path) -> str:
+    """Return a sortable timestamp token for a valid batch run folder."""
+    match = BATCH_RUN_PATTERN.fullmatch(path.name)
+    if not match:
+        return ""
+    return "".join(match.groups())
+
+
+def list_batch_run_folders(report_root: str) -> list[str]:
+    """
+    Return valid batch run folders sorted newest first.
+
+    Only include folders matching batch_YYYYMMDD_HHMMSS.
     """
     root = Path(report_root)
     if not root.exists() or not root.is_dir():
-        return None
+        return []
 
-    batch_folders = sorted(
-        (path for path in root.glob("batch_*") if path.is_dir()),
-        key=lambda path: path.name,
-    )
+    folders = [path for path in root.iterdir() if is_batch_run_folder(path)]
+    folders.sort(key=_batch_run_sort_key, reverse=True)
+    return [str(path) for path in folders]
+
+
+def _ignored_batch_like_folders(report_root: str) -> list[str]:
+    """Return batch-like folders excluded from valid batch-run detection."""
+    root = Path(report_root)
+    if not root.exists() or not root.is_dir():
+        return []
+
+    ignored = [
+        path
+        for path in root.iterdir()
+        if path.is_dir()
+        and BATCH_LIKE_PATTERN.match(path.name)
+        and not is_batch_run_folder(path)
+    ]
+    ignored.sort(key=lambda path: path.name, reverse=True)
+    return [str(path) for path in ignored]
+
+
+def find_latest_batch_folder(report_root: str) -> str | None:
+    """
+    Find latest valid batch run folder under report_root.
+
+    Return path or None.
+    """
+    batch_folders = list_batch_run_folders(report_root)
     if not batch_folders:
         return None
-
-    return str(batch_folders[-1])
+    return batch_folders[0]
 
 
 def _ticker_folder_candidates(report_root: str, ticker: str) -> list[Path]:
@@ -130,6 +174,8 @@ def inspect_strategy_inputs(
     Return diagnostics dictionary for UI troubleshooting.
     """
     root = Path(report_root)
+    batch_run_folders = list_batch_run_folders(report_root)
+    ignored_batch_like_folders = _ignored_batch_like_folders(report_root)
     latest_batch_folder = find_latest_batch_folder(report_root)
     clean_tickers = normalize_tickers(tickers)
     clean_timeframe = (timeframe or "").strip()
@@ -143,6 +189,8 @@ def inspect_strategy_inputs(
         "latest_batch_folder_exists": bool(
             latest_batch_folder and Path(latest_batch_folder).exists()
         ),
+        "batch_run_folders": batch_run_folders,
+        "ignored_batch_like_folders": ignored_batch_like_folders,
         "ticker_checks": {},
         "filters": {
             "min_rr": float(min_rr),
@@ -159,6 +207,11 @@ def inspect_strategy_inputs(
         return diagnostics
 
     if not latest_batch_folder:
+        if ignored_batch_like_folders:
+            notes.append(
+                "Found batch-like summary folders, but no valid batch run folder "
+                "matching batch_YYYYMMDD_HHMMSS."
+            )
         notes.append(
             "No batch folder found. Strategy will still search recursively under the "
             "report root using existing strategy fallback behavior."

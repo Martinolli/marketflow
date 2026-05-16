@@ -365,14 +365,22 @@ def _render_strategy_diagnostics(strategy_result: dict[str, Any]) -> None:
     with st.expander("Strategy diagnostics"):
         st.write(f"Report root: `{diagnostics.get('report_root')}`")
         st.write(f"Report root exists: `{diagnostics.get('report_root_exists')}`")
+        batch_run_folders = diagnostics.get("batch_run_folders") or []
+        ignored_batch_like = diagnostics.get("ignored_batch_like_folders") or []
+        st.write(f"Valid batch run folders: `{len(batch_run_folders)}`")
         latest_batch = diagnostics.get("latest_batch_folder")
         if latest_batch:
-            st.write(f"Latest batch folder: `{latest_batch}`")
+            st.write(f"Latest valid batch folder: `{latest_batch}`")
         else:
-            st.write("Latest batch folder: none found")
+            st.write("Latest valid batch folder: none found")
         st.write(
-            f"Latest batch folder exists: `{diagnostics.get('latest_batch_folder_exists')}`"
+            f"Latest valid batch folder exists: `{diagnostics.get('latest_batch_folder_exists')}`"
         )
+        if ignored_batch_like:
+            st.write(f"Ignored batch-like folders: `{len(ignored_batch_like)}`")
+            st.caption("Folders such as `batch_csv_*` are ignored as real batch runs.")
+            for folder in ignored_batch_like[:10]:
+                st.write(f"- `{folder}`")
         st.write(f"Requested tickers: `{', '.join(diagnostics.get('requested_tickers') or [])}`")
         st.write(f"Selected timeframe: `{diagnostics.get('requested_timeframe')}`")
 
