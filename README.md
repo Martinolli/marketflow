@@ -70,6 +70,16 @@ is designed for clarity, testability, and ease of extension.
     marketflow analyze AAPL --timeframes 1d 4h 1h
     ```
 
+## MarketFlow Studio
+
+A personal local Streamlit interface is available on the feature branch:
+
+```bash
+streamlit run apps/marketflow_studio.py
+```
+
+The app can run analysis, load generated reports, preview annotated CSV files, and show a basic Wyckoff candlestick chart.
+
 ## Overview: Main Data Flow in MarketFlow
 
 The MarketFlow system is organized around the facade pattern (via MarketflowFacade), which orchestrates a modular pipeline for multi-timeframe financial analysis. The main pathway is:

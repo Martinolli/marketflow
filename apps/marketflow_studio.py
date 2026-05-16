@@ -30,6 +30,8 @@ from marketflow.services.report_index import (
 
 DEFAULT_TIMEFRAMES = ["1d", "4h", "1h"]
 TIMEFRAME_OPTIONS = ["1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
+CSV_PREVIEW_ROW_OPTIONS = [100, 250, 500, 1000]
+CHART_ROW_OPTIONS = [200, 500, 1000, 2000]
 
 
 def _load_latest_result(ticker: str) -> dict[str, Any]:
@@ -43,7 +45,7 @@ def _load_latest_result(ticker: str) -> dict[str, Any]:
         "narrative": summary_text or "",
         "output_dir": report_dir,
         "success": bool(report_dir),
-        "error": None if report_dir else f"No report found for {ticker}.",
+        "error": None if report_dir else f"No report found for {ticker}. Run an analysis first.",
         "error_type": None,
         "traceback": None,
         "report_json": report_json,
@@ -68,10 +70,92 @@ def _display_value(label: str, value: Any) -> None:
         st.metric(label, value)
 
 
+def _render_error_details(result: dict[str, Any]) -> None:
+    """Render a compact error message with debug details hidden by default."""
+    if not result.get("error"):
+        return
+
+    error_type = result.get("error_type")
+    if error_type:
+        st.error(f"{error_type}: {result['error']}")
+    else:
+        st.error(result["error"])
+
+    with st.expander("Error details"):
+        if error_type:
+            st.write(f"Type: `{error_type}`")
+        if result.get("traceback"):
+            st.code(result["traceback"], language="python")
+        else:
+            st.write("No traceback is available.")
+
+
+def _report_dir_from_result(
+    result: dict[str, Any] | None,
+    empty_message: str,
+) -> str | None:
+    """Return the loaded report directory or render a friendly empty/error state."""
+    if not result or not result.get("output_dir"):
+        st.info(empty_message)
+        return None
+
+    report_dir = result["output_dir"]
+    report_path = Path(report_dir)
+    if not report_path.exists() or not report_path.is_dir():
+        st.warning(f"Report directory does not exist: {report_dir}")
+        return None
+
+    return report_dir
+
+
+def _render_loaded_report_caption(result: dict[str, Any] | None) -> None:
+    """Show the currently loaded ticker and report directory when available."""
+    if not result:
+        st.caption("No report loaded. Use Run Analysis or Load Latest Report.")
+        return
+
+    ticker = result.get("ticker") or "unknown ticker"
+    if result.get("output_dir"):
+        st.caption(f"Loaded: `{ticker}` | `{result['output_dir']}`")
+    elif result.get("error"):
+        st.caption(f"No loaded report for {ticker}.")
+
+
+def _annotated_csv_files_for_report(report_dir: str) -> list[str]:
+    """Return annotated CSV files for a loaded report directory."""
+    return list_annotated_csv_files(report_dir)
+
+
+def _select_annotated_csv(
+    csv_files: list[str],
+    label: str,
+    key: str,
+) -> str:
+    """Render a CSV selector using filenames as labels."""
+    return st.selectbox(
+        label,
+        options=csv_files,
+        format_func=lambda path: Path(path).name,
+        key=key,
+    )
+
+
+def _render_csv_file_context(csv_path: str) -> str | None:
+    """Display selected CSV metadata shared by preview and chart tabs."""
+    timeframe = infer_timeframe_from_csv_name(csv_path)
+    st.write(f"Filename: `{Path(csv_path).name}`")
+    if timeframe:
+        st.write(f"Timeframe: `{timeframe}`")
+    else:
+        st.caption("Timeframe could not be inferred from the filename.")
+    return timeframe
+
+
 def _render_overview(result: dict[str, Any] | None) -> None:
     """Render the Overview tab."""
     if not result:
         st.info("Run an analysis or load the latest report to view an overview.")
+        st.caption("Reports are loaded from the configured `.marketflow/reports` directory.")
         return
 
     report_json = result.get("report_json") or {}
@@ -80,17 +164,12 @@ def _render_overview(result: dict[str, Any] | None) -> None:
 
     st.subheader(result.get("ticker") or "Ticker")
     if result.get("output_dir"):
-        st.caption(f"Output directory: {result['output_dir']}")
+        st.caption(f"Output directory: `{result['output_dir']}`")
 
     if result.get("error"):
-        st.error(result["error"])
-        with st.expander("Error details"):
-            if result.get("error_type"):
-                st.write(f"Type: `{result['error_type']}`")
-            if result.get("traceback"):
-                st.code(result["traceback"], language="python")
-            else:
-                st.write("No additional debug details are available.")
+        _render_error_details(result)
+        if not report_json:
+            return
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -116,11 +195,13 @@ def _render_overview(result: dict[str, Any] | None) -> None:
 
 def _render_reports(result: dict[str, Any] | None) -> None:
     """Render the Reports tab."""
-    if not result or not result.get("output_dir"):
-        st.info("No report directory loaded.")
+    report_dir = _report_dir_from_result(
+        result,
+        "No report directory loaded. Run an analysis or load the latest report first.",
+    )
+    if not report_dir:
         return
 
-    report_dir = result["output_dir"]
     st.write(f"Report directory: `{report_dir}`")
 
     files = list_report_files(report_dir) or result.get("report_files") or []
@@ -151,40 +232,28 @@ def _render_reports(result: dict[str, Any] | None) -> None:
 
 def _render_csv_preview(result: dict[str, Any] | None) -> None:
     """Render the CSV Preview tab."""
-    if not result or not result.get("output_dir"):
-        st.info("Load a report or run an analysis before previewing CSV files.")
+    report_dir = _report_dir_from_result(
+        result,
+        "Load a report or run an analysis before previewing CSV files.",
+    )
+    if not report_dir:
         return
 
-    report_dir = result["output_dir"]
-    report_path = Path(report_dir)
-    if not report_path.exists() or not report_path.is_dir():
-        st.warning(f"Report directory does not exist: {report_dir}")
-        return
-
-    csv_files = list_annotated_csv_files(report_dir)
+    csv_files = _annotated_csv_files_for_report(report_dir)
     if not csv_files:
         st.info("No annotated CSV files found in this report directory.")
+        st.caption("Run Analysis with timeframes that generate Wyckoff annotated exports.")
         return
 
-    selected_csv = st.selectbox(
-        "CSV file",
-        options=csv_files,
-        format_func=lambda path: Path(path).name,
-        key="csv_preview_file",
-    )
+    selected_csv = _select_annotated_csv(csv_files, "CSV file", "csv_preview_file")
     preview_rows = st.selectbox(
         "Preview rows",
-        options=[100, 250, 500, 1000],
+        options=CSV_PREVIEW_ROW_OPTIONS,
         index=2,
         key="csv_preview_rows",
     )
 
-    timeframe = infer_timeframe_from_csv_name(selected_csv)
-    st.write(f"Filename: `{Path(selected_csv).name}`")
-    if timeframe:
-        st.write(f"Timeframe: `{timeframe}`")
-    else:
-        st.write("Timeframe: unknown")
+    _render_csv_file_context(selected_csv)
 
     dataframe = load_csv_preview(selected_csv, nrows=preview_rows)
     if dataframe is None:
@@ -201,40 +270,25 @@ def _render_csv_preview(result: dict[str, Any] | None) -> None:
 
 def _render_charts(result: dict[str, Any] | None) -> None:
     """Render the Charts tab."""
-    if not result or not result.get("output_dir"):
-        st.info("Run an analysis or load a report first.")
+    report_dir = _report_dir_from_result(result, "Run an analysis or load a report first.")
+    if not report_dir:
         return
 
-    report_dir = result["output_dir"]
-    report_path = Path(report_dir)
-    if not report_path.exists() or not report_path.is_dir():
-        st.warning(f"Report directory does not exist: {report_dir}")
-        return
-
-    csv_files = list_annotated_csv_files(report_dir)
+    csv_files = _annotated_csv_files_for_report(report_dir)
     if not csv_files:
         st.info("No annotated CSV files found for charting.")
+        st.caption("Charts use annotated OHLC CSV files generated by MarketFlow reports.")
         return
 
-    selected_csv = st.selectbox(
-        "Chart CSV file",
-        options=csv_files,
-        format_func=lambda path: Path(path).name,
-        key="chart_csv_file",
-    )
+    selected_csv = _select_annotated_csv(csv_files, "Chart CSV file", "chart_csv_file")
     chart_rows = st.selectbox(
         "Chart rows",
-        options=[200, 500, 1000, 2000],
+        options=CHART_ROW_OPTIONS,
         index=1,
         key="chart_rows",
     )
 
-    timeframe = infer_timeframe_from_csv_name(selected_csv)
-    st.write(f"Filename: `{Path(selected_csv).name}`")
-    if timeframe:
-        st.write(f"Timeframe: `{timeframe}`")
-    else:
-        st.write("Timeframe: unknown")
+    timeframe = _render_csv_file_context(selected_csv)
 
     dataframe = load_csv_for_chart(selected_csv, nrows=chart_rows)
     if dataframe is None:
@@ -289,6 +343,8 @@ def main() -> None:
 
         if st.button("Load Latest Report"):
             st.session_state.analysis_result = _load_latest_result(ticker)
+
+        _render_loaded_report_caption(st.session_state.analysis_result)
 
     result = st.session_state.analysis_result
     overview_tab, reports_tab, csv_tab, charts_tab, raw_json_tab = st.tabs(

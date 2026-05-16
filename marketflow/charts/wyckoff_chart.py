@@ -15,8 +15,10 @@ REQUIRED_OHLC_COLUMNS = ("open", "high", "low", "close")
 def _chart_x_values(df: pd.DataFrame) -> pd.Series | pd.Index:
     """Return datetime x-values from timestamp column or DataFrame index."""
     if "timestamp" in df.columns:
-        return pd.to_datetime(df["timestamp"], errors="coerce")
-    return pd.to_datetime(df.index, errors="coerce")
+        timestamps = pd.to_datetime(df["timestamp"], errors="coerce")
+        if timestamps.notna().any():
+            return timestamps
+    return df.index
 
 
 def _latest_numeric_value(df: pd.DataFrame, column: str) -> float | None:
@@ -183,4 +185,3 @@ def build_basic_wyckoff_candlestick_chart(
         fig.update_yaxes(title_text="Volume", row=2, col=1)
 
     return fig
-

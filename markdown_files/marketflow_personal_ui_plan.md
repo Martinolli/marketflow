@@ -91,6 +91,15 @@ streamlit run apps/marketflow_studio.py
 
 ---
 
+## Implementation Progress
+
+- Milestone 1: Initial Streamlit UI - implemented on `feature/personal-ui-milestone-1`
+- Milestone 2: Report Browser and CSV Preview - implemented
+- Milestone 3: Basic Chart Tab - implemented
+- Next planned milestone: Strategy Ranking tab
+
+---
+
 ## Non-Goals
 
 Do not build these in the first version:
