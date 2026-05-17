@@ -6,10 +6,12 @@ __pycache__/
 *.env
 .env
 env/
+.venv/
 venv/
 ENV/
 venv.bak/
 *.sqlite3
+.pytest_cache/
 .ipynb_checkpoints/
 
 # VSCode
@@ -28,6 +30,11 @@ logs/
 .vpa/
 .vpa_memory.json
 .marketflow/
+.marketflow/logs/
+.marketflow/reports/
+.marketflow/memory/
+.marketflow/snapshot_reports/
+.marketflow/batch_reports_data/
 
 # Environment/config data
 .env.*
@@ -39,6 +46,12 @@ config.json
 *.csv
 *.parquet
 *.h5
+*.pkl
+*.sqlite
+*.db
+*_mc_summary.json
+*_mc_paths.html
+*_mc_hits.html
 data/
 cache/
 

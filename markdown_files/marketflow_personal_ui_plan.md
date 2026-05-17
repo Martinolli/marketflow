@@ -91,6 +91,20 @@ streamlit run apps/marketflow_studio.py
 
 ---
 
+## Implementation Progress
+
+- Milestone 1: Initial Streamlit UI — implemented
+- Timeframe normalization fix — implemented
+- Milestone 2: Report Browser and CSV Preview — implemented
+- Milestone 3: Basic Chart Tab — implemented
+- Milestone 4: Strategy Ranking tab — implemented
+- Strategy Ranking diagnostics — implemented
+- Strategy latest-batch diagnostics refinement — implemented
+- Monte Carlo tab, simple single-run mode — implemented
+- Next planned milestone: PR review / merge to main
+
+---
+
 ## Non-Goals
 
 Do not build these in the first version:

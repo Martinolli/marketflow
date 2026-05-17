@@ -1,0 +1,797 @@
+"""Minimal local Streamlit interface for MarketFlow."""
+
+from __future__ import annotations
+
+import sys
+from pathlib import Path
+from typing import Any
+
+import streamlit as st
+
+PROJECT_ROOT = Path(__file__).resolve().parents[1]
+if str(PROJECT_ROOT) not in sys.path:
+    sys.path.insert(0, str(PROJECT_ROOT))
+
+from marketflow.charts.wyckoff_chart import build_basic_wyckoff_candlestick_chart
+from marketflow.services.analysis_service import run_single_ticker
+from marketflow.services.monte_carlo_service import (
+    load_latest_close,
+    run_monte_carlo_for_csv,
+)
+from marketflow.services.report_index import (
+    find_latest_ticker_report,
+    infer_timeframe_from_csv_name,
+    list_annotated_csv_files,
+    list_available_tickers,
+    list_report_date_folders,
+    list_report_files,
+    load_csv_for_chart,
+    load_csv_preview,
+    load_report_json,
+    load_summary_text,
+)
+from marketflow.services.strategy_service import (
+    get_report_root,
+    normalize_tickers,
+    rank_latest_candidates,
+)
+
+
+DEFAULT_TIMEFRAMES = ["1d", "4h", "1h"]
+TIMEFRAME_OPTIONS = ["1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
+CSV_PREVIEW_ROW_OPTIONS = [100, 250, 500, 1000]
+CHART_ROW_OPTIONS = [200, 500, 1000, 2000]
+STRATEGY_TIMEFRAMES = ["1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
+WYCKOFF_PHASE_OPTIONS = ["A", "B", "C", "D", "E", "UNKNOWN"]
+MONTE_CARLO_MODELS = ["bootstrap", "gbm", "garch"]
+
+
+def _load_latest_result(ticker: str) -> dict[str, Any]:
+    """Load the newest generated report bundle for a ticker."""
+    report_dir = find_latest_ticker_report(ticker)
+    report_json = load_report_json(report_dir, ticker) if report_dir else None
+    summary_text = load_summary_text(report_dir, ticker) if report_dir else None
+
+    return {
+        "ticker": ticker,
+        "narrative": summary_text or "",
+        "output_dir": report_dir,
+        "success": bool(report_dir),
+        "error": None if report_dir else f"No report found for {ticker}. Run an analysis first.",
+        "error_type": None,
+        "traceback": None,
+        "report_json": report_json,
+        "summary_text": summary_text,
+        "report_files": list_report_files(report_dir) if report_dir else [],
+    }
+
+
+def _nested_get(data: dict[str, Any] | None, keys: list[str]) -> Any:
+    """Read a nested value from a dictionary, returning None if any key is missing."""
+    current: Any = data
+    for key in keys:
+        if not isinstance(current, dict) or key not in current:
+            return None
+        current = current[key]
+    return current
+
+
+def _display_value(label: str, value: Any) -> None:
+    """Display a scalar value if it is available."""
+    if value is not None and value != "":
+        st.metric(label, value)
+
+
+def _format_probability(value: Any) -> str | None:
+    """Format a probability-like value for display."""
+    if value is None:
+        return None
+    try:
+        return f"{float(value) * 100:.1f}%"
+    except (TypeError, ValueError):
+        return None
+
+
+def _format_number(value: Any, decimals: int = 4) -> str | None:
+    """Format a numeric value for compact metric display."""
+    if value is None:
+        return None
+    try:
+        return f"{float(value):.{decimals}f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _display_optional_metric(label: str, value: Any) -> None:
+    """Display a metric when available, otherwise show a muted missing value."""
+    if value is None or value == "":
+        st.caption(f"{label}: not available")
+    else:
+        st.metric(label, value)
+
+
+def _render_error_details(result: dict[str, Any]) -> None:
+    """Render a compact error message with debug details hidden by default."""
+    if not result.get("error"):
+        return
+
+    error_type = result.get("error_type")
+    if error_type:
+        st.error(f"{error_type}: {result['error']}")
+    else:
+        st.error(result["error"])
+
+    with st.expander("Error details"):
+        if error_type:
+            st.write(f"Type: `{error_type}`")
+        if result.get("traceback"):
+            st.code(result["traceback"], language="python")
+        else:
+            st.write("No traceback is available.")
+
+
+def _report_dir_from_result(
+    result: dict[str, Any] | None,
+    empty_message: str,
+) -> str | None:
+    """Return the loaded report directory or render a friendly empty/error state."""
+    if not result or not result.get("output_dir"):
+        st.info(empty_message)
+        return None
+
+    report_dir = result["output_dir"]
+    report_path = Path(report_dir)
+    if not report_path.exists() or not report_path.is_dir():
+        st.warning(f"Report directory does not exist: {report_dir}")
+        return None
+
+    return report_dir
+
+
+def _render_loaded_report_caption(result: dict[str, Any] | None) -> None:
+    """Show the currently loaded ticker and report directory when available."""
+    if not result:
+        st.caption("No report loaded. Use Run Analysis or Load Latest Report.")
+        return
+
+    ticker = result.get("ticker") or "unknown ticker"
+    if result.get("output_dir"):
+        st.caption(f"Loaded: `{ticker}` | `{result['output_dir']}`")
+    elif result.get("error"):
+        st.caption(f"No loaded report for {ticker}.")
+
+
+def _annotated_csv_files_for_report(report_dir: str) -> list[str]:
+    """Return annotated CSV files for a loaded report directory."""
+    return list_annotated_csv_files(report_dir)
+
+
+def _select_annotated_csv(
+    csv_files: list[str],
+    label: str,
+    key: str,
+) -> str:
+    """Render a CSV selector using filenames as labels."""
+    return st.selectbox(
+        label,
+        options=csv_files,
+        format_func=lambda path: Path(path).name,
+        key=key,
+    )
+
+
+def _render_csv_file_context(csv_path: str) -> str | None:
+    """Display selected CSV metadata shared by preview and chart tabs."""
+    timeframe = infer_timeframe_from_csv_name(csv_path)
+    st.write(f"Filename: `{Path(csv_path).name}`")
+    if timeframe:
+        st.write(f"Timeframe: `{timeframe}`")
+    else:
+        st.caption("Timeframe could not be inferred from the filename.")
+    return timeframe
+
+
+def _render_overview(result: dict[str, Any] | None) -> None:
+    """Render the Overview tab."""
+    if not result:
+        st.info("Run an analysis or load the latest report to view an overview.")
+        st.caption("Reports are loaded from the configured `.marketflow/reports` directory.")
+        return
+
+    report_json = result.get("report_json") or {}
+    signal = report_json.get("signal") if isinstance(report_json, dict) else {}
+    risk = report_json.get("risk_assessment") if isinstance(report_json, dict) else {}
+
+    st.subheader(result.get("ticker") or "Ticker")
+    if result.get("output_dir"):
+        st.caption(f"Output directory: `{result['output_dir']}`")
+
+    if result.get("error"):
+        _render_error_details(result)
+        if not report_json:
+            return
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        _display_value("Current Price", report_json.get("current_price"))
+        _display_value("Stop Loss", _nested_get(risk, ["stop_loss"]))
+    with col2:
+        _display_value("Signal Type", _nested_get(signal, ["type"]))
+        _display_value("Take Profit", _nested_get(risk, ["take_profit"]))
+    with col3:
+        _display_value("Signal Strength", _nested_get(signal, ["strength"]))
+        _display_value("Risk/Reward", _nested_get(risk, ["risk_reward_ratio"]))
+
+    summary_text = result.get("summary_text") or result.get("narrative")
+    if summary_text:
+        st.markdown("#### Summary Preview")
+        st.text_area(
+            "Summary Preview",
+            value=summary_text[:4000],
+            height=260,
+            label_visibility="collapsed",
+        )
+
+
+def _render_reports(result: dict[str, Any] | None) -> None:
+    """Render the Reports tab."""
+    report_dir = _report_dir_from_result(
+        result,
+        "No report directory loaded. Run an analysis or load the latest report first.",
+    )
+    if not report_dir:
+        return
+
+    st.write(f"Report directory: `{report_dir}`")
+
+    files = list_report_files(report_dir) or result.get("report_files") or []
+    if files:
+        st.markdown("#### Generated Files")
+        for file_path in files:
+            st.write(f"- `{file_path}`")
+    else:
+        st.info("No generated files found in this directory.")
+
+    date_folders = list_report_date_folders()
+    if date_folders:
+        st.markdown("#### Report Date / Batch Folders")
+        for folder in date_folders:
+            st.write(f"- `{folder}`")
+
+    report_parent = str(Path(report_dir).parent)
+    tickers = list_available_tickers(report_parent)
+    if tickers:
+        st.markdown("#### Available Ticker Folders")
+        st.write(", ".join(f"`{ticker}`" for ticker in tickers))
+
+    summary_text = result.get("summary_text")
+    if summary_text:
+        st.markdown("#### Summary")
+        st.text(summary_text)
+
+
+def _render_csv_preview(result: dict[str, Any] | None) -> None:
+    """Render the CSV Preview tab."""
+    report_dir = _report_dir_from_result(
+        result,
+        "Load a report or run an analysis before previewing CSV files.",
+    )
+    if not report_dir:
+        return
+
+    csv_files = _annotated_csv_files_for_report(report_dir)
+    if not csv_files:
+        st.info("No annotated CSV files found in this report directory.")
+        st.caption("Run Analysis with timeframes that generate Wyckoff annotated exports.")
+        return
+
+    selected_csv = _select_annotated_csv(csv_files, "CSV file", "csv_preview_file")
+    preview_rows = st.selectbox(
+        "Preview rows",
+        options=CSV_PREVIEW_ROW_OPTIONS,
+        index=2,
+        key="csv_preview_rows",
+    )
+
+    _render_csv_file_context(selected_csv)
+
+    dataframe = load_csv_preview(selected_csv, nrows=preview_rows)
+    if dataframe is None:
+        st.error("Could not load this CSV file for preview.")
+        return
+
+    st.write(f"Rows in preview: `{len(dataframe)}`")
+    st.write(f"Column count: `{len(dataframe.columns)}`")
+    st.write("Columns:")
+    st.write(", ".join(f"`{column}`" for column in dataframe.columns))
+
+    st.dataframe(dataframe, use_container_width=True)
+
+
+def _render_charts(result: dict[str, Any] | None) -> None:
+    """Render the Charts tab."""
+    report_dir = _report_dir_from_result(result, "Run an analysis or load a report first.")
+    if not report_dir:
+        return
+
+    csv_files = _annotated_csv_files_for_report(report_dir)
+    if not csv_files:
+        st.info("No annotated CSV files found for charting.")
+        st.caption("Charts use annotated OHLC CSV files generated by MarketFlow reports.")
+        return
+
+    selected_csv = _select_annotated_csv(csv_files, "Chart CSV file", "chart_csv_file")
+    chart_rows = st.selectbox(
+        "Chart rows",
+        options=CHART_ROW_OPTIONS,
+        index=1,
+        key="chart_rows",
+    )
+
+    timeframe = _render_csv_file_context(selected_csv)
+
+    dataframe = load_csv_for_chart(selected_csv, nrows=chart_rows)
+    if dataframe is None:
+        st.error("Could not load this CSV file for charting.")
+        return
+
+    try:
+        title_parts = [Path(selected_csv).stem]
+        if timeframe:
+            title_parts.append(timeframe)
+        fig = build_basic_wyckoff_candlestick_chart(
+            dataframe,
+            title=" - ".join(title_parts),
+        )
+        st.plotly_chart(fig, use_container_width=True)
+    except Exception as exc:
+        st.error("Could not build chart.")
+        with st.expander("Chart error details"):
+            st.write(f"Type: `{type(exc).__name__}`")
+            st.code(str(exc))
+
+
+def _default_strategy_ticker_text(result: dict[str, Any] | None) -> str:
+    """Return the currently loaded ticker as the strategy ticker default."""
+    if result and result.get("ticker"):
+        return str(result["ticker"])
+    return "AAPL"
+
+
+def _render_strategy_error(strategy_result: dict[str, Any]) -> None:
+    """Render strategy ranking errors with traceback hidden by default."""
+    error_type = strategy_result.get("error_type")
+    error_message = strategy_result.get("error") or "Strategy ranking failed."
+    if error_type:
+        st.error(f"{error_type}: {error_message}")
+    else:
+        st.error(error_message)
+
+    if strategy_result.get("traceback"):
+        with st.expander("Strategy error details"):
+            st.code(strategy_result["traceback"], language="python")
+
+
+def _strategy_diagnostics_dataframe(diagnostics: dict[str, Any]) -> Any:
+    """Return a compact ticker-check table for strategy diagnostics."""
+    ticker_checks = diagnostics.get("ticker_checks") or {}
+    rows = []
+    for ticker, check in ticker_checks.items():
+        rows.append(
+            {
+                "ticker": ticker,
+                "ticker_folder_found": check.get("ticker_folder_found", False),
+                "matching_csv_count": len(check.get("matching_timeframe_csvs") or []),
+                "csv_count": len(check.get("csv_candidates") or []),
+                "ticker_folder": check.get("ticker_folder"),
+            }
+        )
+    return rows
+
+
+def _render_strategy_diagnostics(strategy_result: dict[str, Any]) -> None:
+    """Render strategy diagnostics in a collapsed expander."""
+    diagnostics = strategy_result.get("diagnostics") or {}
+    if not diagnostics:
+        return
+
+    with st.expander("Strategy diagnostics"):
+        st.write(f"Report root: `{diagnostics.get('report_root')}`")
+        st.write(f"Report root exists: `{diagnostics.get('report_root_exists')}`")
+        batch_run_folders = diagnostics.get("batch_run_folders") or []
+        ignored_batch_like = diagnostics.get("ignored_batch_like_folders") or []
+        st.write(f"Valid batch run folders: `{len(batch_run_folders)}`")
+        latest_batch = diagnostics.get("latest_batch_folder")
+        if latest_batch:
+            st.write(f"Latest valid batch folder: `{latest_batch}`")
+        else:
+            st.write("Latest valid batch folder: none found")
+        st.write(
+            f"Latest valid batch folder exists: `{diagnostics.get('latest_batch_folder_exists')}`"
+        )
+        if ignored_batch_like:
+            st.write(f"Ignored batch-like folders: `{len(ignored_batch_like)}`")
+            st.caption("Folders such as `batch_csv_*` are ignored as real batch runs.")
+            for folder in ignored_batch_like[:10]:
+                st.write(f"- `{folder}`")
+        st.write(f"Requested tickers: `{', '.join(diagnostics.get('requested_tickers') or [])}`")
+        st.write(f"Selected timeframe: `{diagnostics.get('requested_timeframe')}`")
+
+        filters = diagnostics.get("filters") or {}
+        st.write("Filters")
+        st.json(filters)
+
+        notes = diagnostics.get("notes") or []
+        if notes:
+            st.write("Notes")
+            for note in notes:
+                st.write(f"- {note}")
+
+        ticker_rows = _strategy_diagnostics_dataframe(diagnostics)
+        if ticker_rows:
+            st.write("Ticker checks")
+            st.dataframe(ticker_rows, use_container_width=True)
+
+        st.write("Raw diagnostics")
+        st.json(diagnostics)
+
+
+def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
+    """Render strategy ranking output."""
+    if not strategy_result:
+        st.info("Choose tickers and click Rank Candidates to scan existing reports.")
+        return
+
+    st.caption(f"Using report root: `{strategy_result.get('report_root')}`")
+    st.caption("Strategy source: latest batch folder when available")
+    st.caption(f"Selected timeframe: `{strategy_result.get('timeframe')}`")
+
+    if not strategy_result.get("success"):
+        _render_strategy_error(strategy_result)
+        _render_strategy_diagnostics(strategy_result)
+        return
+
+    dataframe = strategy_result.get("dataframe")
+    if dataframe is None or dataframe.empty:
+        st.info(
+            "No candidates passed the filters. Try a lower min RR, a different timeframe, "
+            "or confirm reports exist for those tickers."
+        )
+        _render_strategy_diagnostics(strategy_result)
+        return
+
+    st.write(f"Result count: `{len(dataframe)}`")
+    st.dataframe(dataframe, use_container_width=True)
+    _render_strategy_diagnostics(strategy_result)
+
+    results = strategy_result.get("results") or []
+    labels = [
+        f"{candidate.get('ticker', 'UNKNOWN')} | {candidate.get('tf', '')} | "
+        f"score {candidate.get('score', 'NA')}"
+        for candidate in results
+    ]
+    selected_label = st.selectbox("Select candidate", options=labels)
+    selected_index = labels.index(selected_label)
+    st.json(results[selected_index])
+
+
+def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
+    """Render the Strategy Ranking tab."""
+    st.write(
+        "Rank long candidates from generated MarketFlow reports using the existing "
+        "`marketflow_strategy` logic."
+    )
+    st.caption(f"Configured report root: `{get_report_root()}`")
+    st.caption("This scan uses the latest batch/report namespace when available.")
+
+    if "strategy_tickers" not in st.session_state:
+        st.session_state.strategy_tickers = _default_strategy_ticker_text(result)
+
+    ticker_text = st.text_area(
+        "Tickers",
+        key="strategy_tickers",
+        help="Enter tickers separated by spaces, commas, or new lines.",
+    )
+    strategy_tf = st.selectbox(
+        "Timeframe",
+        options=STRATEGY_TIMEFRAMES,
+        index=1,
+    )
+    min_rr = st.number_input(
+        "Minimum Risk/Reward",
+        min_value=0.1,
+        value=1.5,
+        step=0.1,
+    )
+    max_sl_atr = st.number_input(
+        "Max Stop ATR",
+        min_value=0.1,
+        value=2.0,
+        step=0.1,
+    )
+    prefer_phases = st.multiselect(
+        "Preferred Wyckoff Phases",
+        options=WYCKOFF_PHASE_OPTIONS,
+        default=["C", "D", "E"],
+    )
+    use_mc = st.checkbox(
+        "Use Monte Carlo POP if available",
+        value=False,
+        help="Optional. If no MC files exist, strategy logic should use neutral defaults.",
+    )
+
+    if st.button("Rank Candidates"):
+        tickers = normalize_tickers(ticker_text)
+        if not tickers:
+            st.session_state.strategy_result = {
+                "success": False,
+                "error": "Enter at least one ticker.",
+                "error_type": "ValidationError",
+                "traceback": None,
+                "results": [],
+                "dataframe": None,
+                "report_root": get_report_root(),
+                "timeframe": strategy_tf,
+            }
+        else:
+            with st.spinner("Ranking strategy candidates..."):
+                st.session_state.strategy_result = rank_latest_candidates(
+                    tickers=tickers,
+                    timeframe=strategy_tf,
+                    min_rr=float(min_rr),
+                    max_sl_atr=float(max_sl_atr),
+                    prefer_phases=tuple(prefer_phases),
+                    use_mc=use_mc,
+                )
+
+    _render_strategy_results(st.session_state.get("strategy_result"))
+
+
+def _default_trade_levels(latest_close: float | None) -> tuple[float, float, float]:
+    """Return sensible entry, stop, and take-profit defaults."""
+    if latest_close is None or latest_close <= 0:
+        return 0.0, 0.0, 0.0
+    return latest_close, latest_close * 0.98, latest_close * 1.05
+
+
+def _render_monte_carlo_error(monte_carlo_result: dict[str, Any]) -> None:
+    """Render Monte Carlo service errors with traceback hidden by default."""
+    error_type = monte_carlo_result.get("error_type")
+    error_message = monte_carlo_result.get("error") or "Monte Carlo simulation failed."
+    if error_type:
+        st.error(f"{error_type}: {error_message}")
+    else:
+        st.error(error_message)
+
+    if monte_carlo_result.get("traceback"):
+        with st.expander("Monte Carlo error details"):
+            st.code(monte_carlo_result["traceback"], language="python")
+
+
+def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> None:
+    """Render Monte Carlo output metrics and raw result data."""
+    if not monte_carlo_result:
+        st.info("Select a CSV and click Run Monte Carlo to simulate a single trade.")
+        return
+
+    if not monte_carlo_result.get("success"):
+        _render_monte_carlo_error(monte_carlo_result)
+        return
+
+    result = monte_carlo_result.get("result") or {}
+    params = result.get("params") or {}
+    metrics = result.get("metrics_from_entry") or result.get("metrics_from_now") or {}
+
+    st.success("Monte Carlo simulation completed.")
+    st.caption(f"CSV: `{Path(monte_carlo_result.get('csv_path') or '').name}`")
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        _display_optional_metric("Model", params.get("model"))
+        _display_optional_metric("Entry", _format_number(params.get("entry")))
+    with col2:
+        _display_optional_metric("Stop Loss", _format_number(params.get("sl")))
+        _display_optional_metric("Take Profit", _format_number(params.get("tp")))
+    with col3:
+        _display_optional_metric("Spot S0", _format_number(_nested_get(result, ["spot", "S0_now"])))
+        _display_optional_metric(
+            "Calibration Model",
+            _nested_get(result, ["calibration", "model_used"]),
+        )
+    with col4:
+        _display_optional_metric("TP First", _format_probability(metrics.get("pop_tp_first")))
+        _display_optional_metric("SL First", _format_probability(metrics.get("p_sl_first")))
+
+    col5, col6 = st.columns(2)
+    with col5:
+        _display_optional_metric("Median Bars to TP", metrics.get("t_hit_tp_median"))
+    with col6:
+        _display_optional_metric("Median Bars to SL", metrics.get("t_hit_sl_median"))
+
+    st.info("Monte Carlo JSON/HTML outputs were saved next to the selected CSV by the existing simulator.")
+    with st.expander("Raw Monte Carlo result"):
+        st.json(result)
+
+
+def _render_monte_carlo(result: dict[str, Any] | None) -> None:
+    """Render the Monte Carlo tab."""
+    report_dir = _report_dir_from_result(result, "Run an analysis or load a report first.")
+    if not report_dir:
+        return
+
+    csv_files = _annotated_csv_files_for_report(report_dir)
+    if not csv_files:
+        st.info("No annotated CSV files found for Monte Carlo simulation.")
+        st.caption("Run Analysis first, then return here to select a generated OHLC CSV.")
+        return
+
+    selected_csv = _select_annotated_csv(csv_files, "Monte Carlo CSV file", "monte_carlo_csv_file")
+    timeframe = _render_csv_file_context(selected_csv)
+    latest_close = load_latest_close(selected_csv)
+    if latest_close is not None:
+        st.caption(f"Latest close loaded from CSV: `{latest_close:.4f}`")
+    else:
+        st.warning("Could not load the latest close from this CSV. Enter trade levels manually.")
+
+    default_entry, default_stop, default_take = _default_trade_levels(latest_close)
+
+    col1, col2, col3 = st.columns(3)
+    with col1:
+        entry = st.number_input(
+            "Entry",
+            min_value=0.0,
+            value=float(default_entry),
+            step=0.01,
+            format="%.4f",
+        )
+    with col2:
+        stop_loss = st.number_input(
+            "Stop Loss",
+            min_value=0.0,
+            value=float(default_stop),
+            step=0.01,
+            format="%.4f",
+        )
+    with col3:
+        take_profit = st.number_input(
+            "Take Profit",
+            min_value=0.0,
+            value=float(default_take),
+            step=0.01,
+            format="%.4f",
+        )
+
+    col4, col5, col6, col7 = st.columns(4)
+    with col4:
+        model = st.selectbox("Model", options=MONTE_CARLO_MODELS, index=0)
+    with col5:
+        paths = st.number_input("Paths", min_value=1000, max_value=50000, value=10000, step=1000)
+    with col6:
+        horizon = st.number_input("Horizon", min_value=1, max_value=250, value=20, step=1)
+    with col7:
+        block_len = st.number_input("Block Length", min_value=1, max_value=100, value=8, step=1)
+
+    seed = st.number_input("Seed", value=42, step=1)
+    save_plots = st.checkbox("Save plots", value=True)
+
+    if st.button("Run Monte Carlo"):
+        validation_errors = []
+        if not Path(selected_csv).exists():
+            validation_errors.append("Selected CSV file does not exist.")
+        if entry <= 0:
+            validation_errors.append("Entry must be greater than zero.")
+        if stop_loss >= entry:
+            validation_errors.append("Stop loss must be below entry.")
+        if take_profit <= entry:
+            validation_errors.append("Take profit must be above entry.")
+        if paths <= 0:
+            validation_errors.append("Paths must be positive.")
+        if horizon <= 0:
+            validation_errors.append("Horizon must be positive.")
+
+        if validation_errors:
+            for message in validation_errors:
+                st.warning(message)
+        else:
+            with st.spinner("Running Monte Carlo simulation..."):
+                st.session_state.monte_carlo_result = run_monte_carlo_for_csv(
+                    csv_path=selected_csv,
+                    entry=float(entry),
+                    stop_loss=float(stop_loss),
+                    take_profit=float(take_profit),
+                    timeframe=timeframe,
+                    model=model,
+                    paths=int(paths),
+                    horizon=int(horizon),
+                    block_len=int(block_len),
+                    seed=int(seed),
+                    save_plots=save_plots,
+                )
+
+    _render_monte_carlo_results(st.session_state.get("monte_carlo_result"))
+
+
+def _render_raw_json(result: dict[str, Any] | None) -> None:
+    """Render the Raw JSON tab."""
+    report_json = result.get("report_json") if result else None
+    if report_json:
+        st.json(report_json)
+    else:
+        st.info("No JSON report is loaded.")
+
+
+def main() -> None:
+    """Run the MarketFlow Studio Streamlit app."""
+    st.set_page_config(page_title="MarketFlow Studio", layout="wide")
+    st.title("MarketFlow Studio")
+
+    if "analysis_result" not in st.session_state:
+        st.session_state.analysis_result = None
+    if "strategy_result" not in st.session_state:
+        st.session_state.strategy_result = None
+    if "monte_carlo_result" not in st.session_state:
+        st.session_state.monte_carlo_result = None
+
+    with st.sidebar:
+        st.header("Analysis")
+        ticker = st.text_input("Ticker", value="AAPL").strip()
+        timeframes = st.multiselect(
+            "Timeframes",
+            options=TIMEFRAME_OPTIONS,
+            default=DEFAULT_TIMEFRAMES,
+        )
+
+        if st.button("Run Analysis", type="primary"):
+            with st.spinner(f"Running analysis for {ticker}..."):
+                st.session_state.analysis_result = run_single_ticker(ticker, timeframes)
+
+        if st.button("Load Latest Report"):
+            st.session_state.analysis_result = _load_latest_result(ticker)
+
+        _render_loaded_report_caption(st.session_state.analysis_result)
+
+    result = st.session_state.analysis_result
+    (
+        overview_tab,
+        reports_tab,
+        csv_tab,
+        charts_tab,
+        strategy_tab,
+        monte_carlo_tab,
+        raw_json_tab,
+    ) = st.tabs(
+        [
+            "Overview",
+            "Reports",
+            "CSV Preview",
+            "Charts",
+            "Strategy Ranking",
+            "Monte Carlo",
+            "Raw JSON",
+        ]
+    )
+
+    with overview_tab:
+        _render_overview(result)
+
+    with reports_tab:
+        _render_reports(result)
+
+    with csv_tab:
+        _render_csv_preview(result)
+
+    with charts_tab:
+        _render_charts(result)
+
+    with strategy_tab:
+        _render_strategy_ranking(result)
+
+    with monte_carlo_tab:
+        _render_monte_carlo(result)
+
+    with raw_json_tab:
+        _render_raw_json(result)
+
+
+if __name__ == "__main__":
+    main()
