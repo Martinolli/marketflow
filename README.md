@@ -78,7 +78,14 @@ A personal local Streamlit interface is available on the feature branch:
 streamlit run apps/marketflow_studio.py
 ```
 
-The app can run analysis, load generated reports, preview annotated CSV files, and show a basic Wyckoff candlestick chart.
+The app can:
+
+- run analysis
+- load generated reports
+- preview annotated CSV files
+- show a basic Wyckoff candlestick chart
+- rank strategy candidates
+- run simple Monte Carlo simulations
 
 ## Overview: Main Data Flow in MarketFlow
 
