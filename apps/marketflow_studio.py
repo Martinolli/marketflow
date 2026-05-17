@@ -18,6 +18,7 @@ if str(PROJECT_ROOT) not in sys.path:
 from marketflow.charts.wyckoff_chart import build_basic_wyckoff_candlestick_chart
 from marketflow.services.analysis_service import run_single_ticker
 from marketflow.services.monte_carlo_service import (
+    list_monte_carlo_outputs,
     load_latest_close,
     run_monte_carlo_for_csv,
 )
@@ -649,6 +650,43 @@ def _render_monte_carlo_error(monte_carlo_result: dict[str, Any]) -> None:
             st.code(monte_carlo_result["traceback"], language="python")
 
 
+def _format_file_size(size_bytes: int | None) -> str:
+    """Return a compact display string for a byte count."""
+    if size_bytes is None:
+        return "Unknown"
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    if size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+def _render_monte_carlo_output_files(monte_carlo_result: dict[str, Any]) -> None:
+    """Render Monte Carlo output files saved by the simulator."""
+    st.subheader("Generated Monte Carlo files")
+
+    csv_path = monte_carlo_result.get("csv_path") or ""
+    if st.button("Refresh Monte Carlo output files"):
+        monte_carlo_result["output_files"] = list_monte_carlo_outputs(csv_path)
+
+    output_files = monte_carlo_result.get("output_files") or []
+    if not output_files:
+        st.info("No Monte Carlo output files were found beside the selected CSV.")
+        return
+
+    rows = [
+        {
+            "kind": item.get("kind"),
+            "name": item.get("name"),
+            "modified": item.get("modified"),
+            "size": _format_file_size(item.get("size_bytes")),
+            "path": item.get("path"),
+        }
+        for item in output_files
+    ]
+    st.dataframe(rows, use_container_width=True, hide_index=True)
+
+
 def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> None:
     """Render Monte Carlo output metrics and raw result data."""
     if not monte_carlo_result:
@@ -691,7 +729,7 @@ def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> No
     with col6:
         _display_optional_metric("Median Bars to SL", metrics.get("t_hit_sl_median"))
 
-    st.info("Monte Carlo JSON/HTML outputs were saved next to the selected CSV by the existing simulator.")
+    _render_monte_carlo_output_files(monte_carlo_result)
     with st.expander("Raw Monte Carlo result"):
         st.json(result)
 

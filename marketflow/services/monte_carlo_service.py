@@ -6,6 +6,7 @@ import traceback
 import importlib
 import sys
 import types
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -16,6 +17,7 @@ from marketflow.services.report_index import infer_timeframe_from_csv_name
 
 SUPPORTED_MODELS = {"bootstrap", "gbm", "garch"}
 OPTIONAL_SIMULATOR_IMPORTS = {"arch", "lightgbm"}
+MONTE_CARLO_OUTPUT_PATTERNS = ("*_mc_summary.json", "*_mc_paths.html", "*_mc_hits.html")
 
 
 def _install_optional_dependency_stub(module_name: str) -> None:
@@ -84,6 +86,63 @@ def load_latest_close(csv_path: str) -> float | None:
         return float(closes.iloc[-1])
     except Exception:
         return None
+
+
+def _classify_output_file(path: Path) -> str:
+    """Classify a Monte Carlo output file by filename suffix."""
+    name = path.name
+    if name.endswith("_mc_summary.json"):
+        return "summary_json"
+    if name.endswith("_mc_paths.html"):
+        return "paths_html"
+    if name.endswith("_mc_hits.html"):
+        return "hits_html"
+    return "unknown"
+
+
+def list_monte_carlo_outputs(csv_path: str) -> list[dict[str, Any]]:
+    """
+    List Monte Carlo output files saved beside the selected CSV.
+
+    Return dictionaries sorted newest first. Each dictionary includes path,
+    name, kind, modified timestamp, and size in bytes. Missing paths or
+    filesystem errors return an empty list.
+    """
+    if not csv_path:
+        return []
+
+    try:
+        path = Path(csv_path)
+        parent = path.parent
+        if not parent.exists() or not parent.is_dir():
+            return []
+
+        output_paths: set[Path] = set()
+        for pattern in MONTE_CARLO_OUTPUT_PATTERNS:
+            output_paths.update(
+                file_path for file_path in parent.glob(pattern) if file_path.is_file()
+            )
+
+        output_files = []
+        for output_path in output_paths:
+            stat = output_path.stat()
+            output_files.append(
+                {
+                    "path": str(output_path),
+                    "name": output_path.name,
+                    "kind": _classify_output_file(output_path),
+                    "modified": datetime.fromtimestamp(stat.st_mtime).isoformat(timespec="seconds"),
+                    "size_bytes": int(stat.st_size),
+                    "_mtime": stat.st_mtime,
+                }
+            )
+
+        output_files.sort(key=lambda item: item["_mtime"], reverse=True)
+        for item in output_files:
+            item.pop("_mtime", None)
+        return output_files
+    except Exception:
+        return []
 
 
 def run_monte_carlo_for_csv(
@@ -161,6 +220,7 @@ def run_monte_carlo_for_csv(
             "csv_path": str(path),
             "timeframe": selected_timeframe,
             "result": result,
+            "output_files": list_monte_carlo_outputs(str(path)),
         }
     except Exception as exc:
         return {
@@ -171,4 +231,5 @@ def run_monte_carlo_for_csv(
             "csv_path": str(path) if path else csv_path,
             "timeframe": timeframe or infer_timeframe_from_csv_name(csv_path or ""),
             "result": None,
+            "output_files": [],
         }
