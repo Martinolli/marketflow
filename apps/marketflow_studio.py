@@ -17,6 +17,10 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from marketflow.charts.wyckoff_chart import build_basic_wyckoff_candlestick_chart
 from marketflow.services.analysis_service import run_single_ticker
+from marketflow.services.batch_service import (
+    normalize_batch_tickers,
+    run_batch_analysis,
+)
 from marketflow.services.monte_carlo_service import (
     list_monte_carlo_outputs,
     load_latest_close,
@@ -505,6 +509,9 @@ def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
     st.caption(f"Configured report root: `{get_report_root()}`")
     st.caption("This scan uses the latest batch/report namespace when available.")
 
+    if st.session_state.get("strategy_tickers_prefill"):
+        st.session_state.strategy_tickers = st.session_state.pop("strategy_tickers_prefill")
+
     if "strategy_tickers" not in st.session_state:
         st.session_state.strategy_tickers = _default_strategy_ticker_text(result)
 
@@ -566,6 +573,120 @@ def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
                 )
 
     _render_strategy_results(st.session_state.get("strategy_result"))
+
+
+def _render_batch_result(batch_result: dict[str, Any] | None) -> None:
+    """Render batch analysis status and per-ticker results."""
+    if not batch_result:
+        st.info("Enter tickers and click Run Batch Analysis to analyze multiple symbols.")
+        return
+
+    if batch_result.get("success"):
+        st.success("Batch analysis completed.")
+    else:
+        error_type = batch_result.get("error_type")
+        error = batch_result.get("error") or "Batch analysis failed."
+        st.error(f"{error_type}: {error}" if error_type else error)
+
+    if batch_result.get("traceback"):
+        with st.expander("Batch error details"):
+            st.code(batch_result["traceback"], language="python")
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        _display_optional_metric("Run ID", batch_result.get("run_id"))
+    with col2:
+        _display_optional_metric("Namespace", batch_result.get("namespace") or "Disabled")
+    with col3:
+        succeeded = sum(1 for item in batch_result.get("results", []) if item.get("success"))
+        _display_optional_metric("Succeeded", succeeded)
+    with col4:
+        failed = sum(1 for item in batch_result.get("results", []) if not item.get("success"))
+        _display_optional_metric("Failed", failed)
+
+    if batch_result.get("batch_output_dir"):
+        st.caption(f"Batch output directory: `{batch_result['batch_output_dir']}`")
+    if batch_result.get("summary_csv"):
+        st.caption(f"Summary CSV: `{batch_result['summary_csv']}`")
+
+    notes = batch_result.get("notes") or []
+    if notes:
+        with st.expander("Batch notes"):
+            for note in notes:
+                st.write(f"- {note}")
+
+    results = batch_result.get("results") or []
+    if results:
+        st.dataframe(
+            [
+                {
+                    "ticker": item.get("ticker"),
+                    "success": item.get("success"),
+                    "output_dir": item.get("output_dir"),
+                    "narrative_available": item.get("narrative_available"),
+                    "error_type": item.get("error_type"),
+                    "error": item.get("error"),
+                }
+                for item in results
+            ],
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        successful_tickers = [item["ticker"] for item in results if item.get("success")]
+        if successful_tickers:
+            st.info("You can now use Strategy Ranking on these tickers.")
+            if st.button("Use batch tickers in Strategy Ranking"):
+                st.session_state.strategy_tickers_prefill = " ".join(successful_tickers)
+                st.success("Batch tickers sent to Strategy Ranking.")
+
+
+def _render_batch_analysis() -> None:
+    """Render the Batch Analysis tab."""
+    st.write("Run MarketFlow analysis for multiple tickers using the existing batch workflow.")
+
+    ticker_text = st.text_area(
+        "Batch tickers",
+        value="AAPL MSFT NVDA",
+        help="Enter tickers separated by spaces, commas, or new lines.",
+        key="batch_tickers",
+    )
+    batch_timeframes = st.multiselect(
+        "Batch timeframes",
+        options=TIMEFRAME_OPTIONS,
+        default=DEFAULT_TIMEFRAMES,
+        key="batch_timeframes",
+    )
+    enable_tvm = st.checkbox(
+        "Enable TVM batch memory",
+        value=True,
+        help="Creates a shared batch namespace and .tvm_store for the run.",
+    )
+
+    if st.button("Run Batch Analysis", type="primary"):
+        tickers = normalize_batch_tickers(ticker_text)
+        if not tickers:
+            st.session_state.batch_result = {
+                "success": False,
+                "error": "Enter at least one ticker.",
+                "error_type": "ValidationError",
+                "traceback": None,
+                "run_id": None,
+                "namespace": None,
+                "batch_output_dir": None,
+                "summary_csv": None,
+                "results": [],
+                "notes": ["No valid ticker symbols were provided."],
+            }
+        else:
+            with st.spinner("Running batch analysis..."):
+                st.session_state.batch_result = run_batch_analysis(
+                    tickers=tickers,
+                    timeframes=batch_timeframes,
+                    enable_tvm=enable_tvm,
+                )
+
+    _render_batch_result(st.session_state.get("batch_result"))
 
 
 def _default_trade_levels(latest_close: float | None) -> tuple[float, float, float]:
@@ -918,6 +1039,8 @@ def main() -> None:
         st.session_state.analysis_result = None
     if "strategy_result" not in st.session_state:
         st.session_state.strategy_result = None
+    if "batch_result" not in st.session_state:
+        st.session_state.batch_result = None
     if "monte_carlo_result" not in st.session_state:
         st.session_state.monte_carlo_result = None
 
@@ -946,6 +1069,7 @@ def main() -> None:
         csv_tab,
         charts_tab,
         strategy_tab,
+        batch_tab,
         monte_carlo_tab,
         raw_json_tab,
     ) = st.tabs(
@@ -955,6 +1079,7 @@ def main() -> None:
             "CSV Preview",
             "Charts",
             "Strategy Ranking",
+            "Batch Analysis",
             "Monte Carlo",
             "Raw JSON",
         ]
@@ -974,6 +1099,9 @@ def main() -> None:
 
     with strategy_tab:
         _render_strategy_ranking(result)
+
+    with batch_tab:
+        _render_batch_analysis()
 
     with monte_carlo_tab:
         _render_monte_carlo(result)
