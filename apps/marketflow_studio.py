@@ -473,9 +473,26 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
         f"score {candidate.get('score', 'NA')}"
         for candidate in results
     ]
-    selected_label = st.selectbox("Select candidate", options=labels)
-    selected_index = labels.index(selected_label)
-    st.json(results[selected_index])
+    selected_index = st.selectbox(
+        "Select candidate",
+        options=list(range(len(results))),
+        format_func=lambda index: labels[index],
+    )
+    selected_candidate = results[selected_index]
+    st.json(selected_candidate)
+
+    if st.button("Use selected candidate in Monte Carlo"):
+        st.session_state.monte_carlo_prefill = {
+            "ticker": selected_candidate.get("ticker"),
+            "csv": selected_candidate.get("csv"),
+            "tf": selected_candidate.get("tf"),
+            "entry": selected_candidate.get("close"),
+            "stop_loss": selected_candidate.get("sl"),
+            "take_profit": selected_candidate.get("tp"),
+            "source": "strategy_ranking",
+        }
+        st.session_state.monte_carlo_result = None
+        st.success("Selected candidate sent to Monte Carlo tab.")
 
 
 def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
@@ -557,6 +574,67 @@ def _default_trade_levels(latest_close: float | None) -> tuple[float, float, flo
     return latest_close, latest_close * 0.98, latest_close * 1.05
 
 
+def _safe_float(value: Any) -> float | None:
+    """Convert a value to float when possible."""
+    if value is None or value == "":
+        return None
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _prefill_token(prefill: dict[str, Any] | None) -> tuple[Any, ...] | None:
+    """Return a stable token for candidate Monte Carlo prefill state."""
+    if not prefill:
+        return None
+    return (
+        prefill.get("ticker"),
+        prefill.get("csv"),
+        prefill.get("tf"),
+        prefill.get("entry"),
+        prefill.get("stop_loss"),
+        prefill.get("take_profit"),
+        prefill.get("source"),
+    )
+
+
+def _path_matches(left: str, right: str) -> bool:
+    """Return True when two paths point to the same file."""
+    try:
+        return Path(left).resolve() == Path(right).resolve()
+    except Exception:
+        return str(left) == str(right)
+
+
+def _sync_monte_carlo_prefill(prefill: dict[str, Any] | None) -> None:
+    """Apply candidate prefill values to Monte Carlo widgets once per candidate."""
+    token = _prefill_token(prefill)
+    if token is None or token == st.session_state.get("monte_carlo_prefill_token"):
+        return
+
+    entry = _safe_float(prefill.get("entry"))
+    stop_loss = _safe_float(prefill.get("stop_loss"))
+    take_profit = _safe_float(prefill.get("take_profit"))
+    if entry is not None:
+        st.session_state.monte_carlo_entry_value = entry
+    if stop_loss is not None:
+        st.session_state.monte_carlo_stop_loss_value = stop_loss
+    if take_profit is not None:
+        st.session_state.monte_carlo_take_profit_value = take_profit
+
+    st.session_state.pop("monte_carlo_csv_file", None)
+    st.session_state.monte_carlo_prefill_token = token
+
+
+def _candidate_csv_path(prefill: dict[str, Any] | None) -> str | None:
+    """Return an existing candidate CSV path, or None if unavailable."""
+    if not prefill or not prefill.get("csv"):
+        return None
+    path = Path(str(prefill["csv"]))
+    return str(path) if path.exists() and path.is_file() else None
+
+
 def _render_monte_carlo_error(monte_carlo_result: dict[str, Any]) -> None:
     """Render Monte Carlo service errors with traceback hidden by default."""
     error_type = monte_carlo_result.get("error_type")
@@ -587,6 +665,8 @@ def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> No
 
     st.success("Monte Carlo simulation completed.")
     st.caption(f"CSV: `{Path(monte_carlo_result.get('csv_path') or '').name}`")
+    if monte_carlo_result.get("source") == "strategy_ranking":
+        st.caption("Source: Strategy Ranking candidate")
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -618,18 +698,72 @@ def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> No
 
 def _render_monte_carlo(result: dict[str, Any] | None) -> None:
     """Render the Monte Carlo tab."""
-    report_dir = _report_dir_from_result(result, "Run an analysis or load a report first.")
-    if not report_dir:
+    prefill = st.session_state.get("monte_carlo_prefill")
+    candidate_csv = _candidate_csv_path(prefill)
+    _sync_monte_carlo_prefill(prefill)
+
+    if prefill:
+        ticker = prefill.get("ticker") or "candidate"
+        timeframe_label = prefill.get("tf") or "unknown timeframe"
+        st.info(f"Using candidate from Strategy Ranking: {ticker} {timeframe_label}")
+        if st.button("Clear candidate prefill"):
+            for key in [
+                "monte_carlo_prefill",
+                "monte_carlo_prefill_token",
+                "monte_carlo_entry_value",
+                "monte_carlo_stop_loss_value",
+                "monte_carlo_take_profit_value",
+            ]:
+                st.session_state.pop(key, None)
+            st.session_state.monte_carlo_result = None
+            st.rerun()
+
+        if prefill.get("csv") and not candidate_csv:
+            st.warning("The selected candidate CSV no longer exists. Please select a CSV manually.")
+
+    report_dir = None
+    if result and result.get("output_dir"):
+        report_dir = _report_dir_from_result(result, "Run an analysis or load a report first.")
+        if not report_dir and not candidate_csv:
+            return
+    elif not candidate_csv:
+        st.info("Run an analysis, load a report, or send a strategy candidate first.")
         return
 
-    csv_files = _annotated_csv_files_for_report(report_dir)
+    csv_files = _annotated_csv_files_for_report(report_dir) if report_dir else []
+    csv_options = list(csv_files)
+    if candidate_csv and not any(_path_matches(candidate_csv, path) for path in csv_options):
+        csv_options.insert(0, candidate_csv)
+
+    if prefill and candidate_csv and not any(_path_matches(candidate_csv, path) for path in csv_files):
+        st.caption("Using CSV from selected strategy candidate.")
+
     if not csv_files:
-        st.info("No annotated CSV files found for Monte Carlo simulation.")
-        st.caption("Run Analysis first, then return here to select a generated OHLC CSV.")
-        return
+        if not candidate_csv:
+            st.info("No annotated CSV files found for Monte Carlo simulation.")
+            st.caption("Run Analysis first, then return here to select a generated OHLC CSV.")
+            return
 
-    selected_csv = _select_annotated_csv(csv_files, "Monte Carlo CSV file", "monte_carlo_csv_file")
-    timeframe = _render_csv_file_context(selected_csv)
+    selected_index = 0
+    if candidate_csv:
+        for index, csv_path in enumerate(csv_options):
+            if _path_matches(candidate_csv, csv_path):
+                selected_index = index
+                break
+
+    selected_csv = st.selectbox(
+        "Monte Carlo CSV file",
+        options=csv_options,
+        index=selected_index,
+        format_func=lambda path: Path(path).name,
+        key="monte_carlo_csv_file",
+    )
+    timeframe = prefill.get("tf") if candidate_csv and _path_matches(candidate_csv, selected_csv) else None
+    timeframe = timeframe or infer_timeframe_from_csv_name(selected_csv)
+    _render_csv_file_context(selected_csv)
+    if prefill and prefill.get("tf") and timeframe == prefill.get("tf"):
+        st.caption(f"Timeframe from selected strategy candidate: `{timeframe}`")
+
     latest_close = load_latest_close(selected_csv)
     if latest_close is not None:
         st.caption(f"Latest close loaded from CSV: `{latest_close:.4f}`")
@@ -637,31 +771,43 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
         st.warning("Could not load the latest close from this CSV. Enter trade levels manually.")
 
     default_entry, default_stop, default_take = _default_trade_levels(latest_close)
+    if "monte_carlo_entry_value" not in st.session_state:
+        st.session_state.monte_carlo_entry_value = float(default_entry)
+    if "monte_carlo_stop_loss_value" not in st.session_state:
+        st.session_state.monte_carlo_stop_loss_value = float(default_stop)
+    if "monte_carlo_take_profit_value" not in st.session_state:
+        st.session_state.monte_carlo_take_profit_value = float(default_take)
+
+    if not candidate_csv and st.session_state.get("monte_carlo_manual_csv") != selected_csv:
+        st.session_state.monte_carlo_entry_value = float(default_entry)
+        st.session_state.monte_carlo_stop_loss_value = float(default_stop)
+        st.session_state.monte_carlo_take_profit_value = float(default_take)
+        st.session_state.monte_carlo_manual_csv = selected_csv
 
     col1, col2, col3 = st.columns(3)
     with col1:
         entry = st.number_input(
             "Entry",
             min_value=0.0,
-            value=float(default_entry),
             step=0.01,
             format="%.4f",
+            key="monte_carlo_entry_value",
         )
     with col2:
         stop_loss = st.number_input(
             "Stop Loss",
             min_value=0.0,
-            value=float(default_stop),
             step=0.01,
             format="%.4f",
+            key="monte_carlo_stop_loss_value",
         )
     with col3:
         take_profit = st.number_input(
             "Take Profit",
             min_value=0.0,
-            value=float(default_take),
             step=0.01,
             format="%.4f",
+            key="monte_carlo_take_profit_value",
         )
 
     col4, col5, col6, col7 = st.columns(4)
@@ -710,6 +856,8 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
                     seed=int(seed),
                     save_plots=save_plots,
                 )
+                if prefill and candidate_csv and _path_matches(candidate_csv, selected_csv):
+                    st.session_state.monte_carlo_result["source"] = prefill.get("source")
 
     _render_monte_carlo_results(st.session_state.get("monte_carlo_result"))
 
