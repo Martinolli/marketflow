@@ -25,17 +25,29 @@ from .marketflow_utils import get_project_root
 # Default log directory - cross-platform compatible
 DEFAULT_LOG_DIR = get_project_root() / ".marketflow" / "logs"
 
+
+def _resolve_log_level(level_name: str | None, default: int = logging.INFO) -> int:
+    """Resolve a logging level name to a logging level, falling back safely."""
+    if isinstance(level_name, str) and level_name.strip():
+        level = getattr(logging, level_name.strip().upper(), None)
+        if isinstance(level, int):
+            return level
+    return default
+
+
 class MarketflowLogger:
     """Standardized logging framework for Marketflow system"""
     
     def __init__(self, log_level: str = "INFO", log_file: Optional[str] = None, 
                  module_name: Optional[str] = None, enable_rotation: bool = True,
-                 max_bytes: int = 10485760, backup_count: int = 5, encoding: str = 'utf-8'):
+                 max_bytes: int = 10485760, backup_count: int = 5, encoding: str = 'utf-8',
+                 console_log_level: str | None = None):
         """
         Initialize the Marketflow logger
         
         Parameters:
         - log_level: Logging level (DEBUG, INFO, WARNING, ERROR, CRITICAL)
+        - console_log_level: Optional console-only level. Defaults to MARKETFLOW_CONSOLE_LOG_LEVEL or log_level
         - log_file: Optional path to log file. If None, a default path will be used
         - module_name: Optional module name for logger identification
         - enable_rotation: Whether to enable log rotation (default: True)
@@ -45,6 +57,9 @@ class MarketflowLogger:
         """
         self.module_name = module_name or "Marketflow"
         self.encoding = encoding
+        self.file_level = _resolve_log_level(log_level, logging.INFO)
+        console_level_name = console_log_level or os.getenv("MARKETFLOW_CONSOLE_LOG_LEVEL") or log_level
+        self.console_level = _resolve_log_level(console_level_name, self.file_level)
         
         # If log_file is not specified, create a default one based on module name
         if log_file is None:
@@ -62,8 +77,9 @@ class MarketflowLogger:
         except Exception as e:
             # Fallback to basic console logging if setup fails
             self.logger = logging.getLogger(self.module_name)
-            self.logger.setLevel(logging.INFO)
+            self.logger.setLevel(min(self.file_level, self.console_level))
             console_handler = logging.StreamHandler(sys.stdout)
+            console_handler.setLevel(self.console_level)
             console_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
             self.logger.addHandler(console_handler)
             self.logger.error(f"Failed to setup logger properly: {e}")
@@ -83,26 +99,22 @@ class MarketflowLogger:
         
         # Prevent adding handlers multiple times
         if logger.handlers:
+            logger.setLevel(min(self.file_level, self.console_level))
+            for handler in logger.handlers:
+                if isinstance(handler, logging.FileHandler):
+                    handler.setLevel(self.file_level)
+                elif isinstance(handler, logging.StreamHandler):
+                    handler.setLevel(self.console_level)
             return logger
-        
-        # Set log level with proper validation
-        if isinstance(log_level, str):
-            level = getattr(logging, log_level.upper(), None)
-            if level is None:
-                # Create a temporary logger for the warning since self.logger doesn't exist yet
-                temp_logger = logging.getLogger(f"{self.module_name}_temp")
-                temp_logger.warning(f"Invalid log_level: {log_level}. Using default INFO level.")
-                level = logging.INFO
-        else:
-            level = logging.INFO
-        
-        logger.setLevel(level)
+
+        logger.setLevel(min(self.file_level, self.console_level))
         
         # Create formatter
         formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
         
         # Create console handler
         console_handler = logging.StreamHandler(sys.stdout)
+        console_handler.setLevel(self.console_level)
         console_handler.setFormatter(formatter)
         logger.addHandler(console_handler)
         
@@ -127,6 +139,7 @@ class MarketflowLogger:
                         encoding=self.encoding  # Apply encoding parameter
                     )
                     
+                file_handler.setLevel(self.file_level)
                 file_handler.setFormatter(formatter)
                 logger.addHandler(file_handler)
             except Exception as e:
@@ -253,7 +266,7 @@ _loggers = {}
 
 def get_logger(module_name: str = "Marketflow", log_level: str = "INFO", 
                log_file: Optional[str] = None, enable_rotation: bool = True,
-               encoding: str = 'utf-8') -> MarketflowLogger:
+               encoding: str = 'utf-8', console_log_level: str | None = None) -> MarketflowLogger:
     """
     Get a logger instance for the specified module
     
@@ -263,6 +276,7 @@ def get_logger(module_name: str = "Marketflow", log_level: str = "INFO",
     - log_file: Optional path to log file
     - enable_rotation: Whether to enable log rotation
     - encoding: File encoding for log files
+    - console_log_level: Optional console-only logging level
     
     Returns:
     - MarketflowLogger instance
@@ -270,7 +284,10 @@ def get_logger(module_name: str = "Marketflow", log_level: str = "INFO",
     global _loggers
     
     # Create a unique key for the logger configuration
-    logger_key = f"{module_name}_{log_level}_{log_file}_{enable_rotation}_{encoding}"
+    logger_key = (
+        f"{module_name}_{log_level}_{console_log_level}_"
+        f"{log_file}_{enable_rotation}_{encoding}"
+    )
     
     if logger_key not in _loggers:
         _loggers[logger_key] = MarketflowLogger(
@@ -278,7 +295,8 @@ def get_logger(module_name: str = "Marketflow", log_level: str = "INFO",
             log_file=log_file,
             module_name=module_name,
             enable_rotation=enable_rotation,
-            encoding=encoding
+            encoding=encoding,
+            console_log_level=console_log_level,
         )
     
     return _loggers[logger_key]

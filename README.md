@@ -87,6 +87,13 @@ The app can:
 - rank strategy candidates
 - run simple Monte Carlo simulations
 
+By default, MarketFlow Studio reduces console log noise. To enable verbose logs:
+
+```powershell
+$env:MARKETFLOW_CONSOLE_LOG_LEVEL="INFO"
+streamlit run apps/marketflow_studio.py
+```
+
 ## Overview: Main Data Flow in MarketFlow
 
 The MarketFlow system is organized around the facade pattern (via MarketflowFacade), which orchestrates a modular pipeline for multi-timeframe financial analysis. The main pathway is:

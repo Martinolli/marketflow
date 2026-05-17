@@ -101,6 +101,7 @@ streamlit run apps/marketflow_studio.py
 - Strategy Ranking diagnostics — implemented
 - Strategy latest-batch diagnostics refinement — implemented
 - Monte Carlo tab, simple single-run mode — implemented
+- Streamlit logging control — implemented
 - Next planned milestone: PR review / merge to main
 
 ---
