@@ -105,6 +105,7 @@ streamlit run apps/marketflow_studio.py
 * Candidate-to-Monte Carlo handoff — implemented
 * Monte Carlo output file listing — implemented
 * Batch Analysis tab — implemented
+* Analyst Packet Builder — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

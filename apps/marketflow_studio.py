@@ -17,6 +17,11 @@ if str(PROJECT_ROOT) not in sys.path:
 
 from marketflow.charts.wyckoff_chart import build_basic_wyckoff_candlestick_chart
 from marketflow.services.analysis_service import run_single_ticker
+from marketflow.services.analyst_packet_service import (
+    build_analyst_packet,
+    load_default_analyst_profile,
+    packet_to_pretty_json,
+)
 from marketflow.services.batch_service import (
     normalize_batch_tickers,
     run_batch_analysis,
@@ -484,6 +489,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
         format_func=lambda index: labels[index],
     )
     selected_candidate = results[selected_index]
+    st.session_state.latest_strategy_candidate = selected_candidate
     st.json(selected_candidate)
 
     if st.button("Use selected candidate in Monte Carlo"):
@@ -496,6 +502,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
             "take_profit": selected_candidate.get("tp"),
             "source": "strategy_ranking",
         }
+        st.session_state.latest_strategy_candidate = selected_candidate
         st.session_state.monte_carlo_result = None
         st.success("Selected candidate sent to Monte Carlo tab.")
 
@@ -1002,7 +1009,7 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
                 st.warning(message)
         else:
             with st.spinner("Running Monte Carlo simulation..."):
-                st.session_state.monte_carlo_result = run_monte_carlo_for_csv(
+                mc_result = run_monte_carlo_for_csv(
                     csv_path=selected_csv,
                     entry=float(entry),
                     stop_loss=float(stop_loss),
@@ -1015,10 +1022,114 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
                     seed=int(seed),
                     save_plots=save_plots,
                 )
+                st.session_state.monte_carlo_result = mc_result
                 if prefill and candidate_csv and _path_matches(candidate_csv, selected_csv):
                     st.session_state.monte_carlo_result["source"] = prefill.get("source")
+                st.session_state.latest_monte_carlo_result = st.session_state.monte_carlo_result
 
     _render_monte_carlo_results(st.session_state.get("monte_carlo_result"))
+
+
+def _strategy_candidate_for_packet() -> dict[str, Any] | None:
+    """Return the best available strategy candidate context for analyst packets."""
+    candidate = st.session_state.get("latest_strategy_candidate")
+    if isinstance(candidate, dict):
+        return candidate
+
+    prefill = st.session_state.get("monte_carlo_prefill")
+    if isinstance(prefill, dict):
+        return {
+            "ticker": prefill.get("ticker"),
+            "csv": prefill.get("csv"),
+            "tf": prefill.get("tf"),
+            "close": prefill.get("entry"),
+            "sl": prefill.get("stop_loss"),
+            "tp": prefill.get("take_profit"),
+        }
+    return None
+
+
+def _render_analyst_packet(result: dict[str, Any] | None) -> None:
+    """Render the Analyst Packet Builder tab."""
+    st.write(
+        "This builds structured context for the future Wyckoff Volume Analyst. "
+        "It does not call an LLM yet."
+    )
+
+    ticker = result.get("ticker") if result else None
+    report_json = result.get("report_json") if result else None
+    summary_text = result.get("summary_text") or result.get("narrative") if result else None
+    report_dir = result.get("output_dir") if result else None
+    strategy_candidate = _strategy_candidate_for_packet()
+    monte_carlo_result = (
+        st.session_state.get("latest_monte_carlo_result")
+        or st.session_state.get("monte_carlo_result")
+    )
+
+    if not ticker and strategy_candidate:
+        ticker = strategy_candidate.get("ticker")
+
+    if not ticker and not report_json:
+        st.info("Load a report, run analysis, or select a strategy candidate first.")
+        return
+
+    st.caption(f"Ticker context: `{ticker or 'UNKNOWN'}`")
+    if report_dir:
+        st.caption(f"Report directory: `{report_dir}`")
+    if strategy_candidate:
+        st.caption("Strategy candidate context is available.")
+    if monte_carlo_result and monte_carlo_result.get("success"):
+        st.caption("Latest Monte Carlo result is available.")
+
+    if st.button("Build Analyst Packet", type="primary"):
+        packet = build_analyst_packet(
+            ticker=ticker or "",
+            report_json=report_json,
+            summary_text=summary_text,
+            report_dir=report_dir,
+            strategy_candidate=strategy_candidate,
+            monte_carlo_result=monte_carlo_result,
+            profile=load_default_analyst_profile(),
+        )
+        st.session_state.analyst_packet = packet
+        st.session_state.analyst_packet_json = packet_to_pretty_json(packet)
+
+    packet = st.session_state.get("analyst_packet")
+    pretty_json = st.session_state.get("analyst_packet_json")
+    if not packet:
+        st.info("Click Build Analyst Packet to generate structured analyst context.")
+        return
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        _display_optional_metric("Packet Ticker", packet.get("ticker"))
+    with col2:
+        _display_optional_metric("POP Gate", _nested_get(packet, ["go_no_go", "pop_gate"]))
+    with col3:
+        _display_optional_metric("Risk Rank", _nested_get(packet, ["go_no_go", "risk_rank"]))
+    with col4:
+        _display_optional_metric("Missing Data", len(packet.get("missing_data") or []))
+
+    missing_data = packet.get("missing_data") or []
+    warnings = packet.get("warnings") or []
+    if missing_data:
+        st.warning("Packet has missing data. Review the list below before using it downstream.")
+        with st.expander("Missing data"):
+            for item in missing_data:
+                st.write(f"- {item}")
+    if warnings:
+        with st.expander("Warnings"):
+            for item in warnings:
+                st.write(f"- {item}")
+
+    st.json(packet)
+    st.text_area("Pretty JSON", value=pretty_json or packet_to_pretty_json(packet), height=360)
+    st.download_button(
+        "Download analyst_packet.json",
+        data=pretty_json or packet_to_pretty_json(packet),
+        file_name=f"{packet.get('ticker') or 'marketflow'}_analyst_packet.json",
+        mime="application/json",
+    )
 
 
 def _render_raw_json(result: dict[str, Any] | None) -> None:
@@ -1043,6 +1154,12 @@ def main() -> None:
         st.session_state.batch_result = None
     if "monte_carlo_result" not in st.session_state:
         st.session_state.monte_carlo_result = None
+    if "latest_monte_carlo_result" not in st.session_state:
+        st.session_state.latest_monte_carlo_result = None
+    if "analyst_packet" not in st.session_state:
+        st.session_state.analyst_packet = None
+    if "analyst_packet_json" not in st.session_state:
+        st.session_state.analyst_packet_json = None
 
     with st.sidebar:
         st.header("Analysis")
@@ -1071,6 +1188,7 @@ def main() -> None:
         strategy_tab,
         batch_tab,
         monte_carlo_tab,
+        analyst_packet_tab,
         raw_json_tab,
     ) = st.tabs(
         [
@@ -1081,6 +1199,7 @@ def main() -> None:
             "Strategy Ranking",
             "Batch Analysis",
             "Monte Carlo",
+            "Analyst Packet",
             "Raw JSON",
         ]
     )
@@ -1105,6 +1224,9 @@ def main() -> None:
 
     with monte_carlo_tab:
         _render_monte_carlo(result)
+
+    with analyst_packet_tab:
+        _render_analyst_packet(result)
 
     with raw_json_tab:
         _render_raw_json(result)
