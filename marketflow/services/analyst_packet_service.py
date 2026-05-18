@@ -459,6 +459,49 @@ def _build_analyst_sections(
     }
 
 
+def _missing_data_messages(missing_keys: list[str]) -> list[str]:
+    """Convert internal missing-data keys into user-facing messages."""
+    messages = {
+        "report_json": "No report JSON available. Load or run a report first for full market context.",
+        "summary_text": "No summary text available. Narrative inputs will be limited.",
+        "strategy_candidate": "No strategy candidate selected. Use Strategy Ranking first if trade setup context is required.",
+        "monte_carlo": "No Monte Carlo result available. Run Monte Carlo first if POP metrics are required.",
+        "timeframes": "No timeframe analysis found in the report JSON.",
+        "market_snapshot.current_price": "No current price found in report JSON.",
+        "market_snapshot.signal_type": "No signal type found in report JSON.",
+        "market_snapshot.signal_strength": "No signal strength found in report JSON.",
+        "market_snapshot.stop_loss": "No stop loss found in report JSON.",
+        "market_snapshot.take_profit": "No take profit found in report JSON.",
+        "market_snapshot.risk_reward": "No risk/reward ratio found in report JSON.",
+    }
+    return [messages.get(key, key) for key in sorted(set(missing_keys))]
+
+
+def _build_packet_summary(
+    ticker: str | None,
+    market_snapshot: dict[str, Any],
+    normalized_candidate: dict[str, Any] | None,
+    monte_carlo: dict[str, Any] | None,
+    go_no_go: dict[str, Any],
+    report_json: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Build compact top-level packet status for UI and future analyst flows."""
+    candidate_available = normalized_candidate is not None
+    monte_carlo_available = monte_carlo is not None
+    report_context_available = isinstance(report_json, dict)
+    return {
+        "ticker": ticker,
+        "current_price": market_snapshot.get("current_price"),
+        "candidate_available": candidate_available,
+        "monte_carlo_available": monte_carlo_available,
+        "pop_gate": go_no_go.get("pop_gate"),
+        "risk_rank": go_no_go.get("risk_rank"),
+        "ready_for_analyst": bool(
+            report_context_available and candidate_available and monte_carlo_available
+        ),
+    }
+
+
 def build_analyst_packet(
     ticker: str,
     report_json: dict[str, Any] | None = None,
@@ -478,7 +521,11 @@ def build_analyst_packet(
     missing_data: list[str] = []
     warnings: list[str] = []
     clean_profile = profile or load_default_analyst_profile()
-    inferred_ticker = ticker or _first_value(report_json, [["ticker"]]) or (strategy_candidate or {}).get("ticker")
+    inferred_ticker = (
+        (strategy_candidate or {}).get("ticker")
+        or ticker
+        or _first_value(report_json, [["ticker"]])
+    )
     market_snapshot = _extract_market_snapshot(report_json, missing_data)
     timeframes = _extract_timeframes(report_json)
     if not timeframes:
@@ -494,7 +541,16 @@ def build_analyst_packet(
     warnings.extend(level_warnings)
     wyckoff_vpa = _extract_wyckoff_vpa(report_json)
     warnings.extend(wyckoff_vpa.get("warnings", []))
+    warnings.append("No P&F data included yet; P&F gate remains pending.")
     go_no_go = _build_go_no_go(clean_profile, normalized_candidate, monte_carlo, warnings)
+    packet_summary = _build_packet_summary(
+        inferred_ticker,
+        market_snapshot,
+        normalized_candidate,
+        monte_carlo,
+        go_no_go,
+        report_json,
+    )
 
     if not isinstance(report_json, dict):
         missing_data.append("report_json")
@@ -519,6 +575,7 @@ def build_analyst_packet(
         "packet_version": PACKET_VERSION,
         "created_at": datetime.now(timezone.utc).isoformat(),
         "ticker": inferred_ticker,
+        "packet_summary": packet_summary,
         "profile": clean_profile,
         "source_files": {
             "report_dir": report_dir,
@@ -535,7 +592,7 @@ def build_analyst_packet(
         "wyckoff_vpa": wyckoff_vpa,
         "go_no_go": go_no_go,
         "analyst_sections": analyst_sections,
-        "missing_data": sorted(set(missing_data)),
+        "missing_data": _missing_data_messages(missing_data),
         "warnings": sorted(set(warnings)),
     }
     return _json_safe(packet)

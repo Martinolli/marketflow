@@ -490,6 +490,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
     )
     selected_candidate = results[selected_index]
     st.session_state.latest_strategy_candidate = selected_candidate
+    st.session_state.selected_strategy_candidate = selected_candidate
     st.json(selected_candidate)
 
     if st.button("Use selected candidate in Monte Carlo"):
@@ -503,6 +504,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
             "source": "strategy_ranking",
         }
         st.session_state.latest_strategy_candidate = selected_candidate
+        st.session_state.selected_strategy_candidate = selected_candidate
         st.session_state.monte_carlo_result = None
         st.success("Selected candidate sent to Monte Carlo tab.")
 
@@ -1032,6 +1034,10 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
 
 def _strategy_candidate_for_packet() -> dict[str, Any] | None:
     """Return the best available strategy candidate context for analyst packets."""
+    candidate = st.session_state.get("selected_strategy_candidate")
+    if isinstance(candidate, dict):
+        return candidate
+
     candidate = st.session_state.get("latest_strategy_candidate")
     if isinstance(candidate, dict):
         return candidate
@@ -1056,11 +1062,15 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         "It does not call an LLM yet."
     )
 
-    ticker = result.get("ticker") if result else None
     report_json = result.get("report_json") if result else None
     summary_text = result.get("summary_text") or result.get("narrative") if result else None
     report_dir = result.get("output_dir") if result else None
     strategy_candidate = _strategy_candidate_for_packet()
+    ticker = (
+        strategy_candidate.get("ticker")
+        if isinstance(strategy_candidate, dict) and strategy_candidate.get("ticker")
+        else result.get("ticker") if result else None
+    )
     monte_carlo_result = (
         st.session_state.get("latest_monte_carlo_result")
         or st.session_state.get("monte_carlo_result")
@@ -1100,15 +1110,28 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         st.info("Click Build Analyst Packet to generate structured analyst context.")
         return
 
+    packet_summary = packet.get("packet_summary") or {}
+    strategy_context = packet.get("strategy_candidate") or {}
+    monte_carlo_context = packet.get("monte_carlo") or {}
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
-        _display_optional_metric("Packet Ticker", packet.get("ticker"))
+        _display_optional_metric("Ticker", packet_summary.get("ticker") or packet.get("ticker"))
+        _display_optional_metric(
+            "Current Price",
+            _format_number(packet_summary.get("current_price")),
+        )
     with col2:
-        _display_optional_metric("POP Gate", _nested_get(packet, ["go_no_go", "pop_gate"]))
+        _display_optional_metric("Strategy Score", _format_number(strategy_context.get("score")))
+        _display_optional_metric("Strategy TF", strategy_context.get("tf"))
     with col3:
-        _display_optional_metric("Risk Rank", _nested_get(packet, ["go_no_go", "risk_rank"]))
+        _display_optional_metric("MC TP First", _format_probability(monte_carlo_context.get("pop_tp_first")))
+        _display_optional_metric("MC SL First", _format_probability(monte_carlo_context.get("p_sl_first")))
     with col4:
-        _display_optional_metric("Missing Data", len(packet.get("missing_data") or []))
+        _display_optional_metric("POP Gate", packet_summary.get("pop_gate"))
+        _display_optional_metric("Risk Rank", packet_summary.get("risk_rank"))
+
+    st.caption(f"Ready for analyst: `{packet_summary.get('ready_for_analyst')}`")
 
     missing_data = packet.get("missing_data") or []
     warnings = packet.get("warnings") or []
@@ -1156,6 +1179,8 @@ def main() -> None:
         st.session_state.monte_carlo_result = None
     if "latest_monte_carlo_result" not in st.session_state:
         st.session_state.latest_monte_carlo_result = None
+    if "selected_strategy_candidate" not in st.session_state:
+        st.session_state.selected_strategy_candidate = None
     if "analyst_packet" not in st.session_state:
         st.session_state.analyst_packet = None
     if "analyst_packet_json" not in st.session_state:
