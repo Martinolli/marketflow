@@ -107,6 +107,7 @@ streamlit run apps/marketflow_studio.py
 * Batch Analysis tab — implemented
 * Analyst Packet Builder — implemented
 * Analyst Packet end-to-end validation — implemented
+* Studio readability polish — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

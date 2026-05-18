@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import sys
 from pathlib import Path
 from typing import Any
@@ -115,6 +116,35 @@ def _format_number(value: Any, decimals: int = 4) -> str | None:
         return str(value)
 
 
+def _format_ui_number(value: Any, decimals: int = 2) -> str | None:
+    """Format UI numbers without long floating point tails."""
+    if value is None or value == "":
+        return None
+    try:
+        return f"{float(value):.{decimals}f}"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _is_formatted_number(value: str | None) -> bool:
+    """Return True when a formatted string contains a plain number."""
+    if value is None:
+        return False
+    return value.replace(".", "", 1).replace("-", "", 1).isdigit()
+
+
+def _format_ui_price(value: Any, decimals: int = 2) -> str | None:
+    """Format a price-like value for display."""
+    formatted = _format_ui_number(value, decimals=decimals)
+    return f"${formatted}" if _is_formatted_number(formatted) else formatted
+
+
+def _format_ui_percent(value: Any, decimals: int = 2) -> str | None:
+    """Format a percent-like value for display."""
+    formatted = _format_ui_number(value, decimals=decimals)
+    return f"{formatted}%" if _is_formatted_number(formatted) else formatted
+
+
 def _display_optional_metric(label: str, value: Any) -> None:
     """Display a metric when available, otherwise show a muted missing value."""
     if value is None or value == "":
@@ -204,6 +234,60 @@ def _render_csv_file_context(csv_path: str) -> str | None:
     return timeframe
 
 
+def _classify_report_file(file_path: str) -> str:
+    """Classify a generated report file for compact display."""
+    name = Path(file_path).name.lower()
+    if name.endswith("_summary_report.txt"):
+        return "summary"
+    if name.endswith("_llm_analysis.json") or name.endswith("_report.json"):
+        return "report_json"
+    if name.endswith("_wyckoff_annotated.csv"):
+        return "annotated_csv"
+    if name.endswith("_mc_summary.json"):
+        return "monte_carlo_json"
+    if name.endswith("_mc_paths.html") or name.endswith("_mc_hits.html"):
+        return "monte_carlo_html"
+    if name.endswith(".csv"):
+        return "csv"
+    if name.endswith(".html"):
+        return "html"
+    return "other"
+
+
+def _report_file_rows(files: list[str]) -> list[dict[str, Any]]:
+    """Build compact generated-file rows for Reports tab display."""
+    return [
+        {
+            "Type": _classify_report_file(file_path),
+            "Filename": Path(file_path).name,
+            "Timeframe": infer_timeframe_from_csv_name(file_path) or "",
+            "Full Path": file_path,
+        }
+        for file_path in files
+    ]
+
+
+def _render_summary_report(summary_text: str) -> None:
+    """Render summary report text with navigable timeframe sections."""
+    marker = re.compile(r"--- TIMEFRAME ANALYSIS:\s*([^-]+?)\s*---")
+    matches = list(marker.finditer(summary_text))
+    if not matches:
+        st.text(summary_text)
+        return
+
+    intro = summary_text[: matches[0].start()].strip()
+    if intro:
+        st.text(intro)
+
+    for index, match in enumerate(matches):
+        timeframe = match.group(1).strip()
+        section_start = match.end()
+        section_end = matches[index + 1].start() if index + 1 < len(matches) else len(summary_text)
+        section_text = summary_text[section_start:section_end].strip()
+        with st.expander(f"Timeframe Analysis: {timeframe}", expanded=False):
+            st.text(section_text)
+
+
 def _render_overview(result: dict[str, Any] | None) -> None:
     """Render the Overview tab."""
     if not result:
@@ -226,14 +310,14 @@ def _render_overview(result: dict[str, Any] | None) -> None:
 
     col1, col2, col3 = st.columns(3)
     with col1:
-        _display_value("Current Price", report_json.get("current_price"))
-        _display_value("Stop Loss", _nested_get(risk, ["stop_loss"]))
+        _display_value("Current Price", _format_ui_price(report_json.get("current_price")))
+        _display_value("Stop Loss", _format_ui_price(_nested_get(risk, ["stop_loss"])))
     with col2:
         _display_value("Signal Type", _nested_get(signal, ["type"]))
-        _display_value("Take Profit", _nested_get(risk, ["take_profit"]))
+        _display_value("Take Profit", _format_ui_price(_nested_get(risk, ["take_profit"])))
     with col3:
         _display_value("Signal Strength", _nested_get(signal, ["strength"]))
-        _display_value("Risk/Reward", _nested_get(risk, ["risk_reward_ratio"]))
+        _display_value("Risk/Reward", _format_ui_number(_nested_get(risk, ["risk_reward_ratio"])))
 
     summary_text = result.get("summary_text") or result.get("narrative")
     if summary_text:
@@ -257,30 +341,38 @@ def _render_reports(result: dict[str, Any] | None) -> None:
 
     st.write(f"Report directory: `{report_dir}`")
 
-    files = list_report_files(report_dir) or result.get("report_files") or []
-    if files:
-        st.markdown("#### Generated Files")
-        for file_path in files:
-            st.write(f"- `{file_path}`")
+    summary_text = result.get("summary_text")
+    if summary_text:
+        st.markdown("#### Summary Report")
+        _render_summary_report(summary_text)
     else:
-        st.info("No generated files found in this directory.")
+        st.info("No summary report text is available for this report.")
+
+    files = list_report_files(report_dir) or result.get("report_files") or []
+    with st.expander("Generated files", expanded=False):
+        if files:
+            st.dataframe(_report_file_rows(files), use_container_width=True, hide_index=True)
+        else:
+            st.info("No generated files found in this directory.")
 
     date_folders = list_report_date_folders()
-    if date_folders:
-        st.markdown("#### Report Date / Batch Folders")
-        for folder in date_folders:
-            st.write(f"- `{folder}`")
+    with st.expander("Report date / batch folders", expanded=False):
+        if date_folders:
+            st.dataframe(
+                [{"Folder": Path(folder).name, "Full Path": folder} for folder in date_folders],
+                use_container_width=True,
+                hide_index=True,
+            )
+        else:
+            st.info("No report date or batch folders found.")
 
     report_parent = str(Path(report_dir).parent)
     tickers = list_available_tickers(report_parent)
-    if tickers:
-        st.markdown("#### Available Ticker Folders")
-        st.write(", ".join(f"`{ticker}`" for ticker in tickers))
-
-    summary_text = result.get("summary_text")
-    if summary_text:
-        st.markdown("#### Summary")
-        st.text(summary_text)
+    with st.expander("Available ticker folders", expanded=False):
+        if tickers:
+            st.dataframe([{"Ticker": ticker} for ticker in tickers], use_container_width=True, hide_index=True)
+        else:
+            st.info("No ticker folders found beside this report.")
 
 
 def _render_csv_preview(result: dict[str, Any] | None) -> None:
