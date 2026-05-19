@@ -1205,6 +1205,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
     packet_summary = packet.get("packet_summary") or {}
     strategy_context = packet.get("strategy_candidate") or {}
     monte_carlo_context = packet.get("monte_carlo") or {}
+    pnf_context = packet.get("pnf") or {}
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -1222,6 +1223,46 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
     with col4:
         _display_optional_metric("POP Gate", packet_summary.get("pop_gate"))
         _display_optional_metric("Risk Rank", packet_summary.get("risk_rank"))
+
+    if packet_summary.get("pnf_available"):
+        pnf_col1, pnf_col2, pnf_col3, pnf_col4 = st.columns(4)
+        with pnf_col1:
+            _display_optional_metric("P&F Available", packet_summary.get("pnf_available"))
+        with pnf_col2:
+            _display_optional_metric("P&F Gate", packet_summary.get("pnf_gate"))
+        with pnf_col3:
+            _display_optional_metric(
+                "Best P&F Objective",
+                _format_number(packet_summary.get("best_pnf_objective")),
+            )
+        with pnf_col4:
+            _display_optional_metric(
+                "Best P&F R",
+                _format_number(packet_summary.get("best_pnf_objective_r")),
+            )
+
+        sidecars = pnf_context.get("sidecars") or []
+        if sidecars:
+            with st.expander("P&F sidecars"):
+                st.dataframe(
+                    [
+                        {
+                            "filename": item.get("filename"),
+                            "timeframe": item.get("timeframe"),
+                            "direction": item.get("direction"),
+                            "breakout_level": item.get("breakout_level"),
+                            "objective": item.get("objective"),
+                            "objective_r_multiple": item.get("objective_r_multiple"),
+                            "distance_to_objective_pct": item.get("distance_to_objective_pct"),
+                        }
+                        for item in sidecars
+                        if isinstance(item, dict)
+                    ],
+                    use_container_width=True,
+                    hide_index=True,
+                )
+    else:
+        st.warning("No P&F sidecars found; P&F gate remains pending.")
 
     st.caption(f"Ready for analyst: `{packet_summary.get('ready_for_analyst')}`")
 

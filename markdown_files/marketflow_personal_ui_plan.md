@@ -108,6 +108,7 @@ streamlit run apps/marketflow_studio.py
 * Analyst Packet Builder — implemented
 * Analyst Packet end-to-end validation — implemented
 * Studio readability polish — implemented
+* P&F sidecar integration into Analyst Packet — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

@@ -100,6 +100,226 @@ def _level_price(level: Any) -> float | None:
     return _to_float(level)
 
 
+def _first_direct_value(data: dict[str, Any] | None, keys: tuple[str, ...]) -> Any:
+    """Return the first present top-level value from a dictionary."""
+    if not isinstance(data, dict):
+        return None
+    for key in keys:
+        if key in data and data[key] is not None and data[key] != "":
+            return data[key]
+    return None
+
+
+def _first_pnf_value(data: dict[str, Any] | None, keys: tuple[str, ...]) -> Any:
+    """Return a P&F sidecar value from top-level or common nested containers."""
+    direct_value = _first_direct_value(data, keys)
+    if direct_value is not None:
+        return direct_value
+
+    if not isinstance(data, dict):
+        return None
+    for container_key in ("count", "pnf", "meta", "summary"):
+        container = data.get(container_key)
+        nested_value = _first_direct_value(container, keys) if isinstance(container, dict) else None
+        if nested_value is not None:
+            return nested_value
+    return None
+
+
+def _pnf_float(value: Any) -> float | None:
+    """Convert P&F numeric fields without treating booleans as prices."""
+    if isinstance(value, bool):
+        return None
+    return _to_float(value)
+
+
+def _first_pnf_float(data: dict[str, Any] | None, keys: tuple[str, ...]) -> float | None:
+    """Return the first numeric P&F sidecar value from known locations."""
+    candidates = [_first_direct_value(data, keys)]
+    if isinstance(data, dict):
+        for container_key in ("count", "pnf", "meta", "summary"):
+            container = data.get(container_key)
+            if isinstance(container, dict):
+                candidates.append(_first_direct_value(container, keys))
+
+    for candidate in candidates:
+        number = _pnf_float(candidate)
+        if number is not None:
+            return number
+    return None
+
+
+def _pnf_int(value: Any) -> int | None:
+    """Convert P&F integer fields defensively."""
+    number = _pnf_float(value)
+    if number is None:
+        return None
+    try:
+        return int(number)
+    except (TypeError, ValueError, OverflowError):
+        return None
+
+
+def list_pnf_sidecars(report_dir: str | None) -> list[str]:
+    """
+    Return P&F sidecar JSON files found in the report directory.
+
+    Search only the report directory, not the whole repo.
+    Match files like:
+    - *_pnf_meta.json
+    - *pnf*.json
+
+    Return paths sorted newest first by modified time.
+    """
+    if not report_dir:
+        return []
+
+    try:
+        directory = Path(report_dir)
+        if not directory.exists() or not directory.is_dir():
+            return []
+        paths = {
+            path.resolve()
+            for pattern in ("*_pnf_meta.json", "*pnf*.json")
+            for path in directory.glob(pattern)
+            if path.is_file()
+        }
+        return [
+            str(path)
+            for path in sorted(
+                paths,
+                key=lambda item: item.stat().st_mtime,
+                reverse=True,
+            )
+        ]
+    except Exception:
+        return []
+
+
+def _normalize_pnf_sidecar(path: str, data: dict[str, Any]) -> dict[str, Any]:
+    """
+    Normalize a P&F sidecar into a stable schema.
+    """
+    sidecar_path = Path(path)
+    timeframe_value = _first_pnf_value(data, ("timeframe", "tf", "interval"))
+    direction_value = _first_pnf_value(data, ("direction", "count_direction", "trend"))
+    last_price = _first_pnf_float(data, ("last_price", "spot", "current_price", "close"))
+    objective = _first_pnf_float(data, ("objective", "objective_price", "target", "target_price"))
+
+    distance_to_objective = None
+    distance_to_objective_pct = None
+    if last_price is not None and last_price != 0 and objective is not None:
+        distance_to_objective = objective - last_price
+        distance_to_objective_pct = distance_to_objective / last_price * 100
+
+    return {
+        "path": str(sidecar_path),
+        "filename": sidecar_path.name,
+        "timeframe": str(timeframe_value) if timeframe_value is not None else None,
+        "direction": str(direction_value) if direction_value is not None else None,
+        "box_pct": _first_pnf_float(data, ("box_pct", "box_percent")),
+        "box_size": _first_pnf_float(data, ("box_size", "box")),
+        "reversal": _pnf_int(_first_pnf_value(data, ("reversal", "rev"))),
+        "last_price": last_price,
+        "breakout_level": _first_pnf_float(data, ("breakout", "breakout_level", "break_level", "breakout_price")),
+        "objective": objective,
+        "objective_r_multiple": None,
+        "distance_to_objective": distance_to_objective,
+        "distance_to_objective_pct": distance_to_objective_pct,
+        "raw": data if isinstance(data, dict) else {},
+    }
+
+
+def load_pnf_sidecars(report_dir: str | None) -> list[dict[str, Any]]:
+    """
+    Load and normalize P&F sidecar JSON files.
+
+    Return a list of normalized P&F records.
+    Do not raise UI-breaking exceptions.
+    """
+    records: list[dict[str, Any]] = []
+    for path in list_pnf_sidecars(report_dir):
+        try:
+            with open(path, "r", encoding="utf-8") as file:
+                data = json.load(file)
+            if not isinstance(data, dict):
+                data = {"_error": "P&F sidecar root is not a JSON object.", "value": data}
+        except Exception as exc:
+            data = {"_error": f"Could not load P&F sidecar: {type(exc).__name__}: {exc}"}
+
+        try:
+            records.append(_normalize_pnf_sidecar(path, data))
+        except Exception as exc:
+            records.append(
+                _normalize_pnf_sidecar(
+                    path,
+                    {"_error": f"Could not normalize P&F sidecar: {type(exc).__name__}: {exc}"},
+                )
+            )
+    return records
+
+
+def _attach_pnf_objective_r(
+    records: list[dict[str, Any]],
+    strategy_candidate: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Compute objective R multiples when trade entry and stop are available."""
+    if not isinstance(strategy_candidate, dict):
+        return records
+
+    entry = _to_float(strategy_candidate.get("close") if strategy_candidate.get("close") is not None else strategy_candidate.get("entry"))
+    stop_loss = _to_float(
+        strategy_candidate.get("stop_loss") if strategy_candidate.get("stop_loss") is not None else strategy_candidate.get("sl")
+    )
+    if entry is None or stop_loss is None:
+        return records
+
+    risk = entry - stop_loss
+    if risk <= 0:
+        return records
+
+    for record in records:
+        objective = _to_float(record.get("objective"))
+        if objective is not None:
+            record["objective_r_multiple"] = (objective - entry) / risk
+    return records
+
+
+def _best_pnf_objective(records: list[dict[str, Any]]) -> dict[str, Any] | None:
+    """Choose the most useful P&F objective record for packet summaries."""
+    r_records = [
+        record
+        for record in records
+        if _to_float(record.get("objective_r_multiple")) is not None
+    ]
+    if r_records:
+        return max(r_records, key=lambda record: _to_float(record.get("objective_r_multiple")) or float("-inf"))
+
+    distance_records = [
+        record
+        for record in records
+        if (_to_float(record.get("distance_to_objective_pct")) or 0) > 0
+    ]
+    if distance_records:
+        return max(distance_records, key=lambda record: _to_float(record.get("distance_to_objective_pct")) or float("-inf"))
+    return None
+
+
+def _build_pnf_section(
+    records: list[dict[str, Any]],
+    gate: str = "pending",
+    notes: list[str] | None = None,
+) -> dict[str, Any]:
+    """Build the packet P&F section."""
+    return {
+        "available": bool(records),
+        "sidecars": records,
+        "best_objective": _best_pnf_objective(records),
+        "gate": gate,
+        "notes": notes or [],
+    }
+
+
 def _distance_band(delta_pct_abs: float | None) -> str | None:
     """Assign a heatmap distance band."""
     if delta_pct_abs is None:
@@ -374,6 +594,7 @@ def _build_go_no_go(
     profile: dict[str, Any],
     strategy_candidate: dict[str, Any] | None,
     monte_carlo: dict[str, Any] | None,
+    pnf: dict[str, Any],
     warnings: list[str],
 ) -> dict[str, Any]:
     """Build basic decision-support labels without issuing recommendations."""
@@ -398,8 +619,23 @@ def _build_go_no_go(
         pop_gate = "fail"
         notes.append("POP is below configured thresholds.")
 
-    pnf_gate = "pending"
-    notes.append("P&F objective gate is pending because P&F data is not included in this packet.")
+    pnf_records = pnf.get("sidecars") if isinstance(pnf, dict) else []
+    best_pnf = pnf.get("best_objective") if isinstance(pnf, dict) else None
+    best_pnf_r = _to_float(best_pnf.get("objective_r_multiple")) if isinstance(best_pnf, dict) else None
+    min_pnf_objective_r = _to_float(profile.get("min_pnf_objective_r")) or 1.5
+
+    if not pnf_records:
+        pnf_gate = "pending"
+        notes.append("No P&F sidecars found; P&F gate remains pending.")
+    elif best_pnf_r is None:
+        pnf_gate = "unknown"
+        notes.append("P&F sidecars found, but objective R could not be computed.")
+    elif best_pnf_r >= min_pnf_objective_r:
+        pnf_gate = "pass"
+        notes.append("P&F objective meets configured R threshold.")
+    else:
+        pnf_gate = "fail"
+        notes.append("P&F objective is below configured R threshold.")
 
     if pop_gate == "unknown" and score is None:
         risk_rank = None
@@ -426,14 +662,22 @@ def _build_analyst_sections(
     wyckoff_vpa: dict[str, Any],
     strategy_candidate: dict[str, Any] | None,
     monte_carlo: dict[str, Any] | None,
+    pnf: dict[str, Any],
     go_no_go: dict[str, Any],
 ) -> dict[str, Any]:
     """Build structured bridge sections for a future analyst prompt."""
+    best_pnf = pnf.get("best_objective") if isinstance(pnf, dict) else None
+    pnf_objective_present = any(
+        _to_float(record.get("objective")) is not None
+        for record in (pnf.get("sidecars") if isinstance(pnf, dict) else []) or []
+        if isinstance(record, dict)
+    )
     return {
         "statistical_analysis": {
             "market_snapshot": market_snapshot,
             "strategy_candidate": strategy_candidate,
             "monte_carlo": monte_carlo,
+            "pnf": pnf,
             "go_no_go": go_no_go,
         },
         "narrative_inputs": {
@@ -448,11 +692,13 @@ def _build_analyst_sections(
             {"item": "Support/resistance levels present", "available": bool(levels.get("support") or levels.get("resistance"))},
             {"item": "Strategy candidate present", "available": strategy_candidate is not None},
             {"item": "Monte Carlo metrics present", "available": monte_carlo is not None},
-            {"item": "P&F objective present", "available": False},
+            {"item": "P&F objective present", "available": pnf_objective_present},
         ],
         "levels_heatmap": levels,
         "final_summary_inputs": {
             "go_no_go": go_no_go,
+            "pnf_gate": go_no_go.get("pnf_gate"),
+            "best_pnf_objective": best_pnf,
             "risk": market_snapshot.get("risk"),
             "key_warnings": wyckoff_vpa.get("warnings", []),
         },
@@ -483,18 +729,24 @@ def _build_packet_summary(
     normalized_candidate: dict[str, Any] | None,
     monte_carlo: dict[str, Any] | None,
     go_no_go: dict[str, Any],
+    pnf: dict[str, Any],
     report_json: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Build compact top-level packet status for UI and future analyst flows."""
     candidate_available = normalized_candidate is not None
     monte_carlo_available = monte_carlo is not None
     report_context_available = isinstance(report_json, dict)
+    best_pnf = pnf.get("best_objective") if isinstance(pnf, dict) else None
     return {
         "ticker": ticker,
         "current_price": market_snapshot.get("current_price"),
         "candidate_available": candidate_available,
         "monte_carlo_available": monte_carlo_available,
         "pop_gate": go_no_go.get("pop_gate"),
+        "pnf_available": bool((pnf or {}).get("available")) if isinstance(pnf, dict) else False,
+        "pnf_gate": go_no_go.get("pnf_gate"),
+        "best_pnf_objective": best_pnf.get("objective") if isinstance(best_pnf, dict) else None,
+        "best_pnf_objective_r": best_pnf.get("objective_r_multiple") if isinstance(best_pnf, dict) else None,
         "risk_rank": go_no_go.get("risk_rank"),
         "ready_for_analyst": bool(
             report_context_available and candidate_available and monte_carlo_available
@@ -541,14 +793,25 @@ def build_analyst_packet(
     warnings.extend(level_warnings)
     wyckoff_vpa = _extract_wyckoff_vpa(report_json)
     warnings.extend(wyckoff_vpa.get("warnings", []))
-    warnings.append("No P&F data included yet; P&F gate remains pending.")
-    go_no_go = _build_go_no_go(clean_profile, normalized_candidate, monte_carlo, warnings)
+    pnf_records = _attach_pnf_objective_r(load_pnf_sidecars(report_dir), normalized_candidate)
+    pnf = _build_pnf_section(pnf_records)
+    if not pnf.get("available"):
+        warnings.append("No P&F data included yet; P&F gate remains pending.")
+
+    go_no_go = _build_go_no_go(clean_profile, normalized_candidate, monte_carlo, pnf, warnings)
+    pnf["gate"] = go_no_go.get("pnf_gate")
+    pnf["notes"] = [
+        note
+        for note in go_no_go.get("notes", [])
+        if note.startswith("P&F") or note.startswith("No P&F")
+    ]
     packet_summary = _build_packet_summary(
         inferred_ticker,
         market_snapshot,
         normalized_candidate,
         monte_carlo,
         go_no_go,
+        pnf,
         report_json,
     )
 
@@ -568,6 +831,7 @@ def build_analyst_packet(
         wyckoff_vpa,
         normalized_candidate,
         monte_carlo,
+        pnf,
         go_no_go,
     )
 
@@ -583,11 +847,14 @@ def build_analyst_packet(
             "summary_text_available": bool(summary_text),
             "strategy_candidate_available": normalized_candidate is not None,
             "monte_carlo_available": monte_carlo is not None,
+            "pnf_sidecars_available": bool(pnf_records),
+            "pnf_sidecar_count": len(pnf_records),
         },
         "market_snapshot": market_snapshot,
         "timeframes": timeframes,
         "strategy_candidate": normalized_candidate,
         "monte_carlo": monte_carlo,
+        "pnf": pnf,
         "levels": levels,
         "wyckoff_vpa": wyckoff_vpa,
         "go_no_go": go_no_go,
