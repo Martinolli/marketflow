@@ -51,7 +51,8 @@ Strategy Ranking now prefers MC summaries matching the selected timeframe. If no
 - Bootstrap is the recommended default.
 - Save plots writes HTML/JSON files beside the CSV.
 - Generated files are listed in the UI.
-- To view HTML plots today, open `*_mc_paths.html` or `*_mc_hits.html` in a browser.
+- HTML plots can be previewed inside Studio after a run.
+- They can also be downloaded and opened in a browser.
 
 ## GARCH
 

@@ -11,6 +11,7 @@ from typing import Any
 os.environ.setdefault("MARKETFLOW_CONSOLE_LOG_LEVEL", "WARNING")
 
 import streamlit as st
+import streamlit.components.v1 as components
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 if str(PROJECT_ROOT) not in sys.path:
@@ -897,9 +898,57 @@ def _format_file_size(size_bytes: int | None) -> str:
     return f"{size_bytes / (1024 * 1024):.1f} MB"
 
 
+def _read_text_file(path: str, max_bytes: int = 8_000_000) -> tuple[str | None, str | None]:
+    """
+    Return (text, error). Used for preview/download of local generated files.
+    """
+    try:
+        file_path = Path(path)
+        if not file_path.exists() or not file_path.is_file():
+            return None, "File is no longer available."
+        if file_path.stat().st_size > max_bytes:
+            return None, f"File is larger than {_format_file_size(max_bytes)}."
+        return file_path.read_text(encoding="utf-8"), None
+    except UnicodeDecodeError:
+        return None, "File could not be read as UTF-8 text."
+    except Exception as exc:
+        return None, f"Could not read file: {exc}"
+
+
+def _output_files_by_kind(output_files: list[dict[str, Any]], kind: str) -> list[dict[str, Any]]:
+    """Return output files matching a Monte Carlo output kind."""
+    return [
+        item
+        for item in output_files
+        if isinstance(item, dict) and item.get("kind") == kind and item.get("path")
+    ]
+
+
+def _render_monte_carlo_download(
+    item: dict[str, Any],
+    label: str,
+    mime: str,
+    key_prefix: str,
+) -> None:
+    """Render a download button for a generated Monte Carlo text file."""
+    path = str(item.get("path") or "")
+    text, error = _read_text_file(path, max_bytes=32_000_000)
+    if error:
+        st.warning(f"{label}: {error}")
+        return
+    st.download_button(
+        label,
+        data=text or "",
+        file_name=item.get("name") or Path(path).name,
+        mime=mime,
+        key=f"{key_prefix}_{Path(path).name}",
+    )
+
+
 def _render_monte_carlo_output_files(monte_carlo_result: dict[str, Any]) -> None:
     """Render Monte Carlo output files saved by the simulator."""
     st.subheader("Generated Monte Carlo files")
+    st.caption("HTML plots can be previewed below or downloaded and opened in your browser.")
 
     csv_path = monte_carlo_result.get("csv_path") or ""
     if st.button("Refresh Monte Carlo output files"):
@@ -921,6 +970,56 @@ def _render_monte_carlo_output_files(monte_carlo_result: dict[str, Any]) -> None
         for item in output_files
     ]
     st.dataframe(rows, use_container_width=True, hide_index=True)
+
+    html_files = [
+        item
+        for item in output_files
+        if item.get("kind") in {"paths_html", "hits_html"}
+        and str(item.get("path") or "").lower().endswith(".html")
+    ]
+    if html_files:
+        selected_html = st.selectbox(
+            "Preview Monte Carlo HTML plot",
+            options=html_files,
+            format_func=lambda item: item.get("name") or Path(str(item.get("path"))).name,
+        )
+        if st.button("Preview selected plot"):
+            path = str(selected_html.get("path") or "")
+            html_text, error = _read_text_file(path)
+            if error:
+                st.warning(f"{error} Download the file or open it externally instead.")
+            else:
+                components.html(html_text or "", height=700, scrolling=True)
+
+    paths_html = _output_files_by_kind(output_files, "paths_html")
+    hits_html = _output_files_by_kind(output_files, "hits_html")
+    summaries = _output_files_by_kind(output_files, "summary_json")
+
+    download_cols = st.columns(3)
+    with download_cols[0]:
+        if paths_html:
+            _render_monte_carlo_download(
+                paths_html[0],
+                "Download paths plot HTML",
+                "text/html",
+                "download_mc_paths",
+            )
+    with download_cols[1]:
+        if hits_html:
+            _render_monte_carlo_download(
+                hits_html[0],
+                "Download hits plot HTML",
+                "text/html",
+                "download_mc_hits",
+            )
+    with download_cols[2]:
+        if summaries:
+            _render_monte_carlo_download(
+                summaries[0],
+                "Download summary JSON",
+                "application/json",
+                "download_mc_summary",
+            )
 
 
 def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> None:
