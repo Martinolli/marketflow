@@ -110,6 +110,7 @@ streamlit run apps/marketflow_studio.py
 * Studio readability polish — implemented
 * P&F sidecar integration into Analyst Packet — implemented
 * MarketFlow Studio workflow documentation — implemented
+* Strategy Ranking timeframe-aware Monte Carlo matching — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

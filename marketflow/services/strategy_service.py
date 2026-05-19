@@ -26,6 +26,10 @@ STRATEGY_COLUMNS = [
     "event",
     "trend",
     "score",
+    "mc_summary_path",
+    "mc_matched_by",
+    "mc_requested_tf",
+    "mc_matched_tf",
     "csv",
 ]
 BATCH_RUN_PATTERN = re.compile(r"^batch_(\d{8})_(\d{6})$")
@@ -215,6 +219,15 @@ def inspect_strategy_inputs(
         notes.append(
             "No batch folder found. Strategy will still search recursively under the "
             "report root using existing strategy fallback behavior."
+        )
+
+    if use_mc:
+        notes.append(
+            "Timeframe-aware Monte Carlo matching is enabled for Strategy Ranking."
+        )
+        notes.append(
+            "If no MC summary matches the selected timeframe, results may fall back "
+            "to the latest available MC summary and mark `mc_matched_by` as `fallback_latest`."
         )
 
     total_matching_csvs = 0

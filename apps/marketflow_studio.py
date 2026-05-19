@@ -583,6 +583,11 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
     selected_candidate = results[selected_index]
     st.session_state.latest_strategy_candidate = selected_candidate
     st.session_state.selected_strategy_candidate = selected_candidate
+    if selected_candidate.get("mc_matched_by") == "fallback_latest":
+        st.warning(
+            "This candidate used a fallback Monte Carlo summary that may not match "
+            "the selected timeframe."
+        )
     st.json(selected_candidate)
 
     if st.button("Use selected candidate in Monte Carlo"):
@@ -651,6 +656,11 @@ def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
     st.caption(
         "Monte Carlo is optional. For safer workflow, rank candidates first, then run Monte Carlo "
         "on selected candidates. The MC checkbox uses available MC summaries when present."
+    )
+    st.caption(
+        "When enabled, Strategy Ranking prefers Monte Carlo summaries matching the selected "
+        "timeframe. If none are found, it may fall back to the latest MC summary and marks "
+        "that in the results."
     )
 
     if st.button("Rank Candidates"):

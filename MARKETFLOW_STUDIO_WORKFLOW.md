@@ -42,7 +42,7 @@ For now, the safer workflow is:
 3. Run Monte Carlo for selected candidates.
 4. Build Analyst Packet for final validation.
 
-Current limitation: Strategy Ranking may use the latest Monte Carlo summary in the report folder, not necessarily a timeframe-specific Monte Carlo result. Use Analyst Packet validation for final decision support.
+Strategy Ranking now prefers MC summaries matching the selected timeframe. If no matching summary is found, it may fall back to the latest available summary and mark the match mode in the results.
 
 ## Monte Carlo Tab
 

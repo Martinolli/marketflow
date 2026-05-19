@@ -18,7 +18,7 @@ Notes
 """
 
 from __future__ import annotations
-import argparse, os, json, glob
+import argparse, os, json, glob, re
 from dataclasses import dataclass, field
 from typing import Iterable, List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
@@ -71,22 +71,125 @@ def _latest_file(dir_: str, suffix: str) -> Optional[str]:
     logger.debug(f"Latest file found: {latest}")
     return latest
 
-def _latest_mc(dir_: str) -> Optional[dict]:
-    logger.debug(f"Loading latest Monte Carlo summary from {dir_}")
+def _normalize_tf(value: object) -> str | None:
+    """Normalize a timeframe-like value for matching."""
+    if value is None:
+        return None
+    clean = str(value).strip().lower()
+    return clean or None
+
+
+def _mc_json_timeframe(data: dict, field: str) -> str | None:
+    """Read a top-level or params timeframe field from MC summary JSON."""
+    value = data.get(field)
+    if value is None and isinstance(data.get("params"), dict):
+        value = data["params"].get(field)
+    return _normalize_tf(value)
+
+
+def _filename_matches_tf(path: str, tf: str | None) -> bool:
+    """Return True when the MC filename contains the requested timeframe as a token."""
+    clean_tf = _normalize_tf(tf)
+    if not clean_tf:
+        return False
+    stem = os.path.splitext(os.path.basename(path))[0].lower()
+    tokens = [token for token in re.split(r"[_\-.]+", stem) if token]
+    return clean_tf in tokens
+
+
+def _mc_metadata(
+    tf: str | None,
+    matched_by: str,
+    available_count: int,
+    candidate_paths: list[str],
+    path: str | None = None,
+    matched_tf: str | None = None,
+) -> dict:
+    """Build stable Monte Carlo matching metadata."""
+    return {
+        "requested_tf": tf,
+        "matched_tf": matched_tf,
+        "path": path,
+        "matched_by": matched_by,
+        "available_count": available_count,
+        "candidate_paths": candidate_paths,
+    }
+
+
+def _latest_mc_with_metadata(dir_: str, tf: str | None = None) -> tuple[Optional[dict], dict]:
+    """
+    Load the newest Monte Carlo summary for the requested timeframe when possible.
+
+    Prefer:
+    1. MC summary whose JSON field `tf` matches requested tf
+    2. MC summary whose JSON field `timeframe` matches requested tf
+    3. MC summary whose filename contains requested tf as a token
+    4. newest MC summary as fallback, but mark as fallback
+    """
+    requested_tf = _normalize_tf(tf)
+    logger.debug(f"Loading timeframe-aware Monte Carlo summary from {dir_} for tf={requested_tf}")
     try:
-        path = _latest_file(dir_, "_mc_summary.json")
-        if path:
-            logger.debug(f"Loading MC summary file: {path}")
+        files = [
+            os.path.join(dir_, filename)
+            for filename in os.listdir(dir_)
+            if filename.endswith("_mc_summary.json")
+        ]
+    except Exception as e:
+        logger.error(f"Error listing MC summaries: {e}")
+        meta = _mc_metadata(tf, "none", 0, [])
+        return None, meta
+
+    files.sort(key=lambda path: os.path.getmtime(path), reverse=True)
+    candidate_paths = list(files)
+    available_count = len(files)
+    if not files:
+        logger.debug("No MC summary file found.")
+        meta = _mc_metadata(tf, "none", available_count, candidate_paths)
+        return None, meta
+
+    loaded: list[tuple[str, dict]] = []
+    for path in files:
+        try:
             with open(path, "r", encoding="utf-8") as f:
                 data = json.load(f)
-            logger.debug("MC summary loaded successfully.")
-            return data
-        else:
-            logger.debug("No MC summary file found.")
-            return None
-    except Exception as e:
-        logger.error(f"Error loading MC summary: {e}")
-        return None
+            if isinstance(data, dict):
+                loaded.append((path, data))
+            else:
+                logger.warning(f"Skipping non-object MC summary: {path}")
+        except Exception as e:
+            logger.error(f"Error loading MC summary {path}: {e}")
+
+    if not loaded:
+        meta = _mc_metadata(tf, "none", available_count, candidate_paths)
+        return None, meta
+
+    if requested_tf:
+        for path, data in loaded:
+            matched_tf = _mc_json_timeframe(data, "tf")
+            if matched_tf == requested_tf:
+                meta = _mc_metadata(tf, "json_tf", available_count, candidate_paths, path, matched_tf)
+                return data, meta
+
+        for path, data in loaded:
+            matched_tf = _mc_json_timeframe(data, "timeframe")
+            if matched_tf == requested_tf:
+                meta = _mc_metadata(tf, "json_timeframe", available_count, candidate_paths, path, matched_tf)
+                return data, meta
+
+        for path, data in loaded:
+            if _filename_matches_tf(path, requested_tf):
+                meta = _mc_metadata(tf, "filename", available_count, candidate_paths, path, requested_tf)
+                return data, meta
+
+    path, data = loaded[0]
+    matched_tf = _mc_json_timeframe(data, "tf") or _mc_json_timeframe(data, "timeframe")
+    meta = _mc_metadata(tf, "fallback_latest", available_count, candidate_paths, path, matched_tf)
+    return data, meta
+
+
+def _latest_mc(dir_: str, tf: str | None = None) -> Optional[dict]:
+    data, _meta = _latest_mc_with_metadata(dir_, tf)
+    return data
 
 def _atr(df: pd.DataFrame, n: int = 14) -> float:
     logger.debug(f"Calculating ATR with window: {n}")
@@ -253,9 +356,11 @@ def rank_long_candidates(
 
         # Optional: Monte Carlo POP
         pop: Optional[float] = None
+        mc_meta: dict = {}
         if cfg.use_mc:
-            mc = _latest_mc(out_dir)
+            mc, mc_meta = _latest_mc_with_metadata(out_dir, tf)
             logger.info(f"Monte Carlo summary for ticker {t}: {mc}")
+            logger.info(f"Monte Carlo summary match metadata for ticker {t}: {mc_meta}")
             if mc and isinstance(mc, dict):
                 try:
                     pop = float(mc.get("metrics_from_now", {}).get("pop_tp_first", None))
@@ -287,7 +392,7 @@ def rank_long_candidates(
 
         logger.info(f"Final score for ticker {t}: {score}")
 
-        results.append({
+        result = {
             "ticker": t,
             "tf": tf,
             "csv": csv_path,
@@ -298,7 +403,15 @@ def rank_long_candidates(
             "event": ctx["event"],
             "trend": ctx["trend"],
             "score": round(score, 2),
-        })
+        }
+        if cfg.use_mc:
+            result.update({
+                "mc_summary_path": mc_meta.get("path"),
+                "mc_matched_by": mc_meta.get("matched_by"),
+                "mc_requested_tf": mc_meta.get("requested_tf"),
+                "mc_matched_tf": mc_meta.get("matched_tf"),
+            })
+        results.append(result)
 
     results.sort(key=lambda r: r["score"], reverse=True)
     logger.info(f"Total candidates ranked: {len(results)}")
