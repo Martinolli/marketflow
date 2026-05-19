@@ -648,6 +648,10 @@ def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
         value=False,
         help="Optional. If no MC files exist, strategy logic should use neutral defaults.",
     )
+    st.caption(
+        "Monte Carlo is optional. For safer workflow, rank candidates first, then run Monte Carlo "
+        "on selected candidates. The MC checkbox uses available MC summaries when present."
+    )
 
     if st.button("Rank Candidates"):
         tickers = normalize_tickers(ticker_text)
@@ -1073,6 +1077,7 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
     col4, col5, col6, col7 = st.columns(4)
     with col4:
         model = st.selectbox("Model", options=MONTE_CARLO_MODELS, index=0)
+        st.caption("Bootstrap is the recommended default. GARCH requires optional package `arch`.")
     with col5:
         paths = st.number_input("Paths", min_value=1000, max_value=50000, value=10000, step=1000)
     with col6:
@@ -1082,6 +1087,7 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
 
     seed = st.number_input("Seed", value=42, step=1)
     save_plots = st.checkbox("Save plots", value=True)
+    st.caption("Saved plots are written as HTML files beside the selected CSV and listed below after a run.")
 
     if st.button("Run Monte Carlo"):
         validation_errors = []

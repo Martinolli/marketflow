@@ -72,7 +72,7 @@ is designed for clarity, testability, and ease of extension.
 
 ## MarketFlow Studio
 
-A personal local Streamlit interface is available on the feature branch:
+A personal local Streamlit interface is available on `main`:
 
 ```bash
 streamlit run apps/marketflow_studio.py
@@ -86,6 +86,9 @@ The app can:
 - show a basic Wyckoff candlestick chart
 - rank strategy candidates
 - run simple Monte Carlo simulations
+- build Analyst Packets
+
+See `MARKETFLOW_STUDIO_WORKFLOW.md` for the recommended cockpit flow across analysis, Strategy Ranking, Monte Carlo, Analyst Packet, and batch analysis.
 
 By default, MarketFlow Studio reduces console log noise. To enable verbose logs:
 
