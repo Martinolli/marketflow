@@ -78,6 +78,10 @@ Analyst Packet combines:
 - P&F sidecars if available
 - profile/risk rules
 
+Analyst Packet can extract Wyckoff context from report JSON and the selected annotated CSV.
+
+The packet can be downloaded or saved to the loaded report folder.
+
 It does not call an LLM yet.
 
 ## Recommended Conservative Default

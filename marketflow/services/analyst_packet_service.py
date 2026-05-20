@@ -8,6 +8,8 @@ from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
+import pandas as pd
+
 
 PACKET_VERSION = "0.1"
 PROFILE_PATH = Path(__file__).resolve().parents[1] / "config" / "analyst_profile.example.json"
@@ -397,6 +399,16 @@ def _compact_events(events: Any, max_items: int = 20) -> list[Any]:
     return compact
 
 
+def _present(value: Any) -> bool:
+    """Return True when a report/CSV value is meaningfully populated."""
+    if value is None:
+        return False
+    if isinstance(value, float) and math.isnan(value):
+        return False
+    text = str(value).strip()
+    return bool(text and text.lower() not in {"nan", "none", "null"})
+
+
 def _extract_market_snapshot(report_json: dict[str, Any] | None, missing_data: list[str]) -> dict[str, Any]:
     """Extract common market and risk fields."""
     current_price = _to_float(_first_value(report_json, [["current_price"], ["market_snapshot", "current_price"]]))
@@ -425,6 +437,11 @@ def _extract_market_snapshot(report_json: dict[str, Any] | None, missing_data: l
         "signal_type": signal_type,
         "signal_strength": signal_strength,
         "risk": {
+            "stop_loss": stop_loss,
+            "take_profit": take_profit,
+            "risk_reward": risk_reward,
+        },
+        "report_baseline_risk": {
             "stop_loss": stop_loss,
             "take_profit": take_profit,
             "risk_reward": risk_reward,
@@ -515,26 +532,294 @@ def _extract_levels(
     }, warnings
 
 
-def _extract_wyckoff_vpa(report_json: dict[str, Any] | None) -> dict[str, Any]:
+def _phase_name(phase: Any) -> str | None:
+    """Return a phase label from common phase record shapes."""
+    if isinstance(phase, dict):
+        return phase.get("phase_name") or phase.get("phase")
+    if _present(phase):
+        return str(phase)
+    return None
+
+
+def _compact_phase_context(phases: Any) -> dict[str, Any] | None:
+    """Return compact current/recent phase context from report JSON phase data."""
+    phase_list = _as_list(phases)
+    phase_list = [item for item in phase_list if _present(_phase_name(item))]
+    if not phase_list:
+        return None
+
+    latest = phase_list[-1]
+    if isinstance(latest, dict):
+        current_phase = latest.get("phase")
+        current_phase_name = latest.get("phase_name") or current_phase
+    else:
+        current_phase = str(latest)
+        current_phase_name = str(latest)
+
+    recent_phase_names = [
+        name
+        for name in (_phase_name(item) for item in phase_list[-5:])
+        if _present(name)
+    ]
+    return {
+        "current_phase": current_phase,
+        "current_phase_name": current_phase_name,
+        "recent_phase_names": recent_phase_names,
+    }
+
+
+def _compact_wyckoff_event(timeframe: str | None, event: Any) -> dict[str, Any] | None:
+    """Normalize one Wyckoff event record."""
+    if isinstance(event, dict):
+        event_value = event.get("event") or event.get("wyckoff_event")
+        event_name = event.get("event_name") or event.get("wyckoff_confirmed_event")
+        if not _present(event_value) and not _present(event_name):
+            return None
+        return {
+            "timeframe": timeframe,
+            "timestamp": event.get("timestamp"),
+            "event": event_value,
+            "event_name": event_name,
+            "price": _to_float(event.get("price") or event.get("close")),
+            "volume": _to_float(event.get("volume")),
+        }
+
+    if not _present(event):
+        return None
+    return {
+        "timeframe": timeframe,
+        "timestamp": None,
+        "event": str(event),
+        "event_name": None,
+        "price": None,
+        "volume": None,
+    }
+
+
+def _compact_wyckoff_events(timeframe: str | None, events: Any, max_items: int = 20) -> list[dict[str, Any]]:
+    """Return compact recent Wyckoff events."""
+    compact: list[dict[str, Any]] = []
+    for event in _as_list(events)[-max_items:]:
+        normalized = _compact_wyckoff_event(timeframe, event)
+        if normalized:
+            compact.append(normalized)
+    return compact
+
+
+def _compact_trading_ranges(timeframe: str | None, ranges: Any, max_items: int = 10) -> list[dict[str, Any]]:
+    """Return compact Wyckoff trading range records."""
+    compact: list[dict[str, Any]] = []
+    for item in _as_list(ranges)[-max_items:]:
+        if not isinstance(item, dict):
+            continue
+        compact.append(
+            {
+                "timeframe": timeframe,
+                "support": _to_float(item.get("support")),
+                "resistance": _to_float(item.get("resistance")),
+                "context": item.get("context"),
+                "start_timestamp": item.get("start_timestamp"),
+                "end_timestamp": item.get("end_timestamp"),
+            }
+        )
+    return compact
+
+
+def _annotated_data_metadata(data: Any) -> dict[str, Any] | None:
+    """Return metadata for report JSON annotated data without carrying all rows."""
+    if not isinstance(data, dict):
+        return None
+    columns = data.get("columns") if isinstance(data.get("columns"), list) else []
+    rows = data.get("data") if isinstance(data.get("data"), list) else []
+    index = data.get("index") if isinstance(data.get("index"), list) else []
+    return {
+        "columns": columns,
+        "row_count": len(rows) or len(index),
+        "latest_timestamp": index[-1] if index else None,
+    }
+
+
+def load_wyckoff_context_from_csv(csv_path: str | None, max_events: int = 20) -> dict[str, Any]:
+    """
+    Load compact Wyckoff context from an annotated CSV.
+    Return empty/default context if missing or malformed.
+    """
+    empty = {
+        "available": False,
+        "phase": None,
+        "recent_phase_names": [],
+        "events": [],
+        "confirmed_events": [],
+        "tr_low": None,
+        "tr_high": None,
+        "warnings": [],
+    }
+    if not csv_path:
+        return empty
+
+    path = Path(str(csv_path))
+    if not path.exists() or not path.is_file():
+        return empty
+
+    columns = {
+        "timestamp",
+        "wyckoff_event",
+        "wyckoff_phase",
+        "wyckoff_confirmed_event",
+        "wyckoff_confidence",
+        "wyckoff_reasons",
+        "tr_low",
+        "tr_high",
+        "price",
+        "close",
+        "volume",
+    }
+    try:
+        dataframe = pd.read_csv(path, usecols=lambda column: column in columns)
+    except Exception as exc:
+        result = dict(empty)
+        result["warnings"] = [f"Could not load Wyckoff CSV context: {type(exc).__name__}: {exc}"]
+        return result
+
+    if dataframe.empty:
+        return empty
+
+    result = dict(empty)
+    result["available"] = True
+
+    if "wyckoff_phase" in dataframe.columns:
+        phases = dataframe["wyckoff_phase"].dropna().astype(str).str.strip()
+        phases = phases[phases.ne("") & phases.str.lower().ne("nan")]
+        if not phases.empty:
+            result["phase"] = phases.iloc[-1]
+            result["recent_phase_names"] = phases.tail(5).tolist()
+
+    def event_rows(column: str) -> list[dict[str, Any]]:
+        if column not in dataframe.columns:
+            return []
+        series = dataframe[column].dropna().astype(str).str.strip()
+        series = series[series.ne("") & series.str.lower().ne("nan")]
+        rows: list[dict[str, Any]] = []
+        for index in series.tail(max_events).index:
+            row = dataframe.loc[index]
+            rows.append(
+                {
+                    "timestamp": row.get("timestamp"),
+                    "event": row.get(column),
+                    "event_name": row.get(column),
+                    "price": _to_float(row.get("close") if "close" in row else row.get("price")),
+                    "volume": _to_float(row.get("volume")),
+                    "confidence": _to_float(row.get("wyckoff_confidence")),
+                    "reasons": row.get("wyckoff_reasons"),
+                }
+            )
+        return rows
+
+    result["events"] = event_rows("wyckoff_event")
+    result["confirmed_events"] = event_rows("wyckoff_confirmed_event")
+
+    for key in ("tr_low", "tr_high"):
+        if key in dataframe.columns:
+            values = pd.to_numeric(dataframe[key], errors="coerce").dropna()
+            if not values.empty:
+                result[key] = float(values.iloc[-1])
+
+    return result
+
+
+def _build_selected_timeframe_context(
+    selected_tf: str | None,
+    phases: dict[str, Any],
+    events: list[dict[str, Any]],
+    csv_context: dict[str, Any],
+) -> dict[str, Any] | None:
+    """Build selected timeframe context from report JSON plus selected CSV supplement."""
+    if not selected_tf and not csv_context.get("available"):
+        return None
+
+    tf = str(selected_tf) if selected_tf else "selected_csv"
+    phase_context = phases.get(tf) if isinstance(phases.get(tf), dict) else {}
+    recent_events = [event for event in events if event.get("timeframe") == tf][-10:]
+    confirmed_events = [
+        {"timeframe": tf, **event}
+        for event in (csv_context.get("confirmed_events") or [])[-10:]
+        if isinstance(event, dict)
+    ]
+    phase = phase_context.get("current_phase_name") or phase_context.get("current_phase") or csv_context.get("phase")
+
+    if not phase and not recent_events and not confirmed_events and not csv_context.get("available"):
+        return None
+
+    return {
+        "tf": tf,
+        "phase": phase,
+        "recent_events": recent_events,
+        "confirmed_events": confirmed_events,
+        "tr_low": csv_context.get("tr_low"),
+        "tr_high": csv_context.get("tr_high"),
+    }
+
+
+def _extract_wyckoff_vpa(
+    report_json: dict[str, Any] | None,
+    csv_context: dict[str, Any] | None = None,
+    selected_tf: str | None = None,
+) -> dict[str, Any]:
     """Extract Wyckoff phase/event context across timeframes."""
     phases: dict[str, Any] = {}
     events: list[dict[str, Any]] = []
+    confirmed_events: list[dict[str, Any]] = []
+    trading_ranges: list[dict[str, Any]] = []
+    annotated_data: dict[str, Any] = {}
     warnings: list[str] = []
+    csv_context = csv_context or {}
 
     for timeframe, data in _timeframe_source(report_json).items():
-        wyckoff = data.get("wyckoff") if isinstance(data, dict) else None
-        if not isinstance(wyckoff, dict):
+        if not isinstance(data, dict):
             continue
-        phases[str(timeframe)] = _compact_phases(wyckoff.get("phases"))
-        for event in _compact_events(wyckoff.get("events")):
-            events.append({"timeframe": str(timeframe), "event": event})
+        tf = str(timeframe)
+        wyckoff = data.get("wyckoff") if isinstance(data.get("wyckoff"), dict) else {}
+        phase_context = _compact_phase_context(data.get("wyckoff_phases") or wyckoff.get("phases"))
+        if phase_context:
+            phases[tf] = phase_context
+        events.extend(_compact_wyckoff_events(tf, data.get("wyckoff_events") or wyckoff.get("events")))
+        trading_ranges.extend(_compact_trading_ranges(tf, data.get("wyckoff_trading_ranges")))
+        metadata = _annotated_data_metadata(data.get("wyckoff_annotated_data"))
+        if metadata:
+            annotated_data[tf] = metadata
+
+    if csv_context.get("available"):
+        tf = str(selected_tf) if selected_tf else "selected_csv"
+        if tf not in phases and csv_context.get("phase"):
+            phases[tf] = {
+                "current_phase": csv_context.get("phase"),
+                "current_phase_name": csv_context.get("phase"),
+                "recent_phase_names": csv_context.get("recent_phase_names") or [],
+            }
+        for event in csv_context.get("events") or []:
+            if isinstance(event, dict):
+                events.append({"timeframe": tf, **event})
+        for event in csv_context.get("confirmed_events") or []:
+            if isinstance(event, dict):
+                confirmed_events.append({"timeframe": tf, **event})
+
+    selected_context = _build_selected_timeframe_context(selected_tf, phases, events, csv_context)
 
     if not phases:
-        warnings.append("No Wyckoff phase data found in report JSON.")
-    if not events:
-        warnings.append("No Wyckoff event data found in report JSON.")
+        warnings.append("No Wyckoff phase data found in report JSON or selected CSV.")
+    if not events and not confirmed_events:
+        warnings.append("No Wyckoff event data found in report JSON or selected CSV.")
 
-    return {"phases": phases, "events": events, "warnings": warnings}
+    return {
+        "phases": phases,
+        "events": events,
+        "confirmed_events": confirmed_events,
+        "trading_ranges": trading_ranges,
+        "annotated_data": annotated_data,
+        "selected_timeframe_context": selected_context,
+        "csv_context_available": bool(csv_context.get("available")),
+        "warnings": warnings,
+    }
 
 
 def _normalize_strategy_candidate(candidate: dict[str, Any] | None) -> dict[str, Any] | None:
@@ -587,6 +872,48 @@ def _extract_monte_carlo(monte_carlo_result: dict[str, Any] | None) -> dict[str,
         "r_mean": _to_float(metrics.get("R_mean") or metrics.get("r_mean")),
         "model_used": calibration.get("model_used"),
         "output_files": wrapper.get("output_files") or [],
+    }
+
+
+def _risk_reward(entry: float | None, stop_loss: float | None, take_profit: float | None) -> float | None:
+    """Compute long-side risk/reward from trade levels."""
+    if entry is None or stop_loss is None or take_profit is None:
+        return None
+    risk = entry - stop_loss
+    if risk <= 0:
+        return None
+    return (take_profit - entry) / risk
+
+
+def _build_strategy_trade_plan(
+    strategy_candidate: dict[str, Any] | None,
+    monte_carlo: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Build selected strategy/MC trade plan levels for packet clarity."""
+    entry = _to_float((strategy_candidate or {}).get("entry") or (strategy_candidate or {}).get("close"))
+    stop_loss = _to_float((strategy_candidate or {}).get("stop_loss"))
+    take_profit = _to_float((strategy_candidate or {}).get("take_profit"))
+    risk_reward = _to_float((strategy_candidate or {}).get("rr"))
+    source = "strategy_candidate" if strategy_candidate else None
+
+    if entry is None:
+        entry = _to_float((monte_carlo or {}).get("entry"))
+        source = source or ("monte_carlo" if entry is not None else None)
+    if stop_loss is None:
+        stop_loss = _to_float((monte_carlo or {}).get("stop_loss"))
+        source = source or ("monte_carlo" if stop_loss is not None else None)
+    if take_profit is None:
+        take_profit = _to_float((monte_carlo or {}).get("take_profit"))
+        source = source or ("monte_carlo" if take_profit is not None else None)
+    if risk_reward is None:
+        risk_reward = _risk_reward(entry, stop_loss, take_profit)
+
+    return {
+        "entry": entry,
+        "stop_loss": stop_loss,
+        "take_profit": take_profit,
+        "risk_reward": risk_reward,
+        "source": source,
     }
 
 
@@ -661,6 +988,7 @@ def _build_analyst_sections(
     levels: dict[str, Any],
     wyckoff_vpa: dict[str, Any],
     strategy_candidate: dict[str, Any] | None,
+    strategy_trade_plan: dict[str, Any],
     monte_carlo: dict[str, Any] | None,
     pnf: dict[str, Any],
     go_no_go: dict[str, Any],
@@ -672,10 +1000,12 @@ def _build_analyst_sections(
         for record in (pnf.get("sidecars") if isinstance(pnf, dict) else []) or []
         if isinstance(record, dict)
     )
+    wyckoff_events_present = bool(wyckoff_vpa.get("events") or wyckoff_vpa.get("confirmed_events"))
     return {
         "statistical_analysis": {
             "market_snapshot": market_snapshot,
             "strategy_candidate": strategy_candidate,
+            "strategy_trade_plan": strategy_trade_plan,
             "monte_carlo": monte_carlo,
             "pnf": pnf,
             "go_no_go": go_no_go,
@@ -688,7 +1018,7 @@ def _build_analyst_sections(
         "annotations_checklist": [
             {"item": "Report JSON loaded", "available": market_snapshot.get("current_price") is not None},
             {"item": "Wyckoff phases present", "available": bool(wyckoff_vpa.get("phases"))},
-            {"item": "Wyckoff events present", "available": bool(wyckoff_vpa.get("events"))},
+            {"item": "Wyckoff events present", "available": wyckoff_events_present},
             {"item": "Support/resistance levels present", "available": bool(levels.get("support") or levels.get("resistance"))},
             {"item": "Strategy candidate present", "available": strategy_candidate is not None},
             {"item": "Monte Carlo metrics present", "available": monte_carlo is not None},
@@ -699,6 +1029,9 @@ def _build_analyst_sections(
             "go_no_go": go_no_go,
             "pnf_gate": go_no_go.get("pnf_gate"),
             "best_pnf_objective": best_pnf,
+            "report_baseline_risk": market_snapshot.get("report_baseline_risk") or market_snapshot.get("risk"),
+            "strategy_trade_plan": strategy_trade_plan,
+            "selected_timeframe_context": wyckoff_vpa.get("selected_timeframe_context"),
             "risk": market_snapshot.get("risk"),
             "key_warnings": wyckoff_vpa.get("warnings", []),
         },
@@ -727,9 +1060,11 @@ def _build_packet_summary(
     ticker: str | None,
     market_snapshot: dict[str, Any],
     normalized_candidate: dict[str, Any] | None,
+    strategy_trade_plan: dict[str, Any],
     monte_carlo: dict[str, Any] | None,
     go_no_go: dict[str, Any],
     pnf: dict[str, Any],
+    wyckoff_vpa: dict[str, Any],
     report_json: dict[str, Any] | None,
 ) -> dict[str, Any]:
     """Build compact top-level packet status for UI and future analyst flows."""
@@ -737,9 +1072,14 @@ def _build_packet_summary(
     monte_carlo_available = monte_carlo is not None
     report_context_available = isinstance(report_json, dict)
     best_pnf = pnf.get("best_objective") if isinstance(pnf, dict) else None
+    selected_context = wyckoff_vpa.get("selected_timeframe_context") if isinstance(wyckoff_vpa, dict) else None
     return {
         "ticker": ticker,
         "current_price": market_snapshot.get("current_price"),
+        "trade_entry": strategy_trade_plan.get("entry") if isinstance(strategy_trade_plan, dict) else None,
+        "trade_stop_loss": strategy_trade_plan.get("stop_loss") if isinstance(strategy_trade_plan, dict) else None,
+        "trade_take_profit": strategy_trade_plan.get("take_profit") if isinstance(strategy_trade_plan, dict) else None,
+        "trade_risk_reward": strategy_trade_plan.get("risk_reward") if isinstance(strategy_trade_plan, dict) else None,
         "candidate_available": candidate_available,
         "monte_carlo_available": monte_carlo_available,
         "pop_gate": go_no_go.get("pop_gate"),
@@ -747,6 +1087,11 @@ def _build_packet_summary(
         "pnf_gate": go_no_go.get("pnf_gate"),
         "best_pnf_objective": best_pnf.get("objective") if isinstance(best_pnf, dict) else None,
         "best_pnf_objective_r": best_pnf.get("objective_r_multiple") if isinstance(best_pnf, dict) else None,
+        "wyckoff_events_available": bool((wyckoff_vpa or {}).get("events") or (wyckoff_vpa or {}).get("confirmed_events")),
+        "wyckoff_phases_available": bool((wyckoff_vpa or {}).get("phases")),
+        "selected_timeframe": (selected_context or {}).get("tf") if isinstance(selected_context, dict) else (
+            normalized_candidate.get("tf") if isinstance(normalized_candidate, dict) else None
+        ),
         "risk_rank": go_no_go.get("risk_rank"),
         "ready_for_analyst": bool(
             report_context_available and candidate_available and monte_carlo_available
@@ -785,13 +1130,21 @@ def build_analyst_packet(
 
     normalized_candidate = _normalize_strategy_candidate(strategy_candidate)
     monte_carlo = _extract_monte_carlo(monte_carlo_result)
+    strategy_trade_plan = _build_strategy_trade_plan(normalized_candidate, monte_carlo)
     levels, level_warnings = _extract_levels(
         report_json,
         market_snapshot.get("current_price"),
         normalized_candidate,
     )
     warnings.extend(level_warnings)
-    wyckoff_vpa = _extract_wyckoff_vpa(report_json)
+    csv_context = load_wyckoff_context_from_csv(
+        normalized_candidate.get("csv") if isinstance(normalized_candidate, dict) else None
+    )
+    wyckoff_vpa = _extract_wyckoff_vpa(
+        report_json,
+        csv_context=csv_context,
+        selected_tf=normalized_candidate.get("tf") if isinstance(normalized_candidate, dict) else None,
+    )
     warnings.extend(wyckoff_vpa.get("warnings", []))
     pnf_records = _attach_pnf_objective_r(load_pnf_sidecars(report_dir), normalized_candidate)
     pnf = _build_pnf_section(pnf_records)
@@ -809,9 +1162,11 @@ def build_analyst_packet(
         inferred_ticker,
         market_snapshot,
         normalized_candidate,
+        strategy_trade_plan,
         monte_carlo,
         go_no_go,
         pnf,
+        wyckoff_vpa,
         report_json,
     )
 
@@ -830,6 +1185,7 @@ def build_analyst_packet(
         levels,
         wyckoff_vpa,
         normalized_candidate,
+        strategy_trade_plan,
         monte_carlo,
         pnf,
         go_no_go,
@@ -853,10 +1209,13 @@ def build_analyst_packet(
         "market_snapshot": market_snapshot,
         "timeframes": timeframes,
         "strategy_candidate": normalized_candidate,
+        "strategy_trade_plan": strategy_trade_plan,
+        "report_baseline_risk": market_snapshot.get("report_baseline_risk") or market_snapshot.get("risk"),
         "monte_carlo": monte_carlo,
         "pnf": pnf,
         "levels": levels,
         "wyckoff_vpa": wyckoff_vpa,
+        "selected_timeframe_context": wyckoff_vpa.get("selected_timeframe_context"),
         "go_no_go": go_no_go,
         "analyst_sections": analyst_sections,
         "missing_data": _missing_data_messages(missing_data),

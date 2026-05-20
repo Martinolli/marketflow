@@ -1387,11 +1387,17 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         _display_optional_metric("Strategy Score", _format_number(strategy_context.get("score")))
         _display_optional_metric("Strategy TF", strategy_context.get("tf"))
     with col3:
-        _display_optional_metric("MC TP First", _format_probability(monte_carlo_context.get("pop_tp_first")))
-        _display_optional_metric("MC SL First", _format_probability(monte_carlo_context.get("p_sl_first")))
+        _display_optional_metric("Trade Entry", _format_number(packet_summary.get("trade_entry")))
+        _display_optional_metric("Trade Stop", _format_number(packet_summary.get("trade_stop_loss")))
     with col4:
         _display_optional_metric("POP Gate", packet_summary.get("pop_gate"))
         _display_optional_metric("Risk Rank", packet_summary.get("risk_rank"))
+
+    col5, col6 = st.columns(2)
+    with col5:
+        _display_optional_metric("MC TP First", _format_probability(monte_carlo_context.get("pop_tp_first")))
+    with col6:
+        _display_optional_metric("MC SL First", _format_probability(monte_carlo_context.get("p_sl_first")))
 
     if packet_summary.get("pnf_available"):
         pnf_col1, pnf_col2, pnf_col3, pnf_col4 = st.columns(4)
@@ -1448,8 +1454,25 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
             for item in warnings:
                 st.write(f"- {item}")
 
+    st.subheader("Analyst Packet JSON")
+    st.caption("This is the generated packet, not a source report file.")
     st.json(packet)
+
+    st.subheader("Pretty Analyst Packet JSON")
     st.text_area("Pretty JSON", value=pretty_json or packet_to_pretty_json(packet), height=360)
+
+    if st.button("Save Analyst Packet to report folder"):
+        if not report_dir:
+            st.warning("No report directory is available. Use Download instead.")
+        else:
+            try:
+                packet_ticker = packet.get("ticker") or packet_summary.get("ticker") or "marketflow"
+                save_path = Path(report_dir) / f"{packet_ticker}_analyst_packet.json"
+                save_path.write_text(pretty_json or packet_to_pretty_json(packet), encoding="utf-8")
+                st.success(f"Saved analyst packet to `{save_path}`")
+            except Exception as exc:
+                st.error(f"Could not save analyst packet: {exc}")
+
     st.download_button(
         "Download analyst_packet.json",
         data=pretty_json or packet_to_pretty_json(packet),
