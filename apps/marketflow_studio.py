@@ -35,6 +35,10 @@ from marketflow.services.monte_carlo_service import (
     load_latest_close,
     run_monte_carlo_for_csv,
 )
+from marketflow.services.pnf_service import (
+    generate_pnf_for_csv,
+    generate_pnf_for_csvs,
+)
 from marketflow.services.report_index import (
     find_latest_ticker_report,
     infer_timeframe_from_csv_name,
@@ -58,6 +62,7 @@ DEFAULT_TIMEFRAMES = ["1d", "4h", "1h"]
 TIMEFRAME_OPTIONS = ["1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
 CSV_PREVIEW_ROW_OPTIONS = [100, 250, 500, 1000]
 CHART_ROW_OPTIONS = [200, 500, 1000, 2000]
+PNF_ROW_OPTIONS = ["All", 200, 500, 1000, 2000]
 STRATEGY_TIMEFRAMES = ["1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
 WYCKOFF_PHASE_OPTIONS = ["A", "B", "C", "D", "E", "UNKNOWN"]
 MONTE_CARLO_MODELS = ["bootstrap", "gbm", "garch"]
@@ -263,6 +268,27 @@ def _pnf_metadata_row(sidecar: dict[str, Any]) -> dict[str, Any]:
         "objective": sidecar.get("objective"),
         "objective_r_multiple": sidecar.get("objective_r_multiple"),
     }
+
+
+def _pnf_generation_result_rows(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return compact rows for P&F generation results."""
+    rows: list[dict[str, Any]] = []
+    for result in results:
+        rows.append(
+            {
+                "success": result.get("success"),
+                "csv": Path(str(result.get("csv_path") or "")).name,
+                "box_size": result.get("box_size"),
+                "reversal": result.get("reversal"),
+                "last_price": result.get("last_price"),
+                "columns_count": result.get("columns_count"),
+                "objective": result.get("objective"),
+                "html_path": result.get("html_path"),
+                "sidecar_path": result.get("sidecar_path"),
+                "error": result.get("error"),
+            }
+        )
+    return rows
 
 
 def _classify_report_file(file_path: str) -> str:
@@ -488,27 +514,116 @@ def _render_charts(result: dict[str, Any] | None) -> None:
     pnf_sidecars = load_pnf_sidecars(report_dir)
     if not pnf_sidecars:
         st.info("No P&F sidecar files found for this report.")
-        return
 
-    selected_sidecar = st.selectbox(
-        "P&F sidecar",
-        options=pnf_sidecars,
-        format_func=_pnf_sidecar_label,
-        key="pnf_sidecar_chart_file",
-    )
-    st.dataframe(
-        [_pnf_metadata_row(selected_sidecar)],
-        use_container_width=True,
-        hide_index=True,
-    )
-    try:
-        fig = build_pnf_chart_from_sidecar(selected_sidecar)
-        st.plotly_chart(fig, use_container_width=True)
-    except Exception as exc:
-        st.info("Could not render this P&F sidecar as a chart.")
-        with st.expander("P&F chart details"):
-            st.write(f"Type: `{type(exc).__name__}`")
-            st.code(str(exc))
+    st.markdown("##### Generate P&F Sidecars")
+    if not csv_files:
+        st.caption("Annotated CSV files are required before P&F sidecars can be generated.")
+    else:
+        pnf_csv = st.selectbox(
+            "P&F source CSV",
+            options=csv_files,
+            format_func=lambda path: Path(path).name,
+            key="pnf_generation_csv",
+        )
+        row_choice = st.selectbox(
+            "P&F row limit",
+            options=PNF_ROW_OPTIONS,
+            index=0,
+            key="pnf_generation_rows",
+        )
+        reversal = st.number_input(
+            "P&F reversal",
+            min_value=1,
+            max_value=10,
+            value=3,
+            step=1,
+            key="pnf_generation_reversal",
+        )
+        box_mode = st.selectbox(
+            "P&F box sizing",
+            options=["auto", "fixed", "percent", "atr"],
+            index=0,
+            key="pnf_generation_box_mode",
+        )
+        box_size = None
+        pnf_scale = None
+        pnf_scale_value = None
+        if box_mode == "fixed":
+            box_size = st.number_input(
+                "Fixed box size",
+                min_value=0.000001,
+                value=1.0,
+                step=0.1,
+                format="%.6f",
+                key="pnf_generation_fixed_box_size",
+            )
+        elif box_mode in {"percent", "atr"}:
+            pnf_scale = box_mode
+            pnf_scale_value = st.number_input(
+                "P&F scale value",
+                min_value=0.000001,
+                value=0.005 if box_mode == "percent" else 1.0,
+                step=0.001,
+                format="%.6f",
+                key=f"pnf_generation_{box_mode}_scale_value",
+            )
+
+        nrows = None if row_choice == "All" else int(row_choice)
+        generate_col1, generate_col2 = st.columns(2)
+        generation_results: list[dict[str, Any]] = []
+        with generate_col1:
+            if st.button("Generate P&F for selected CSV"):
+                generation_results = [
+                    generate_pnf_for_csv(
+                        pnf_csv,
+                        box_size=box_size,
+                        reversal=int(reversal),
+                        nrows=nrows,
+                        pnf_scale=pnf_scale,
+                        pnf_scale_value=pnf_scale_value,
+                    )
+                ]
+        with generate_col2:
+            if st.button("Generate P&F for all annotated CSVs"):
+                generation_results = generate_pnf_for_csvs(
+                    csv_files,
+                    box_size=box_size,
+                    reversal=int(reversal),
+                    nrows=nrows,
+                    pnf_scale=pnf_scale,
+                    pnf_scale_value=pnf_scale_value,
+                )
+
+        if generation_results:
+            successes = [result for result in generation_results if result.get("success")]
+            failures = [result for result in generation_results if not result.get("success")]
+            if successes:
+                st.success(f"Generated P&F outputs for {len(successes)} CSV file(s).")
+            if failures:
+                st.warning(f"P&F generation failed for {len(failures)} CSV file(s).")
+            st.dataframe(_pnf_generation_result_rows(generation_results), use_container_width=True, hide_index=True)
+            pnf_sidecars = load_pnf_sidecars(report_dir)
+
+    if pnf_sidecars:
+        selected_sidecar = st.selectbox(
+            "P&F sidecar",
+            options=pnf_sidecars,
+            format_func=_pnf_sidecar_label,
+            key="pnf_sidecar_chart_file",
+        )
+        st.dataframe(
+            [_pnf_metadata_row(selected_sidecar)],
+            use_container_width=True,
+            hide_index=True,
+        )
+        try:
+            fig = build_pnf_chart_from_sidecar(selected_sidecar)
+            st.plotly_chart(fig, use_container_width=True)
+        except Exception as exc:
+            st.info("Could not render this P&F sidecar as a chart.")
+            with st.expander("P&F chart details"):
+                st.write(f"Type: `{type(exc).__name__}`")
+                st.code(str(exc))
 
 
 def _default_strategy_ticker_text(result: dict[str, Any] | None) -> str:
@@ -1439,11 +1554,18 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                 )
     else:
         st.warning("No P&F sidecars found; P&F gate remains pending.")
+        st.caption("Generate P&F sidecars from the Charts tab if you want the P&F gate to be evaluated.")
 
     st.caption(f"Ready for analyst: `{packet_summary.get('ready_for_analyst')}`")
 
     missing_data = packet.get("missing_data") or []
     warnings = packet.get("warnings") or []
+    if not packet_summary.get("pnf_available"):
+        warnings = [
+            item
+            for item in warnings
+            if item != "No P&F sidecars found; P&F gate remains pending."
+        ]
     if missing_data:
         st.warning("Packet has missing data. Review the list below before using it downstream.")
         with st.expander("Missing data"):

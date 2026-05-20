@@ -31,6 +31,17 @@ MarketFlow Studio is a local cockpit for reviewing MarketFlow reports, ranking s
 - If P&F sidecars exist, it can also render a basic P&F sidecar chart.
 - If only metadata is available, the P&F chart shows last price, breakout, and objective levels.
 
+P&F sidecars are not generated automatically by Run Analysis. Use Charts tab > Generate P&F Sidecars to create:
+
+- `*_point_and_figure_plot.html`
+- `*_pnf_meta.json`
+
+After generation:
+
+- the P&F chart appears in the Charts tab
+- the Analyst Packet can use the P&F sidecar
+- the P&F gate can move from pending to pass/fail/unknown
+
 ## Strategy Ranking Monte Carlo Checkbox
 
 Monte Carlo is optional in Strategy Ranking.

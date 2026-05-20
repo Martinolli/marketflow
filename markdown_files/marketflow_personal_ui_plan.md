@@ -114,6 +114,7 @@ streamlit run apps/marketflow_studio.py
 * Monte Carlo HTML plot preview/download — implemented
 * P&F sidecar chart rendering — implemented
 * Analyst Packet Wyckoff extraction and save clarity — implemented
+* Manual P&F sidecar generation in Studio — implemented
 * Next planned milestone: PR review / merge to main
 
 ---
