@@ -25,6 +25,12 @@ MarketFlow Studio is a local cockpit for reviewing MarketFlow reports, ranking s
 6. Validate finalists with Monte Carlo.
 7. Build Analyst Packets for finalists.
 
+## Charts Tab
+
+- Charts tab shows annotated candlestick charts by timeframe.
+- If P&F sidecars exist, it can also render a basic P&F sidecar chart.
+- If only metadata is available, the P&F chart shows last price, breakout, and objective levels.
+
 ## Strategy Ranking Monte Carlo Checkbox
 
 Monte Carlo is optional in Strategy Ranking.
