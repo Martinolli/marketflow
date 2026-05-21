@@ -35,8 +35,12 @@ import plotly.express as px
 import argparse
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
-import os, json
+import os, json, sys
 import datetime
+
+PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if PROJECT_ROOT not in sys.path:
+    sys.path.insert(0, PROJECT_ROOT)
 
 # Assuming marketflow is a local package or installed
 from marketflow.marketflow_config_manager import create_app_config
@@ -47,7 +51,7 @@ logger = get_logger("plot_annotated_features")
 config_manager = create_app_config(logger=logger)
 
 
-def plot_volume_profile(df: pd.DataFrame, output_dir: str, csv_file_name: str) -> None:
+def plot_volume_profile(df: pd.DataFrame, output_dir: str, csv_file_name: str, show=True) -> str:
     """
     Plots a Volume Profile (Volume by Price) chart.
 
@@ -94,7 +98,9 @@ def plot_volume_profile(df: pd.DataFrame, output_dir: str, csv_file_name: str) -
     profile_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_volume_profile_plot.html")
     fig.write_html(profile_path)
     logger.info(f"Volume Profile plot saved as {profile_path}")
-    fig.show()
+    if show:
+        fig.show()
+    return profile_path
 
 def add_wyckoff_phase_overlay_pnf(fig: go.Figure, df_with_cols: pd.DataFrame) -> None:
     """
@@ -462,7 +468,7 @@ def plot_point_and_figure(df: pd.DataFrame, output_dir: str, csv_file_name: str,
 
     return {"path": pnf_path, **sidecar}
 
-def plot_wyckoff_candlestick_chart(df: pd.DataFrame, output_dir: str, csv_file_name: str) -> None:
+def plot_wyckoff_candlestick_chart(df: pd.DataFrame, output_dir: str, csv_file_name: str, show=True) -> str:
     """
     Generates a comprehensive candlestick chart with Wyckoff phases and event annotations.
     """
@@ -562,9 +568,25 @@ def plot_wyckoff_candlestick_chart(df: pd.DataFrame, output_dir: str, csv_file_n
     chart_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_wyckoff_candlestick_chart.html")
     fig.write_html(chart_path)
     logger.info(f"Wyckoff candlestick chart saved as {chart_path}")
-    fig.show()
+    if show:
+        fig.show()
+    return chart_path
 
-def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, box_size: float = None, reversal: int = 3, pnf_scale: str = None, pnf_scale_value: float = None) -> None:
+def plot_features(
+    csv_file: str,
+    features: list[str] = None,
+    nrows: int | None = 4000,
+    box_size: float = None,
+    reversal: int = 3,
+    pnf_scale: str = None,
+    pnf_scale_value: float = None,
+    show: bool = True,
+    include_pnf: bool = True,
+    include_price_volume: bool = True,
+    include_volume_profile: bool = True,
+    include_volume_distribution: bool = True,
+    include_spread: bool = True,
+) -> dict:
     """Plot features from a MarketFlow annotated CSV file.
     Args:
         csv_file (str): Path to the annotated CSV file.
@@ -575,11 +597,12 @@ def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, 
     """
     output_dir = os.path.dirname(csv_file)
     csv_file_name = os.path.basename(csv_file)
+    generated_paths = []
 
     logger.info(f"Loading data from {csv_file}...")
     if not os.path.exists(csv_file):
         logger.error(f"File {csv_file} does not exist.")
-        return
+        return {"success": False, "csv_path": csv_file, "generated_paths": generated_paths, "error": "CSV file does not exist."}
     # Load the CSV file into a DataFrame
     df = pd.read_csv(csv_file)
     # Convert timestamp to datetime object for Plotly
@@ -587,28 +610,34 @@ def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, 
     logger.info(f"Data loaded successfully with {len(df)} rows.")
     
     # Limit to nrows
-    if nrows < len(df):
+    if nrows is not None and nrows > 0 and nrows < len(df):
         df = df.tail(nrows).copy()
     else:
         df = df.copy()
 
     # Call the new comprehensive chart function
-    plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name)
+    if include_spread:
+        generated_paths.append(plot_wyckoff_candlestick_chart(df, output_dir, csv_file_name, show=show))
 
     # NEW: Plot Volume Profile
-    plot_volume_profile(df.copy(), output_dir, csv_file_name)
+    if include_volume_profile:
+        generated_paths.append(plot_volume_profile(df.copy(), output_dir, csv_file_name, show=show))
 
     # NEW: Plot Point & Figure Chart
-    plot_point_and_figure(
-        df.copy(),
-        output_dir=output_dir,
-        csv_file_name=csv_file_name,
-        box_size=box_size,
-        reversal=reversal,
-        wyckoff_overlay=True,
-        pnf_scale=pnf_scale,
-        pnf_scale_value=pnf_scale_value,
-    )
+    if include_pnf:
+        pnf_result = plot_point_and_figure(
+            df.copy(),
+            output_dir=output_dir,
+            csv_file_name=csv_file_name,
+            show=show,
+            box_size=box_size,
+            reversal=reversal,
+            wyckoff_overlay=True,
+            pnf_scale=pnf_scale,
+            pnf_scale_value=pnf_scale_value,
+        )
+        if isinstance(pnf_result, dict) and pnf_result.get("path"):
+            generated_paths.append(pnf_result["path"])
 
     # Check if the specified features are in the DataFrame
     if features is None:
@@ -618,56 +647,65 @@ def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, 
     else:
         logger.info(f"Features to plot: {features}")
 
-    # Plot Closed Price and Volume in the same frame (price above, volume below)
-    fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
-                        vertical_spacing=0.05,
-                        subplot_titles=("Closed Price", "Volume"))
-    # Price (top)
-    fig.add_trace(
-        go.Scatter(x=df['timestamp'], y=df['close'], mode='lines', name='Closed Price'),
-        row=1, col=1
-    )
-    # Volume (bottom)
-    fig.add_trace(
-        go.Bar(x=df['timestamp'], y=df['volume'], name='Volume', marker_color='rgba(100,150,255,1.0)'),
-        row=2, col=1
-    )
-    fig.update_layout(
-        height=700,
-        title_text=f"Closed Price and Volume - {os.path.basename(csv_file)}",
-        xaxis2_title="Timestamp",
-        yaxis_title="Closed Price",
-        yaxis2_title="Volume"
-    )
-    fig.update_xaxes(type='date', rangeslider_visible=True, row=2, col=1)
-    price_volume_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_price_volume_combined_plot.html")
-    fig.write_html(price_volume_path)
-    logger.info(f"Combined price and volume plot saved as {price_volume_path}")
-    fig.show()
+    if include_price_volume:
+        # Plot Closed Price and Volume in the same frame (price above, volume below)
+        fig = make_subplots(rows=2, cols=1, shared_xaxes=True,
+                            vertical_spacing=0.05,
+                            subplot_titles=("Closed Price", "Volume"))
+        # Price (top)
+        fig.add_trace(
+            go.Scatter(x=df['timestamp'], y=df['close'], mode='lines', name='Closed Price'),
+            row=1, col=1
+        )
+        # Volume (bottom)
+        fig.add_trace(
+            go.Bar(x=df['timestamp'], y=df['volume'], name='Volume', marker_color='rgba(100,150,255,1.0)'),
+            row=2, col=1
+        )
+        fig.update_layout(
+            height=700,
+            title_text=f"Closed Price and Volume - {os.path.basename(csv_file)}",
+            xaxis2_title="Timestamp",
+            yaxis_title="Closed Price",
+            yaxis2_title="Volume"
+        )
+        fig.update_xaxes(type='date', rangeslider_visible=True, row=2, col=1)
+        price_volume_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_price_volume_combined_plot.html")
+        fig.write_html(price_volume_path)
+        generated_paths.append(price_volume_path)
+        logger.info(f"Combined price and volume plot saved as {price_volume_path}")
+        if show:
+            fig.show()
 
-    # Plot Volume over Time
-    fig = px.histogram(df, x= "timestamp", y='volume', nbins=150,
-                       title=f"Volume Distribution Over Time {os.path.basename(csv_file)}",
-                       labels={'timestamp': 'Timestamp', 'volume': 'Volume'},)
-    fig.update_layout(xaxis_title="Timestamp", yaxis_title="Volume")
-    fig.update_xaxes(rangeslider_visible=True)
-    volume_dist_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_volume_distribution_plot.html")
-    fig.write_html(volume_dist_path)
-    logger.info(f"Volume distribution plot saved as {volume_dist_path}")
-    fig.show()
+    if include_volume_distribution:
+        # Plot Volume over Time
+        fig = px.histogram(df, x= "timestamp", y='volume', nbins=150,
+                           title=f"Volume Distribution Over Time {os.path.basename(csv_file)}",
+                           labels={'timestamp': 'Timestamp', 'volume': 'Volume'},)
+        fig.update_layout(xaxis_title="Timestamp", yaxis_title="Volume")
+        fig.update_xaxes(rangeslider_visible=True)
+        volume_dist_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_volume_distribution_plot.html")
+        fig.write_html(volume_dist_path)
+        generated_paths.append(volume_dist_path)
+        logger.info(f"Volume distribution plot saved as {volume_dist_path}")
+        if show:
+            fig.show()
 
-    # Plot Spread over Time
-    fig = px.line(df, x='timestamp', y='spread',
-                  title=f"Spread Over Time {os.path.basename(csv_file)}",
-                  color_discrete_sequence=px.colors.qualitative.Plotly,
-                  hover_data=['spread'],
-                  labels={'timestamp': 'Timestamp', 'spread': 'Spread'},)
-    fig.update_layout(xaxis_title="Timestamp", yaxis_title="Spread")
-    fig.update_xaxes(rangeslider_visible=True)
-    spread_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_spread_plot.html")
-    fig.write_html(spread_path)
-    logger.info(f"Spread plot saved as {spread_path}")
-    fig.show()
+    if include_spread and 'spread' in df.columns:
+        # Plot Spread over Time
+        fig = px.line(df, x='timestamp', y='spread',
+                      title=f"Spread Over Time {os.path.basename(csv_file)}",
+                      color_discrete_sequence=px.colors.qualitative.Plotly,
+                      hover_data=['spread'],
+                      labels={'timestamp': 'Timestamp', 'spread': 'Spread'},)
+        fig.update_layout(xaxis_title="Timestamp", yaxis_title="Spread")
+        fig.update_xaxes(rangeslider_visible=True)
+        spread_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_spread_plot.html")
+        fig.write_html(spread_path)
+        generated_paths.append(spread_path)
+        logger.info(f"Spread plot saved as {spread_path}")
+        if show:
+            fig.show()
 
     if "volume_class" in features:
         fig = px.scatter(df, x='timestamp', y='close',
@@ -682,8 +720,10 @@ def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, 
         fig.update_xaxes(rangeslider_visible=True)
         volume_class_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_volume_class_plot.html")
         fig.write_html(volume_class_path)
+        generated_paths.append(volume_class_path)
         logger.info(f"Volume class plot saved as {volume_class_path}")
-        fig.show()
+        if show:
+            fig.show()
 
     if "candle_class" in features:
         # Plot the classified candles using Plotly
@@ -697,8 +737,10 @@ def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, 
         fig.update_xaxes(rangeslider_visible=True)
         candle_class_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_classified_candles_plot.html")
         fig.write_html(candle_class_path)
+        generated_paths.append(candle_class_path)
         logger.info(f"Classified candles plot saved as {candle_class_path}")
-        fig.show()
+        if show:
+            fig.show()
 
     if "price_direction" in features:
         # Plot the price direction using Plotly
@@ -710,8 +752,10 @@ def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, 
         fig.update_xaxes(rangeslider_visible=True)
         price_direction_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_price_direction_plot.html")
         fig.write_html(price_direction_path)
+        generated_paths.append(price_direction_path)
         logger.info(f"Price direction plot saved as {price_direction_path}")
-        fig.show()
+        if show:
+            fig.show()
 
     if "volume_direction" in features:
         # Plot the volume direction using Plotly
@@ -723,8 +767,45 @@ def plot_features(csv_file: str, features: list[str] = None, nrows: int = 4000, 
         fig.update_xaxes(rangeslider_visible=True)
         volume_direction_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_volume_direction_plot.html")
         fig.write_html(volume_direction_path)
+        generated_paths.append(volume_direction_path)
         logger.info(f"Volume direction plot saved as {volume_direction_path}")
-        fig.show()
+        if show:
+            fig.show()
+
+    return {"success": True, "csv_path": csv_file, "output_dir": output_dir, "generated_paths": generated_paths}
+
+
+def generate_feature_plot_artifacts(
+    csv_file: str,
+    features: list[str] = None,
+    nrows: int | None = 4000,
+    box_size: float = None,
+    reversal: int = 3,
+    pnf_scale: str = None,
+    pnf_scale_value: float = None,
+    show: bool = False,
+    include_pnf: bool = True,
+    include_price_volume: bool = True,
+    include_volume_profile: bool = True,
+    include_volume_distribution: bool = True,
+    include_spread: bool = True,
+) -> dict:
+    """Generate legacy plot artifacts without changing terminal CLI defaults."""
+    return plot_features(
+        csv_file=csv_file,
+        features=features,
+        nrows=nrows,
+        box_size=box_size,
+        reversal=reversal,
+        pnf_scale=pnf_scale,
+        pnf_scale_value=pnf_scale_value,
+        show=show,
+        include_pnf=include_pnf,
+        include_price_volume=include_price_volume,
+        include_volume_profile=include_volume_profile,
+        include_volume_distribution=include_volume_distribution,
+        include_spread=include_spread,
+    )
 
 def main():
     parser = argparse.ArgumentParser(description="Plot features from MarketFlow annotated CSV.")

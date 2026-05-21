@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import json
 import re
 import sys
 from pathlib import Path
@@ -25,6 +26,11 @@ from marketflow.services.analyst_packet_service import (
     load_pnf_sidecars,
     load_default_analyst_profile,
     packet_to_pretty_json,
+)
+from marketflow.services.artifact_service import (
+    generate_legacy_feature_plots_for_csv,
+    list_report_artifacts,
+    read_text_artifact,
 )
 from marketflow.services.batch_service import (
     normalize_batch_tickers,
@@ -63,6 +69,7 @@ TIMEFRAME_OPTIONS = ["1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1
 CSV_PREVIEW_ROW_OPTIONS = [100, 250, 500, 1000]
 CHART_ROW_OPTIONS = [200, 500, 1000, 2000]
 PNF_ROW_OPTIONS = ["All", 200, 500, 1000, 2000]
+LEGACY_PLOT_ROW_OPTIONS = ["All", 200, 500, 1000, 2000]
 STRATEGY_TIMEFRAMES = ["1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
 WYCKOFF_PHASE_OPTIONS = ["A", "B", "C", "D", "E", "UNKNOWN"]
 MONTE_CARLO_MODELS = ["bootstrap", "gbm", "garch"]
@@ -291,6 +298,18 @@ def _pnf_generation_result_rows(results: list[dict[str, Any]]) -> list[dict[str,
     return rows
 
 
+def _legacy_generation_rows(result: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return compact rows for generated legacy plot paths."""
+    return [
+        {
+            "kind": Path(path).suffix.lower().lstrip("."),
+            "name": Path(path).name,
+            "path": path,
+        }
+        for path in result.get("generated_paths") or []
+    ]
+
+
 def _classify_report_file(file_path: str) -> str:
     """Classify a generated report file for compact display."""
     name = Path(file_path).name.lower()
@@ -322,6 +341,132 @@ def _report_file_rows(files: list[str]) -> list[dict[str, Any]]:
         }
         for file_path in files
     ]
+
+
+def _artifact_display_rows(artifacts: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return display rows for generated report artifacts."""
+    return [
+        {
+            "kind": artifact.get("kind"),
+            "timeframe": artifact.get("timeframe") or "",
+            "name": artifact.get("name"),
+            "modified": artifact.get("modified"),
+            "size": artifact.get("size"),
+            "path": artifact.get("path"),
+        }
+        for artifact in artifacts
+    ]
+
+
+def _artifact_label(artifact: dict[str, Any]) -> str:
+    """Return a compact label for artifact selectors."""
+    parts = [str(artifact.get("kind") or "artifact")]
+    timeframe = artifact.get("timeframe")
+    if timeframe:
+        parts.append(str(timeframe))
+    parts.append(str(artifact.get("name") or artifact.get("path") or "unnamed"))
+    return " | ".join(parts)
+
+
+def _artifact_mime_type(path: str) -> str:
+    """Return a reasonable download MIME type for an artifact path."""
+    suffix = Path(path).suffix.lower()
+    if suffix == ".html":
+        return "text/html"
+    if suffix == ".json":
+        return "application/json"
+    if suffix == ".txt":
+        return "text/plain"
+    if suffix == ".csv":
+        return "text/csv"
+    return "application/octet-stream"
+
+
+def _render_artifact_preview(artifact: dict[str, Any], key_prefix: str, report_dir: str) -> None:
+    """Render preview and download controls for one selected artifact."""
+    artifact_path = str(artifact.get("path") or "")
+    if not artifact_path:
+        st.info("No artifact selected for preview.")
+        return
+
+    preview_result = read_text_artifact(artifact_path, report_dir=report_dir)
+    if preview_result.get("success"):
+        text = preview_result.get("text") or ""
+        suffix = Path(artifact_path).suffix.lower()
+        if suffix == ".html":
+            components.html(text, height=700, scrolling=True)
+        elif suffix == ".json":
+            try:
+                st.json(json.loads(text))
+            except json.JSONDecodeError:
+                st.code(text, language="json")
+        else:
+            st.code(text, language="text")
+    elif preview_result.get("too_large"):
+        st.info(preview_result.get("error") or "Artifact is too large to preview.")
+    else:
+        st.info(preview_result.get("error") or "This artifact is not previewable.")
+
+    try:
+        data = Path(artifact_path).read_bytes()
+        st.download_button(
+            "Download selected artifact",
+            data=data,
+            file_name=Path(artifact_path).name,
+            mime=_artifact_mime_type(artifact_path),
+            key=f"{key_prefix}_download",
+        )
+    except Exception as exc:
+        st.warning(f"Could not prepare download: {type(exc).__name__}: {exc}")
+
+
+def _render_generated_artifacts(report_dir: str, key_prefix: str = "report_artifacts") -> list[dict[str, Any]]:
+    """Render a unified artifact browser for saved report outputs."""
+    st.markdown("#### Generated Artifacts")
+    artifacts = list_report_artifacts(report_dir)
+    if not artifacts:
+        st.info("No generated artifacts found in this report directory.")
+        return []
+
+    kind_options = sorted({str(artifact.get("kind")) for artifact in artifacts if artifact.get("kind")})
+    selected_kinds = st.multiselect(
+        "Artifact kinds",
+        options=kind_options,
+        default=kind_options,
+        key=f"{key_prefix}_kind_filter",
+    )
+
+    timeframe_options = sorted(
+        {str(artifact.get("timeframe")) for artifact in artifacts if artifact.get("timeframe")},
+        key=lambda value: TIMEFRAME_OPTIONS.index(value) if value in TIMEFRAME_OPTIONS else len(TIMEFRAME_OPTIONS),
+    )
+    selected_timeframe = st.selectbox(
+        "Artifact timeframe",
+        options=["All", *timeframe_options],
+        key=f"{key_prefix}_timeframe_filter",
+    )
+
+    filtered_artifacts = [
+        artifact
+        for artifact in artifacts
+        if artifact.get("kind") in selected_kinds
+        and (selected_timeframe == "All" or artifact.get("timeframe") == selected_timeframe)
+    ]
+
+    st.dataframe(_artifact_display_rows(filtered_artifacts), use_container_width=True, hide_index=True)
+
+    if filtered_artifacts:
+        selected_artifact = st.selectbox(
+            "Select artifact",
+            options=filtered_artifacts,
+            format_func=_artifact_label,
+            key=f"{key_prefix}_preview_selector",
+        )
+        _render_artifact_preview(selected_artifact, key_prefix, report_dir)
+    else:
+        st.info("No artifacts match the current filters.")
+
+    return filtered_artifacts
 
 
 def _render_summary_report(summary_text: str) -> None:
@@ -412,6 +557,8 @@ def _render_reports(result: dict[str, Any] | None) -> None:
         else:
             st.info("No generated files found in this directory.")
 
+    _render_generated_artifacts(report_dir, key_prefix="reports_artifacts")
+
     date_folders = list_report_date_folders()
     with st.expander("Report date / batch folders", expanded=False):
         if date_folders:
@@ -477,8 +624,10 @@ def _render_charts(result: dict[str, Any] | None) -> None:
         return
 
     csv_files = _annotated_csv_files_for_report(report_dir)
+    chart_selected_csv: str | None = None
     if csv_files:
         selected_csv = _select_annotated_csv(csv_files, "Chart CSV file", "chart_csv_file")
+        chart_selected_csv = selected_csv
         chart_rows = st.selectbox(
             "Chart rows",
             options=CHART_ROW_OPTIONS,
@@ -604,7 +753,72 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             st.dataframe(_pnf_generation_result_rows(generation_results), use_container_width=True, hide_index=True)
             pnf_sidecars = load_pnf_sidecars(report_dir)
 
+    st.markdown("##### Generate Legacy Feature Plots")
+    if not csv_files:
+        st.caption("Annotated CSV files are required before legacy feature plots can be generated.")
+    else:
+        default_legacy_index = 0
+        if chart_selected_csv in csv_files:
+            default_legacy_index = csv_files.index(chart_selected_csv)
+        legacy_csv = st.selectbox(
+            "Legacy plot source CSV",
+            options=csv_files,
+            index=default_legacy_index,
+            format_func=lambda path: Path(path).name,
+            key="legacy_plot_generation_csv",
+        )
+        legacy_row_choice = st.selectbox(
+            "Legacy plot row limit",
+            options=LEGACY_PLOT_ROW_OPTIONS,
+            index=0,
+            key="legacy_plot_generation_rows",
+        )
+        legacy_col1, legacy_col2, legacy_col3, legacy_col4, legacy_col5 = st.columns(5)
+        with legacy_col1:
+            include_legacy_pnf = st.checkbox("P&F", value=True, key="legacy_include_pnf")
+        with legacy_col2:
+            include_price_volume = st.checkbox("Price-volume", value=True, key="legacy_include_price_volume")
+        with legacy_col3:
+            include_volume_profile = st.checkbox("Volume profile", value=True, key="legacy_include_volume_profile")
+        with legacy_col4:
+            include_volume_distribution = st.checkbox(
+                "Volume distribution",
+                value=True,
+                key="legacy_include_volume_distribution",
+            )
+        with legacy_col5:
+            include_spread = st.checkbox("Spread/features", value=True, key="legacy_include_spread")
+
+        legacy_nrows = None if legacy_row_choice == "All" else int(legacy_row_choice)
+        if st.button("Generate legacy plots for selected CSV"):
+            legacy_result = generate_legacy_feature_plots_for_csv(
+                legacy_csv,
+                nrows=legacy_nrows,
+                include_pnf=include_legacy_pnf,
+                include_price_volume=include_price_volume,
+                include_volume_profile=include_volume_profile,
+                include_volume_distribution=include_volume_distribution,
+                include_spread=include_spread,
+            )
+            if legacy_result.get("success"):
+                generated_count = len(legacy_result.get("generated_paths") or [])
+                st.success(f"Generated {generated_count} legacy plot artifact(s).")
+            else:
+                st.warning(legacy_result.get("error") or "Legacy plot generation failed.")
+                if legacy_result.get("traceback"):
+                    with st.expander("Legacy plot error details"):
+                        st.code(legacy_result["traceback"], language="python")
+
+            generated_rows = _legacy_generation_rows(legacy_result)
+            if generated_rows:
+                st.dataframe(generated_rows, use_container_width=True, hide_index=True)
+            pnf_sidecars = load_pnf_sidecars(report_dir)
+
     if pnf_sidecars:
+        st.caption(
+            "The reconstructed P&F chart is built from sidecar JSON and may not include every visual "
+            "feature from the saved HTML plot. Use Generated Artifacts to preview the original saved P&F HTML."
+        )
         selected_sidecar = st.selectbox(
             "P&F sidecar",
             options=pnf_sidecars,
@@ -624,6 +838,9 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             with st.expander("P&F chart details"):
                 st.write(f"Type: `{type(exc).__name__}`")
                 st.code(str(exc))
+
+    with st.expander("Generated Artifacts", expanded=False):
+        _render_generated_artifacts(report_dir, key_prefix="charts_artifacts")
 
 
 def _default_strategy_ticker_text(result: dict[str, Any] | None) -> str:

@@ -30,6 +30,7 @@ MarketFlow Studio is a local cockpit for reviewing MarketFlow reports, ranking s
 - Charts tab shows annotated candlestick charts by timeframe.
 - If P&F sidecars exist, it can also render a basic P&F sidecar chart.
 - If only metadata is available, the P&F chart shows last price, breakout, and objective levels.
+- The reconstructed P&F chart is built from sidecar JSON and may not include every visual feature from the saved HTML plot. Use Generated Artifacts to preview the original saved P&F HTML.
 
 P&F sidecars are not generated automatically by Run Analysis. Use Charts tab > Generate P&F Sidecars to create:
 
@@ -41,6 +42,20 @@ After generation:
 - the P&F chart appears in the Charts tab
 - the Analyst Packet can use the P&F sidecar
 - the P&F gate can move from pending to pass/fail/unknown
+
+Use Charts tab > Generate Legacy Feature Plots to run the legacy plotting workflow from an annotated CSV without opening browser windows. The generated files are saved beside the CSV and can include P&F HTML/meta JSON, Wyckoff annotated charts, price-volume, volume profile, volume distribution, and spread/features HTML.
+
+## Generated Artifacts
+
+Reports tab includes a Generated Artifacts browser for saved HTML, JSON, TXT, and CSV outputs in the loaded report folder.
+
+It can list, filter, preview, and download:
+
+- report HTML, report JSON, and summary text
+- P&F HTML and P&F sidecar JSON
+- Monte Carlo hits/paths HTML and summary JSON
+- legacy feature plot HTML outputs
+- annotated and raw CSV files
 
 ## Strategy Ranking Monte Carlo Checkbox
 
@@ -70,6 +85,7 @@ Strategy Ranking now prefers MC summaries matching the selected timeframe. If no
 - Generated files are listed in the UI.
 - HTML plots can be previewed inside Studio after a run.
 - They can also be downloaded and opened in a browser.
+- Monte Carlo hits, paths, and summary files also appear in the Generated Artifacts browser.
 
 ## GARCH
 
@@ -90,6 +106,8 @@ Analyst Packet combines:
 - profile/risk rules
 
 Analyst Packet can extract Wyckoff context from report JSON and the selected annotated CSV.
+
+Analyst Packet uses discovered P&F sidecars. If multiple P&F sidecars exist, verify the selected sidecar/timeframe in the packet. A later task will refine exact sidecar matching by selected CSV/timeframe.
 
 The packet can be downloaded or saved to the loaded report folder.
 
