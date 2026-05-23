@@ -2,6 +2,8 @@
 
 MarketFlow Studio is a local cockpit for reviewing MarketFlow reports, ranking setups, validating selected candidates, and building Analyst Packets. It does not replace trade judgment or issue automatic recommendations.
 
+Studio uses the sidebar Workspace selector to render one page at a time. This keeps heavy pages such as Charts, Generated Artifacts, Monte Carlo plots, and Analyst Packet views from rendering when they are hidden.
+
 ## Recommended Single Ticker Flow
 
 1. Enter ticker and timeframes in the sidebar.
@@ -50,6 +52,7 @@ Use Charts tab > Generate Legacy Feature Plots to run the legacy plotting workfl
 ## Generated Artifacts
 
 Reports tab includes a Generated Artifacts browser for saved HTML, JSON, TXT, and CSV outputs in the loaded report folder.
+Artifact previews are lazy for performance: select an artifact, then click Preview selected artifact to render it. Large Plotly HTML artifacts may take time to render, and very large files may need to be downloaded or opened externally.
 
 It can list, filter, preview, and download:
 

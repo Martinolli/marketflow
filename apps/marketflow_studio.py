@@ -448,9 +448,14 @@ def _render_artifact_preview(artifact: dict[str, Any], key_prefix: str, report_d
             components.html(text, height=700, scrolling=True)
         elif suffix == ".md":
             st.markdown(text)
-            st.divider()
-            st.caption("Raw markdown")
-            st.code(text, language="markdown")
+            show_raw = st.checkbox(
+                "Show raw markdown",
+                value=False,
+                key=f"{key_prefix}_show_raw_markdown",
+            )
+            if show_raw:
+                st.divider()
+                st.code(text, language="markdown")
         elif suffix == ".json":
             try:
                 st.json(json.loads(text))
@@ -463,17 +468,23 @@ def _render_artifact_preview(artifact: dict[str, Any], key_prefix: str, report_d
     else:
         st.info(preview_result.get("error") or "This artifact is not previewable.")
 
-    try:
-        data = Path(artifact_path).read_bytes()
-        st.download_button(
-            "Download selected artifact",
-            data=data,
-            file_name=Path(artifact_path).name,
-            mime=_artifact_mime_type(artifact_path),
-            key=f"{key_prefix}_download",
-        )
-    except Exception as exc:
-        st.warning(f"Could not prepare download: {type(exc).__name__}: {exc}")
+    if st.button("Prepare download", key=f"{key_prefix}_prepare_download"):
+        st.session_state[f"{key_prefix}_download_path"] = artifact_path
+
+    if st.session_state.get(f"{key_prefix}_download_path") == artifact_path:
+        try:
+            data = Path(artifact_path).read_bytes()
+            st.download_button(
+                "Download selected artifact",
+                data=data,
+                file_name=Path(artifact_path).name,
+                mime=_artifact_mime_type(artifact_path),
+                key=f"{key_prefix}_download",
+            )
+        except Exception as exc:
+            st.warning(f"Could not prepare download: {type(exc).__name__}: {exc}")
+    else:
+        st.caption("Download bytes are prepared only after you click Prepare download.")
 
 
 def _render_generated_artifacts(report_dir: str, key_prefix: str = "report_artifacts") -> list[dict[str, Any]]:
@@ -518,7 +529,26 @@ def _render_generated_artifacts(report_dir: str, key_prefix: str = "report_artif
             format_func=_artifact_label,
             key=f"{key_prefix}_preview_selector",
         )
-        _render_artifact_preview(selected_artifact, key_prefix, report_dir)
+        selected_path = str(selected_artifact.get("path") or "")
+        st.dataframe(
+            _safe_dataframe_rows(_artifact_display_rows([selected_artifact])),
+            use_container_width=True,
+            hide_index=True,
+        )
+        preview_col, clear_col = st.columns(2)
+        with preview_col:
+            if st.button("Preview selected artifact", key=f"{key_prefix}_preview_button"):
+                st.session_state[f"{key_prefix}_preview_path"] = selected_path
+                st.session_state[f"{key_prefix}_download_path"] = None
+        with clear_col:
+            if st.button("Clear preview", key=f"{key_prefix}_clear_preview_button"):
+                st.session_state[f"{key_prefix}_preview_path"] = None
+                st.session_state[f"{key_prefix}_download_path"] = None
+
+        if st.session_state.get(f"{key_prefix}_preview_path") == selected_path:
+            _render_artifact_preview(selected_artifact, key_prefix, report_dir)
+        else:
+            st.caption("Preview is lazy to keep Studio responsive. Click Preview selected artifact to render it.")
     else:
         st.info("No artifacts match the current filters.")
 
@@ -2070,62 +2100,44 @@ def main() -> None:
             st.session_state.analysis_result = _load_latest_result(ticker)
 
         _render_loaded_report_caption(st.session_state.analysis_result)
+        page = st.radio(
+            "Workspace",
+            [
+                "Overview",
+                "Reports",
+                "CSV Preview",
+                "Charts",
+                "Strategy Ranking",
+                "Batch Analysis",
+                "Monte Carlo",
+                "Analyst Packet",
+                "Wyckoff Analyst",
+                "Raw JSON",
+            ],
+            key="studio_workspace_page",
+        )
 
     result = st.session_state.analysis_result
-    (
-        overview_tab,
-        reports_tab,
-        csv_tab,
-        charts_tab,
-        strategy_tab,
-        batch_tab,
-        monte_carlo_tab,
-        analyst_packet_tab,
-        wyckoff_analyst_tab,
-        raw_json_tab,
-    ) = st.tabs(
-        [
-            "Overview",
-            "Reports",
-            "CSV Preview",
-            "Charts",
-            "Strategy Ranking",
-            "Batch Analysis",
-            "Monte Carlo",
-            "Analyst Packet",
-            "Wyckoff Analyst",
-            "Raw JSON",
-        ]
-    )
-
-    with overview_tab:
+    st.subheader(page)
+    if page == "Overview":
         _render_overview(result)
-
-    with reports_tab:
+    elif page == "Reports":
         _render_reports(result)
-
-    with csv_tab:
+    elif page == "CSV Preview":
         _render_csv_preview(result)
-
-    with charts_tab:
+    elif page == "Charts":
         _render_charts(result)
-
-    with strategy_tab:
+    elif page == "Strategy Ranking":
         _render_strategy_ranking(result)
-
-    with batch_tab:
+    elif page == "Batch Analysis":
         _render_batch_analysis()
-
-    with monte_carlo_tab:
+    elif page == "Monte Carlo":
         _render_monte_carlo(result)
-
-    with analyst_packet_tab:
+    elif page == "Analyst Packet":
         _render_analyst_packet(result)
-
-    with wyckoff_analyst_tab:
+    elif page == "Wyckoff Analyst":
         _render_wyckoff_analyst_prompt(result)
-
-    with raw_json_tab:
+    elif page == "Raw JSON":
         _render_raw_json(result)
 
 
