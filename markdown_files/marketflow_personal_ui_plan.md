@@ -116,6 +116,7 @@ streamlit run apps/marketflow_studio.py
 * Analyst Packet Wyckoff extraction and save clarity — implemented
 * Manual P&F sidecar generation in Studio — implemented
 * Full report artifact browser and legacy plot generation — implemented
+* P&F sidecar traceability and Analyst Packet matching — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

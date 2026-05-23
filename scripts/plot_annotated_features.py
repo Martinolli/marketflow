@@ -35,7 +35,7 @@ import plotly.express as px
 import argparse
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
-import os, json, sys
+import os, json, re, sys
 import datetime
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -343,7 +343,32 @@ def add_pop_gauge(fig: go.Figure, mc_data: dict | None, corner: str = "br") -> N
             showarrow=False, font=dict(size=10)
         )
 
-def plot_point_and_figure(df: pd.DataFrame, output_dir: str, csv_file_name: str, show=True, box_size=None, reversal=3, wyckoff_overlay=False, pnf_scale=None, pnf_scale_value=None) -> dict:
+TIMEFRAME_TOKENS = ("1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m")
+
+
+def _infer_timeframe_from_name(name: str) -> str | None:
+    stem = os.path.splitext(os.path.basename(str(name or "")))[0].lower()
+    parts = re.split(r"[_\-.]", stem)
+    for part in reversed(parts):
+        if part in TIMEFRAME_TOKENS:
+            return part
+    return None
+
+
+def plot_point_and_figure(
+    df: pd.DataFrame,
+    output_dir: str,
+    csv_file_name: str,
+    show=True,
+    box_size=None,
+    reversal=3,
+    wyckoff_overlay=False,
+    pnf_scale=None,
+    pnf_scale_value=None,
+    source_csv_path=None,
+    generated_by=None,
+    nrows=None,
+) -> dict:
     """
     P&F with symbol-aware auto box sizing, correct column indexing, breakouts and counts.
     Saves HTML and returns a small JSON sidecar for logging.
@@ -352,6 +377,9 @@ def plot_point_and_figure(df: pd.DataFrame, output_dir: str, csv_file_name: str,
 
     # --- Auto box size (prefer percent or ATR fraction) ---
     # --- Auto box size (prefer percent or ATR fraction) ---
+    requested_box_size = box_size
+    box_mode = "auto"
+    box_value = None
     if box_size is None:
         cfg_mode = cfg_val = None
         try:
@@ -363,15 +391,24 @@ def plot_point_and_figure(df: pd.DataFrame, output_dir: str, csv_file_name: str,
         if cfg_mode is not None or cfg_val is not None:
             mode  = cfg_mode  or "percent"
             value = cfg_val   or 0.005
+            box_mode = mode
+            box_value = value
             box_size = _compute_box(df, mode=mode, value=value)
         elif pnf_scale is not None and pnf_scale_value is not None:
+            box_mode = pnf_scale
+            box_value = pnf_scale_value
             box_size = _compute_box(df, mode=pnf_scale, value=pnf_scale_value)
         else:
             # filename heuristic...
             name = str(csv_file_name).lower()
             pct_map = {"1d":0.01, "4h":0.005, "1h":0.003, "30m":0.002, "15m":0.0015, "5m":0.001, "1m":0.0005}
             pct = next((v for k,v in pct_map.items() if k in name), 0.005)
+            box_mode = "auto"
+            box_value = pct
             box_size = _compute_box(df, mode="percent", value=pct)
+    else:
+        box_mode = "fixed"
+        box_value = requested_box_size
 
     # Sanity guard (prevents ERJ/PANW scale mix-ups)
     last_price = float(df["close"].iloc[-1])
@@ -446,7 +483,9 @@ def plot_point_and_figure(df: pd.DataFrame, output_dir: str, csv_file_name: str,
         showlegend=True
     )
 
-    pnf_path = os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_point_and_figure_plot.html")
+    generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
+    file_stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+    pnf_path = os.path.join(output_dir, f"{file_stamp}_point_and_figure_plot.html")
     # ... after you finish fig.update_layout(...)
     # Look for latest MC summary saved in the same output dir
     csv_basename = os.path.basename(csv_file_name)
@@ -461,12 +500,22 @@ def plot_point_and_figure(df: pd.DataFrame, output_dir: str, csv_file_name: str,
     # Sidecar JSON (handy for logging)
     sidecar = {
         "box": params.box, "reversal": params.reversal, "last_price": last_price,
-        "columns": columns, "breakouts": brks, "count": cnt
+        "columns": columns, "breakouts": brks, "count": cnt,
+        "source_csv": os.path.basename(str(csv_file_name)) if csv_file_name else None,
+        "source_csv_path": str(source_csv_path) if source_csv_path else None,
+        "inferred_timeframe": _infer_timeframe_from_name(str(source_csv_path or csv_file_name)),
+        "generated_by": generated_by,
+        "box_mode": box_mode,
+        "box_value": box_value,
+        "box_size": params.box,
+        "nrows": nrows,
+        "generated_at": generated_at,
     }
-    with open(os.path.join(output_dir, f"{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}_pnf_meta.json"), "w") as fh:
+    sidecar_path = os.path.join(output_dir, f"{file_stamp}_pnf_meta.json")
+    with open(sidecar_path, "w") as fh:
         import json; json.dump(sidecar, fh, indent=2, default=float)
 
-    return {"path": pnf_path, **sidecar}
+    return {"path": pnf_path, "sidecar_path": sidecar_path, **sidecar}
 
 def plot_wyckoff_candlestick_chart(df: pd.DataFrame, output_dir: str, csv_file_name: str, show=True) -> str:
     """

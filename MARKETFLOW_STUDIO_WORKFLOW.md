@@ -42,6 +42,7 @@ After generation:
 - the P&F chart appears in the Charts tab
 - the Analyst Packet can use the P&F sidecar
 - the P&F gate can move from pending to pass/fail/unknown
+- Studio-generated P&F sidecars include source CSV, inferred timeframe, box settings, row limit, and generation metadata.
 
 Use Charts tab > Generate Legacy Feature Plots to run the legacy plotting workflow from an annotated CSV without opening browser windows. The generated files are saved beside the CSV and can include P&F HTML/meta JSON, Wyckoff annotated charts, price-volume, volume profile, volume distribution, and spread/features HTML.
 
@@ -107,7 +108,7 @@ Analyst Packet combines:
 
 Analyst Packet can extract Wyckoff context from report JSON and the selected annotated CSV.
 
-Analyst Packet uses discovered P&F sidecars. If multiple P&F sidecars exist, verify the selected sidecar/timeframe in the packet. A later task will refine exact sidecar matching by selected CSV/timeframe.
+Analyst Packet uses discovered P&F sidecars and prefers the sidecar matching the selected strategy candidate CSV/timeframe. If multiple P&F sidecars exist, verify the selected sidecar and match reason before relying on the P&F gate.
 
 The packet can be downloaded or saved to the loaded report folder.
 

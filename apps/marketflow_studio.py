@@ -253,7 +253,7 @@ def _pnf_sidecar_label(sidecar: dict[str, Any]) -> str:
     """Return a compact label for a P&F sidecar selector."""
     parts = [str(sidecar.get("filename") or Path(str(sidecar.get("path") or "")).name or "P&F sidecar")]
     details = []
-    for key in ("timeframe", "direction", "objective"):
+    for key in ("inferred_timeframe", "timeframe", "direction", "objective"):
         value = sidecar.get(key)
         if value is not None and value != "":
             details.append(f"{key}: {value}")
@@ -266,8 +266,11 @@ def _pnf_metadata_row(sidecar: dict[str, Any]) -> dict[str, Any]:
     """Return compact metadata for the selected P&F sidecar."""
     return {
         "filename": sidecar.get("filename"),
-        "timeframe": sidecar.get("timeframe"),
+        "source_csv": sidecar.get("source_csv"),
+        "timeframe": sidecar.get("inferred_timeframe") or sidecar.get("timeframe"),
         "direction": sidecar.get("direction"),
+        "box_mode": sidecar.get("box_mode"),
+        "box_value": sidecar.get("box_value"),
         "box_size": sidecar.get("box_size"),
         "reversal": sidecar.get("reversal"),
         "last_price": sidecar.get("last_price"),
@@ -285,12 +288,15 @@ def _pnf_generation_result_rows(results: list[dict[str, Any]]) -> list[dict[str,
             {
                 "success": result.get("success"),
                 "csv": Path(str(result.get("csv_path") or "")).name,
+                "timeframe": result.get("inferred_timeframe"),
+                "box_mode": result.get("box_mode"),
+                "box_value": result.get("box_value"),
                 "box_size": result.get("box_size"),
                 "reversal": result.get("reversal"),
+                "nrows": result.get("nrows"),
                 "last_price": result.get("last_price"),
                 "columns_count": result.get("columns_count"),
                 "objective": result.get("objective"),
-                "html_path": result.get("html_path"),
                 "sidecar_path": result.get("sidecar_path"),
                 "error": result.get("error"),
             }
@@ -349,6 +355,9 @@ def _artifact_display_rows(artifacts: list[dict[str, Any]]) -> list[dict[str, An
         {
             "kind": artifact.get("kind"),
             "timeframe": artifact.get("timeframe") or "",
+            "source_csv": artifact.get("source_csv") or "",
+            "box_size": artifact.get("box_size") or "",
+            "reversal": artifact.get("reversal") or "",
             "name": artifact.get("name"),
             "modified": artifact.get("modified"),
             "size": artifact.get("size"),
@@ -1748,6 +1757,32 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                 _format_number(packet_summary.get("best_pnf_objective_r")),
             )
 
+        selection = pnf_context.get("selection") if isinstance(pnf_context, dict) else {}
+        selected_sidecar = (pnf_context.get("selected_sidecar") if isinstance(pnf_context, dict) else {}) or {}
+        if isinstance(selection, dict) and selection.get("selected_filename"):
+            st.markdown("#### P&F Traceability")
+            st.dataframe(
+                [
+                    {
+                        "selected_sidecar": selection.get("selected_filename"),
+                        "match_score": selection.get("match_score"),
+                        "matched_by": selection.get("matched_by"),
+                        "match_reasons": "; ".join(selection.get("match_reasons") or []),
+                        "candidate_timeframe": selection.get("candidate_timeframe"),
+                        "candidate_csv": Path(str(selection.get("candidate_csv") or "")).name,
+                        "sidecar_timeframe": selected_sidecar.get("inferred_timeframe") or selected_sidecar.get("timeframe"),
+                        "box_size": selected_sidecar.get("box_size"),
+                        "reversal": selected_sidecar.get("reversal"),
+                        "objective": selected_sidecar.get("objective"),
+                        "objective_r_multiple": selected_sidecar.get("objective_r_multiple"),
+                    }
+                ],
+                use_container_width=True,
+                hide_index=True,
+            )
+            if len(pnf_context.get("sidecars") or []) > 1 and (selection.get("match_score") or 0) < 50:
+                st.warning("Multiple P&F sidecars found. Verify selected sidecar before relying on P&F gate.")
+
         sidecars = pnf_context.get("sidecars") or []
         if sidecars:
             st.caption("P&F sidecars can also be visualized in the Charts tab.")
@@ -1756,8 +1791,11 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                     [
                         {
                             "filename": item.get("filename"),
-                            "timeframe": item.get("timeframe"),
+                            "source_csv": item.get("source_csv"),
+                            "timeframe": item.get("inferred_timeframe") or item.get("timeframe"),
                             "direction": item.get("direction"),
+                            "match_score": item.get("match_score"),
+                            "matched_by": item.get("matched_by"),
                             "breakout_level": item.get("breakout_level"),
                             "objective": item.get("objective"),
                             "objective_r_multiple": item.get("objective_r_multiple"),

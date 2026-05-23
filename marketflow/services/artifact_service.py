@@ -78,7 +78,7 @@ def _classify_artifact(path: Path) -> str:
 def _artifact_row(path: Path) -> dict[str, Any]:
     stat = path.stat()
     kind = _classify_artifact(path)
-    return {
+    row = {
         "kind": kind,
         "name": path.name,
         "path": str(path),
@@ -88,6 +88,17 @@ def _artifact_row(path: Path) -> dict[str, Any]:
         "previewable": path.suffix.lower() in PREVIEWABLE_EXTENSIONS,
         "downloadable": True,
     }
+    if kind == "pnf_sidecar":
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except Exception:
+            data = {}
+        if isinstance(data, dict):
+            row["source_csv"] = data.get("source_csv") or Path(str(data.get("source_csv_path") or "")).name or None
+            row["timeframe"] = data.get("inferred_timeframe") or data.get("timeframe") or row["timeframe"]
+            row["box_size"] = data.get("box_size") if data.get("box_size") is not None else data.get("box")
+            row["reversal"] = data.get("reversal")
+    return row
 
 
 def list_report_artifacts(report_dir: str) -> list[dict[str, Any]]:

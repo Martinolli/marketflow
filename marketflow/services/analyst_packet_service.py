@@ -4,11 +4,14 @@ from __future__ import annotations
 
 import json
 import math
+import re
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
 
 import pandas as pd
+
+from marketflow.services.report_index import infer_timeframe_from_csv_name
 
 
 PACKET_VERSION = "0.1"
@@ -32,6 +35,8 @@ DEFAULT_ANALYST_PROFILE: dict[str, Any] = {
     "holding_period_days": [1, 5],
     "notes": "Personal test profile. Do not treat as financial advice.",
 }
+
+TIMEFRAME_TOKENS = ("1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m")
 
 
 def load_default_analyst_profile() -> dict[str, Any]:
@@ -162,6 +167,68 @@ def _pnf_int(value: Any) -> int | None:
         return None
 
 
+def _path_match_key(value: Any) -> str | None:
+    """Return a stable path key for best-effort CSV path comparisons."""
+    if value is None or value == "":
+        return None
+    try:
+        return str(Path(str(value)).expanduser().resolve()).lower()
+    except Exception:
+        return str(value).replace("\\", "/").lower()
+
+
+def _filename_key(value: Any) -> str | None:
+    """Return a lower-case filename key from a path-like value."""
+    if value is None or value == "":
+        return None
+    return Path(str(value)).name.lower()
+
+
+def _infer_timeframe_from_text(value: Any) -> str | None:
+    """Infer a timeframe token from filenames or paths."""
+    if value is None or value == "":
+        return None
+    inferred = infer_timeframe_from_csv_name(str(value))
+    if inferred:
+        return inferred
+    text = Path(str(value)).stem.lower().replace("-", "_")
+    tokens = [token for token in re.split(r"[_\-.\\/\s]+", text) if token]
+    for token in reversed(tokens):
+        if token in TIMEFRAME_TOKENS:
+            return token
+    return None
+
+
+def _compact_pnf_record(record: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Return the compact P&F record shape used by packet selection fields."""
+    if not isinstance(record, dict):
+        return None
+    keys = (
+        "filename",
+        "path",
+        "source_csv",
+        "source_csv_path",
+        "inferred_timeframe",
+        "timeframe",
+        "box_mode",
+        "box_value",
+        "box_size",
+        "reversal",
+        "last_price",
+        "objective",
+        "breakout_level",
+        "objective_r_multiple",
+        "direction",
+        "match_score",
+        "match_reasons",
+        "matched_by",
+        "generated_by",
+        "generated_at",
+        "nrows",
+    )
+    return {key: record.get(key) for key in keys if key in record}
+
+
 def list_pnf_sidecars(report_dir: str | None) -> list[str]:
     """
     Return P&F sidecar JSON files found in the report directory.
@@ -203,7 +270,18 @@ def _normalize_pnf_sidecar(path: str, data: dict[str, Any]) -> dict[str, Any]:
     Normalize a P&F sidecar into a stable schema.
     """
     sidecar_path = Path(path)
+    filename = sidecar_path.name
+    source_csv = _first_pnf_value(data, ("source_csv", "csv", "csv_file", "csv_filename"))
+    source_csv_path = _first_pnf_value(data, ("source_csv_path", "csv_path", "source_path"))
     timeframe_value = _first_pnf_value(data, ("timeframe", "tf", "interval"))
+    inferred_timeframe = (
+        _first_pnf_value(data, ("inferred_timeframe", "source_timeframe"))
+        or timeframe_value
+        or _infer_timeframe_from_text(source_csv_path)
+        or _infer_timeframe_from_text(source_csv)
+        or _infer_timeframe_from_text(filename)
+        or _infer_timeframe_from_text(sidecar_path.parent.name)
+    )
     direction_value = _first_pnf_value(data, ("direction", "count_direction", "trend"))
     last_price = _first_pnf_float(data, ("last_price", "spot", "current_price", "close"))
     objective = _first_pnf_float(data, ("objective", "objective_price", "target", "target_price"))
@@ -216,7 +294,16 @@ def _normalize_pnf_sidecar(path: str, data: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "path": str(sidecar_path),
-        "filename": sidecar_path.name,
+        "filename": filename,
+        "source_csv": str(source_csv) if source_csv is not None else None,
+        "source_csv_path": str(source_csv_path) if source_csv_path is not None else None,
+        "inferred_timeframe": str(inferred_timeframe) if inferred_timeframe is not None else None,
+        "box_mode": _first_pnf_value(data, ("box_mode", "scale", "pnf_scale")),
+        "box_value": _first_pnf_float(data, ("box_value", "scale_value", "pnf_scale_value")),
+        "generated_by": _first_pnf_value(data, ("generated_by",)),
+        "generated_at": _first_pnf_value(data, ("generated_at", "created_at")),
+        "nrows": _pnf_int(_first_pnf_value(data, ("nrows", "rows", "row_limit"))),
+        "modified_time": sidecar_path.stat().st_mtime if sidecar_path.exists() else None,
         "timeframe": str(timeframe_value) if timeframe_value is not None else None,
         "direction": str(direction_value) if direction_value is not None else None,
         "box_pct": _first_pnf_float(data, ("box_pct", "box_percent")),
@@ -228,6 +315,9 @@ def _normalize_pnf_sidecar(path: str, data: dict[str, Any]) -> dict[str, Any]:
         "objective_r_multiple": None,
         "distance_to_objective": distance_to_objective,
         "distance_to_objective_pct": distance_to_objective_pct,
+        "match_score": 0,
+        "match_reasons": [],
+        "matched_by": None,
         "raw": data if isinstance(data, dict) else {},
     }
 
@@ -287,6 +377,214 @@ def _attach_pnf_objective_r(
     return records
 
 
+def _candidate_csv_value(
+    strategy_candidate: dict[str, Any] | None,
+    monte_carlo_result: dict[str, Any] | None,
+) -> Any:
+    if isinstance(strategy_candidate, dict) and strategy_candidate.get("csv"):
+        return strategy_candidate.get("csv")
+    if isinstance(monte_carlo_result, dict):
+        return monte_carlo_result.get("csv") or monte_carlo_result.get("csv_path")
+    return None
+
+
+def _candidate_timeframe_value(
+    strategy_candidate: dict[str, Any] | None,
+    monte_carlo_result: dict[str, Any] | None,
+) -> str | None:
+    tf = None
+    if isinstance(strategy_candidate, dict):
+        tf = strategy_candidate.get("tf")
+    if not tf and isinstance(monte_carlo_result, dict):
+        tf = monte_carlo_result.get("tf") or monte_carlo_result.get("timeframe")
+    if tf:
+        return str(tf)
+    return _infer_timeframe_from_text(_candidate_csv_value(strategy_candidate, monte_carlo_result))
+
+
+def _candidate_price_values(
+    strategy_candidate: dict[str, Any] | None,
+    monte_carlo_result: dict[str, Any] | None,
+) -> list[tuple[str, float]]:
+    values: list[tuple[str, float]] = []
+    for label, value in (
+        ("candidate entry", (strategy_candidate or {}).get("entry")),
+        ("candidate close", (strategy_candidate or {}).get("close")),
+        ("monte carlo spot", (monte_carlo_result or {}).get("spot_s0")),
+        ("monte carlo entry", (monte_carlo_result or {}).get("entry")),
+        ("monte carlo current price", (monte_carlo_result or {}).get("current_price")),
+    ):
+        number = _to_float(value)
+        if number is not None:
+            values.append((label, number))
+    deduped: list[tuple[str, float]] = []
+    seen: set[float] = set()
+    for label, number in values:
+        rounded = round(number, 8)
+        if rounded not in seen:
+            seen.add(rounded)
+            deduped.append((label, number))
+    return deduped
+
+
+def _price_match_reason(last_price: float | None, price_values: list[tuple[str, float]]) -> tuple[int, str | None]:
+    if last_price is None or not price_values:
+        return 0, None
+
+    best: tuple[float, str, float] | None = None
+    for label, price in price_values:
+        if price == 0:
+            continue
+        delta_pct = abs(last_price - price) / abs(price) * 100
+        if best is None or delta_pct < best[0]:
+            best = (delta_pct, label, price)
+    if best is None:
+        return 0, None
+
+    delta_pct, label, _price = best
+    if delta_pct <= 0.5:
+        return 20, f"last price within 0.5% of {label}"
+    if delta_pct <= 1.0:
+        return 12, f"last price within 1% of {label}"
+    if delta_pct <= 3.0:
+        return 6, f"last price within 3% of {label}"
+    return -5, f"last price differs from selected trade price by {delta_pct:.1f}%"
+
+
+def _matched_by_from_reasons(reasons: list[str]) -> str | None:
+    for key, label in (
+        ("source CSV path", "source_csv_path"),
+        ("source CSV filename", "source_csv"),
+        ("timeframe", "timeframe"),
+        ("filename contains candidate timeframe", "filename_timeframe"),
+        ("last price", "price"),
+        ("newest", "recency"),
+        ("objective", "objective"),
+    ):
+        if any(key in reason for reason in reasons):
+            return label
+    return None
+
+
+def _score_pnf_sidecar(
+    sidecar: dict[str, Any],
+    *,
+    candidate_csv: Any,
+    candidate_tf: str | None,
+    candidate_prices: list[tuple[str, float]],
+    has_timeframe_match: bool,
+    newest_modified_time: float | None,
+) -> tuple[int, list[str]]:
+    score = 0
+    reasons: list[str] = []
+
+    candidate_path_key = _path_match_key(candidate_csv)
+    sidecar_source_path_key = _path_match_key(sidecar.get("source_csv_path"))
+    candidate_name = _filename_key(candidate_csv)
+    source_name = _filename_key(sidecar.get("source_csv") or sidecar.get("source_csv_path"))
+
+    if candidate_path_key and sidecar_source_path_key and candidate_path_key == sidecar_source_path_key:
+        score += 100
+        reasons.append("source CSV path matched selected candidate CSV")
+    if candidate_name and source_name and candidate_name == source_name:
+        score += 80
+        reasons.append("source CSV filename matched selected candidate CSV")
+
+    sidecar_tf = sidecar.get("inferred_timeframe") or sidecar.get("timeframe")
+    if candidate_tf:
+        filename = str(sidecar.get("filename") or "").lower()
+        if sidecar_tf and str(sidecar_tf) == str(candidate_tf):
+            score += 35
+            reasons.append(f"timeframe matched candidate tf {candidate_tf}")
+        elif f"_{candidate_tf}_" in f"_{filename}_":
+            score += 25
+            reasons.append(f"filename contains candidate timeframe {candidate_tf}")
+        elif has_timeframe_match and sidecar_tf and str(sidecar_tf) != str(candidate_tf):
+            score -= 90
+            reasons.append(f"timeframe {sidecar_tf} differs from candidate tf {candidate_tf}")
+
+    price_score, price_reason = _price_match_reason(_to_float(sidecar.get("last_price")), candidate_prices)
+    score += price_score
+    if price_reason:
+        reasons.append(price_reason)
+
+    entry = next((price for label, price in candidate_prices if "entry" in label), None)
+    objective = _to_float(sidecar.get("objective"))
+    if entry is not None and objective is not None and objective > entry:
+        score += 10
+        reasons.append("objective is above selected long entry")
+    elif objective is not None:
+        score += 2
+        reasons.append("objective is present")
+
+    objective_r = _to_float(sidecar.get("objective_r_multiple"))
+    if objective_r is not None and objective_r > 0:
+        score += 5
+        reasons.append("objective R is positive")
+
+    modified_time = _to_float(sidecar.get("modified_time"))
+    if newest_modified_time is not None and modified_time == newest_modified_time and score > 0:
+        score += 5
+        reasons.append("newest matching sidecar")
+
+    return score, reasons
+
+
+def select_best_pnf_sidecar(
+    sidecars: list[dict[str, Any]],
+    strategy_candidate: dict[str, Any] | None,
+    monte_carlo_result: dict[str, Any] | None = None,
+) -> dict[str, Any] | None:
+    """Select the P&F sidecar that best matches the selected strategy candidate."""
+    if not sidecars:
+        return None
+
+    candidate_csv = _candidate_csv_value(strategy_candidate, monte_carlo_result)
+    candidate_tf = _candidate_timeframe_value(strategy_candidate, monte_carlo_result)
+    candidate_prices = _candidate_price_values(strategy_candidate, monte_carlo_result)
+    has_timeframe_match = bool(
+        candidate_tf
+        and any(
+            str(item.get("inferred_timeframe") or item.get("timeframe") or "") == str(candidate_tf)
+            or f"_{candidate_tf}_" in f"_{str(item.get('filename') or '').lower()}_"
+            for item in sidecars
+            if isinstance(item, dict)
+        )
+    )
+    modified_times = [
+        item
+        for item in (_to_float(record.get("modified_time")) for record in sidecars if isinstance(record, dict))
+        if item is not None
+    ]
+    newest_modified_time = max(modified_times) if modified_times else None
+
+    for sidecar in sidecars:
+        if not isinstance(sidecar, dict):
+            continue
+        score, reasons = _score_pnf_sidecar(
+            sidecar,
+            candidate_csv=candidate_csv,
+            candidate_tf=candidate_tf,
+            candidate_prices=candidate_prices,
+            has_timeframe_match=has_timeframe_match,
+            newest_modified_time=newest_modified_time,
+        )
+        sidecar["match_score"] = score
+        sidecar["match_reasons"] = reasons
+        sidecar["matched_by"] = _matched_by_from_reasons(reasons)
+
+    scored = [item for item in sidecars if isinstance(item, dict)]
+    if not scored:
+        return None
+    return max(
+        scored,
+        key=lambda item: (
+            _to_float(item.get("match_score")) or 0,
+            _to_float(item.get("modified_time")) or float("-inf"),
+        ),
+    )
+
+
 def _best_pnf_objective(records: list[dict[str, Any]]) -> dict[str, Any] | None:
     """Choose the most useful P&F objective record for packet summaries."""
     r_records = [
@@ -309,16 +607,49 @@ def _best_pnf_objective(records: list[dict[str, Any]]) -> dict[str, Any] | None:
 
 def _build_pnf_section(
     records: list[dict[str, Any]],
+    strategy_candidate: dict[str, Any] | None = None,
+    monte_carlo_result: dict[str, Any] | None = None,
     gate: str = "pending",
     notes: list[str] | None = None,
 ) -> dict[str, Any]:
     """Build the packet P&F section."""
+    selected = select_best_pnf_sidecar(records, strategy_candidate, monte_carlo_result)
+    candidate_csv = _candidate_csv_value(strategy_candidate, monte_carlo_result)
+    candidate_tf = _candidate_timeframe_value(strategy_candidate, monte_carlo_result)
+    selected_compact = _compact_pnf_record(selected)
+    selection_notes: list[str] = []
+    selection_warnings: list[str] = []
+
+    if selected:
+        score = _to_float(selected.get("match_score")) or 0
+        selected_tf = selected.get("inferred_timeframe") or selected.get("timeframe")
+        if candidate_csv and not selected.get("source_csv") and not selected.get("source_csv_path"):
+            selection_notes.append("P&F sidecar selected by fallback matching; source CSV metadata missing.")
+        if candidate_tf and selected_tf and str(selected_tf) != str(candidate_tf):
+            selection_warnings.append(
+                f"P&F sidecar timeframe {selected_tf} differs from candidate timeframe {candidate_tf}."
+            )
+        if len(records) > 1 and score < 50:
+            selection_warnings.append(
+                "Multiple P&F sidecars found. Verify selected sidecar before relying on P&F gate."
+            )
+
     return {
         "available": bool(records),
         "sidecars": records,
         "best_objective": _best_pnf_objective(records),
+        "selected_sidecar": selected_compact,
+        "selection": {
+            "selected_filename": selected.get("filename") if isinstance(selected, dict) else None,
+            "matched_by": selected.get("matched_by") if isinstance(selected, dict) else None,
+            "match_score": selected.get("match_score") if isinstance(selected, dict) else None,
+            "match_reasons": selected.get("match_reasons") if isinstance(selected, dict) else [],
+            "candidate_csv": str(candidate_csv) if candidate_csv else None,
+            "candidate_timeframe": candidate_tf,
+        },
         "gate": gate,
-        "notes": notes or [],
+        "notes": [*(notes or []), *selection_notes],
+        "warnings": selection_warnings,
     }
 
 
@@ -948,21 +1279,32 @@ def _build_go_no_go(
 
     pnf_records = pnf.get("sidecars") if isinstance(pnf, dict) else []
     best_pnf = pnf.get("best_objective") if isinstance(pnf, dict) else None
-    best_pnf_r = _to_float(best_pnf.get("objective_r_multiple")) if isinstance(best_pnf, dict) else None
+    selected_pnf = pnf.get("selected_sidecar") if isinstance(pnf, dict) else None
+    gate_pnf = selected_pnf if isinstance(strategy_candidate, dict) and isinstance(selected_pnf, dict) else best_pnf
+    gate_pnf_r = _to_float(gate_pnf.get("objective_r_multiple")) if isinstance(gate_pnf, dict) else None
     min_pnf_objective_r = _to_float(profile.get("min_pnf_objective_r")) or 1.5
 
     if not pnf_records:
         pnf_gate = "pending"
         notes.append("No P&F sidecars found; P&F gate remains pending.")
-    elif best_pnf_r is None:
+    elif isinstance(strategy_candidate, dict) and not isinstance(selected_pnf, dict):
         pnf_gate = "unknown"
-        notes.append("P&F sidecars found, but objective R could not be computed.")
-    elif best_pnf_r >= min_pnf_objective_r:
+        notes.append("P&F sidecars found, but no sidecar matched the selected candidate.")
+    elif gate_pnf_r is None:
+        pnf_gate = "unknown"
+        notes.append("P&F sidecars found, but selected objective R could not be computed.")
+    elif gate_pnf_r >= min_pnf_objective_r:
         pnf_gate = "pass"
-        notes.append("P&F objective meets configured R threshold.")
+        if isinstance(strategy_candidate, dict):
+            notes.append("Selected P&F sidecar objective meets configured R threshold.")
+        else:
+            notes.append("P&F objective meets configured R threshold.")
     else:
         pnf_gate = "fail"
-        notes.append("P&F objective is below configured R threshold.")
+        if isinstance(strategy_candidate, dict):
+            notes.append("Selected P&F sidecar objective is below configured R threshold.")
+        else:
+            notes.append("P&F objective is below configured R threshold.")
 
     if pop_gate == "unknown" and score is None:
         risk_rank = None
@@ -1147,16 +1489,21 @@ def build_analyst_packet(
     )
     warnings.extend(wyckoff_vpa.get("warnings", []))
     pnf_records = _attach_pnf_objective_r(load_pnf_sidecars(report_dir), normalized_candidate)
-    pnf = _build_pnf_section(pnf_records)
+    pnf = _build_pnf_section(pnf_records, normalized_candidate, monte_carlo)
     if not pnf.get("available"):
         warnings.append("No P&F data included yet; P&F gate remains pending.")
+    warnings.extend(pnf.get("warnings") or [])
 
     go_no_go = _build_go_no_go(clean_profile, normalized_candidate, monte_carlo, pnf, warnings)
     pnf["gate"] = go_no_go.get("pnf_gate")
+    existing_pnf_notes = pnf.get("notes") or []
     pnf["notes"] = [
-        note
-        for note in go_no_go.get("notes", [])
-        if note.startswith("P&F") or note.startswith("No P&F")
+        *existing_pnf_notes,
+        *[
+            note
+            for note in go_no_go.get("notes", [])
+            if note.startswith("P&F") or note.startswith("No P&F") or note.startswith("Selected P&F")
+        ],
     ]
     packet_summary = _build_packet_summary(
         inferred_ticker,
