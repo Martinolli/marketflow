@@ -136,6 +136,41 @@ def _format_number(value: Any, decimals: int = 4) -> str | None:
         return str(value)
 
 
+def _stringify_display_value(value: Any) -> str:
+    """Convert one display-table value to an Arrow-safe string."""
+    if value is None:
+        return ""
+    if isinstance(value, float):
+        return _format_number(value, decimals=6) or ""
+    if isinstance(value, (str, int, bool)):
+        return str(value)
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, list):
+        if all(not isinstance(item, (dict, list, tuple, set)) for item in value):
+            return "; ".join(_stringify_display_value(item) for item in value)
+        return json.dumps(value, default=str, separators=(",", ": "))
+    if isinstance(value, dict):
+        return json.dumps(value, default=str, separators=(",", ": "))
+    return str(value)
+
+
+def _safe_dataframe_rows(rows: list[dict[str, Any]]) -> list[dict[str, str]]:
+    """
+    Convert dataframe display rows to Arrow-safe strings.
+
+    Intended only for UI display tables where mixed numeric/string/object columns
+    can cause Streamlit/PyArrow serialization errors.
+    """
+    safe_rows: list[dict[str, str]] = []
+    for row in rows:
+        if isinstance(row, dict):
+            safe_rows.append({str(key): _stringify_display_value(value) for key, value in row.items()})
+        else:
+            safe_rows.append({"value": _stringify_display_value(row)})
+    return safe_rows
+
+
 def _format_ui_number(value: Any, decimals: int = 2) -> str | None:
     """Format UI numbers without long floating point tails."""
     if value is None or value == "":
@@ -391,6 +426,8 @@ def _artifact_mime_type(path: str) -> str:
         return "application/json"
     if suffix == ".txt":
         return "text/plain"
+    if suffix == ".md":
+        return "text/markdown"
     if suffix == ".csv":
         return "text/csv"
     return "application/octet-stream"
@@ -409,6 +446,10 @@ def _render_artifact_preview(artifact: dict[str, Any], key_prefix: str, report_d
         suffix = Path(artifact_path).suffix.lower()
         if suffix == ".html":
             components.html(text, height=700, scrolling=True)
+        elif suffix == ".md":
+            st.markdown(text)
+            with st.expander("Raw markdown", expanded=False):
+                st.code(text, language="markdown")
         elif suffix == ".json":
             try:
                 st.json(json.loads(text))
@@ -467,7 +508,7 @@ def _render_generated_artifacts(report_dir: str, key_prefix: str = "report_artif
         and (selected_timeframe == "All" or artifact.get("timeframe") == selected_timeframe)
     ]
 
-    st.dataframe(_artifact_display_rows(filtered_artifacts), use_container_width=True, hide_index=True)
+    st.dataframe(_safe_dataframe_rows(_artifact_display_rows(filtered_artifacts)), use_container_width=True, hide_index=True)
 
     if filtered_artifacts:
         selected_artifact = st.selectbox(
@@ -567,7 +608,7 @@ def _render_reports(result: dict[str, Any] | None) -> None:
     files = list_report_files(report_dir) or result.get("report_files") or []
     with st.expander("Generated files", expanded=False):
         if files:
-            st.dataframe(_report_file_rows(files), use_container_width=True, hide_index=True)
+            st.dataframe(_safe_dataframe_rows(_report_file_rows(files)), use_container_width=True, hide_index=True)
         else:
             st.info("No generated files found in this directory.")
 
@@ -577,7 +618,7 @@ def _render_reports(result: dict[str, Any] | None) -> None:
     with st.expander("Report date / batch folders", expanded=False):
         if date_folders:
             st.dataframe(
-                [{"Folder": Path(folder).name, "Full Path": folder} for folder in date_folders],
+                _safe_dataframe_rows([{"Folder": Path(folder).name, "Full Path": folder} for folder in date_folders]),
                 use_container_width=True,
                 hide_index=True,
             )
@@ -588,7 +629,7 @@ def _render_reports(result: dict[str, Any] | None) -> None:
     tickers = list_available_tickers(report_parent)
     with st.expander("Available ticker folders", expanded=False):
         if tickers:
-            st.dataframe([{"Ticker": ticker} for ticker in tickers], use_container_width=True, hide_index=True)
+            st.dataframe(_safe_dataframe_rows([{"Ticker": ticker} for ticker in tickers]), use_container_width=True, hide_index=True)
         else:
             st.info("No ticker folders found beside this report.")
 
@@ -764,7 +805,11 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                 st.success(f"Generated P&F outputs for {len(successes)} CSV file(s).")
             if failures:
                 st.warning(f"P&F generation failed for {len(failures)} CSV file(s).")
-            st.dataframe(_pnf_generation_result_rows(generation_results), use_container_width=True, hide_index=True)
+            st.dataframe(
+                _safe_dataframe_rows(_pnf_generation_result_rows(generation_results)),
+                use_container_width=True,
+                hide_index=True,
+            )
             pnf_sidecars = load_pnf_sidecars(report_dir)
 
     st.markdown("##### Generate Legacy Feature Plots")
@@ -825,7 +870,7 @@ def _render_charts(result: dict[str, Any] | None) -> None:
 
             generated_rows = _legacy_generation_rows(legacy_result)
             if generated_rows:
-                st.dataframe(generated_rows, use_container_width=True, hide_index=True)
+                st.dataframe(_safe_dataframe_rows(generated_rows), use_container_width=True, hide_index=True)
             pnf_sidecars = load_pnf_sidecars(report_dir)
 
     if pnf_sidecars:
@@ -840,7 +885,7 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             key="pnf_sidecar_chart_file",
         )
         st.dataframe(
-            [_pnf_metadata_row(selected_sidecar)],
+            _safe_dataframe_rows([_pnf_metadata_row(selected_sidecar)]),
             use_container_width=True,
             hide_index=True,
         )
@@ -936,7 +981,7 @@ def _render_strategy_diagnostics(strategy_result: dict[str, Any]) -> None:
         ticker_rows = _strategy_diagnostics_dataframe(diagnostics)
         if ticker_rows:
             st.write("Ticker checks")
-            st.dataframe(ticker_rows, use_container_width=True)
+            st.dataframe(_safe_dataframe_rows(ticker_rows), use_container_width=True)
 
         st.write("Raw diagnostics")
         st.json(diagnostics)
@@ -1134,7 +1179,7 @@ def _render_batch_result(batch_result: dict[str, Any] | None) -> None:
     results = batch_result.get("results") or []
     if results:
         st.dataframe(
-            [
+            _safe_dataframe_rows([
                 {
                     "ticker": item.get("ticker"),
                     "success": item.get("success"),
@@ -1144,7 +1189,7 @@ def _render_batch_result(batch_result: dict[str, Any] | None) -> None:
                     "error": item.get("error"),
                 }
                 for item in results
-            ],
+            ]),
             use_container_width=True,
             hide_index=True,
         )
@@ -1369,7 +1414,7 @@ def _render_monte_carlo_output_files(monte_carlo_result: dict[str, Any]) -> None
         }
         for item in output_files
     ]
-    st.dataframe(rows, use_container_width=True, hide_index=True)
+    st.dataframe(_safe_dataframe_rows(rows), use_container_width=True, hide_index=True)
 
     html_files = [
         item
@@ -1768,7 +1813,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         if isinstance(selection, dict) and selection.get("selected_filename"):
             st.markdown("#### P&F Traceability")
             st.dataframe(
-                [
+                _safe_dataframe_rows([
                     {
                         "selected_sidecar": selection.get("selected_filename"),
                         "match_score": selection.get("match_score"),
@@ -1782,7 +1827,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                         "objective": selected_sidecar.get("objective"),
                         "objective_r_multiple": selected_sidecar.get("objective_r_multiple"),
                     }
-                ],
+                ]),
                 use_container_width=True,
                 hide_index=True,
             )
@@ -1794,7 +1839,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
             st.caption("P&F sidecars can also be visualized in the Charts tab.")
             with st.expander("P&F sidecars"):
                 st.dataframe(
-                    [
+                    _safe_dataframe_rows([
                         {
                             "filename": item.get("filename"),
                             "source_csv": item.get("source_csv"),
@@ -1809,7 +1854,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                         }
                         for item in sidecars
                         if isinstance(item, dict)
-                    ],
+                    ]),
                     use_container_width=True,
                     hide_index=True,
                 )
@@ -1896,10 +1941,22 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
         prompt = build_wyckoff_analyst_prompt(packet, style=style, include_raw_json=include_raw_json)
         st.session_state.wyckoff_analyst_prompt = prompt
         st.session_state.wyckoff_analyst_prompt_text = prompt
-        st.session_state.wyckoff_analyst_prompt_filename = build_prompt_filename(packet)
+        st.session_state.wyckoff_analyst_prompt_style = style
+        st.session_state.wyckoff_analyst_prompt_include_raw_json = include_raw_json
+        st.session_state.wyckoff_analyst_prompt_filename = build_prompt_filename(
+            packet,
+            style=style,
+            include_timestamp=False,
+        )
 
     prompt = st.session_state.get("wyckoff_analyst_prompt")
-    filename = st.session_state.get("wyckoff_analyst_prompt_filename") or build_prompt_filename(packet)
+    built_style = st.session_state.get("wyckoff_analyst_prompt_style") or style
+    built_include_raw_json = st.session_state.get("wyckoff_analyst_prompt_include_raw_json")
+    filename = st.session_state.get("wyckoff_analyst_prompt_filename") or build_prompt_filename(
+        packet,
+        style=built_style,
+        include_timestamp=False,
+    )
     if not prompt:
         st.info("Click Build Analyst Prompt to generate the markdown preview.")
         return
@@ -1915,11 +1972,13 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
         _display_optional_metric("Risk Rank", packet_summary.get("risk_rank"))
         _display_optional_metric("Ready", packet_summary.get("ready_for_analyst"))
     with col4:
-        _display_optional_metric("Prompt Style", style)
-        _display_optional_metric("Raw JSON", include_raw_json)
+        _display_optional_metric("Prompt Style", built_style)
+        _display_optional_metric("Raw JSON", built_include_raw_json)
 
     st.subheader("Generated Prompt")
-    edited_prompt = st.text_area("Prompt markdown", value=prompt, height=520, key="wyckoff_analyst_prompt_text")
+    if not st.session_state.get("wyckoff_analyst_prompt_text"):
+        st.session_state.wyckoff_analyst_prompt_text = prompt
+    edited_prompt = st.text_area("Prompt markdown", height=520, key="wyckoff_analyst_prompt_text")
 
     with st.expander("Markdown preview", expanded=False):
         st.markdown(edited_prompt)
@@ -1936,9 +1995,18 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
             st.warning("No report folder is available. Use Download instead.")
         else:
             try:
-                save_path = Path(report_dir) / filename
+                save_filename = build_prompt_filename(packet, style=built_style, include_timestamp=True)
+                save_path = Path(report_dir) / save_filename
+                if save_path.exists():
+                    stem = save_path.stem
+                    suffix = save_path.suffix
+                    counter = 2
+                    while save_path.exists():
+                        save_path = Path(report_dir) / f"{stem}_{counter}{suffix}"
+                        counter += 1
                 save_path.write_text(edited_prompt, encoding="utf-8")
                 st.success(f"Saved analyst prompt to `{save_path}`")
+                st.caption("Different prompt styles save as separate markdown files. Refresh Generated Artifacts to see this file.")
             except Exception as exc:
                 st.error(f"Could not save analyst prompt: {exc}")
 
@@ -1979,6 +2047,10 @@ def main() -> None:
         st.session_state.wyckoff_analyst_prompt = None
     if "wyckoff_analyst_prompt_filename" not in st.session_state:
         st.session_state.wyckoff_analyst_prompt_filename = None
+    if "wyckoff_analyst_prompt_style" not in st.session_state:
+        st.session_state.wyckoff_analyst_prompt_style = None
+    if "wyckoff_analyst_prompt_include_raw_json" not in st.session_state:
+        st.session_state.wyckoff_analyst_prompt_include_raw_json = None
 
     with st.sidebar:
         st.header("Analysis")

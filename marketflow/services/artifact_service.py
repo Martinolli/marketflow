@@ -11,7 +11,7 @@ from typing import Any
 
 
 TIMEFRAME_TOKENS = ("1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m")
-PREVIEWABLE_EXTENSIONS = {".html", ".json", ".txt"}
+PREVIEWABLE_EXTENSIONS = {".html", ".json", ".txt", ".md"}
 
 
 def infer_artifact_timeframe(name: str) -> str | None:
@@ -72,6 +72,10 @@ def _classify_artifact(path: Path) -> str:
         return "other_html"
     if suffix == ".json":
         return "other_json"
+    if suffix == ".md" and "_wyckoff_analyst_prompt" in name:
+        return "analyst_prompt_md"
+    if suffix == ".md":
+        return "markdown"
     return "other"
 
 

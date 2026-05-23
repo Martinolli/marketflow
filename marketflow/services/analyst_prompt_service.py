@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import json
 import re
-from pathlib import Path
+from datetime import datetime
 from typing import Any
 
 
@@ -123,7 +123,11 @@ def _safe_filename_part(value: Any, fallback: str) -> str:
     return text.strip("._") or fallback
 
 
-def build_prompt_filename(packet: dict[str, Any]) -> str:
+def build_prompt_filename(
+    packet: dict[str, Any],
+    style: str | None = None,
+    include_timestamp: bool = False,
+) -> str:
     """
     Return a safe markdown filename for a Wyckoff Analyst prompt.
     """
@@ -132,7 +136,14 @@ def build_prompt_filename(packet: dict[str, Any]) -> str:
     candidate = _as_dict(packet.get("strategy_candidate"))
     ticker = _safe_filename_part(summary.get("ticker") or packet.get("ticker") or candidate.get("ticker"), "marketflow")
     timeframe = _safe_filename_part(summary.get("selected_timeframe") or candidate.get("tf"), "selected")
-    return f"{ticker}_{timeframe}_wyckoff_analyst_prompt.md"
+    parts = [ticker, timeframe]
+    if style:
+        parts.append(_safe_filename_part(style, "prompt"))
+    parts.append("wyckoff_analyst_prompt")
+    filename = "_".join(parts)
+    if include_timestamp:
+        filename = f"{filename}_{datetime.now().strftime('%Y%m%d_%H%M%S')}"
+    return f"{filename}.md"
 
 
 def build_wyckoff_analyst_prompt(

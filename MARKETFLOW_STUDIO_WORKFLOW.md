@@ -120,6 +120,8 @@ It does not call an LLM yet.
 The Wyckoff Analyst tab converts the Analyst Packet into a markdown prompt.
 It does not call any AI model.
 Use it to inspect, edit, download, or save the prompt before future Analyst Chat integration.
+Saved prompt files are markdown artifacts. Studio includes the prompt style and a timestamp in saved filenames so balanced, strict, and educational prompts do not overwrite each other.
+Saved prompt markdown files appear in Reports > Generated Artifacts and can be previewed or downloaded from there.
 
 Recommended flow:
 
