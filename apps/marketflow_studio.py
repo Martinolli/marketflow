@@ -27,6 +27,11 @@ from marketflow.services.analyst_packet_service import (
     load_default_analyst_profile,
     packet_to_pretty_json,
 )
+from marketflow.services.analyst_prompt_service import (
+    PROMPT_STYLES,
+    build_prompt_filename,
+    build_wyckoff_analyst_prompt,
+)
 from marketflow.services.artifact_service import (
     generate_legacy_feature_plots_for_csv,
     list_report_artifacts,
@@ -1704,6 +1709,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
             profile=load_default_analyst_profile(),
         )
         st.session_state.analyst_packet = packet
+        st.session_state.latest_analyst_packet = packet
         st.session_state.analyst_packet_json = packet_to_pretty_json(packet)
 
     packet = st.session_state.get("analyst_packet")
@@ -1858,6 +1864,85 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
     )
 
 
+def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
+    """Render the Wyckoff Analyst prompt preview tab."""
+    st.write("This tab only builds a prompt preview. It does not call an AI model yet.")
+
+    packet = st.session_state.get("latest_analyst_packet") or st.session_state.get("analyst_packet")
+    if not isinstance(packet, dict):
+        st.info("Build an Analyst Packet first.")
+        return
+
+    report_dir = (
+        _nested_get(packet, ["source_files", "report_dir"])
+        or (result.get("output_dir") if result else None)
+    )
+    packet_summary = packet.get("packet_summary") or {}
+    strategy_context = packet.get("strategy_candidate") or {}
+
+    style = st.selectbox(
+        "Prompt style",
+        options=list(PROMPT_STYLES),
+        index=0,
+        key="wyckoff_prompt_style",
+    )
+    include_raw_json = st.checkbox(
+        "Include raw Analyst Packet JSON",
+        value=False,
+        key="wyckoff_prompt_include_raw_json",
+    )
+
+    if st.button("Build Analyst Prompt", type="primary"):
+        prompt = build_wyckoff_analyst_prompt(packet, style=style, include_raw_json=include_raw_json)
+        st.session_state.wyckoff_analyst_prompt = prompt
+        st.session_state.wyckoff_analyst_prompt_text = prompt
+        st.session_state.wyckoff_analyst_prompt_filename = build_prompt_filename(packet)
+
+    prompt = st.session_state.get("wyckoff_analyst_prompt")
+    filename = st.session_state.get("wyckoff_analyst_prompt_filename") or build_prompt_filename(packet)
+    if not prompt:
+        st.info("Click Build Analyst Prompt to generate the markdown preview.")
+        return
+
+    col1, col2, col3, col4 = st.columns(4)
+    with col1:
+        _display_optional_metric("Ticker", packet_summary.get("ticker") or packet.get("ticker"))
+        _display_optional_metric("Timeframe", packet_summary.get("selected_timeframe") or strategy_context.get("tf"))
+    with col2:
+        _display_optional_metric("POP Gate", packet_summary.get("pop_gate"))
+        _display_optional_metric("P&F Gate", packet_summary.get("pnf_gate"))
+    with col3:
+        _display_optional_metric("Risk Rank", packet_summary.get("risk_rank"))
+        _display_optional_metric("Ready", packet_summary.get("ready_for_analyst"))
+    with col4:
+        _display_optional_metric("Prompt Style", style)
+        _display_optional_metric("Raw JSON", include_raw_json)
+
+    st.subheader("Generated Prompt")
+    edited_prompt = st.text_area("Prompt markdown", value=prompt, height=520, key="wyckoff_analyst_prompt_text")
+
+    with st.expander("Markdown preview", expanded=False):
+        st.markdown(edited_prompt)
+
+    st.download_button(
+        "Download analyst prompt",
+        data=edited_prompt,
+        file_name=filename,
+        mime="text/markdown",
+    )
+
+    if st.button("Save prompt to report folder"):
+        if not report_dir:
+            st.warning("No report folder is available. Use Download instead.")
+        else:
+            try:
+                save_path = Path(report_dir) / filename
+                save_path.write_text(edited_prompt, encoding="utf-8")
+                st.success(f"Saved analyst prompt to `{save_path}`")
+            except Exception as exc:
+                st.error(f"Could not save analyst prompt: {exc}")
+
+
 def _render_raw_json(result: dict[str, Any] | None) -> None:
     """Render the Raw JSON tab."""
     report_json = result.get("report_json") if result else None
@@ -1886,8 +1971,14 @@ def main() -> None:
         st.session_state.selected_strategy_candidate = None
     if "analyst_packet" not in st.session_state:
         st.session_state.analyst_packet = None
+    if "latest_analyst_packet" not in st.session_state:
+        st.session_state.latest_analyst_packet = None
     if "analyst_packet_json" not in st.session_state:
         st.session_state.analyst_packet_json = None
+    if "wyckoff_analyst_prompt" not in st.session_state:
+        st.session_state.wyckoff_analyst_prompt = None
+    if "wyckoff_analyst_prompt_filename" not in st.session_state:
+        st.session_state.wyckoff_analyst_prompt_filename = None
 
     with st.sidebar:
         st.header("Analysis")
@@ -1917,6 +2008,7 @@ def main() -> None:
         batch_tab,
         monte_carlo_tab,
         analyst_packet_tab,
+        wyckoff_analyst_tab,
         raw_json_tab,
     ) = st.tabs(
         [
@@ -1928,6 +2020,7 @@ def main() -> None:
             "Batch Analysis",
             "Monte Carlo",
             "Analyst Packet",
+            "Wyckoff Analyst",
             "Raw JSON",
         ]
     )
@@ -1955,6 +2048,9 @@ def main() -> None:
 
     with analyst_packet_tab:
         _render_analyst_packet(result)
+
+    with wyckoff_analyst_tab:
+        _render_wyckoff_analyst_prompt(result)
 
     with raw_json_tab:
         _render_raw_json(result)

@@ -13,7 +13,8 @@ MarketFlow Studio is a local cockpit for reviewing MarketFlow reports, ranking s
 7. Send candidate to Monte Carlo.
 8. Run Monte Carlo, usually bootstrap first.
 9. Build Analyst Packet.
-10. Use packet for Wyckoff Volume Analyst review.
+10. Build a Wyckoff Analyst prompt preview.
+11. Use packet and prompt for Wyckoff Volume Analyst review.
 
 ## Recommended Batch Flow
 
@@ -114,6 +115,16 @@ The packet can be downloaded or saved to the loaded report folder.
 
 It does not call an LLM yet.
 
+## Wyckoff Analyst Prompt Preview
+
+The Wyckoff Analyst tab converts the Analyst Packet into a markdown prompt.
+It does not call any AI model.
+Use it to inspect, edit, download, or save the prompt before future Analyst Chat integration.
+
+Recommended flow:
+
+Analysis -> Strategy Ranking -> Monte Carlo -> P&F -> Analyst Packet -> Wyckoff Analyst Prompt
+
 ## Recommended Conservative Default
 
 For daily use:
@@ -123,4 +134,5 @@ For daily use:
 3. Rank strategy without Monte Carlo.
 4. Run Monte Carlo only on candidate.
 5. Build Analyst Packet.
-6. Do not act on candidates with weak score, failed POP gate, or failed P&F gate.
+6. Build and inspect the Wyckoff Analyst prompt.
+7. Do not act on candidates with weak score, failed POP gate, or failed P&F gate.
