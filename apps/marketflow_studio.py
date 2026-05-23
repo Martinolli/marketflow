@@ -448,8 +448,9 @@ def _render_artifact_preview(artifact: dict[str, Any], key_prefix: str, report_d
             components.html(text, height=700, scrolling=True)
         elif suffix == ".md":
             st.markdown(text)
-            with st.expander("Raw markdown", expanded=False):
-                st.code(text, language="markdown")
+            st.divider()
+            st.caption("Raw markdown")
+            st.code(text, language="markdown")
         elif suffix == ".json":
             try:
                 st.json(json.loads(text))
