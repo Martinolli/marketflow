@@ -21,6 +21,11 @@ if str(PROJECT_ROOT) not in sys.path:
 from marketflow.charts.pnf_chart import build_pnf_chart_from_sidecar
 from marketflow.charts.wyckoff_chart import build_basic_wyckoff_candlestick_chart
 from marketflow.services.analysis_service import run_single_ticker
+from marketflow.services.analyst_chat_service import (
+    build_response_filename,
+    get_analyst_chat_config_status,
+    run_analyst_chat,
+)
 from marketflow.services.analyst_packet_service import (
     build_analyst_packet,
     load_pnf_sidecars,
@@ -2041,6 +2046,102 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
             except Exception as exc:
                 st.error(f"Could not save analyst prompt: {exc}")
 
+    st.divider()
+    st.subheader("Analyst Chat - Experimental")
+    st.warning("This section does not run automatically. Review the prompt first, then click Run Analyst.")
+
+    config_status = get_analyst_chat_config_status()
+    config_col1, config_col2, config_col3 = st.columns(3)
+    with config_col1:
+        _display_optional_metric("Configured", config_status.get("configured"))
+    with config_col2:
+        _display_optional_metric("Provider", config_status.get("provider"))
+    with config_col3:
+        _display_optional_metric("Model", config_status.get("model"))
+
+    missing_config = config_status.get("missing") or []
+    if missing_config:
+        st.info("Analyst Chat is not fully configured. Dry-run mode is available.")
+        st.caption(f"Missing: {', '.join(str(item) for item in missing_config)}")
+    for note in config_status.get("notes") or []:
+        st.caption(str(note))
+
+    provider_value = st.text_input(
+        "Analyst provider",
+        value=str(config_status.get("provider") or ""),
+        key="analyst_chat_provider",
+    )
+    model_value = st.text_input(
+        "Analyst model",
+        value=str(config_status.get("model") or ""),
+        key="analyst_chat_model",
+    )
+    dry_run = st.checkbox(
+        "Dry run only",
+        value=True,
+        key="analyst_chat_dry_run",
+    )
+
+    run_disabled = not isinstance(packet, dict) or not bool((edited_prompt or "").strip())
+    if run_disabled:
+        st.info("Build and review an Analyst Prompt before running Analyst Chat.")
+
+    if st.button("Run Analyst", type="primary", disabled=run_disabled):
+        chat_result = run_analyst_chat(
+            edited_prompt,
+            provider=provider_value or None,
+            model=model_value or None,
+            dry_run=bool(dry_run),
+        )
+        st.session_state.analyst_chat_result = chat_result
+        st.session_state.analyst_chat_response_markdown = chat_result.get("response_markdown")
+
+    chat_result = st.session_state.get("analyst_chat_result")
+    response_markdown = st.session_state.get("analyst_chat_response_markdown")
+    if isinstance(chat_result, dict):
+        if chat_result.get("error"):
+            st.warning(chat_result.get("error"))
+        for note in chat_result.get("notes") or []:
+            st.caption(str(note))
+        st.json(
+            {
+                "success": chat_result.get("success"),
+                "dry_run": chat_result.get("dry_run"),
+                "provider": chat_result.get("provider"),
+                "model": chat_result.get("model"),
+            }
+        )
+
+    if response_markdown:
+        st.markdown("#### Analyst Response Markdown")
+        st.markdown(response_markdown)
+        st.download_button(
+            "Download analyst response",
+            data=response_markdown,
+            file_name=build_response_filename(packet, style=built_style, include_timestamp=True),
+            mime="text/markdown",
+        )
+
+        if st.button("Save analyst response to report folder"):
+            if not report_dir:
+                st.warning("No report folder is available. Use Download instead.")
+            else:
+                try:
+                    save_filename = build_response_filename(packet, style=built_style, include_timestamp=True)
+                    save_path = Path(report_dir) / save_filename
+                    if save_path.exists():
+                        stem = save_path.stem
+                        suffix = save_path.suffix
+                        counter = 2
+                        while save_path.exists():
+                            save_path = Path(report_dir) / f"{stem}_{counter}{suffix}"
+                            counter += 1
+                    save_path.write_text(response_markdown, encoding="utf-8")
+                    st.success(f"Saved analyst response to `{save_path}`")
+                    st.caption("Refresh Generated Artifacts to see this analyst response markdown file.")
+                except Exception as exc:
+                    st.error(f"Could not save analyst response: {exc}")
+
 
 def _render_raw_json(result: dict[str, Any] | None) -> None:
     """Render the Raw JSON tab."""
@@ -2082,6 +2183,10 @@ def main() -> None:
         st.session_state.wyckoff_analyst_prompt_style = None
     if "wyckoff_analyst_prompt_include_raw_json" not in st.session_state:
         st.session_state.wyckoff_analyst_prompt_include_raw_json = None
+    if "analyst_chat_result" not in st.session_state:
+        st.session_state.analyst_chat_result = None
+    if "analyst_chat_response_markdown" not in st.session_state:
+        st.session_state.analyst_chat_response_markdown = None
 
     with st.sidebar:
         st.header("Analysis")

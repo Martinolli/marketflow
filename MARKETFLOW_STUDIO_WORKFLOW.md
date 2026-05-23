@@ -136,6 +136,14 @@ Recommended flow:
 
 Analysis -> Strategy Ranking -> Monte Carlo -> P&F -> Analyst Packet -> Wyckoff Analyst Prompt
 
+## Analyst Chat Skeleton
+
+The Analyst Chat section is experimental.
+It does not run automatically.
+The user must review the prompt and click Run Analyst.
+If no API/provider is configured, Studio shows setup guidance or dry-run output.
+Responses can be saved as markdown artifacts and reviewed in Generated Artifacts.
+
 ## Recommended Conservative Default
 
 For daily use:

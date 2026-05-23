@@ -72,6 +72,8 @@ def _classify_artifact(path: Path) -> str:
         return "other_html"
     if suffix == ".json":
         return "other_json"
+    if suffix == ".md" and "_wyckoff_analyst_response" in name:
+        return "analyst_response_md"
     if suffix == ".md" and "_wyckoff_analyst_prompt" in name:
         return "analyst_prompt_md"
     if suffix == ".md":

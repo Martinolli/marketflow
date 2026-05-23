@@ -121,6 +121,7 @@ streamlit run apps/marketflow_studio.py
 * Wyckoff Analyst prompt artifact and UI robustness pass — implemented
 * Studio performance pass with active-page navigation and lazy artifact previews — implemented
 * Studio design review checkpoint — implemented
+* Analyst Chat skeleton — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

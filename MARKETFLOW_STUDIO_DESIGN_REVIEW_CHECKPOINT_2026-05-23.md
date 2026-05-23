@@ -3,6 +3,11 @@
 **Date:** 2026-05-23  
 **Checkpoint commit:** `4834c1c - Improve Studio navigation performance`
 
+## Post-Checkpoint Update
+
+- Analyst Chat skeleton - implemented after checkpoint.
+- Analyst Chat skeleton was identified as the next milestone after this checkpoint.
+
 ## 1. Purpose
 
 This checkpoint captures the current stable state of MarketFlow Studio after the responsiveness and performance pass. It documents what is implemented, how the current workflow should be used, what limitations remain, and which future features have already been defined but are not implemented in this milestone.
