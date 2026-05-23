@@ -4,6 +4,12 @@ MarketFlow Studio is a local cockpit for reviewing MarketFlow reports, ranking s
 
 Studio uses the sidebar Workspace selector to render one page at a time. This keeps heavy pages such as Charts, Generated Artifacts, Monte Carlo plots, and Analyst Packet views from rendering when they are hidden.
 
+## Design Review Checkpoint
+
+For the current Studio milestone review, see:
+
+- `MARKETFLOW_STUDIO_DESIGN_REVIEW_CHECKPOINT_2026-05-23.md`
+
 ## Recommended Single Ticker Flow
 
 1. Enter ticker and timeframes in the sidebar.

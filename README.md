@@ -90,6 +90,14 @@ The app can:
 
 See `MARKETFLOW_STUDIO_WORKFLOW.md` for the recommended cockpit flow across analysis, Strategy Ranking, Monte Carlo, Analyst Packet, and batch analysis.
 
+### Design Review Checkpoint
+
+A current Studio design checkpoint is available at:
+
+- `MARKETFLOW_STUDIO_DESIGN_REVIEW_CHECKPOINT_2026-05-23.md`
+
+It summarizes implemented capabilities, usage checklists, known limitations, and planned future features.
+
 By default, MarketFlow Studio reduces console log noise. To enable verbose logs:
 
 ```powershell
