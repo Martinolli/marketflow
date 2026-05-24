@@ -143,6 +143,7 @@ It does not run automatically.
 The user must review the prompt and click Run Analyst.
 If no API/provider is configured, Studio shows setup guidance or dry-run output.
 Responses can be saved as markdown artifacts and reviewed in Generated Artifacts.
+Analyst Chat dry-run responses are saved as `analyst_response_md` artifacts. They are placeholders only and do not represent model output.
 
 ## Recommended Conservative Default
 

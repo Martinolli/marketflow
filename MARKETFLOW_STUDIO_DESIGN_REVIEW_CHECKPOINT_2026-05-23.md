@@ -6,6 +6,7 @@
 ## Post-Checkpoint Update
 
 - Analyst Chat skeleton - implemented after checkpoint.
+- Analyst Chat dry-run response polish — implemented after checkpoint.
 - Analyst Chat skeleton was identified as the next milestone after this checkpoint.
 
 ## 1. Purpose

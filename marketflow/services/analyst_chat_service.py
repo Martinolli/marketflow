@@ -54,12 +54,37 @@ def _prompt_preview(prompt: str, limit: int = 1800) -> str:
     return f"{text[:limit].rstrip()}\n\n..."
 
 
+def _created_at() -> str:
+    return datetime.now().astimezone().isoformat(timespec="seconds")
+
+
+def _metadata_line(label: str, value: Any) -> str:
+    if value is None or value == "":
+        value = "not available"
+    return f"- {label}: {value}"
+
+
+def _source_linkage_lines(source_metadata: dict[str, Any] | None) -> list[str]:
+    metadata = _as_dict(source_metadata)
+    keys = (
+        ("Ticker", "ticker"),
+        ("Timeframe", "timeframe"),
+        ("Prompt style", "prompt_style"),
+        ("Source prompt filename", "source_prompt_filename"),
+        ("Packet version", "packet_version"),
+        ("Dry run", "dry_run"),
+        ("Created at", "created_at"),
+    )
+    return [_metadata_line(label, metadata.get(key)) for label, key in keys]
+
+
 def run_analyst_chat(
     prompt: str,
     *,
     provider: str | None = None,
     model: str | None = None,
     dry_run: bool = False,
+    source_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """
     Run or simulate analyst chat.
@@ -71,6 +96,11 @@ def run_analyst_chat(
     resolved_provider = provider or config.get("provider")
     resolved_model = model or config.get("model")
     notes = list(config.get("notes") or [])
+    created_at = _created_at()
+    prompt_text = str(prompt or "")
+    prompt_chars = len(prompt_text)
+    prompt_preview = _prompt_preview(prompt_text)
+    prompt_preview_chars = len(prompt_preview)
 
     if not prompt or not str(prompt).strip():
         return {
@@ -81,6 +111,10 @@ def run_analyst_chat(
             "response_markdown": None,
             "error": "No prompt was provided.",
             "notes": notes,
+            "created_at": created_at,
+            "prompt_chars": prompt_chars,
+            "prompt_preview_chars": prompt_preview_chars,
+            "execution_mode": "dry_run" if dry_run else "not_configured",
         }
 
     if not dry_run:
@@ -98,6 +132,10 @@ def run_analyst_chat(
                     f"Missing configuration: {', '.join(str(item) for item in missing)}.",
                     "Use dry-run mode or configure the provider/model before real execution in a future milestone.",
                 ],
+                "created_at": created_at,
+                "prompt_chars": prompt_chars,
+                "prompt_preview_chars": prompt_preview_chars,
+                "execution_mode": "not_configured",
             }
 
         return {
@@ -112,36 +150,45 @@ def run_analyst_chat(
                 "No external API call was made.",
                 "Keep dry-run enabled until the explicit Analyst Chat execution milestone is implemented.",
             ],
+            "created_at": created_at,
+            "prompt_chars": prompt_chars,
+            "prompt_preview_chars": prompt_preview_chars,
+            "execution_mode": "not_implemented",
         }
 
-    missing_text = ", ".join(str(item) for item in (config.get("missing") or [])) or "none"
+    source_metadata = {
+        **_as_dict(source_metadata),
+        "dry_run": True,
+        "created_at": created_at,
+    }
+    source_linkage = "\n".join(_source_linkage_lines(source_metadata))
     response = f"""# Wyckoff Analyst Response - Dry Run
 
-This is a local placeholder response. No AI model or external API was called.
+## Execution Status
 
-## Configuration Status
-
+- No external API call was made.
+- Execution mode: dry_run
 - Provider: {resolved_provider or "not configured"}
 - Model: {resolved_model or "not configured"}
-- Missing: {missing_text}
+- Created at: {created_at}
 
-## Prompt Received
+## Source Linkage
 
-The prompt is available and ready for a future Analyst Chat execution step. Review the prompt before any real model call.
+{source_linkage}
 
-```markdown
-{_prompt_preview(prompt)}
-```
+## Source Prompt
 
-## Analytical Placeholder
+- Prompt characters: {prompt_chars}
+- Prompt preview characters: {prompt_preview_chars}
 
-- This dry run does not provide a market conclusion.
-- Use the Analyst Packet, Monte Carlo metrics, P&F gate, and Wyckoff context for human review.
-- Treat failed gates, weak confirmation, unclear phase context, or missing data as caution signals.
+## Analyst Review Placeholder
 
-## Next Setup Step
+This is not a market conclusion.
+Use the Analyst Packet, Monte Carlo metrics, P&F gate, and Wyckoff context for human review.
 
-Configure the intended provider and model in a future milestone, then keep execution behind an explicit Run Analyst click.
+## Next Step
+
+Configure real execution in a future milestone only after explicit user confirmation.
 """
 
     return {
@@ -152,6 +199,10 @@ Configure the intended provider and model in a future milestone, then keep execu
         "response_markdown": response,
         "error": None,
         "notes": notes,
+        "created_at": created_at,
+        "prompt_chars": prompt_chars,
+        "prompt_preview_chars": prompt_preview_chars,
+        "execution_mode": "dry_run",
     }
 
 
@@ -166,8 +217,20 @@ def build_response_filename(
     packet = _as_dict(packet)
     summary = _as_dict(packet.get("packet_summary"))
     candidate = _as_dict(packet.get("strategy_candidate"))
+    selected_timeframe_context = _as_dict(packet.get("selected_timeframe_context"))
+    pnf = _as_dict(packet.get("pnf"))
+    pnf_selection = _as_dict(pnf.get("selection"))
+    pnf_sidecar = _as_dict(pnf.get("selected_sidecar"))
     ticker = _safe_filename_part(summary.get("ticker") or packet.get("ticker") or candidate.get("ticker"), "marketflow")
-    timeframe = _safe_filename_part(summary.get("selected_timeframe") or candidate.get("tf"), "selected")
+    timeframe = _safe_filename_part(
+        summary.get("selected_timeframe")
+        or candidate.get("tf")
+        or selected_timeframe_context.get("tf")
+        or pnf_selection.get("candidate_timeframe")
+        or pnf_sidecar.get("inferred_timeframe")
+        or pnf_sidecar.get("timeframe"),
+        "selected",
+    )
     parts = [ticker, timeframe]
     if style:
         parts.append(_safe_filename_part(style, "response"))

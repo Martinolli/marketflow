@@ -2092,9 +2092,36 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
             provider=provider_value or None,
             model=model_value or None,
             dry_run=bool(dry_run),
+            source_metadata={
+                "ticker": packet_summary.get("ticker") or packet.get("ticker"),
+                "timeframe": (
+                    packet_summary.get("selected_timeframe")
+                    or strategy_context.get("tf")
+                    or _nested_get(packet, ["pnf", "selection", "candidate_timeframe"])
+                    or _nested_get(packet, ["pnf", "selected_sidecar", "inferred_timeframe"])
+                    or _nested_get(packet, ["pnf", "selected_sidecar", "timeframe"])
+                ),
+                "prompt_style": built_style,
+                "source_prompt_filename": filename,
+                "packet_version": packet.get("packet_version"),
+            },
         )
         st.session_state.analyst_chat_result = chat_result
         st.session_state.analyst_chat_response_markdown = chat_result.get("response_markdown")
+        st.session_state.analyst_chat_response_filename = (
+            build_response_filename(packet, style=built_style, include_timestamp=True)
+            if chat_result.get("response_markdown")
+            else None
+        )
+
+    if st.button(
+        "Clear analyst response",
+        disabled=not st.session_state.get("analyst_chat_result")
+        and not st.session_state.get("analyst_chat_response_markdown"),
+    ):
+        st.session_state.analyst_chat_result = None
+        st.session_state.analyst_chat_response_markdown = None
+        st.session_state.analyst_chat_response_filename = None
 
     chat_result = st.session_state.get("analyst_chat_result")
     response_markdown = st.session_state.get("analyst_chat_response_markdown")
@@ -2103,22 +2130,43 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
             st.warning(chat_result.get("error"))
         for note in chat_result.get("notes") or []:
             st.caption(str(note))
-        st.json(
-            {
-                "success": chat_result.get("success"),
-                "dry_run": chat_result.get("dry_run"),
-                "provider": chat_result.get("provider"),
-                "model": chat_result.get("model"),
-            }
-        )
+        status_col1, status_col2, status_col3, status_col4 = st.columns(4)
+        with status_col1:
+            _display_optional_metric("Execution Mode", chat_result.get("execution_mode"))
+        with status_col2:
+            _display_optional_metric("Dry Run", chat_result.get("dry_run"))
+        with status_col3:
+            _display_optional_metric("Prompt Characters", chat_result.get("prompt_chars"))
+        with status_col4:
+            _display_optional_metric(
+                "Response Characters",
+                len(str(response_markdown or "")) if response_markdown else 0,
+            )
+        with st.expander("Analyst Chat result details", expanded=False):
+            st.json(
+                {
+                    "success": chat_result.get("success"),
+                    "dry_run": chat_result.get("dry_run"),
+                    "provider": chat_result.get("provider"),
+                    "model": chat_result.get("model"),
+                    "created_at": chat_result.get("created_at"),
+                    "prompt_preview_chars": chat_result.get("prompt_preview_chars"),
+                    "execution_mode": chat_result.get("execution_mode"),
+                }
+            )
 
     if response_markdown:
+        response_filename = st.session_state.get("analyst_chat_response_filename")
+        if not response_filename:
+            response_filename = build_response_filename(packet, style=built_style, include_timestamp=True)
+            st.session_state.analyst_chat_response_filename = response_filename
         st.markdown("#### Analyst Response Markdown")
         st.markdown(response_markdown)
+        st.caption(f"Response filename preview: `{response_filename}`")
         st.download_button(
             "Download analyst response",
             data=response_markdown,
-            file_name=build_response_filename(packet, style=built_style, include_timestamp=True),
+            file_name=response_filename,
             mime="text/markdown",
         )
 
@@ -2127,7 +2175,7 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
                 st.warning("No report folder is available. Use Download instead.")
             else:
                 try:
-                    save_filename = build_response_filename(packet, style=built_style, include_timestamp=True)
+                    save_filename = response_filename
                     save_path = Path(report_dir) / save_filename
                     if save_path.exists():
                         stem = save_path.stem
@@ -2187,6 +2235,8 @@ def main() -> None:
         st.session_state.analyst_chat_result = None
     if "analyst_chat_response_markdown" not in st.session_state:
         st.session_state.analyst_chat_response_markdown = None
+    if "analyst_chat_response_filename" not in st.session_state:
+        st.session_state.analyst_chat_response_filename = None
 
     with st.sidebar:
         st.header("Analysis")
