@@ -6,6 +6,7 @@ import os
 import json
 import re
 import sys
+from datetime import datetime
 from pathlib import Path
 from typing import Any
 
@@ -1459,6 +1460,13 @@ def _format_alignment_path(path: Any) -> str | None:
     return Path(str(path)).name
 
 
+def _safe_filename_part(value: Any, fallback: str) -> str:
+    """Return a compact filename-safe token."""
+    text = str(value or fallback).strip() or fallback
+    text = re.sub(r"[^A-Za-z0-9_.-]+", "_", text)
+    return text.strip("._") or fallback
+
+
 def _alignment_display_rows(alignment: dict[str, Any]) -> list[dict[str, Any]]:
     """Return compact candidate/MC alignment rows for UI tables."""
     return [
@@ -1576,6 +1584,104 @@ def _candidate_decision_card_data(packet: dict[str, Any] | None) -> dict[str, An
         "pnf_status": pnf_status,
         "packet_status": packet_status,
     }
+
+
+def _summary_value(value: Any) -> str:
+    """Format a decision summary value for markdown."""
+    if value is None or value == "":
+        return "not available"
+    if isinstance(value, bool):
+        return "yes" if value else "no"
+    if isinstance(value, float):
+        return f"{value:.4f}".rstrip("0").rstrip(".")
+    return str(value)
+
+
+def _summary_percent(value: Any) -> str:
+    """Format a decision summary probability for markdown."""
+    if value is None or value == "":
+        return "not available"
+    try:
+        return f"{float(value) * 100:.1f}%"
+    except (TypeError, ValueError):
+        return str(value)
+
+
+def _candidate_decision_summary_filename(card: dict[str, Any]) -> str:
+    """Return a timestamped markdown filename for the candidate decision summary."""
+    ticker = _safe_filename_part(card.get("ticker"), "marketflow")
+    timeframe = _safe_filename_part(card.get("selected_timeframe"), "selected")
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    return f"{ticker}_{timeframe}_candidate_decision_summary_{timestamp}.md"
+
+
+def _build_candidate_decision_summary_markdown(
+    card: dict[str, Any],
+    packet: dict[str, Any],
+) -> str:
+    """
+    Build a concise markdown decision snapshot from the Candidate Decision Card data.
+
+    This is a reporting artifact only. It must not create new scoring logic.
+    """
+    source_files = packet.get("source_files") if isinstance(packet.get("source_files"), dict) else {}
+    alignment = card.get("alignment") if isinstance(card.get("alignment"), dict) else {}
+    alignment_text = "matches" if alignment.get("matches") else "not matched"
+    differences = alignment.get("differences") or []
+    if differences:
+        alignment_text = f"{alignment_text} ({', '.join(str(item) for item in differences)})"
+
+    return f"""# MarketFlow Candidate Decision Summary
+
+## Metadata
+- Created: {datetime.now().astimezone().isoformat(timespec="seconds")}
+- Ticker: {_summary_value(card.get("ticker"))}
+- Timeframe: {_summary_value(card.get("selected_timeframe"))}
+- Source report folder: {_summary_value(source_files.get("report_dir"))}
+
+## Trade Plan
+- Entry: {_summary_value(card.get("trade_entry"))}
+- Stop Loss: {_summary_value(card.get("trade_stop_loss"))}
+- Take Profit: {_summary_value(card.get("trade_take_profit"))}
+- Risk/Reward: {_summary_value(card.get("rr"))}
+
+## Strategy Context
+- Score: {_summary_value(card.get("strategy_score") or card.get("score"))}
+- Wyckoff Phase: {_summary_value(card.get("phase"))}
+- Wyckoff Event: {_summary_value(card.get("event"))}
+- Trend: {_summary_value(card.get("trend"))}
+
+## Monte Carlo Context
+- Status: {_summary_value(card.get("monte_carlo_status"))}
+- Model: {_summary_value(card.get("model"))}
+- Paths: {_summary_value(card.get("paths"))}
+- Horizon: {_summary_value(card.get("horizon_bars"))}
+- TP First: {_summary_percent(card.get("pop_tp_first"))}
+- SL First: {_summary_percent(card.get("p_sl_first"))}
+- Neither: {_summary_percent(card.get("p_neither"))}
+- R Mean: {_summary_value(card.get("R_mean"))}
+- Alignment: {alignment_text}
+
+## P&F Context
+- Status: {_summary_value(card.get("pnf_status"))}
+- Selected sidecar: {_summary_value(card.get("pnf_selected_sidecar"))}
+- Matched by: {_summary_value(card.get("pnf_matched_by"))}
+- Match score: {_summary_value(card.get("pnf_match_score"))}
+- P&F gate: {_summary_value(card.get("pnf_gate"))}
+- Objective: {_summary_value(card.get("pnf_objective"))}
+- Objective R: {_summary_value(card.get("pnf_objective_r_multiple"))}
+
+## Analyst Packet Readiness
+- POP gate: {_summary_value(card.get("pop_gate"))}
+- P&F gate: {_summary_value(card.get("pnf_gate"))}
+- Risk rank: {_summary_value(card.get("risk_rank"))}
+- Ready for analyst: {_summary_value(card.get("ready_for_analyst"))}
+
+## Workflow Notes
+- This summary is a snapshot of existing Strategy, Monte Carlo, P&F, and Analyst Packet data.
+- It is not financial advice.
+- It does not change the underlying analysis.
+"""
 
 
 def _checklist_label(ok: bool, text: str) -> str:
@@ -2279,6 +2385,34 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         )
 
     _render_candidate_decision_card(packet, mc_excluded=mc_excluded_for_card)
+    decision_card = _candidate_decision_card_data(packet)
+    if decision_card:
+        summary_markdown = _build_candidate_decision_summary_markdown(decision_card, packet)
+        summary_filename = _candidate_decision_summary_filename(decision_card)
+        st.download_button(
+            "Download Decision Summary",
+            data=summary_markdown,
+            file_name=summary_filename,
+            mime="text/markdown",
+        )
+        if st.button("Save Decision Summary to report folder"):
+            if not report_dir:
+                st.warning("No report directory is available. Use Download instead.")
+            else:
+                try:
+                    save_path = Path(report_dir) / summary_filename
+                    if save_path.exists():
+                        stem = save_path.stem
+                        suffix = save_path.suffix
+                        counter = 2
+                        while save_path.exists():
+                            save_path = Path(report_dir) / f"{stem}_{counter}{suffix}"
+                            counter += 1
+                    save_path.write_text(summary_markdown, encoding="utf-8")
+                    st.success(f"Saved decision summary to `{save_path}`")
+                    st.caption("Refresh Generated Artifacts to see this decision summary.")
+                except Exception as exc:
+                    st.error(f"Could not save decision summary: {exc}")
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:

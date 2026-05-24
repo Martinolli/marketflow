@@ -76,6 +76,8 @@ def _classify_artifact(path: Path) -> str:
         return "analyst_response_md"
     if suffix == ".md" and "_wyckoff_analyst_prompt" in name:
         return "analyst_prompt_md"
+    if suffix == ".md" and "_candidate_decision_summary" in name:
+        return "candidate_decision_summary_md"
     if suffix == ".md":
         return "markdown"
     return "other"

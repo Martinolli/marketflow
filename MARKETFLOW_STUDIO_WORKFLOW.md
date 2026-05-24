@@ -124,6 +124,8 @@ Analyst Packet uses discovered P&F sidecars and prefers the sidecar matching the
 
 The Analyst Packet page includes a Candidate Decision Card summarizing Strategy, Monte Carlo, P&F, and packet readiness. It is a visual workflow check, not a new scoring model.
 
+The Candidate Decision Card can be saved as a markdown Decision Summary artifact. This creates a lightweight snapshot of the selected setup, Monte Carlo alignment, P&F context, and packet readiness.
+
 The packet can be downloaded or saved to the loaded report folder.
 
 It does not call an LLM yet.
