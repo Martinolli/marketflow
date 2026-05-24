@@ -1495,6 +1495,190 @@ def _alignment_display_rows(alignment: dict[str, Any]) -> list[dict[str, Any]]:
     ]
 
 
+def _candidate_decision_card_data(packet: dict[str, Any] | None) -> dict[str, Any]:
+    """
+    Build a compact display summary from an Analyst Packet.
+
+    This function should only read packet fields and normalize them for UI.
+    It must not change analytical logic.
+    """
+    if not isinstance(packet, dict):
+        return {}
+
+    packet_summary = packet.get("packet_summary") if isinstance(packet.get("packet_summary"), dict) else {}
+    strategy_candidate = packet.get("strategy_candidate") if isinstance(packet.get("strategy_candidate"), dict) else {}
+    monte_carlo = packet.get("monte_carlo") if isinstance(packet.get("monte_carlo"), dict) else {}
+    pnf = packet.get("pnf") if isinstance(packet.get("pnf"), dict) else {}
+    pnf_selection = pnf.get("selection") if isinstance(pnf.get("selection"), dict) else {}
+    selected_sidecar = pnf.get("selected_sidecar") if isinstance(pnf.get("selected_sidecar"), dict) else {}
+    alignment = monte_carlo.get("alignment") if isinstance(monte_carlo.get("alignment"), dict) else None
+
+    strategy_available = bool(strategy_candidate)
+    mc_status = "missing"
+    if monte_carlo:
+        if monte_carlo.get("manual_scenario"):
+            mc_status = "manual scenario"
+        elif monte_carlo.get("matches_strategy_candidate") is False:
+            mc_status = "manual scenario"
+        elif isinstance(alignment, dict) and alignment.get("matches") is False:
+            mc_status = "manual scenario"
+        elif monte_carlo.get("matches_strategy_candidate") is True or (
+            isinstance(alignment, dict) and alignment.get("matches")
+        ):
+            mc_status = "aligned"
+        else:
+            mc_status = "included"
+
+    pnf_status = "missing"
+    pnf_match_score = _safe_float(pnf_selection.get("match_score"))
+    if selected_sidecar:
+        pnf_status = "available but weak match" if pnf_match_score is not None and pnf_match_score < 50 else "matched"
+    elif pnf.get("available"):
+        pnf_status = "available but weak match"
+
+    ready_for_analyst = bool(packet_summary.get("ready_for_analyst"))
+    packet_status = "ready" if ready_for_analyst else "review needed"
+
+    return {
+        "ticker": packet_summary.get("ticker") or packet.get("ticker"),
+        "selected_timeframe": packet_summary.get("selected_timeframe") or strategy_candidate.get("tf"),
+        "current_price": packet_summary.get("current_price"),
+        "trade_entry": packet_summary.get("trade_entry"),
+        "trade_stop_loss": packet_summary.get("trade_stop_loss"),
+        "trade_take_profit": packet_summary.get("trade_take_profit"),
+        "strategy_score": packet_summary.get("strategy_score") or strategy_candidate.get("score"),
+        "pop_gate": packet_summary.get("pop_gate"),
+        "pnf_gate": packet_summary.get("pnf_gate"),
+        "risk_rank": packet_summary.get("risk_rank"),
+        "ready_for_analyst": ready_for_analyst,
+        "phase": strategy_candidate.get("phase"),
+        "event": strategy_candidate.get("event"),
+        "trend": strategy_candidate.get("trend"),
+        "score": strategy_candidate.get("score"),
+        "rr": strategy_candidate.get("rr"),
+        "pop_tp_first": monte_carlo.get("pop_tp_first"),
+        "p_sl_first": monte_carlo.get("p_sl_first"),
+        "p_neither": monte_carlo.get("p_neither"),
+        "R_mean": monte_carlo.get("R_mean") if "R_mean" in monte_carlo else monte_carlo.get("r_mean"),
+        "model": monte_carlo.get("model"),
+        "paths": monte_carlo.get("paths"),
+        "horizon_bars": monte_carlo.get("horizon_bars"),
+        "matches_strategy_candidate": monte_carlo.get("matches_strategy_candidate"),
+        "alignment": alignment,
+        "manual_scenario": bool(monte_carlo.get("manual_scenario")),
+        "pnf_selected_sidecar": selected_sidecar.get("filename") or pnf_selection.get("selected_filename"),
+        "pnf_match_score": pnf_selection.get("match_score"),
+        "pnf_matched_by": pnf_selection.get("matched_by"),
+        "pnf_objective": selected_sidecar.get("objective"),
+        "pnf_objective_r_multiple": selected_sidecar.get("objective_r_multiple"),
+        "strategy_status": "available" if strategy_available else "missing",
+        "monte_carlo_status": mc_status,
+        "pnf_status": pnf_status,
+        "packet_status": packet_status,
+    }
+
+
+def _checklist_label(ok: bool, text: str) -> str:
+    """Return a compact visible checklist line."""
+    return f"{'✓' if ok else '•'} {text}"
+
+
+def _decision_inputs_rows(card: dict[str, Any], mc_excluded: bool) -> list[dict[str, Any]]:
+    """Return Candidate Decision Card source/status rows."""
+    alignment = card.get("alignment") if isinstance(card.get("alignment"), dict) else {}
+    pnf_note = card.get("pnf_selected_sidecar") or "No matched sidecar"
+    mc_note = "Monte Carlo result is not included"
+    if card.get("monte_carlo_status") == "aligned":
+        mc_note = "Matches selected Strategy Ranking candidate"
+    elif card.get("monte_carlo_status") == "manual scenario":
+        mc_note = "Included as explicit manual scenario"
+    elif mc_excluded:
+        mc_note = "Mismatched result excluded"
+    elif alignment.get("differences"):
+        mc_note = "; ".join(alignment.get("differences") or [])
+
+    return [
+        {
+            "component": "Strategy Ranking",
+            "status": card.get("strategy_status"),
+            "source": card.get("selected_timeframe"),
+            "note": card.get("event") or "No candidate selected",
+        },
+        {
+            "component": "Monte Carlo",
+            "status": "mismatch excluded" if mc_excluded else card.get("monte_carlo_status"),
+            "source": card.get("model"),
+            "note": mc_note,
+        },
+        {
+            "component": "P&F",
+            "status": card.get("pnf_status"),
+            "source": card.get("pnf_matched_by"),
+            "note": pnf_note,
+        },
+        {
+            "component": "Analyst Packet",
+            "status": card.get("packet_status"),
+            "source": "packet_summary",
+            "note": f"ready_for_analyst={card.get('ready_for_analyst')}",
+        },
+    ]
+
+
+def _render_candidate_decision_card(packet: dict[str, Any], mc_excluded: bool = False) -> None:
+    """Render a compact candidate coherence summary for the Analyst Packet page."""
+    card = _candidate_decision_card_data(packet)
+    if not card:
+        return
+
+    st.subheader("Candidate Decision Card")
+    cols = st.columns(4)
+    with cols[0]:
+        _display_optional_metric("Ticker", card.get("ticker"))
+        _display_optional_metric("Timeframe", card.get("selected_timeframe"))
+        _display_optional_metric("Entry", _format_number(card.get("trade_entry")))
+    with cols[1]:
+        _display_optional_metric("Stop Loss", _format_number(card.get("trade_stop_loss")))
+        _display_optional_metric("Take Profit", _format_number(card.get("trade_take_profit")))
+        _display_optional_metric("Strategy Score", _format_number(card.get("strategy_score")))
+    with cols[2]:
+        phase_event = " / ".join(str(item) for item in (card.get("phase"), card.get("event")) if item)
+        _display_optional_metric("Wyckoff Phase/Event", phase_event or None)
+        _display_optional_metric("MC TP First", _format_probability(card.get("pop_tp_first")))
+        _display_optional_metric("MC SL First", _format_probability(card.get("p_sl_first")))
+    with cols[3]:
+        _display_optional_metric("POP Gate", card.get("pop_gate"))
+        _display_optional_metric("P&F Gate", card.get("pnf_gate"))
+        _display_optional_metric("Risk Rank", card.get("risk_rank"))
+        _display_optional_metric("Ready for Analyst", card.get("ready_for_analyst"))
+
+    st.markdown("#### Alignment Checklist")
+    checklist = [
+        _checklist_label(card.get("strategy_status") == "available", "Strategy candidate selected"),
+        _checklist_label(card.get("monte_carlo_status") == "aligned", "Monte Carlo matches selected candidate"),
+        _checklist_label(card.get("pnf_status") == "matched", "P&F sidecar matched selected candidate/timeframe"),
+        _checklist_label(card.get("packet_status") == "ready", "Analyst Packet ready"),
+    ]
+    for item in checklist:
+        st.write(item)
+
+    if card.get("monte_carlo_status") == "missing":
+        st.warning("Monte Carlo result is not included in this packet.")
+    if mc_excluded:
+        st.warning("Mismatched Monte Carlo result was excluded from this packet.")
+    if card.get("manual_scenario") or card.get("monte_carlo_status") == "manual scenario":
+        st.warning("Monte Carlo is included as an explicit manual scenario.")
+    if card.get("pnf_status") == "missing":
+        st.warning("No matched P&F sidecar is included.")
+
+    st.markdown("#### Decision Inputs")
+    st.dataframe(
+        _safe_dataframe_rows(_decision_inputs_rows(card, mc_excluded)),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+
 def _sync_monte_carlo_prefill(prefill: dict[str, Any] | None) -> None:
     """Apply candidate prefill values to Monte Carlo widgets deterministically."""
     token = _prefill_token(prefill)
@@ -2084,8 +2268,17 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
 
     packet_summary = packet.get("packet_summary") or {}
     strategy_context = packet.get("strategy_candidate") or {}
-    monte_carlo_context = packet.get("monte_carlo") or {}
+    packet_monte_carlo = packet.get("monte_carlo")
+    monte_carlo_context = packet_monte_carlo or {}
     pnf_context = packet.get("pnf") or {}
+    mc_excluded_for_card = False
+    if isinstance(strategy_candidate, dict) and isinstance(monte_carlo_result, dict) and monte_carlo_result.get("success"):
+        current_alignment = _monte_carlo_alignment(strategy_candidate, monte_carlo_result)
+        mc_excluded_for_card = bool(
+            not current_alignment.get("matches") and not isinstance(packet_monte_carlo, dict)
+        )
+
+    _render_candidate_decision_card(packet, mc_excluded=mc_excluded_for_card)
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:

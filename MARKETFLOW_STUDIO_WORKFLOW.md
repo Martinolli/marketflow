@@ -122,6 +122,8 @@ Analyst Packet can extract Wyckoff context from report JSON and the selected ann
 
 Analyst Packet uses discovered P&F sidecars and prefers the sidecar matching the selected strategy candidate CSV/timeframe. If multiple P&F sidecars exist, verify the selected sidecar and match reason before relying on the P&F gate.
 
+The Analyst Packet page includes a Candidate Decision Card summarizing Strategy, Monte Carlo, P&F, and packet readiness. It is a visual workflow check, not a new scoring model.
+
 The packet can be downloaded or saved to the loaded report folder.
 
 It does not call an LLM yet.

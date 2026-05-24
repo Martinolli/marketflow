@@ -118,6 +118,7 @@ streamlit run apps/marketflow_studio.py
 * Full report artifact browser and legacy plot generation — implemented
 * P&F sidecar traceability and Analyst Packet matching — implemented
 * Strategy-to-Monte-Carlo trade-plan alignment — implemented
+* Candidate Decision Card — implemented
 * Wyckoff Analyst prompt preview — implemented
 * Wyckoff Analyst prompt artifact and UI robustness pass — implemented
 * Studio performance pass with active-page navigation and lazy artifact previews — implemented
