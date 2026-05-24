@@ -98,6 +98,8 @@ Strategy Ranking now prefers MC summaries matching the selected timeframe. If no
 - They can also be downloaded and opened in a browser.
 - Monte Carlo hits, paths, and summary files also appear in the Generated Artifacts browser.
 
+When a Strategy Ranking candidate is sent to Monte Carlo, Studio now treats that candidate trade plan as the authoritative prefill. Analyst Packet validates that the Monte Carlo result matches the selected candidate before including it. Mismatched Monte Carlo runs can be included only as explicit manual scenarios.
+
 ## GARCH
 
 GARCH requires optional package `arch`.

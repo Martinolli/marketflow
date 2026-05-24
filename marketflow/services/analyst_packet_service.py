@@ -1205,6 +1205,10 @@ def _extract_monte_carlo(monte_carlo_result: dict[str, Any] | None) -> dict[str,
         "r_mean": _to_float(metrics.get("R_mean") or metrics.get("r_mean")),
         "model_used": calibration.get("model_used"),
         "output_files": wrapper.get("output_files") or [],
+        "trade_plan": wrapper.get("trade_plan"),
+        "alignment": wrapper.get("alignment"),
+        "matches_strategy_candidate": wrapper.get("matches_strategy_candidate"),
+        "manual_scenario": wrapper.get("manual_scenario"),
     }
 
 
@@ -1474,6 +1478,11 @@ def build_analyst_packet(
 
     normalized_candidate = _normalize_strategy_candidate(strategy_candidate)
     monte_carlo = _extract_monte_carlo(monte_carlo_result)
+    if isinstance(monte_carlo, dict):
+        if monte_carlo.get("manual_scenario"):
+            warnings.append("Monte Carlo result was included as an explicit manual scenario and does not match the selected Strategy Ranking candidate.")
+        elif monte_carlo.get("matches_strategy_candidate") is False:
+            warnings.append("Monte Carlo result does not match the selected Strategy Ranking candidate.")
     strategy_trade_plan = _build_strategy_trade_plan(normalized_candidate, monte_carlo)
     levels, level_warnings = _extract_levels(
         report_json,

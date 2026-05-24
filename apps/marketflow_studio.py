@@ -1073,18 +1073,12 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
     st.json(selected_candidate)
 
     if st.button("Use selected candidate in Monte Carlo"):
-        st.session_state.monte_carlo_prefill = {
-            "ticker": selected_candidate.get("ticker"),
-            "csv": selected_candidate.get("csv"),
-            "tf": selected_candidate.get("tf"),
-            "entry": selected_candidate.get("close"),
-            "stop_loss": selected_candidate.get("sl"),
-            "take_profit": selected_candidate.get("tp"),
-            "source": "strategy_ranking",
-        }
+        trade_plan = _trade_plan_from_strategy_candidate(selected_candidate)
+        st.session_state.monte_carlo_prefill = trade_plan
         st.session_state.latest_strategy_candidate = selected_candidate
         st.session_state.selected_strategy_candidate = selected_candidate
         st.session_state.monte_carlo_result = None
+        st.session_state.latest_monte_carlo_result = None
         st.success("Selected candidate sent to Monte Carlo tab.")
 
 
@@ -1303,6 +1297,30 @@ def _safe_float(value: Any) -> float | None:
         return None
 
 
+def _trade_plan_from_strategy_candidate(candidate: dict[str, Any] | None) -> dict[str, Any] | None:
+    """
+    Return normalized trade plan from a Strategy Ranking candidate:
+    ticker, csv, tf, entry, stop_loss, take_profit, source.
+    """
+    if not isinstance(candidate, dict):
+        return None
+
+    return {
+        "ticker": candidate.get("ticker"),
+        "csv": candidate.get("csv"),
+        "tf": candidate.get("tf"),
+        "entry": _safe_float(candidate.get("entry") if candidate.get("entry") is not None else candidate.get("close")),
+        "stop_loss": _safe_float(
+            candidate.get("stop_loss") if candidate.get("stop_loss") is not None else candidate.get("sl")
+        ),
+        "take_profit": _safe_float(
+            candidate.get("take_profit") if candidate.get("take_profit") is not None else candidate.get("tp")
+        ),
+        "source": "strategy_ranking",
+        "source_candidate": candidate,
+    }
+
+
 def _prefill_token(prefill: dict[str, Any] | None) -> tuple[Any, ...] | None:
     """Return a stable token for candidate Monte Carlo prefill state."""
     if not prefill:
@@ -1326,10 +1344,167 @@ def _path_matches(left: str, right: str) -> bool:
         return str(left) == str(right)
 
 
+def _paths_match_optional(left: Any, right: Any) -> bool:
+    """Return True when optional paths match after local resolution."""
+    if not left and not right:
+        return True
+    if not left or not right:
+        return False
+    return _path_matches(str(left), str(right))
+
+
+def _numbers_match(left: Any, right: Any, tolerance: float = 1e-6) -> bool:
+    """Return True when optional numeric values match within tolerance."""
+    left_value = _safe_float(left)
+    right_value = _safe_float(right)
+    if left_value is None and right_value is None:
+        return True
+    if left_value is None or right_value is None:
+        return False
+    return abs(left_value - right_value) <= tolerance
+
+
+def _mc_trade_plan_from_result(mc_result: dict[str, Any] | None) -> dict[str, Any] | None:
+    """Return normalized Monte Carlo trade-plan metadata from a result wrapper."""
+    if not isinstance(mc_result, dict):
+        return None
+    trade_plan = mc_result.get("trade_plan")
+    if isinstance(trade_plan, dict):
+        return trade_plan
+
+    raw = mc_result.get("result") if isinstance(mc_result.get("result"), dict) else {}
+    params = raw.get("params") if isinstance(raw.get("params"), dict) else {}
+    return {
+        "ticker": mc_result.get("ticker"),
+        "csv": mc_result.get("csv_path") or mc_result.get("csv"),
+        "tf": mc_result.get("timeframe") or mc_result.get("tf"),
+        "entry": _safe_float(params.get("entry") or mc_result.get("entry")),
+        "stop_loss": _safe_float(params.get("sl") or mc_result.get("stop_loss")),
+        "take_profit": _safe_float(params.get("tp") or mc_result.get("take_profit")),
+        "source": mc_result.get("source") or "manual",
+    }
+
+
+def _monte_carlo_alignment(
+    candidate: dict[str, Any] | None,
+    mc_result: dict[str, Any] | None,
+) -> dict[str, Any]:
+    """Compare a Strategy Ranking candidate with a Monte Carlo result trade plan."""
+    candidate_plan = _trade_plan_from_strategy_candidate(candidate)
+    mc_plan = _mc_trade_plan_from_result(mc_result)
+
+    if not candidate_plan:
+        return {
+            "candidate_csv": None,
+            "candidate_tf": None,
+            "candidate_entry": None,
+            "candidate_stop_loss": None,
+            "candidate_take_profit": None,
+            "mc_csv": (mc_plan or {}).get("csv"),
+            "mc_tf": (mc_plan or {}).get("tf"),
+            "mc_entry": (mc_plan or {}).get("entry"),
+            "mc_stop_loss": (mc_plan or {}).get("stop_loss"),
+            "mc_take_profit": (mc_plan or {}).get("take_profit"),
+            "matches": bool(mc_plan),
+            "differences": [] if mc_plan else ["missing_monte_carlo_result"],
+        }
+    if not mc_plan:
+        return {
+            "candidate_csv": candidate_plan.get("csv"),
+            "candidate_tf": candidate_plan.get("tf"),
+            "candidate_entry": candidate_plan.get("entry"),
+            "candidate_stop_loss": candidate_plan.get("stop_loss"),
+            "candidate_take_profit": candidate_plan.get("take_profit"),
+            "mc_csv": None,
+            "mc_tf": None,
+            "mc_entry": None,
+            "mc_stop_loss": None,
+            "mc_take_profit": None,
+            "matches": False,
+            "differences": ["missing_monte_carlo_result"],
+        }
+
+    differences: list[str] = []
+    if not _paths_match_optional(candidate_plan.get("csv"), mc_plan.get("csv")):
+        differences.append("csv")
+    if (candidate_plan.get("tf") or None) != (mc_plan.get("tf") or None):
+        differences.append("timeframe")
+    if not _numbers_match(candidate_plan.get("entry"), mc_plan.get("entry")):
+        differences.append("entry")
+    if not _numbers_match(candidate_plan.get("stop_loss"), mc_plan.get("stop_loss")):
+        differences.append("stop_loss")
+    if not _numbers_match(candidate_plan.get("take_profit"), mc_plan.get("take_profit")):
+        differences.append("take_profit")
+
+    return {
+        "candidate_csv": candidate_plan.get("csv"),
+        "candidate_tf": candidate_plan.get("tf"),
+        "candidate_entry": candidate_plan.get("entry"),
+        "candidate_stop_loss": candidate_plan.get("stop_loss"),
+        "candidate_take_profit": candidate_plan.get("take_profit"),
+        "mc_csv": mc_plan.get("csv"),
+        "mc_tf": mc_plan.get("tf"),
+        "mc_entry": mc_plan.get("entry"),
+        "mc_stop_loss": mc_plan.get("stop_loss"),
+        "mc_take_profit": mc_plan.get("take_profit"),
+        "matches": not differences,
+        "differences": differences,
+    }
+
+
+def _format_alignment_path(path: Any) -> str | None:
+    """Return a compact filename for alignment display."""
+    if not path:
+        return None
+    return Path(str(path)).name
+
+
+def _alignment_display_rows(alignment: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return compact candidate/MC alignment rows for UI tables."""
+    return [
+        {
+            "field": "timeframe",
+            "candidate": alignment.get("candidate_tf"),
+            "monte_carlo": alignment.get("mc_tf"),
+        },
+        {
+            "field": "csv",
+            "candidate": _format_alignment_path(alignment.get("candidate_csv")),
+            "monte_carlo": _format_alignment_path(alignment.get("mc_csv")),
+        },
+        {
+            "field": "entry",
+            "candidate": alignment.get("candidate_entry"),
+            "monte_carlo": alignment.get("mc_entry"),
+        },
+        {
+            "field": "stop_loss",
+            "candidate": alignment.get("candidate_stop_loss"),
+            "monte_carlo": alignment.get("mc_stop_loss"),
+        },
+        {
+            "field": "take_profit",
+            "candidate": alignment.get("candidate_take_profit"),
+            "monte_carlo": alignment.get("mc_take_profit"),
+        },
+        {
+            "field": "matches",
+            "candidate": "yes" if alignment.get("matches") else "no",
+            "monte_carlo": "; ".join(alignment.get("differences") or []),
+        },
+    ]
+
+
 def _sync_monte_carlo_prefill(prefill: dict[str, Any] | None) -> None:
-    """Apply candidate prefill values to Monte Carlo widgets once per candidate."""
+    """Apply candidate prefill values to Monte Carlo widgets deterministically."""
     token = _prefill_token(prefill)
-    if token is None or token == st.session_state.get("monte_carlo_prefill_token"):
+    if token is None:
+        return
+    should_apply = (
+        token != st.session_state.get("monte_carlo_prefill_token")
+        or st.session_state.get("monte_carlo_level_source") != "strategy_ranking"
+    )
+    if not should_apply:
         return
 
     entry = _safe_float(prefill.get("entry"))
@@ -1343,7 +1518,11 @@ def _sync_monte_carlo_prefill(prefill: dict[str, Any] | None) -> None:
         st.session_state.monte_carlo_take_profit_value = take_profit
 
     st.session_state.pop("monte_carlo_csv_file", None)
+    st.session_state.pop("monte_carlo_manual_csv", None)
+    st.session_state.monte_carlo_level_source = "strategy_ranking"
     st.session_state.monte_carlo_prefill_token = token
+    st.session_state.monte_carlo_result = None
+    st.session_state.latest_monte_carlo_result = None
 
 
 def _candidate_csv_path(prefill: dict[str, Any] | None) -> str | None:
@@ -1521,6 +1700,17 @@ def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> No
     st.caption(f"CSV: `{Path(monte_carlo_result.get('csv_path') or '').name}`")
     if monte_carlo_result.get("source") == "strategy_ranking":
         st.caption("Source: Strategy Ranking candidate")
+    alignment = monte_carlo_result.get("alignment")
+    if isinstance(alignment, dict):
+        st.markdown("#### Monte Carlo Alignment")
+        st.dataframe(_safe_dataframe_rows(_alignment_display_rows(alignment)), use_container_width=True, hide_index=True)
+        if alignment.get("matches"):
+            st.caption("Monte Carlo result matches the selected Strategy Ranking candidate.")
+        else:
+            st.warning(
+                "Monte Carlo inputs differ from the selected Strategy Ranking candidate. "
+                "This is allowed for manual scenario testing, but Analyst Packet will treat it as a modified MC scenario."
+            )
 
     col1, col2, col3, col4 = st.columns(4)
     with col1:
@@ -1567,9 +1757,12 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
                 "monte_carlo_entry_value",
                 "monte_carlo_stop_loss_value",
                 "monte_carlo_take_profit_value",
+                "monte_carlo_level_source",
+                "monte_carlo_manual_csv",
             ]:
                 st.session_state.pop(key, None)
             st.session_state.monte_carlo_result = None
+            st.session_state.latest_monte_carlo_result = None
             st.rerun()
 
         if prefill.get("csv") and not candidate_csv:
@@ -1637,6 +1830,7 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
         st.session_state.monte_carlo_stop_loss_value = float(default_stop)
         st.session_state.monte_carlo_take_profit_value = float(default_take)
         st.session_state.monte_carlo_manual_csv = selected_csv
+        st.session_state.monte_carlo_level_source = "manual"
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -1663,6 +1857,46 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
             format="%.4f",
             key="monte_carlo_take_profit_value",
         )
+
+    prefill_matches_selected_csv = bool(prefill and candidate_csv and _path_matches(candidate_csv, selected_csv))
+    if prefill_matches_selected_csv:
+        st.markdown("#### Strategy Candidate Prefill")
+        st.dataframe(
+            _safe_dataframe_rows([
+                {
+                    "ticker": prefill.get("ticker"),
+                    "timeframe": prefill.get("tf"),
+                    "CSV": Path(str(prefill.get("csv") or "")).name,
+                    "entry": prefill.get("entry"),
+                    "stop_loss": prefill.get("stop_loss"),
+                    "take_profit": prefill.get("take_profit"),
+                    "source": prefill.get("source"),
+                }
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+        st.markdown("#### Current Monte Carlo Inputs")
+        st.dataframe(
+            _safe_dataframe_rows([
+                {
+                    "entry": entry,
+                    "stop_loss": stop_loss,
+                    "take_profit": take_profit,
+                }
+            ]),
+            use_container_width=True,
+            hide_index=True,
+        )
+        if not (
+            _numbers_match(prefill.get("entry"), entry)
+            and _numbers_match(prefill.get("stop_loss"), stop_loss)
+            and _numbers_match(prefill.get("take_profit"), take_profit)
+        ):
+            st.warning(
+                "Monte Carlo inputs differ from the selected Strategy Ranking candidate. "
+                "This is allowed for manual scenario testing, but Analyst Packet will treat it as a modified MC scenario."
+            )
 
     col4, col5, col6, col7 = st.columns(4)
     with col4:
@@ -1712,9 +1946,30 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
                     seed=int(seed),
                     save_plots=save_plots,
                 )
+                source_candidate = st.session_state.get("selected_strategy_candidate")
+                if not isinstance(source_candidate, dict):
+                    source_candidate = (prefill or {}).get("source_candidate") if isinstance(prefill, dict) else None
+                inputs_match_prefill = (
+                    prefill_matches_selected_csv
+                    and _numbers_match((prefill or {}).get("entry"), entry)
+                    and _numbers_match((prefill or {}).get("stop_loss"), stop_loss)
+                    and _numbers_match((prefill or {}).get("take_profit"), take_profit)
+                )
+                trade_plan = {
+                    "ticker": (prefill or {}).get("ticker") or (result or {}).get("ticker"),
+                    "csv": selected_csv,
+                    "tf": timeframe,
+                    "entry": float(entry),
+                    "stop_loss": float(stop_loss),
+                    "take_profit": float(take_profit),
+                    "source": "strategy_ranking" if inputs_match_prefill else "manual",
+                }
+                mc_result["trade_plan"] = trade_plan
+                mc_result["source_candidate"] = source_candidate if isinstance(source_candidate, dict) else None
+                mc_result["alignment"] = _monte_carlo_alignment(source_candidate, mc_result)
+                mc_result["matches_strategy_candidate"] = bool(mc_result["alignment"].get("matches"))
+                mc_result["source"] = trade_plan["source"]
                 st.session_state.monte_carlo_result = mc_result
-                if prefill and candidate_csv and _path_matches(candidate_csv, selected_csv):
-                    st.session_state.monte_carlo_result["source"] = prefill.get("source")
                 st.session_state.latest_monte_carlo_result = st.session_state.monte_carlo_result
 
     _render_monte_carlo_results(st.session_state.get("monte_carlo_result"))
@@ -1763,6 +2018,9 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         st.session_state.get("latest_monte_carlo_result")
         or st.session_state.get("monte_carlo_result")
     )
+    monte_carlo_result_for_packet = monte_carlo_result
+    monte_carlo_alignment = None
+    allow_mismatched_mc = False
 
     if not ticker and strategy_candidate:
         ticker = strategy_candidate.get("ticker")
@@ -1778,6 +2036,31 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         st.caption("Strategy candidate context is available.")
     if monte_carlo_result and monte_carlo_result.get("success"):
         st.caption("Latest Monte Carlo result is available.")
+        if isinstance(strategy_candidate, dict):
+            monte_carlo_alignment = _monte_carlo_alignment(strategy_candidate, monte_carlo_result)
+            if monte_carlo_alignment.get("matches"):
+                st.caption("Latest Monte Carlo result matches the selected Strategy Ranking candidate.")
+            else:
+                st.warning(
+                    "Latest Monte Carlo result does not match the selected Strategy Ranking candidate. "
+                    "Re-run Monte Carlo from the selected candidate or continue without MC."
+                )
+                allow_mismatched_mc = st.checkbox(
+                    "Allow mismatched Monte Carlo result as manual scenario",
+                    value=False,
+                    key="allow_mismatched_monte_carlo_packet",
+                )
+                if not allow_mismatched_mc:
+                    monte_carlo_result_for_packet = None
+                else:
+                    monte_carlo_result_for_packet = {
+                        **monte_carlo_result,
+                        "alignment": monte_carlo_alignment,
+                        "matches_strategy_candidate": False,
+                        "manual_scenario": True,
+                    }
+        elif isinstance(monte_carlo_result, dict):
+            monte_carlo_alignment = monte_carlo_result.get("alignment")
 
     if st.button("Build Analyst Packet", type="primary"):
         packet = build_analyst_packet(
@@ -1786,7 +2069,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
             summary_text=summary_text,
             report_dir=report_dir,
             strategy_candidate=strategy_candidate,
-            monte_carlo_result=monte_carlo_result,
+            monte_carlo_result=monte_carlo_result_for_packet,
             profile=load_default_analyst_profile(),
         )
         st.session_state.analyst_packet = packet
@@ -1818,6 +2101,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         _display_optional_metric("Trade Entry", _format_number(packet_summary.get("trade_entry")))
         _display_optional_metric("Trade Stop", _format_number(packet_summary.get("trade_stop_loss")))
     with col4:
+        _display_optional_metric("Trade Take Profit", _format_number(packet_summary.get("trade_take_profit")))
         _display_optional_metric("POP Gate", packet_summary.get("pop_gate"))
         _display_optional_metric("Risk Rank", packet_summary.get("risk_rank"))
 
@@ -1826,6 +2110,24 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         _display_optional_metric("MC TP First", _format_probability(monte_carlo_context.get("pop_tp_first")))
     with col6:
         _display_optional_metric("MC SL First", _format_probability(monte_carlo_context.get("p_sl_first")))
+
+    st.markdown("#### Monte Carlo Alignment")
+    packet_alignment = monte_carlo_context.get("alignment") if isinstance(monte_carlo_context, dict) else None
+    if isinstance(packet_alignment, dict):
+        st.dataframe(
+            _safe_dataframe_rows(_alignment_display_rows(packet_alignment)),
+            use_container_width=True,
+            hide_index=True,
+        )
+        if packet_alignment.get("matches"):
+            st.caption("Monte Carlo alignment: matches yes.")
+        else:
+            st.warning(
+                "Monte Carlo alignment: matches no. "
+                f"Differences: {', '.join(packet_alignment.get('differences') or []) or 'unknown'}."
+            )
+    else:
+        st.info("No matching Monte Carlo result was included in this packet.")
 
     if packet_summary.get("pnf_available"):
         pnf_col1, pnf_col2, pnf_col3, pnf_col4 = st.columns(4)
@@ -2217,6 +2519,8 @@ def main() -> None:
         st.session_state.latest_monte_carlo_result = None
     if "selected_strategy_candidate" not in st.session_state:
         st.session_state.selected_strategy_candidate = None
+    if "latest_strategy_candidate" not in st.session_state:
+        st.session_state.latest_strategy_candidate = None
     if "analyst_packet" not in st.session_state:
         st.session_state.analyst_packet = None
     if "latest_analyst_packet" not in st.session_state:
