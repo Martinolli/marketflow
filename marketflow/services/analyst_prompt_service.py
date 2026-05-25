@@ -168,6 +168,7 @@ def build_wyckoff_analyst_prompt(
     pnf = _as_dict(packet.get("pnf"))
     pnf_selection = _as_dict(pnf.get("selection"))
     pnf_sidecar = _as_dict(pnf.get("selected_sidecar"))
+    pnf_interpretation = _as_dict(pnf.get("objective_interpretation"))
     wyckoff = _as_dict(packet.get("wyckoff_vpa"))
     selected_tf_context = _as_dict(packet.get("selected_timeframe_context") or wyckoff.get("selected_timeframe_context"))
     levels = _as_dict(packet.get("levels"))
@@ -286,7 +287,11 @@ def build_wyckoff_analyst_prompt(
                 _line("Reversal", pnf_sidecar.get("reversal")),
                 _line("Last price", pnf_sidecar.get("last_price")),
                 _line("Objective", pnf_sidecar.get("objective")),
+                _line("Objective direction", pnf_interpretation.get("objective_direction") or pnf_sidecar.get("objective_direction")),
+                _line("Objective supports trade", pnf_interpretation.get("objective_supports_trade") if "objective_supports_trade" in pnf_interpretation else pnf_sidecar.get("objective_supports_trade")),
+                _line("Objective quality", pnf_interpretation.get("objective_quality") or pnf_sidecar.get("objective_quality")),
                 _line("Objective R multiple", pnf_sidecar.get("objective_r_multiple")),
+                _line("Objective notes", "; ".join(pnf_interpretation.get("notes") or pnf_sidecar.get("objective_notes") or [])),
             ],
         ),
         _section(

@@ -322,7 +322,12 @@ def _pnf_metadata_row(sidecar: dict[str, Any]) -> dict[str, Any]:
         "last_price": sidecar.get("last_price"),
         "breakout_level": sidecar.get("breakout_level"),
         "objective": sidecar.get("objective"),
+        "objective_direction": sidecar.get("objective_direction"),
+        "objective_quality": sidecar.get("objective_quality"),
+        "objective_supports_trade": sidecar.get("objective_supports_trade"),
+        "objective_distance_pct": sidecar.get("objective_distance_pct"),
         "objective_r_multiple": sidecar.get("objective_r_multiple"),
+        "objective_notes": "; ".join(sidecar.get("objective_notes") or []),
     }
 
 
@@ -1519,6 +1524,7 @@ def _candidate_decision_card_data(packet: dict[str, Any] | None) -> dict[str, An
     pnf = packet.get("pnf") if isinstance(packet.get("pnf"), dict) else {}
     pnf_selection = pnf.get("selection") if isinstance(pnf.get("selection"), dict) else {}
     selected_sidecar = pnf.get("selected_sidecar") if isinstance(pnf.get("selected_sidecar"), dict) else {}
+    pnf_interpretation = pnf.get("objective_interpretation") if isinstance(pnf.get("objective_interpretation"), dict) else {}
     alignment = monte_carlo.get("alignment") if isinstance(monte_carlo.get("alignment"), dict) else None
 
     strategy_available = bool(strategy_candidate)
@@ -1579,6 +1585,23 @@ def _candidate_decision_card_data(packet: dict[str, Any] | None) -> dict[str, An
         "pnf_matched_by": pnf_selection.get("matched_by"),
         "pnf_objective": selected_sidecar.get("objective"),
         "pnf_objective_r_multiple": selected_sidecar.get("objective_r_multiple"),
+        "pnf_objective_direction": (
+            pnf_interpretation.get("objective_direction")
+            or packet_summary.get("pnf_objective_direction")
+            or selected_sidecar.get("objective_direction")
+        ),
+        "pnf_objective_quality": (
+            pnf_interpretation.get("objective_quality")
+            or packet_summary.get("pnf_objective_quality")
+            or selected_sidecar.get("objective_quality")
+        ),
+        "pnf_objective_supports_trade": (
+            pnf_interpretation.get("objective_supports_trade")
+            if "objective_supports_trade" in pnf_interpretation
+            else packet_summary.get("pnf_objective_supports_trade")
+        ),
+        "pnf_objective_distance_pct": pnf_interpretation.get("objective_distance_pct") or selected_sidecar.get("objective_distance_pct"),
+        "pnf_objective_notes": pnf_interpretation.get("notes") or selected_sidecar.get("objective_notes") or [],
         "strategy_status": "available" if strategy_available else "missing",
         "monte_carlo_status": mc_status,
         "pnf_status": pnf_status,
@@ -1605,6 +1628,14 @@ def _summary_percent(value: Any) -> str:
         return f"{float(value) * 100:.1f}%"
     except (TypeError, ValueError):
         return str(value)
+
+
+def _summary_notes(value: Any) -> str:
+    """Format note lists for markdown."""
+    if isinstance(value, list):
+        notes = [str(item) for item in value if item]
+        return "; ".join(notes) if notes else "not available"
+    return _summary_value(value)
 
 
 def _candidate_decision_summary_filename(card: dict[str, Any]) -> str:
@@ -1669,7 +1700,11 @@ def _build_candidate_decision_summary_markdown(
 - Match score: {_summary_value(card.get("pnf_match_score"))}
 - P&F gate: {_summary_value(card.get("pnf_gate"))}
 - Objective: {_summary_value(card.get("pnf_objective"))}
+- Objective direction: {_summary_value(card.get("pnf_objective_direction"))}
+- Objective supports trade: {_summary_value(card.get("pnf_objective_supports_trade"))}
+- Objective quality: {_summary_value(card.get("pnf_objective_quality"))}
 - Objective R: {_summary_value(card.get("pnf_objective_r_multiple"))}
+- Objective notes: {_summary_notes(card.get("pnf_objective_notes"))}
 
 ## Analyst Packet Readiness
 - POP gate: {_summary_value(card.get("pop_gate"))}
@@ -1693,6 +1728,11 @@ def _decision_inputs_rows(card: dict[str, Any], mc_excluded: bool) -> list[dict[
     """Return Candidate Decision Card source/status rows."""
     alignment = card.get("alignment") if isinstance(card.get("alignment"), dict) else {}
     pnf_note = card.get("pnf_selected_sidecar") or "No matched sidecar"
+    if card.get("pnf_objective_quality") or card.get("pnf_objective_direction"):
+        pnf_note = (
+            f"{pnf_note}; direction={card.get('pnf_objective_direction') or 'unknown'}; "
+            f"quality={card.get('pnf_objective_quality') or 'unknown'}"
+        )
     mc_note = "Monte Carlo result is not included"
     if card.get("monte_carlo_status") == "aligned":
         mc_note = "Matches selected Strategy Ranking candidate"
@@ -1755,6 +1795,7 @@ def _render_candidate_decision_card(packet: dict[str, Any], mc_excluded: bool = 
     with cols[3]:
         _display_optional_metric("POP Gate", card.get("pop_gate"))
         _display_optional_metric("P&F Gate", card.get("pnf_gate"))
+        _display_optional_metric("P&F Quality", card.get("pnf_objective_quality"))
         _display_optional_metric("Risk Rank", card.get("risk_rank"))
         _display_optional_metric("Ready for Analyst", card.get("ready_for_analyst"))
 
@@ -1776,6 +1817,32 @@ def _render_candidate_decision_card(packet: dict[str, Any], mc_excluded: bool = 
         st.warning("Monte Carlo is included as an explicit manual scenario.")
     if card.get("pnf_status") == "missing":
         st.warning("No matched P&F sidecar is included.")
+    if card.get("pnf_objective_supports_trade") is False:
+        st.warning("P&F objective contradicts the selected long setup.")
+    if _safe_float(card.get("pnf_objective_r_multiple")) is not None and _safe_float(card.get("pnf_objective_r_multiple")) < 0:
+        st.warning("P&F objective R is negative.")
+    objective_distance_pct = _safe_float(card.get("pnf_objective_distance_pct"))
+    objective_r_multiple = _safe_float(card.get("pnf_objective_r_multiple"))
+    if objective_distance_pct is not None and abs(objective_distance_pct) > 0.75:
+        st.warning("P&F objective is unusually far from last price.")
+    if objective_r_multiple is not None and abs(objective_r_multiple) > 10:
+        st.warning("P&F objective R is unusually large.")
+
+    st.markdown("#### P&F Objective Interpretation")
+    st.dataframe(
+        _safe_dataframe_rows([
+            {
+                "objective_direction": card.get("pnf_objective_direction"),
+                "objective_quality": card.get("pnf_objective_quality"),
+                "supports_trade": card.get("pnf_objective_supports_trade"),
+                "objective_r_multiple": card.get("pnf_objective_r_multiple"),
+                "objective_distance_pct": card.get("pnf_objective_distance_pct"),
+                "objective_notes": "; ".join(card.get("pnf_objective_notes") or []),
+            }
+        ]),
+        use_container_width=True,
+        hide_index=True,
+    )
 
     st.markdown("#### Decision Inputs")
     st.dataframe(
@@ -2475,6 +2542,11 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
 
         selection = pnf_context.get("selection") if isinstance(pnf_context, dict) else {}
         selected_sidecar = (pnf_context.get("selected_sidecar") if isinstance(pnf_context, dict) else {}) or {}
+        objective_interpretation = (
+            pnf_context.get("objective_interpretation")
+            if isinstance(pnf_context.get("objective_interpretation"), dict)
+            else {}
+        )
         if isinstance(selection, dict) and selection.get("selected_filename"):
             st.markdown("#### P&F Traceability")
             st.dataframe(
@@ -2490,7 +2562,16 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                         "box_size": selected_sidecar.get("box_size"),
                         "reversal": selected_sidecar.get("reversal"),
                         "objective": selected_sidecar.get("objective"),
+                        "objective_direction": objective_interpretation.get("objective_direction") or selected_sidecar.get("objective_direction"),
+                        "objective_quality": objective_interpretation.get("objective_quality") or selected_sidecar.get("objective_quality"),
+                        "objective_supports_trade": (
+                            objective_interpretation.get("objective_supports_trade")
+                            if "objective_supports_trade" in objective_interpretation
+                            else selected_sidecar.get("objective_supports_trade")
+                        ),
+                        "objective_distance_pct": objective_interpretation.get("objective_distance_pct") or selected_sidecar.get("objective_distance_pct"),
                         "objective_r_multiple": selected_sidecar.get("objective_r_multiple"),
+                        "objective_notes": "; ".join(objective_interpretation.get("notes") or selected_sidecar.get("objective_notes") or []),
                     }
                 ]),
                 use_container_width=True,
@@ -2514,7 +2595,12 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                             "matched_by": item.get("matched_by"),
                             "breakout_level": item.get("breakout_level"),
                             "objective": item.get("objective"),
+                            "objective_direction": item.get("objective_direction"),
+                            "objective_quality": item.get("objective_quality"),
+                            "objective_supports_trade": item.get("objective_supports_trade"),
+                            "objective_distance_pct": item.get("objective_distance_pct"),
                             "objective_r_multiple": item.get("objective_r_multiple"),
+                            "objective_notes": "; ".join(item.get("objective_notes") or []),
                             "distance_to_objective_pct": item.get("distance_to_objective_pct"),
                         }
                         for item in sidecars

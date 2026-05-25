@@ -16,6 +16,9 @@ from marketflow.services.report_index import infer_timeframe_from_csv_name
 
 PACKET_VERSION = "0.1"
 PROFILE_PATH = Path(__file__).resolve().parents[1] / "config" / "analyst_profile.example.json"
+MIN_SUPPORTIVE_PNF_R = 1.0
+EXTREME_OBJECTIVE_R = 10.0
+EXTREME_OBJECTIVE_DISTANCE_PCT = 0.75
 
 
 DEFAULT_ANALYST_PROFILE: dict[str, Any] = {
@@ -217,7 +220,13 @@ def _compact_pnf_record(record: dict[str, Any] | None) -> dict[str, Any] | None:
         "last_price",
         "objective",
         "breakout_level",
+        "objective_direction",
+        "objective_supports_trade",
+        "objective_distance_pct",
         "objective_r_multiple",
+        "objective_quality",
+        "objective_notes",
+        "trade_direction",
         "direction",
         "match_score",
         "match_reasons",
@@ -288,9 +297,14 @@ def _normalize_pnf_sidecar(path: str, data: dict[str, Any]) -> dict[str, Any]:
 
     distance_to_objective = None
     distance_to_objective_pct = None
+    objective_direction = "unknown"
+    objective_notes: list[str] = []
     if last_price is not None and last_price != 0 and objective is not None:
         distance_to_objective = objective - last_price
         distance_to_objective_pct = distance_to_objective / last_price * 100
+        objective_direction = "upside" if objective > last_price else "downside" if objective < last_price else "unknown"
+    else:
+        objective_notes.append("Insufficient P&F metadata for objective direction.")
 
     return {
         "path": str(sidecar_path),
@@ -312,9 +326,15 @@ def _normalize_pnf_sidecar(path: str, data: dict[str, Any]) -> dict[str, Any]:
         "last_price": last_price,
         "breakout_level": _first_pnf_float(data, ("breakout", "breakout_level", "break_level", "breakout_price")),
         "objective": objective,
+        "objective_direction": objective_direction,
+        "objective_supports_trade": None,
+        "objective_distance_pct": (distance_to_objective / last_price) if last_price not in (None, 0) and distance_to_objective is not None else None,
         "objective_r_multiple": None,
+        "objective_quality": "unknown",
+        "objective_notes": objective_notes,
         "distance_to_objective": distance_to_objective,
         "distance_to_objective_pct": distance_to_objective_pct,
+        "trade_direction": None,
         "match_score": 0,
         "match_reasons": [],
         "matched_by": None,
@@ -374,6 +394,112 @@ def _attach_pnf_objective_r(
         objective = _to_float(record.get("objective"))
         if objective is not None:
             record["objective_r_multiple"] = (objective - entry) / risk
+    return records
+
+
+def _profile_min_pnf_objective_r(profile: dict[str, Any] | None) -> float:
+    """Return the configured P&F R threshold or the local fallback."""
+    if isinstance(profile, dict):
+        configured = _to_float(profile.get("min_pnf_objective_r"))
+        if configured is not None:
+            return configured
+    return MIN_SUPPORTIVE_PNF_R
+
+
+def _candidate_trade_direction(strategy_candidate: dict[str, Any] | None) -> str | None:
+    """Return the locally derived trade direction for current strategy candidates."""
+    return "long" if isinstance(strategy_candidate, dict) else None
+
+
+def _pnf_objective_direction(
+    objective: float | None,
+    last_price: float | None,
+    entry: float | None,
+) -> str:
+    """Infer whether the objective is above or below the selected setup reference."""
+    if objective is None:
+        return "unknown"
+
+    references = [value for value in (entry, last_price) if value is not None]
+    if not references:
+        return "unknown"
+
+    if any(objective > value for value in references) and not any(objective < value for value in references):
+        return "upside"
+    if any(objective < value for value in references) and not any(objective > value for value in references):
+        return "downside"
+    if entry is not None:
+        return "upside" if objective > entry else "downside" if objective < entry else "unknown"
+    return "upside" if objective > references[0] else "downside" if objective < references[0] else "unknown"
+
+
+def _attach_pnf_objective_interpretation(
+    records: list[dict[str, Any]],
+    strategy_candidate: dict[str, Any] | None,
+    profile: dict[str, Any] | None,
+) -> list[dict[str, Any]]:
+    """Attach direction, support, quality, and notes to normalized P&F sidecars."""
+    trade_direction = _candidate_trade_direction(strategy_candidate)
+    entry = _to_float((strategy_candidate or {}).get("entry") or (strategy_candidate or {}).get("close"))
+    min_pnf_objective_r = _profile_min_pnf_objective_r(profile)
+
+    for record in records:
+        if not isinstance(record, dict):
+            continue
+
+        objective = _to_float(record.get("objective"))
+        last_price = _to_float(record.get("last_price"))
+        objective_r = _to_float(record.get("objective_r_multiple"))
+        objective_distance_pct = None
+        if objective is not None and last_price is not None and last_price != 0:
+            objective_distance_pct = (objective - last_price) / last_price
+
+        objective_direction = _pnf_objective_direction(objective, last_price, entry)
+        objective_supports_trade: bool | None = None
+        if trade_direction == "long":
+            if objective_direction == "upside":
+                objective_supports_trade = True
+            elif objective_direction == "downside":
+                objective_supports_trade = False
+
+        notes: list[str] = []
+        existing_notes = record.get("objective_notes")
+        if isinstance(existing_notes, list):
+            notes.extend(str(item) for item in existing_notes if item)
+        elif existing_notes:
+            notes.append(str(existing_notes))
+
+        if objective_direction == "unknown":
+            notes.append("Insufficient P&F metadata for objective direction.")
+        elif trade_direction == "long" and objective_direction == "downside":
+            notes.append("P&F objective contradicts selected long setup.")
+        elif trade_direction == "long" and objective_direction == "upside":
+            notes.append("P&F objective is above the selected long setup reference.")
+
+        if objective_r is None:
+            notes.append("P&F objective R could not be computed from selected trade levels.")
+        elif objective_r < 0:
+            notes.append("P&F objective R is negative.")
+
+        if objective_distance_pct is not None and abs(objective_distance_pct) > EXTREME_OBJECTIVE_DISTANCE_PCT:
+            notes.append("P&F objective is unusually far from last price.")
+        if objective_r is not None and abs(objective_r) > EXTREME_OBJECTIVE_R:
+            notes.append("P&F objective R is unusually large.")
+
+        if objective_supports_trade is False:
+            objective_quality = "risk"
+        elif objective_supports_trade is True and objective_r is not None:
+            objective_quality = "supportive" if objective_r > min_pnf_objective_r else "weak"
+        else:
+            objective_quality = "unknown"
+
+        record["trade_direction"] = trade_direction
+        record["objective_direction"] = objective_direction
+        record["objective_supports_trade"] = objective_supports_trade
+        record["objective_distance_pct"] = objective_distance_pct
+        record["objective_quality"] = objective_quality
+        record["objective_notes"] = list(dict.fromkeys(notes))
+
     return records
 
 
@@ -617,6 +743,17 @@ def _build_pnf_section(
     candidate_csv = _candidate_csv_value(strategy_candidate, monte_carlo_result)
     candidate_tf = _candidate_timeframe_value(strategy_candidate, monte_carlo_result)
     selected_compact = _compact_pnf_record(selected)
+    objective_interpretation = {
+        "trade_direction": selected_compact.get("trade_direction") if isinstance(selected_compact, dict) else _candidate_trade_direction(strategy_candidate),
+        "objective_direction": selected_compact.get("objective_direction") if isinstance(selected_compact, dict) else "unknown",
+        "objective_supports_trade": selected_compact.get("objective_supports_trade") if isinstance(selected_compact, dict) else None,
+        "objective_distance_pct": selected_compact.get("objective_distance_pct") if isinstance(selected_compact, dict) else None,
+        "objective_r_multiple": selected_compact.get("objective_r_multiple") if isinstance(selected_compact, dict) else None,
+        "objective_quality": selected_compact.get("objective_quality") if isinstance(selected_compact, dict) else "unknown",
+        "notes": selected_compact.get("objective_notes") if isinstance(selected_compact, dict) else ["Insufficient P&F metadata for objective direction."],
+    }
+    if not isinstance(objective_interpretation["notes"], list):
+        objective_interpretation["notes"] = _as_list(objective_interpretation["notes"])
     selection_notes: list[str] = []
     selection_warnings: list[str] = []
 
@@ -633,12 +770,16 @@ def _build_pnf_section(
             selection_warnings.append(
                 "Multiple P&F sidecars found. Verify selected sidecar before relying on P&F gate."
             )
+        for note in selected.get("objective_notes") or []:
+            if "contradicts" in str(note) or "negative" in str(note) or "unusually" in str(note):
+                selection_warnings.append(str(note))
 
     return {
         "available": bool(records),
         "sidecars": records,
         "best_objective": _best_pnf_objective(records),
         "selected_sidecar": selected_compact,
+        "objective_interpretation": objective_interpretation,
         "selection": {
             "selected_filename": selected.get("filename") if isinstance(selected, dict) else None,
             "matched_by": selected.get("matched_by") if isinstance(selected, dict) else None,
@@ -1164,6 +1305,7 @@ def _normalize_strategy_candidate(candidate: dict[str, Any] | None) -> dict[str,
         "csv": candidate.get("csv"),
         "close": close,
         "entry": close,
+        "trade_direction": "long",
         "stop_loss": _to_float(candidate.get("sl") if candidate.get("sl") is not None else candidate.get("stop_loss")),
         "take_profit": _to_float(candidate.get("tp") if candidate.get("tp") is not None else candidate.get("take_profit")),
         "rr": _to_float(candidate.get("rr")),
@@ -1284,11 +1426,20 @@ def _build_go_no_go(
         notes.append("POP is below configured thresholds.")
 
     pnf_records = pnf.get("sidecars") if isinstance(pnf, dict) else []
-    best_pnf = pnf.get("best_objective") if isinstance(pnf, dict) else None
     selected_pnf = pnf.get("selected_sidecar") if isinstance(pnf, dict) else None
-    gate_pnf = selected_pnf if isinstance(strategy_candidate, dict) and isinstance(selected_pnf, dict) else best_pnf
+    gate_pnf = selected_pnf
     gate_pnf_r = _to_float(gate_pnf.get("objective_r_multiple")) if isinstance(gate_pnf, dict) else None
-    min_pnf_objective_r = _to_float(profile.get("min_pnf_objective_r")) or 1.5
+    pnf_interpretation = pnf.get("objective_interpretation") if isinstance(pnf, dict) else {}
+    if not isinstance(pnf_interpretation, dict):
+        pnf_interpretation = {}
+    objective_direction = pnf_interpretation.get("objective_direction") or (
+        gate_pnf.get("objective_direction") if isinstance(gate_pnf, dict) else None
+    )
+    objective_supports_trade = pnf_interpretation.get("objective_supports_trade")
+    objective_quality = pnf_interpretation.get("objective_quality") or (
+        gate_pnf.get("objective_quality") if isinstance(gate_pnf, dict) else None
+    )
+    min_pnf_objective_r = _profile_min_pnf_objective_r(profile)
 
     if not pnf_records:
         pnf_gate = "pending"
@@ -1296,9 +1447,21 @@ def _build_go_no_go(
     elif isinstance(strategy_candidate, dict) and not isinstance(selected_pnf, dict):
         pnf_gate = "unknown"
         notes.append("P&F sidecars found, but no sidecar matched the selected candidate.")
+    elif isinstance(strategy_candidate, dict) and objective_direction == "downside":
+        pnf_gate = "fail"
+        notes.append("Selected P&F sidecar objective contradicts the selected long setup.")
+    elif isinstance(strategy_candidate, dict) and objective_direction in (None, "unknown"):
+        pnf_gate = "unknown"
+        notes.append("Selected P&F sidecar objective direction is unknown.")
+    elif isinstance(strategy_candidate, dict) and objective_supports_trade is False:
+        pnf_gate = "fail"
+        notes.append("Selected P&F sidecar objective does not support the selected long setup.")
     elif gate_pnf_r is None:
         pnf_gate = "unknown"
         notes.append("P&F sidecars found, but selected objective R could not be computed.")
+    elif gate_pnf_r < 0:
+        pnf_gate = "fail"
+        notes.append("Selected P&F sidecar objective R is negative.")
     elif gate_pnf_r >= min_pnf_objective_r:
         pnf_gate = "pass"
         if isinstance(strategy_candidate, dict):
@@ -1311,6 +1474,11 @@ def _build_go_no_go(
             notes.append("Selected P&F sidecar objective is below configured R threshold.")
         else:
             notes.append("P&F objective is below configured R threshold.")
+
+    if objective_quality == "risk":
+        notes.append("Selected P&F objective quality is risk.")
+    if objective_quality == "weak":
+        notes.append("Selected P&F objective quality is weak.")
 
     if pop_gate == "unknown" and score is None:
         risk_rank = None
@@ -1420,6 +1588,9 @@ def _build_packet_summary(
     monte_carlo_available = monte_carlo is not None
     report_context_available = isinstance(report_json, dict)
     best_pnf = pnf.get("best_objective") if isinstance(pnf, dict) else None
+    pnf_interpretation = pnf.get("objective_interpretation") if isinstance(pnf, dict) else {}
+    if not isinstance(pnf_interpretation, dict):
+        pnf_interpretation = {}
     selected_context = wyckoff_vpa.get("selected_timeframe_context") if isinstance(wyckoff_vpa, dict) else None
     return {
         "ticker": ticker,
@@ -1435,6 +1606,9 @@ def _build_packet_summary(
         "pnf_gate": go_no_go.get("pnf_gate"),
         "best_pnf_objective": best_pnf.get("objective") if isinstance(best_pnf, dict) else None,
         "best_pnf_objective_r": best_pnf.get("objective_r_multiple") if isinstance(best_pnf, dict) else None,
+        "pnf_objective_direction": pnf_interpretation.get("objective_direction"),
+        "pnf_objective_quality": pnf_interpretation.get("objective_quality"),
+        "pnf_objective_supports_trade": pnf_interpretation.get("objective_supports_trade"),
         "wyckoff_events_available": bool((wyckoff_vpa or {}).get("events") or (wyckoff_vpa or {}).get("confirmed_events")),
         "wyckoff_phases_available": bool((wyckoff_vpa or {}).get("phases")),
         "selected_timeframe": (selected_context or {}).get("tf") if isinstance(selected_context, dict) else (
@@ -1499,7 +1673,11 @@ def build_analyst_packet(
         selected_tf=normalized_candidate.get("tf") if isinstance(normalized_candidate, dict) else None,
     )
     warnings.extend(wyckoff_vpa.get("warnings", []))
-    pnf_records = _attach_pnf_objective_r(load_pnf_sidecars(report_dir), normalized_candidate)
+    pnf_records = _attach_pnf_objective_interpretation(
+        _attach_pnf_objective_r(load_pnf_sidecars(report_dir), normalized_candidate),
+        normalized_candidate,
+        clean_profile,
+    )
     pnf = _build_pnf_section(pnf_records, normalized_candidate, monte_carlo)
     if not pnf.get("available"):
         warnings.append("No P&F data included yet; P&F gate remains pending.")

@@ -122,6 +122,8 @@ Analyst Packet can extract Wyckoff context from report JSON and the selected ann
 
 Analyst Packet uses discovered P&F sidecars and prefers the sidecar matching the selected strategy candidate CSV/timeframe. If multiple P&F sidecars exist, verify the selected sidecar and match reason before relying on the P&F gate.
 
+P&F objectives are interpreted relative to the selected strategy candidate. For long candidates, downside objectives are treated as risk/contradiction rather than support. Extreme objectives are flagged for review.
+
 The Analyst Packet page includes a Candidate Decision Card summarizing Strategy, Monte Carlo, P&F, and packet readiness. It is a visual workflow check, not a new scoring model.
 
 The Candidate Decision Card can be saved as a markdown Decision Summary artifact. This creates a lightweight snapshot of the selected setup, Monte Carlo alignment, P&F context, and packet readiness.
