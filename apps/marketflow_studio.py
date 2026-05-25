@@ -48,7 +48,10 @@ from marketflow.services.batch_service import (
     normalize_batch_tickers,
     run_batch_analysis,
 )
-from marketflow.services.eigen_service import run_price_volume_eigen_for_csv
+from marketflow.services.eigen_service import (
+    compare_price_volume_eigen_windows,
+    run_price_volume_eigen_for_csv,
+)
 from marketflow.services.monte_carlo_service import (
     list_monte_carlo_outputs,
     load_latest_close,
@@ -404,6 +407,23 @@ def _render_eigen_chart_for_csv(csv_path: str, chart_rows: int, title: str | Non
         max_rows=int(chart_rows),
     )
     st.plotly_chart(fig, use_container_width=True)
+
+
+def _parse_window_list(text: str, default: tuple[int, ...] = (20, 40, 60)) -> list[int]:
+    """Parse a compact window list from comma/space/semicolon text."""
+    parsed: set[int] = set()
+    for token in re.split(r"[,;\s]+", str(text or "")):
+        if not token:
+            continue
+        try:
+            window = int(token)
+        except ValueError:
+            continue
+        if window >= 5:
+            parsed.add(window)
+    if parsed:
+        return sorted(parsed)
+    return sorted({int(value) for value in default if int(value) >= 5})
 
 
 def _classify_report_file(file_path: str) -> str:
@@ -1062,6 +1082,39 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                     int(eigen_chart_rows),
                     title=f"{selected_eigen_artifact.get('name') or 'Price-Volume Eigen'} Preview",
                 )
+
+        st.markdown("###### Eigen Window Comparison")
+        comparison_windows_text = st.text_input(
+            "Comparison windows",
+            value="20,40,60",
+            key="eigen_comparison_windows",
+        )
+        comparison_windows = _parse_window_list(comparison_windows_text)
+        st.caption(f"Parsed windows: `{', '.join(str(window) for window in comparison_windows)}`")
+        if st.button("Compare Eigen Windows"):
+            comparison_result = compare_price_volume_eigen_windows(
+                eigen_csv,
+                windows=comparison_windows,
+                result_mode=eigen_result_mode,
+                effort_mode=eigen_effort_mode,
+            )
+            if comparison_result.get("success"):
+                st.dataframe(
+                    _safe_dataframe_rows(comparison_result.get("comparison") or []),
+                    use_container_width=True,
+                    hide_index=True,
+                )
+                interpretation = comparison_result.get("interpretation") if isinstance(comparison_result.get("interpretation"), dict) else {}
+                observation = interpretation.get("broad_observation")
+                if observation:
+                    st.info(str(observation))
+                for note in interpretation.get("notes") or []:
+                    st.caption(str(note))
+            else:
+                st.warning(comparison_result.get("error") or "Eigen window comparison failed.")
+                if comparison_result.get("traceback"):
+                    with st.expander("Eigen comparison error details"):
+                        st.code(comparison_result["traceback"], language="python")
 
     if pnf_sidecars:
         st.caption(
