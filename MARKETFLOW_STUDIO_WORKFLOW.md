@@ -76,6 +76,7 @@ It measures price-volume harmony and abnormal effort-result behavior using rolli
 It does not create buy/sell signals.
 It does not change Strategy Ranking or Analyst Packet decisions yet.
 Generated files are saved as `*_pv_eigen.csv` artifacts.
+Studio can preview an Eigen chart showing price context, residual, coupling, and divergence markers. The chart is exploratory and does not create trading signals.
 
 ## Strategy Ranking Monte Carlo Checkbox
 

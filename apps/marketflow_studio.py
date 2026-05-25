@@ -20,6 +20,7 @@ if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
 from marketflow.charts.pnf_chart import build_pnf_chart_from_sidecar
+from marketflow.charts.eigen_chart import build_price_volume_eigen_chart
 from marketflow.charts.wyckoff_chart import build_basic_wyckoff_candlestick_chart
 from marketflow.services.analysis_service import run_single_ticker
 from marketflow.services.analyst_chat_service import (
@@ -389,6 +390,20 @@ def _eigen_preview_rows(dataframe: Any) -> list[dict[str, Any]]:
     ]
     available = [column for column in preview_columns if column in dataframe.columns]
     return dataframe[available].tail(25).to_dict(orient="records") if available else []
+
+
+def _render_eigen_chart_for_csv(csv_path: str, chart_rows: int, title: str | None = None) -> None:
+    """Load and render a Price-Volume Eigen chart preview."""
+    dataframe = load_csv_preview(csv_path, nrows=int(chart_rows))
+    if dataframe is None:
+        st.warning("Could not load the Eigen CSV for chart preview.")
+        return
+    fig = build_price_volume_eigen_chart(
+        dataframe,
+        title=title or Path(csv_path).stem,
+        max_rows=int(chart_rows),
+    )
+    st.plotly_chart(fig, use_container_width=True)
 
 
 def _classify_report_file(file_path: str) -> str:
@@ -953,7 +968,7 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             format_func=lambda path: Path(path).name,
             key="eigen_generation_csv",
         )
-        eigen_col1, eigen_col2, eigen_col3 = st.columns(3)
+        eigen_col1, eigen_col2, eigen_col3, eigen_col4 = st.columns(4)
         with eigen_col1:
             eigen_window = st.number_input(
                 "Eigen window",
@@ -976,6 +991,15 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                 options=["volume_ratio", "volrel20", "volume_ma"],
                 index=0,
                 key="eigen_generation_effort_mode",
+            )
+        with eigen_col4:
+            eigen_chart_rows = st.number_input(
+                "Eigen chart rows",
+                min_value=50,
+                max_value=5000,
+                value=500,
+                step=50,
+                key="eigen_chart_rows",
             )
 
         if st.button("Run Price-Volume Eigen Analyzer"):
@@ -1003,7 +1027,14 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                     _display_optional_metric("Latest Status", latest.get("pv_eigen_status"))
                     _display_optional_metric("Window", eigen_result.get("window"))
 
-                preview = load_csv_preview(str(eigen_result.get("output_path") or ""), nrows=200)
+                eigen_output_path = str(eigen_result.get("output_path") or "")
+                _render_eigen_chart_for_csv(
+                    eigen_output_path,
+                    int(eigen_chart_rows),
+                    title=f"{Path(eigen_output_path).stem} Eigen Preview",
+                )
+
+                preview = load_csv_preview(eigen_output_path, nrows=200)
                 preview_rows = _eigen_preview_rows(preview)
                 if preview_rows:
                     st.dataframe(_safe_dataframe_rows(preview_rows), use_container_width=True, hide_index=True)
@@ -1012,6 +1043,25 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                 if eigen_result.get("traceback"):
                     with st.expander("Eigen analyzer error details"):
                         st.code(eigen_result["traceback"], language="python")
+
+        eigen_artifacts = [
+            artifact
+            for artifact in list_report_artifacts(report_dir)
+            if artifact.get("kind") == "price_volume_eigen_csv"
+        ]
+        if eigen_artifacts:
+            selected_eigen_artifact = st.selectbox(
+                "Existing Price-Volume Eigen CSV",
+                options=eigen_artifacts,
+                format_func=lambda artifact: artifact.get("name") or Path(str(artifact.get("path") or "")).name,
+                key="existing_eigen_csv_preview",
+            )
+            if st.button("Preview Eigen Chart"):
+                _render_eigen_chart_for_csv(
+                    str(selected_eigen_artifact.get("path") or ""),
+                    int(eigen_chart_rows),
+                    title=f"{selected_eigen_artifact.get('name') or 'Price-Volume Eigen'} Preview",
+                )
 
     if pnf_sidecars:
         st.caption(
