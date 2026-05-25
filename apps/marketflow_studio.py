@@ -47,6 +47,7 @@ from marketflow.services.batch_service import (
     normalize_batch_tickers,
     run_batch_analysis,
 )
+from marketflow.services.eigen_service import run_price_volume_eigen_for_csv
 from marketflow.services.monte_carlo_service import (
     list_monte_carlo_outputs,
     load_latest_close,
@@ -365,6 +366,29 @@ def _legacy_generation_rows(result: dict[str, Any]) -> list[dict[str, Any]]:
         }
         for path in result.get("generated_paths") or []
     ]
+
+
+def _eigen_preview_rows(dataframe: Any) -> list[dict[str, Any]]:
+    """Return compact preview rows for Price-Volume Eigen output."""
+    if dataframe is None or getattr(dataframe, "empty", True):
+        return []
+
+    preview_columns = [
+        "timestamp",
+        "date",
+        "datetime",
+        "close",
+        "volume",
+        "pv_result_z",
+        "pv_effort_z",
+        "pv_eigen_coupling",
+        "pv_eigen_residual",
+        "pv_eigen_harmony",
+        "pv_effort_result_divergence",
+        "pv_divergence_strength",
+    ]
+    available = [column for column in preview_columns if column in dataframe.columns]
+    return dataframe[available].tail(25).to_dict(orient="records") if available else []
 
 
 def _classify_report_file(file_path: str) -> str:
@@ -914,6 +938,80 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             if generated_rows:
                 st.dataframe(_safe_dataframe_rows(generated_rows), use_container_width=True, hide_index=True)
             pnf_sidecars = load_pnf_sidecars(report_dir)
+
+    st.markdown("##### Price-Volume Eigen Analyzer")
+    if not csv_files:
+        st.caption("Annotated CSV files are required before Price-Volume Eigen features can be generated.")
+    else:
+        default_eigen_index = 0
+        if chart_selected_csv in csv_files:
+            default_eigen_index = csv_files.index(chart_selected_csv)
+        eigen_csv = st.selectbox(
+            "Eigen analyzer source CSV",
+            options=csv_files,
+            index=default_eigen_index,
+            format_func=lambda path: Path(path).name,
+            key="eigen_generation_csv",
+        )
+        eigen_col1, eigen_col2, eigen_col3 = st.columns(3)
+        with eigen_col1:
+            eigen_window = st.number_input(
+                "Eigen window",
+                min_value=5,
+                max_value=250,
+                value=40,
+                step=5,
+                key="eigen_generation_window",
+            )
+        with eigen_col2:
+            eigen_result_mode = st.selectbox(
+                "Result mode",
+                options=["spread_atr", "close_return"],
+                index=0,
+                key="eigen_generation_result_mode",
+            )
+        with eigen_col3:
+            eigen_effort_mode = st.selectbox(
+                "Effort mode",
+                options=["volume_ratio", "volrel20", "volume_ma"],
+                index=0,
+                key="eigen_generation_effort_mode",
+            )
+
+        if st.button("Run Price-Volume Eigen Analyzer"):
+            eigen_result = run_price_volume_eigen_for_csv(
+                eigen_csv,
+                window=int(eigen_window),
+                result_mode=eigen_result_mode,
+                effort_mode=eigen_effort_mode,
+            )
+            if eigen_result.get("success"):
+                st.success("Price-Volume Eigen features generated.")
+                st.caption(f"Output: `{eigen_result.get('output_path')}`")
+                latest = eigen_result.get("latest") if isinstance(eigen_result.get("latest"), dict) else {}
+                metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
+                with metric_col1:
+                    _display_optional_metric("Rows", eigen_result.get("rows"))
+                    _display_optional_metric("Divergences", eigen_result.get("divergence_count"))
+                with metric_col2:
+                    _display_optional_metric("Latest Coupling", _format_number(latest.get("pv_eigen_coupling"), decimals=4))
+                    _display_optional_metric("Latest Residual", _format_number(latest.get("pv_eigen_residual"), decimals=4))
+                with metric_col3:
+                    _display_optional_metric("Latest Harmony", latest.get("pv_eigen_harmony"))
+                    _display_optional_metric("Latest Divergence", latest.get("pv_effort_result_divergence"))
+                with metric_col4:
+                    _display_optional_metric("Latest Status", latest.get("pv_eigen_status"))
+                    _display_optional_metric("Window", eigen_result.get("window"))
+
+                preview = load_csv_preview(str(eigen_result.get("output_path") or ""), nrows=200)
+                preview_rows = _eigen_preview_rows(preview)
+                if preview_rows:
+                    st.dataframe(_safe_dataframe_rows(preview_rows), use_container_width=True, hide_index=True)
+            else:
+                st.warning(eigen_result.get("error") or "Price-Volume Eigen Analyzer failed.")
+                if eigen_result.get("traceback"):
+                    with st.expander("Eigen analyzer error details"):
+                        st.code(eigen_result["traceback"], language="python")
 
     if pnf_sidecars:
         st.caption(

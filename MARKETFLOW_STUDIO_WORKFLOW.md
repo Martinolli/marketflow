@@ -68,6 +68,15 @@ It can list, filter, preview, and download:
 - legacy feature plot HTML outputs
 - annotated and raw CSV files
 
+## Price-Volume Eigen Analyzer
+
+The Price-Volume Eigen Analyzer is a standalone feature generator.
+It measures price-volume harmony and abnormal effort-result behavior using rolling eigen/PCA-style analysis.
+
+It does not create buy/sell signals.
+It does not change Strategy Ranking or Analyst Packet decisions yet.
+Generated files are saved as `*_pv_eigen.csv` artifacts.
+
 ## Strategy Ranking Monte Carlo Checkbox
 
 Monte Carlo is optional in Strategy Ranking.
