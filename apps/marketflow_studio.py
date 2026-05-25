@@ -427,6 +427,158 @@ def _parse_window_list(text: str, default: tuple[int, ...] = (20, 40, 60)) -> li
     return sorted({int(value) for value in default if int(value) >= 5})
 
 
+def _markdown_cell(value: Any) -> str:
+    """Return one markdown table cell with pipes normalized."""
+    text = _summary_value(value)
+    return text.replace("|", "\\|").replace("\n", " ")
+
+
+def _markdown_table(headers: list[str], rows: list[dict[str, Any]]) -> str:
+    """Build a compact markdown table from dict rows."""
+    header_line = "| " + " | ".join(headers) + " |"
+    separator_line = "| " + " | ".join("---" for _ in headers) + " |"
+    data_lines = [
+        "| " + " | ".join(_markdown_cell(row.get(header)) for header in headers) + " |"
+        for row in rows
+    ]
+    if not data_lines:
+        data_lines = ["| " + " | ".join("not available" for _ in headers) + " |"]
+    return "\n".join([header_line, separator_line, *data_lines])
+
+
+def _markdown_notes(notes: Any) -> str:
+    """Build markdown bullet lines for a note list."""
+    if not isinstance(notes, list) or not notes:
+        return "- not available"
+    lines = [f"- {_summary_value(note)}" for note in notes if note]
+    return "\n".join(lines) if lines else "- not available"
+
+
+def _eigen_review_summary_filename(source_csv: str) -> str:
+    """Return a timestamped markdown filename for an Eigen review summary."""
+    stem = Path(str(source_csv or "")).stem
+    match = re.match(r"(?P<ticker>[A-Za-z0-9.-]+)_(?P<timeframe>1mo|1w|1d|4h|2h|1h|30m|15m|5m|1m)", stem)
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if match:
+        ticker = _safe_filename_part(match.group("ticker"), "marketflow")
+        timeframe = _safe_filename_part(match.group("timeframe"), "selected")
+        return f"{ticker}_{timeframe}_eigen_review_summary_{timestamp}.md"
+    return f"eigen_review_summary_{timestamp}.md"
+
+
+def _build_eigen_review_summary_markdown(
+    *,
+    source_csv: str,
+    window_comparison: dict[str, Any] | None = None,
+    proximity_review: dict[str, Any] | None = None,
+) -> str:
+    """
+    Build a markdown artifact summarizing Eigen diagnostics.
+
+    This is a reporting artifact only.
+    It does not create signals or modify analytical logic.
+    """
+    comparison = window_comparison if isinstance(window_comparison, dict) else {}
+    proximity = proximity_review if isinstance(proximity_review, dict) else {}
+    comparison_interpretation = (
+        comparison.get("interpretation") if isinstance(comparison.get("interpretation"), dict) else {}
+    )
+    proximity_summary = proximity.get("summary") if isinstance(proximity.get("summary"), dict) else {}
+    result_mode = comparison.get("result_mode") or proximity.get("result_mode")
+    effort_mode = comparison.get("effort_mode") or proximity.get("effort_mode")
+
+    comparison_headers = [
+        "window",
+        "valid_rows",
+        "divergence_count",
+        "divergence_rate",
+        "latest_residual",
+        "latest_coupling",
+        "latest_harmony",
+        "latest_divergence",
+        "max_residual",
+        "mean_residual",
+        "mean_coupling",
+        "last_divergence_timestamp",
+    ]
+    proximity_headers = [
+        "timestamp",
+        "close",
+        "residual",
+        "coupling",
+        "harmony",
+        "divergence",
+        "reason",
+        "wyckoff_event",
+        "confirmed_event",
+        "proximity_status",
+        "note",
+    ]
+    proximity_rows = []
+    for row in proximity.get("review") or []:
+        if not isinstance(row, dict):
+            continue
+        proximity_rows.append(
+            {
+                "timestamp": row.get("timestamp"),
+                "close": row.get("close"),
+                "residual": row.get("pv_eigen_residual"),
+                "coupling": row.get("pv_eigen_coupling"),
+                "harmony": row.get("pv_eigen_harmony"),
+                "divergence": row.get("pv_effort_result_divergence"),
+                "reason": row.get("attention_reason"),
+                "wyckoff_event": row.get("wyckoff_event"),
+                "confirmed_event": row.get("wyckoff_confirmed_event"),
+                "proximity_status": row.get("proximity_status"),
+                "note": row.get("note"),
+            }
+        )
+
+    windows = comparison.get("windows") or [
+        row.get("window")
+        for row in comparison.get("comparison") or []
+        if isinstance(row, dict) and row.get("window") is not None
+    ]
+
+    return f"""# MarketFlow Eigen Review Summary
+
+## Metadata
+- Created: {datetime.now().astimezone().isoformat(timespec="seconds")}
+- Source CSV: {_summary_value(source_csv)}
+- Result mode: {_summary_value(result_mode)}
+- Effort mode: {_summary_value(effort_mode)}
+
+## Window Comparison
+- Windows: {_summary_notes(windows)}
+- Broad observation: {_summary_value(comparison_interpretation.get("broad_observation"))}
+- Notes:
+{_markdown_notes(comparison_interpretation.get("notes"))}
+
+### Window Comparison Table
+{_markdown_table(comparison_headers, comparison.get("comparison") or [])}
+
+## Eigen-Wyckoff Proximity Review
+- Window: {_summary_value(proximity.get("window"))}
+- Residual threshold: {_summary_value(proximity.get("residual_threshold"))}
+- Proximity bars: {_summary_value(proximity.get("proximity_bars"))}
+- Attention rows: {_summary_value(proximity.get("attention_count"))}
+- Matched events: {_summary_value(proximity.get("matched_event_count"))}
+- Eigen-only rows: {_summary_value(proximity.get("unmatched_attention_count"))}
+- Broad observation: {_summary_value(proximity_summary.get("broad_observation"))}
+- Notes:
+{_markdown_notes(proximity_summary.get("notes"))}
+
+### Proximity Review Table
+{_markdown_table(proximity_headers, proximity_rows)}
+
+## Interpretation Guardrails
+- This artifact summarizes diagnostic Eigen outputs only.
+- Eigen attention rows are not trading signals.
+- Eigen-only rows are areas for visual review, not inferred Wyckoff events.
+- This artifact does not change Strategy Ranking, Monte Carlo, P&F, or Analyst Packet decisions.
+"""
+
+
 def _classify_report_file(file_path: str) -> str:
     """Classify a generated report file for compact display."""
     name = Path(file_path).name.lower()
@@ -1100,6 +1252,8 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                 effort_mode=eigen_effort_mode,
             )
             if comparison_result.get("success"):
+                st.session_state.latest_eigen_window_comparison = comparison_result
+                st.session_state.latest_eigen_source_csv = str(eigen_csv)
                 st.dataframe(
                     _safe_dataframe_rows(comparison_result.get("comparison") or []),
                     use_container_width=True,
@@ -1171,6 +1325,8 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                 max_rows=int(proximity_max_rows),
             )
             if proximity_result.get("success"):
+                st.session_state.latest_eigen_wyckoff_proximity = proximity_result
+                st.session_state.latest_eigen_source_csv = str(eigen_csv)
                 metric_col1, metric_col2, metric_col3 = st.columns(3)
                 with metric_col1:
                     _display_optional_metric("Attention rows", proximity_result.get("attention_count"))
@@ -1200,6 +1356,70 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                 if proximity_result.get("traceback"):
                     with st.expander("Eigen-Wyckoff proximity error details"):
                         st.code(proximity_result["traceback"], language="python")
+
+        st.markdown("###### Eigen Review Summary Artifact")
+        latest_source_csv = st.session_state.get("latest_eigen_source_csv")
+        latest_window_comparison = st.session_state.get("latest_eigen_window_comparison")
+        latest_proximity_review = st.session_state.get("latest_eigen_wyckoff_proximity")
+        has_window_comparison = isinstance(latest_window_comparison, dict) and latest_window_comparison.get("success")
+        has_proximity_review = isinstance(latest_proximity_review, dict) and latest_proximity_review.get("success")
+        summary_status_rows = [
+            {
+                "item": "Source CSV",
+                "status": "available" if latest_source_csv else "missing",
+                "detail": Path(str(latest_source_csv)).name if latest_source_csv else "",
+            },
+            {
+                "item": "Window comparison",
+                "status": "available" if has_window_comparison else "missing",
+                "detail": ", ".join(str(window) for window in (latest_window_comparison or {}).get("windows", []))
+                if has_window_comparison
+                else "",
+            },
+            {
+                "item": "Proximity review",
+                "status": "available" if has_proximity_review else "missing",
+                "detail": f"{(latest_proximity_review or {}).get('attention_count')} attention rows"
+                if has_proximity_review
+                else "",
+            },
+        ]
+        st.dataframe(_safe_dataframe_rows(summary_status_rows), use_container_width=True, hide_index=True)
+        if not has_window_comparison and not has_proximity_review:
+            st.info("Run Eigen Window Comparison and/or Eigen-Wyckoff Proximity Review first.")
+        else:
+            summary_source_csv = str(latest_source_csv or eigen_csv)
+            eigen_summary_markdown = _build_eigen_review_summary_markdown(
+                source_csv=summary_source_csv,
+                window_comparison=latest_window_comparison if has_window_comparison else None,
+                proximity_review=latest_proximity_review if has_proximity_review else None,
+            )
+            eigen_summary_filename = _eigen_review_summary_filename(summary_source_csv)
+            st.download_button(
+                "Download Eigen Review Summary",
+                data=eigen_summary_markdown,
+                file_name=eigen_summary_filename,
+                mime="text/markdown",
+                key="download_eigen_review_summary",
+            )
+            if st.button("Save Eigen Review Summary to report folder"):
+                if not report_dir:
+                    st.warning("No report directory is available. Use Download instead.")
+                else:
+                    try:
+                        save_path = Path(report_dir) / eigen_summary_filename
+                        if save_path.exists():
+                            stem = save_path.stem
+                            suffix = save_path.suffix
+                            counter = 2
+                            while save_path.exists():
+                                save_path = Path(report_dir) / f"{stem}_{counter}{suffix}"
+                                counter += 1
+                        save_path.write_text(eigen_summary_markdown, encoding="utf-8")
+                        st.success(f"Saved Eigen review summary to `{save_path}`")
+                        st.caption("Refresh Generated Artifacts to see this Eigen review summary.")
+                    except Exception as exc:
+                        st.error(f"Could not save Eigen review summary: {exc}")
 
     if pnf_sidecars:
         st.caption(
