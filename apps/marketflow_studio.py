@@ -50,6 +50,7 @@ from marketflow.services.batch_service import (
 )
 from marketflow.services.eigen_service import (
     compare_price_volume_eigen_windows,
+    review_eigen_wyckoff_proximity,
     run_price_volume_eigen_for_csv,
 )
 from marketflow.services.monte_carlo_service import (
@@ -1115,6 +1116,90 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                 if comparison_result.get("traceback"):
                     with st.expander("Eigen comparison error details"):
                         st.code(comparison_result["traceback"], language="python")
+
+        st.markdown("###### Eigen-Wyckoff Proximity Review")
+        st.caption(
+            "This diagnostic compares Eigen attention rows with nearby Wyckoff labels. "
+            "It does not create trading signals."
+        )
+        proximity_col1, proximity_col2, proximity_col3, proximity_col4 = st.columns(4)
+        with proximity_col1:
+            proximity_window = st.number_input(
+                "Proximity window",
+                min_value=5,
+                max_value=250,
+                value=20,
+                step=5,
+                key="eigen_wyckoff_window",
+            )
+        with proximity_col2:
+            proximity_residual_threshold = st.number_input(
+                "Residual threshold",
+                min_value=0.0,
+                max_value=25.0,
+                value=2.0,
+                step=0.25,
+                key="eigen_wyckoff_residual_threshold",
+            )
+        with proximity_col3:
+            proximity_bars = st.number_input(
+                "Proximity bars",
+                min_value=0,
+                max_value=50,
+                value=3,
+                step=1,
+                key="eigen_wyckoff_proximity_bars",
+            )
+        with proximity_col4:
+            proximity_max_rows = st.number_input(
+                "Review rows",
+                min_value=1,
+                max_value=500,
+                value=50,
+                step=10,
+                key="eigen_wyckoff_max_rows",
+            )
+
+        if st.button("Review Eigen-Wyckoff Proximity"):
+            proximity_result = review_eigen_wyckoff_proximity(
+                eigen_csv,
+                window=int(proximity_window),
+                result_mode=eigen_result_mode,
+                effort_mode=eigen_effort_mode,
+                residual_threshold=float(proximity_residual_threshold),
+                proximity_bars=int(proximity_bars),
+                max_rows=int(proximity_max_rows),
+            )
+            if proximity_result.get("success"):
+                metric_col1, metric_col2, metric_col3 = st.columns(3)
+                with metric_col1:
+                    _display_optional_metric("Attention rows", proximity_result.get("attention_count"))
+                with metric_col2:
+                    _display_optional_metric("Matched events", proximity_result.get("matched_event_count"))
+                with metric_col3:
+                    _display_optional_metric(
+                        "Eigen-only rows",
+                        proximity_result.get("unmatched_attention_count"),
+                    )
+
+                summary = proximity_result.get("summary") if isinstance(proximity_result.get("summary"), dict) else {}
+                observation = summary.get("broad_observation")
+                if observation:
+                    st.info(str(observation))
+
+                review_rows = proximity_result.get("review") or []
+                if review_rows:
+                    st.dataframe(_safe_dataframe_rows(review_rows), use_container_width=True, hide_index=True)
+                else:
+                    st.info("No Eigen attention rows found with the current threshold/window.")
+
+                for note in summary.get("notes") or []:
+                    st.caption(str(note))
+            else:
+                st.warning(proximity_result.get("error") or "Eigen-Wyckoff proximity review failed.")
+                if proximity_result.get("traceback"):
+                    with st.expander("Eigen-Wyckoff proximity error details"):
+                        st.code(proximity_result["traceback"], language="python")
 
     if pnf_sidecars:
         st.caption(

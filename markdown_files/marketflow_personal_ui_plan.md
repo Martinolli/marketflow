@@ -122,6 +122,7 @@ streamlit run apps/marketflow_studio.py
 * Price-Volume Eigen Analyzer standalone feature generator — implemented
 * Price-Volume Eigen chart preview — implemented
 * Price-Volume Eigen window comparison — implemented
+* Eigen-Wyckoff proximity review — implemented
 * Strategy-to-Monte-Carlo trade-plan alignment — implemented
 * Candidate Decision Card — implemented
 * Candidate Decision Summary artifact — implemented

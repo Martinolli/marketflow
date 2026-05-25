@@ -78,6 +78,7 @@ It does not change Strategy Ranking or Analyst Packet decisions yet.
 Generated files are saved as `*_pv_eigen.csv` artifacts.
 Studio can preview an Eigen chart showing price context, residual, coupling, and divergence markers. The chart is exploratory and does not create trading signals.
 Studio can compare Eigen windows such as 20/40/60 to help distinguish local, structural, and broader effort-result abnormalities. This comparison is diagnostic only and does not create trading signals.
+Studio can review whether Eigen residual/divergence attention rows occur near Wyckoff-labelled events or appear independently. This is a diagnostic review only and does not create trading signals.
 
 ## Strategy Ranking Monte Carlo Checkbox
 
