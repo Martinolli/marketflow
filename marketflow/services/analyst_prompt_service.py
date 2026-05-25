@@ -183,6 +183,7 @@ def build_wyckoff_analyst_prompt(
             [
                 "- You are a Wyckoff Volume Analyst.",
                 "- Analyze the provided market packet using Wyckoff phase/event logic, volume-price analysis, support/resistance context, strategy candidate quality, Monte Carlo probabilities, P&F objective context, and risk management constraints.",
+                "- If P&F objective quality is supportive_extended, treat it as a longer-range objective requiring realism/timeframe review.",
                 "- Do not provide financial advice. Provide an analytical review only.",
                 f"- Style directive: {_style_instruction(style)}",
             ],
@@ -210,7 +211,7 @@ def build_wyckoff_analyst_prompt(
                 _line("Signal type", market.get("signal_type")),
                 _line("Signal strength", market.get("signal_strength")),
                 _line("Report baseline risk", packet.get("report_baseline_risk") or market.get("report_baseline_risk") or market.get("risk")),
-                _line("Ready for analyst", summary.get("ready_for_analyst")),
+                _line("Data ready for analyst review", summary.get("ready_for_analyst")),
             ],
         ),
         _section(

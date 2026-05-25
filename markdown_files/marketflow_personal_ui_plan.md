@@ -118,6 +118,7 @@ streamlit run apps/marketflow_studio.py
 * Full report artifact browser and legacy plot generation — implemented
 * P&F sidecar traceability and Analyst Packet matching — implemented
 * P&F objective quality refinement — implemented
+* P&F extended objective wording refinement — implemented
 * Price-Volume Eigen Analyzer standalone feature generator — implemented
 * Price-Volume Eigen chart preview — implemented
 * Strategy-to-Monte-Carlo trade-plan alignment — implemented

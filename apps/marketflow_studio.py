@@ -1794,6 +1794,16 @@ def _candidate_decision_summary_filename(card: dict[str, Any]) -> str:
     return f"{ticker}_{timeframe}_candidate_decision_summary_{timestamp}.md"
 
 
+def _pnf_objective_review_markdown(card: dict[str, Any]) -> str:
+    """Return an optional P&F objective review line for decision summaries."""
+    if card.get("pnf_objective_quality") == "supportive_extended":
+        return (
+            "- Objective review: Supportive but extended. Treat as a longer-range P&F objective, "
+            "not necessarily the immediate trade target.\n"
+        )
+    return ""
+
+
 def _build_candidate_decision_summary_markdown(
     card: dict[str, Any],
     packet: dict[str, Any],
@@ -1809,6 +1819,7 @@ def _build_candidate_decision_summary_markdown(
     differences = alignment.get("differences") or []
     if differences:
         alignment_text = f"{alignment_text} ({', '.join(str(item) for item in differences)})"
+    objective_review = _pnf_objective_review_markdown(card)
 
     return f"""# MarketFlow Candidate Decision Summary
 
@@ -1853,12 +1864,13 @@ def _build_candidate_decision_summary_markdown(
 - Objective quality: {_summary_value(card.get("pnf_objective_quality"))}
 - Objective R: {_summary_value(card.get("pnf_objective_r_multiple"))}
 - Objective notes: {_summary_notes(card.get("pnf_objective_notes"))}
+{objective_review}
 
 ## Analyst Packet Readiness
 - POP gate: {_summary_value(card.get("pop_gate"))}
 - P&F gate: {_summary_value(card.get("pnf_gate"))}
 - Risk rank: {_summary_value(card.get("risk_rank"))}
-- Ready for analyst: {_summary_value(card.get("ready_for_analyst"))}
+- Data ready for analyst review: {_summary_value(card.get("ready_for_analyst"))}
 
 ## Workflow Notes
 - This summary is a snapshot of existing Strategy, Monte Carlo, P&F, and Analyst Packet data.
@@ -1914,7 +1926,7 @@ def _decision_inputs_rows(card: dict[str, Any], mc_excluded: bool) -> list[dict[
             "component": "Analyst Packet",
             "status": card.get("packet_status"),
             "source": "packet_summary",
-            "note": f"ready_for_analyst={card.get('ready_for_analyst')}",
+            "note": f"data_ready_for_analyst_review={card.get('ready_for_analyst')}",
         },
     ]
 
@@ -1945,7 +1957,7 @@ def _render_candidate_decision_card(packet: dict[str, Any], mc_excluded: bool = 
         _display_optional_metric("P&F Gate", card.get("pnf_gate"))
         _display_optional_metric("P&F Quality", card.get("pnf_objective_quality"))
         _display_optional_metric("Risk Rank", card.get("risk_rank"))
-        _display_optional_metric("Ready for Analyst", card.get("ready_for_analyst"))
+        _display_optional_metric("Data Ready for Analyst Review", card.get("ready_for_analyst"))
 
     st.markdown("#### Alignment Checklist")
     checklist = [
@@ -1967,11 +1979,13 @@ def _render_candidate_decision_card(packet: dict[str, Any], mc_excluded: bool = 
         st.warning("No matched P&F sidecar is included.")
     if card.get("pnf_objective_supports_trade") is False:
         st.warning("P&F objective contradicts the selected long setup.")
+    if card.get("pnf_objective_quality") == "supportive_extended":
+        st.warning("P&F objective supports the selected long setup, but it is extended/far from current price.")
     if _safe_float(card.get("pnf_objective_r_multiple")) is not None and _safe_float(card.get("pnf_objective_r_multiple")) < 0:
         st.warning("P&F objective R is negative.")
     objective_distance_pct = _safe_float(card.get("pnf_objective_distance_pct"))
     objective_r_multiple = _safe_float(card.get("pnf_objective_r_multiple"))
-    if objective_distance_pct is not None and abs(objective_distance_pct) > 0.75:
+    if card.get("pnf_objective_quality") != "supportive_extended" and objective_distance_pct is not None and abs(objective_distance_pct) > 0.75:
         st.warning("P&F objective is unusually far from last price.")
     if objective_r_multiple is not None and abs(objective_r_multiple) > 10:
         st.warning("P&F objective R is unusually large.")
@@ -1985,6 +1999,11 @@ def _render_candidate_decision_card(packet: dict[str, Any], mc_excluded: bool = 
                 "supports_trade": card.get("pnf_objective_supports_trade"),
                 "objective_r_multiple": card.get("pnf_objective_r_multiple"),
                 "objective_distance_pct": card.get("pnf_objective_distance_pct"),
+                "objective_review": (
+                    "Supportive but extended. Treat as a longer-range P&F objective, not necessarily the immediate trade target."
+                    if card.get("pnf_objective_quality") == "supportive_extended"
+                    else ""
+                ),
                 "objective_notes": "; ".join(card.get("pnf_objective_notes") or []),
             }
         ]),
@@ -2761,7 +2780,7 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
         st.warning("No P&F sidecars found; P&F gate remains pending.")
         st.caption("Generate P&F sidecars from the Charts tab if you want the P&F gate to be evaluated.")
 
-    st.caption(f"Ready for analyst: `{packet_summary.get('ready_for_analyst')}`")
+    st.caption(f"Data ready for analyst review: `{packet_summary.get('ready_for_analyst')}`")
 
     missing_data = packet.get("missing_data") or []
     warnings = packet.get("warnings") or []
@@ -2869,7 +2888,7 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
         _display_optional_metric("P&F Gate", packet_summary.get("pnf_gate"))
     with col3:
         _display_optional_metric("Risk Rank", packet_summary.get("risk_rank"))
-        _display_optional_metric("Ready", packet_summary.get("ready_for_analyst"))
+        _display_optional_metric("Data Ready for Analyst Review", packet_summary.get("ready_for_analyst"))
     with col4:
         _display_optional_metric("Prompt Style", built_style)
         _display_optional_metric("Raw JSON", built_include_raw_json)

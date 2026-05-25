@@ -481,17 +481,25 @@ def _attach_pnf_objective_interpretation(
         elif objective_r < 0:
             notes.append("P&F objective R is negative.")
 
-        if objective_distance_pct is not None and abs(objective_distance_pct) > EXTREME_OBJECTIVE_DISTANCE_PCT:
+        is_extreme_distance = objective_distance_pct is not None and abs(objective_distance_pct) > EXTREME_OBJECTIVE_DISTANCE_PCT
+        is_extreme_r = objective_r is not None and abs(objective_r) > EXTREME_OBJECTIVE_R
+
+        if is_extreme_distance:
             notes.append("P&F objective is unusually far from last price.")
-        if objective_r is not None and abs(objective_r) > EXTREME_OBJECTIVE_R:
+        if is_extreme_r:
             notes.append("P&F objective R is unusually large.")
 
         if objective_supports_trade is False:
             objective_quality = "risk"
         elif objective_supports_trade is True and objective_r is not None:
-            objective_quality = "supportive" if objective_r > min_pnf_objective_r else "weak"
+            if objective_r >= min_pnf_objective_r:
+                objective_quality = "supportive_extended" if is_extreme_distance or is_extreme_r else "supportive"
+            else:
+                objective_quality = "weak"
         else:
             objective_quality = "unknown"
+        if objective_quality == "supportive_extended":
+            notes.append("P&F objective is supportive but extended; review target realism and timeframe.")
 
         record["trade_direction"] = trade_direction
         record["objective_direction"] = objective_direction
@@ -1479,6 +1487,8 @@ def _build_go_no_go(
         notes.append("Selected P&F objective quality is risk.")
     if objective_quality == "weak":
         notes.append("Selected P&F objective quality is weak.")
+    if objective_quality == "supportive_extended":
+        notes.append("P&F objective is supportive but extended; review target realism and timeframe.")
 
     if pop_gate == "unknown" and score is None:
         risk_rank = None
