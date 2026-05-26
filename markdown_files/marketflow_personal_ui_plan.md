@@ -133,6 +133,7 @@ streamlit run apps/marketflow_studio.py
 * Studio design review checkpoint — implemented
 * Analyst Chat skeleton — implemented
 * Analyst Chat dry-run response polish — implemented
+* Analyst Review Notes artifact — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

@@ -2152,6 +2152,29 @@ def _candidate_decision_summary_filename(card: dict[str, Any]) -> str:
     return f"{ticker}_{timeframe}_candidate_decision_summary_{timestamp}.md"
 
 
+def _analyst_review_notes_filename(packet: dict[str, Any] | None = None) -> str:
+    """Return a timestamped markdown filename for manual analyst review notes."""
+    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    if isinstance(packet, dict):
+        packet_summary = packet.get("packet_summary") if isinstance(packet.get("packet_summary"), dict) else {}
+        strategy_candidate = (
+            packet.get("strategy_candidate") if isinstance(packet.get("strategy_candidate"), dict) else {}
+        )
+        ticker = packet_summary.get("ticker") or packet.get("ticker")
+        timeframe = (
+            packet_summary.get("selected_timeframe")
+            or strategy_candidate.get("tf")
+            or _nested_get(packet, ["pnf", "selection", "candidate_timeframe"])
+            or _nested_get(packet, ["pnf", "selected_sidecar", "inferred_timeframe"])
+            or _nested_get(packet, ["pnf", "selected_sidecar", "timeframe"])
+        )
+        if ticker and timeframe:
+            safe_ticker = _safe_filename_part(ticker, "marketflow")
+            safe_timeframe = _safe_filename_part(timeframe, "selected")
+            return f"{safe_ticker}_{safe_timeframe}_analyst_review_notes_{timestamp}.md"
+    return f"marketflow_analyst_review_notes_{timestamp}.md"
+
+
 def _pnf_objective_review_markdown(card: dict[str, Any]) -> str:
     """Return an optional P&F objective review line for decision summaries."""
     if card.get("pnf_objective_quality") == "supportive_extended":
@@ -2235,6 +2258,239 @@ def _build_candidate_decision_summary_markdown(
 - It is not financial advice.
 - It does not change the underlying analysis.
 """
+
+
+def _review_posture_label(review_posture: str) -> str:
+    """Return safe display text for manual review posture."""
+    posture = str(review_posture or "watch").strip()
+    if posture == "approved":
+        return "approved by reviewer"
+    return posture.replace("_", " ")
+
+
+def _manual_review_text(value: str, fallback: str) -> str:
+    """Return reviewer-entered markdown text or a neutral placeholder."""
+    text = str(value or "").strip()
+    return text if text else fallback
+
+
+def _build_analyst_review_notes_markdown(
+    *,
+    packet: dict[str, Any] | None = None,
+    review_posture: str = "watch",
+    conviction: str = "medium",
+    reviewer_notes: str = "",
+    follow_up_actions: str = "",
+    source_context: dict[str, Any] | None = None,
+) -> str:
+    """
+    Build a human analyst review notes markdown artifact.
+
+    This is a manual review artifact only.
+    It does not create signals or modify analytical logic.
+    """
+    context = source_context if isinstance(source_context, dict) else {}
+    card = _candidate_decision_card_data(packet)
+    source_files = packet.get("source_files") if isinstance(packet, dict) and isinstance(packet.get("source_files"), dict) else {}
+    report_dir = context.get("report_dir") or source_files.get("report_dir")
+    packet_summary = packet.get("packet_summary") if isinstance(packet, dict) and isinstance(packet.get("packet_summary"), dict) else {}
+
+    return f"""# MarketFlow Analyst Review Notes
+
+## Metadata
+- Created: {datetime.now().astimezone().isoformat(timespec="seconds")}
+- Ticker: {_summary_value(card.get("ticker") or (packet.get("ticker") if isinstance(packet, dict) else None))}
+- Timeframe: {_summary_value(card.get("selected_timeframe"))}
+- Source report folder: {_summary_value(report_dir)}
+- Packet version: {_summary_value(packet.get("packet_version") if isinstance(packet, dict) else None)}
+- Review posture: {_review_posture_label(review_posture)}
+- Conviction: {_summary_value(conviction)}
+
+## Trade Plan Context
+- Entry: {_summary_value(card.get("trade_entry"))}
+- Stop Loss: {_summary_value(card.get("trade_stop_loss"))}
+- Take Profit: {_summary_value(card.get("trade_take_profit"))}
+- Risk/Reward: {_summary_value(card.get("rr"))}
+- Strategy score: {_summary_value(card.get("strategy_score") or card.get("score"))}
+- Wyckoff phase: {_summary_value(card.get("phase"))}
+- Wyckoff event: {_summary_value(card.get("event"))}
+
+## Evidence Snapshot
+- Candidate Decision Summary available: {_summary_value(context.get("candidate_decision_summary_available"))}
+- POP gate: {_summary_value(card.get("pop_gate") or packet_summary.get("pop_gate"))}
+- P&F gate: {_summary_value(card.get("pnf_gate") or packet_summary.get("pnf_gate"))}
+- P&F objective quality: {_summary_value(card.get("pnf_objective_quality") or packet_summary.get("pnf_objective_quality"))}
+- P&F objective direction: {_summary_value(card.get("pnf_objective_direction") or packet_summary.get("pnf_objective_direction"))}
+- P&F supports trade: {_summary_value(card.get("pnf_objective_supports_trade") if card.get("pnf_objective_supports_trade") is not None else packet_summary.get("pnf_objective_supports_trade"))}
+- Risk rank: {_summary_value(card.get("risk_rank") or packet_summary.get("risk_rank"))}
+- Data ready for analyst review: {_summary_value(card.get("ready_for_analyst") if card else packet_summary.get("ready_for_analyst"))}
+- Monte Carlo TP first: {_summary_percent(card.get("pop_tp_first"))}
+- Monte Carlo SL first: {_summary_percent(card.get("p_sl_first"))}
+- Eigen review summary available: {_summary_value(context.get("eigen_review_summary_available"))}
+- Analyst prompt available: {_summary_value(context.get("analyst_prompt_available"))}
+- Analyst response available: {_summary_value(context.get("analyst_response_available"))}
+
+## Human Review Notes
+{_manual_review_text(reviewer_notes, "_No manual review notes entered._")}
+
+## Follow-up Actions
+{_manual_review_text(follow_up_actions, "_No follow-up actions entered._")}
+
+## Review Guardrails
+- This artifact records a human review note.
+- It does not create a trade signal.
+- It does not change Strategy Ranking, Monte Carlo, P&F, Eigen, or Analyst Packet results.
+- Any trading decision remains outside the software and requires independent risk management.
+"""
+
+
+def _latest_artifact_by_kind(artifacts: list[dict[str, Any]], kind: str) -> dict[str, Any] | None:
+    """Return the newest artifact matching a kind when discovery data is available."""
+    matches = [artifact for artifact in artifacts if artifact.get("kind") == kind]
+    if not matches:
+        return None
+    return sorted(matches, key=lambda artifact: str(artifact.get("modified") or ""), reverse=True)[0]
+
+
+def _build_analyst_review_source_context(
+    report_dir: str | None,
+    *,
+    analyst_prompt_available: bool = False,
+    analyst_response_available: bool = False,
+) -> dict[str, Any]:
+    """Build compact source availability metadata for Analyst Review Notes."""
+    artifacts = list_report_artifacts(report_dir) if report_dir else []
+    candidate_summary = _latest_artifact_by_kind(artifacts, "candidate_decision_summary_md")
+    eigen_summary = _latest_artifact_by_kind(artifacts, "eigen_review_summary_md")
+    analyst_prompt = _latest_artifact_by_kind(artifacts, "analyst_prompt_md")
+    analyst_response = _latest_artifact_by_kind(artifacts, "analyst_response_md")
+
+    return {
+        "candidate_decision_summary_available": bool(candidate_summary),
+        "candidate_decision_summary_filename": candidate_summary.get("name") if candidate_summary else None,
+        "eigen_review_summary_available": bool(eigen_summary),
+        "eigen_review_summary_filename": eigen_summary.get("name") if eigen_summary else None,
+        "analyst_prompt_available": bool(analyst_prompt or analyst_prompt_available),
+        "analyst_prompt_filename": analyst_prompt.get("name") if analyst_prompt else None,
+        "analyst_response_available": bool(analyst_response or analyst_response_available),
+        "analyst_response_filename": analyst_response.get("name") if analyst_response else None,
+        "report_dir": report_dir,
+    }
+
+
+def _review_source_rows(source_context: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return compact rows for review source status indicators."""
+    definitions = [
+        (
+            "Candidate Decision Summary",
+            "candidate_decision_summary_available",
+            "candidate_decision_summary_filename",
+        ),
+        ("Eigen Review Summary", "eigen_review_summary_available", "eigen_review_summary_filename"),
+        ("Analyst Prompt", "analyst_prompt_available", "analyst_prompt_filename"),
+        ("Analyst Response", "analyst_response_available", "analyst_response_filename"),
+    ]
+    rows = []
+    for label, available_key, filename_key in definitions:
+        available = bool(source_context.get(available_key))
+        rows.append(
+            {
+                "source": label,
+                "status": "available" if available else "missing",
+                "filename": source_context.get(filename_key) or ("session" if available else ""),
+            }
+        )
+    return rows
+
+
+def _render_analyst_review_notes_section(
+    *,
+    packet: dict[str, Any],
+    report_dir: str | None,
+    prompt_markdown: str | None = None,
+    response_markdown: str | None = None,
+) -> None:
+    """Render manual Analyst Review Notes controls."""
+    st.divider()
+    st.subheader("Analyst Review Notes")
+
+    source_context = _build_analyst_review_source_context(
+        report_dir,
+        analyst_prompt_available=bool(
+            prompt_markdown
+            or st.session_state.get("latest_analyst_prompt")
+            or st.session_state.get("wyckoff_analyst_prompt")
+            or st.session_state.get("wyckoff_analyst_prompt_text")
+        ),
+        analyst_response_available=bool(
+            response_markdown
+            or st.session_state.get("analyst_chat_response_markdown")
+        ),
+    )
+
+    st.dataframe(_safe_dataframe_rows(_review_source_rows(source_context)), use_container_width=True, hide_index=True)
+
+    posture = st.selectbox(
+        "Review posture",
+        options=["watch", "no_trade", "paper_trade", "small_position", "approved", "rejected"],
+        index=0,
+        key="analyst_review_notes_posture",
+    )
+    conviction = st.selectbox(
+        "Conviction",
+        options=["low", "medium", "high"],
+        index=1,
+        key="analyst_review_notes_conviction",
+    )
+    reviewer_notes = st.text_area(
+        "Reviewer notes",
+        height=180,
+        key="analyst_review_notes_text",
+    )
+    follow_up_actions = st.text_area(
+        "Follow-up actions",
+        height=140,
+        key="analyst_review_notes_follow_up_actions",
+    )
+
+    notes_markdown = _build_analyst_review_notes_markdown(
+        packet=packet,
+        review_posture=posture,
+        conviction=conviction,
+        reviewer_notes=reviewer_notes,
+        follow_up_actions=follow_up_actions,
+        source_context=source_context,
+    )
+    notes_filename = _analyst_review_notes_filename(packet)
+
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button(
+            "Download Analyst Review Notes",
+            data=notes_markdown,
+            file_name=notes_filename,
+            mime="text/markdown",
+            key="download_analyst_review_notes",
+        )
+    with col2:
+        if st.button("Save Analyst Review Notes to report folder"):
+            if not report_dir:
+                st.warning("No report folder is available. Use Download instead.")
+            else:
+                try:
+                    save_path = Path(report_dir) / notes_filename
+                    if save_path.exists():
+                        stem = save_path.stem
+                        suffix = save_path.suffix
+                        counter = 2
+                        while save_path.exists():
+                            save_path = Path(report_dir) / f"{stem}_{counter}{suffix}"
+                            counter += 1
+                    save_path.write_text(notes_markdown, encoding="utf-8")
+                    st.success(f"Saved analyst review notes to `{save_path}`")
+                    st.caption("Refresh Generated Artifacts to see this analyst review notes markdown file.")
+                except Exception as exc:
+                    st.error(f"Could not save analyst review notes: {exc}")
 
 
 def _checklist_label(ok: bool, text: str) -> str:
@@ -3216,6 +3472,7 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
     if st.button("Build Analyst Prompt", type="primary"):
         prompt = build_wyckoff_analyst_prompt(packet, style=style, include_raw_json=include_raw_json)
         st.session_state.wyckoff_analyst_prompt = prompt
+        st.session_state.latest_analyst_prompt = prompt
         st.session_state.wyckoff_analyst_prompt_text = prompt
         st.session_state.wyckoff_analyst_prompt_style = style
         st.session_state.wyckoff_analyst_prompt_include_raw_json = include_raw_json
@@ -3235,6 +3492,12 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
     )
     if not prompt:
         st.info("Click Build Analyst Prompt to generate the markdown preview.")
+        _render_analyst_review_notes_section(
+            packet=packet,
+            report_dir=report_dir,
+            prompt_markdown=None,
+            response_markdown=st.session_state.get("analyst_chat_response_markdown"),
+        )
         return
 
     col1, col2, col3, col4 = st.columns(4)
@@ -3430,6 +3693,13 @@ def _render_wyckoff_analyst_prompt(result: dict[str, Any] | None) -> None:
                 except Exception as exc:
                     st.error(f"Could not save analyst response: {exc}")
 
+    _render_analyst_review_notes_section(
+        packet=packet,
+        report_dir=report_dir,
+        prompt_markdown=edited_prompt,
+        response_markdown=response_markdown,
+    )
+
 
 def _render_raw_json(result: dict[str, Any] | None) -> None:
     """Render the Raw JSON tab."""
@@ -3467,6 +3737,8 @@ def main() -> None:
         st.session_state.analyst_packet_json = None
     if "wyckoff_analyst_prompt" not in st.session_state:
         st.session_state.wyckoff_analyst_prompt = None
+    if "latest_analyst_prompt" not in st.session_state:
+        st.session_state.latest_analyst_prompt = None
     if "wyckoff_analyst_prompt_filename" not in st.session_state:
         st.session_state.wyckoff_analyst_prompt_filename = None
     if "wyckoff_analyst_prompt_style" not in st.session_state:

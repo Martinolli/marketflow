@@ -167,6 +167,10 @@ If no API/provider is configured, Studio shows setup guidance or dry-run output.
 Responses can be saved as markdown artifacts and reviewed in Generated Artifacts.
 Analyst Chat dry-run responses are saved as `analyst_response_md` artifacts. They are placeholders only and do not represent model output.
 
+## Analyst Review Notes
+
+Studio can save manual Analyst Review Notes as a markdown artifact. This records the reviewer posture, conviction, notes, follow-up actions, and evidence snapshot. It is a human review artifact only and does not create trading signals or change Strategy Ranking, Monte Carlo, P&F, Eigen, or Analyst Packet results.
+
 ## Recommended Conservative Default
 
 For daily use:
