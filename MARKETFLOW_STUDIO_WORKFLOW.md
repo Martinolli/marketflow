@@ -131,9 +131,11 @@ A Phase 2.1 candidate snapshot service normalizes and validates selected Strateg
 
 A Backtest Candidate CSV artifact contract exists at `MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`. It defines the future `*_backtest_candidates.csv` format before artifact writing is implemented.
 
-A Phase 2.2 candidate CSV writer can save validated candidate snapshots to `*_backtest_candidates.csv`. It is not wired into Studio yet.
+A Phase 2.2 candidate CSV writer can save validated candidate snapshots to `*_backtest_candidates.csv`.
 
 Generated Artifacts classifies saved `*_backtest_candidates*.csv` files as `backtest_candidates_csv`.
+
+Studio can save the selected Strategy Ranking candidate as a Backtest Candidate Snapshot CSV artifact. This writes `*_backtest_candidates*.csv` to the report folder and Generated Artifacts classifies it as `backtest_candidates_csv`. This is calibration/audit only and does not run a backtest.
 
 ## GARCH
 

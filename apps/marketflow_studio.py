@@ -44,6 +44,8 @@ from marketflow.services.artifact_service import (
     list_report_artifacts,
     read_text_artifact,
 )
+from marketflow.services.backtest_candidate_artifact_service import write_backtest_candidate_csv
+from marketflow.services.backtest_candidate_service import build_candidate_snapshot_from_strategy_candidate
 from marketflow.services.batch_service import (
     normalize_batch_tickers,
     run_batch_analysis,
@@ -1606,7 +1608,101 @@ def _render_strategy_diagnostics(strategy_result: dict[str, Any]) -> None:
         st.json(diagnostics)
 
 
-def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
+def _current_strategy_candidate_for_backtest() -> dict[str, Any] | None:
+    """Return the currently selected Strategy Ranking candidate for snapshot saving."""
+    candidate = st.session_state.get("selected_strategy_candidate")
+    if isinstance(candidate, dict):
+        return candidate
+    candidate = st.session_state.get("latest_strategy_candidate")
+    if isinstance(candidate, dict):
+        return candidate
+    return None
+
+
+def _report_dir_for_backtest_snapshot(result: dict[str, Any] | None) -> str | None:
+    """Return the loaded report directory for backtest candidate artifact saving."""
+    if not result or not result.get("output_dir"):
+        return None
+    report_dir = str(result.get("output_dir"))
+    report_path = Path(report_dir)
+    if report_path.exists() and report_path.is_dir():
+        return report_dir
+    return None
+
+
+def _render_backtest_candidate_snapshot_section(result: dict[str, Any] | None) -> None:
+    """Render save controls for the selected Strategy Ranking candidate snapshot."""
+    st.markdown("#### Backtest Candidate Snapshot")
+    st.caption(
+        "Save the selected Strategy Ranking candidate as a frozen candidate snapshot for later "
+        "backtest calibration. This does not run a backtest or create a trade signal."
+    )
+
+    selected_candidate = _current_strategy_candidate_for_backtest()
+    if not selected_candidate:
+        st.info("Select/send a Strategy Ranking candidate first.")
+        return
+
+    report_dir = _report_dir_for_backtest_snapshot(result)
+    snapshot_result = build_candidate_snapshot_from_strategy_candidate(selected_candidate, report_dir=report_dir)
+    snapshot = snapshot_result.get("snapshot") if isinstance(snapshot_result.get("snapshot"), dict) else {}
+    validation = snapshot_result.get("validation") if isinstance(snapshot_result.get("validation"), dict) else {}
+    validation_status = validation.get("status") or "unknown"
+
+    st.write(f"Validation status: `{validation_status}`")
+    errors = validation.get("errors") or []
+    warnings = validation.get("warnings") or []
+    if errors:
+        st.warning("Validation errors: " + "; ".join(str(error) for error in errors))
+    if warnings:
+        st.info("Validation warnings: " + "; ".join(str(warning) for warning in warnings))
+    if validation_status == "missing_signal_location":
+        st.warning(
+            "This candidate can be saved for audit, but deterministic outcome evaluation will require "
+            "signal_row_index or signal_timestamp."
+        )
+
+    preview_fields = [
+        "ticker",
+        "timeframe",
+        "source_csv",
+        "signal_timestamp",
+        "signal_row_index",
+        "entry",
+        "stop_loss",
+        "take_profit",
+        "risk_reward",
+        "strategy_score",
+        "wyckoff_phase",
+        "wyckoff_event",
+    ]
+    preview_row = {field: snapshot.get(field) for field in preview_fields}
+    preview_row["validation_status"] = validation_status
+    st.dataframe(_safe_dataframe_rows([preview_row]), use_container_width=True, hide_index=True)
+
+    if not report_dir:
+        st.warning("No report folder is available to save the candidate snapshot.")
+        return
+
+    if st.button("Save Backtest Candidate Snapshot"):
+        save_result = write_backtest_candidate_csv(
+            snapshot_result,
+            report_dir,
+            ticker=snapshot.get("ticker"),
+            timeframe=snapshot.get("timeframe"),
+        )
+        st.session_state["latest_backtest_candidate_snapshot"] = snapshot_result
+        st.session_state["latest_backtest_candidate_csv"] = save_result
+        if save_result.get("success"):
+            st.success(f"Saved backtest candidate snapshot: `{save_result.get('path')}`")
+            st.caption("Saved file will appear in Generated Artifacts as backtest_candidates_csv.")
+        else:
+            st.error("Could not save backtest candidate snapshot.")
+            for error in save_result.get("errors") or []:
+                st.write(f"- {error}")
+
+
+def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dict[str, Any] | None = None) -> None:
     """Render strategy ranking output."""
     if not strategy_result:
         st.info("Choose tickers and click Rank Candidates to scan existing reports.")
@@ -1654,6 +1750,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None) -> None:
             "the selected timeframe."
         )
     st.json(selected_candidate)
+    _render_backtest_candidate_snapshot_section(result)
 
     if st.button("Use selected candidate in Monte Carlo"):
         trade_plan = _trade_plan_from_strategy_candidate(selected_candidate)
@@ -1746,7 +1843,7 @@ def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
                     use_mc=use_mc,
                 )
 
-    _render_strategy_results(st.session_state.get("strategy_result"))
+    _render_strategy_results(st.session_state.get("strategy_result"), result)
 
 
 def _render_batch_result(batch_result: dict[str, Any] | None) -> None:
@@ -3868,6 +3965,10 @@ def main() -> None:
         st.session_state.analyst_chat_response_markdown = None
     if "analyst_chat_response_filename" not in st.session_state:
         st.session_state.analyst_chat_response_filename = None
+    if "latest_backtest_candidate_snapshot" not in st.session_state:
+        st.session_state.latest_backtest_candidate_snapshot = None
+    if "latest_backtest_candidate_csv" not in st.session_state:
+        st.session_state.latest_backtest_candidate_csv = None
 
     with st.sidebar:
         st.header("Analysis")
