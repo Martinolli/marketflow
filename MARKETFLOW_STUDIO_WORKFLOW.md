@@ -125,6 +125,8 @@ Phase 1 outcome engine is implemented as a standalone tested utility. It is not 
 
 A Phase 1.1 service wrapper is available for JSON-safe outcome evaluation. It is not wired into Studio yet and does not generate artifacts.
 
+A Candidate Snapshot Collection design checkpoint exists at `MARKETFLOW_CANDIDATE_SNAPSHOT_COLLECTION_DESIGN.md`. It defines how selected Strategy Ranking candidates should become frozen backtest snapshots before implementation.
+
 ## GARCH
 
 GARCH requires optional package `arch`.

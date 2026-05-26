@@ -140,6 +140,7 @@ streamlit run apps/marketflow_studio.py
 * Monte Carlo Backtest Refactor Plan — created
 * Backtest Phase 1 outcome engine — implemented
 * Backtest Phase 1.1 service wrapper — implemented
+* Candidate Snapshot Collection design checkpoint — created
 * Next planned milestone: PR review / merge to main
 
 ---
