@@ -325,7 +325,9 @@ Future tests should cover:
 
 ## 18. Recommended Next Implementation Task
 
-Next recommended task:
-Implement `marketflow/services/backtest_candidate_artifact_service.py` for filename generation, row conversion, and CSV writing, with tests. No Studio UI yet.
+Phase 2.2 status: implemented `marketflow/services/backtest_candidate_artifact_service.py` for filename generation, row conversion, and CSV writing. No Studio UI or artifact classification yet.
 
-Status: artifact contract planning checkpoint only.
+Next recommended task:
+Plan the next integration step for artifact browser classification or Studio save controls, then implement it separately with tests.
+
+Status: Phase 2.2 implementation checkpoint recorded; Studio UI and artifact classification remain future work.

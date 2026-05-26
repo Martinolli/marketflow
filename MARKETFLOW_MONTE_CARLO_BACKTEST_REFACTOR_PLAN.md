@@ -348,6 +348,8 @@ Phase 2.1 status: candidate snapshot normalization and validation service implem
 
 Phase 2.2 artifact contract checkpoint created at `MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`.
 
+Phase 2.2 implementation status: candidate snapshot CSV writer implemented. Studio integration and artifact browser classification remain future work.
+
 - Extract candidates from Strategy Ranking output or annotated CSV/report context.
 - Save candidate snapshot CSV.
 
