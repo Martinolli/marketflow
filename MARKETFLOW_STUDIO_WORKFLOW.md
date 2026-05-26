@@ -129,6 +129,8 @@ A Candidate Snapshot Collection design checkpoint exists at `MARKETFLOW_CANDIDAT
 
 A Phase 2.1 candidate snapshot service normalizes and validates selected Strategy Ranking candidates for future backtesting. It is not wired into Studio yet and does not generate artifacts.
 
+A Backtest Candidate CSV artifact contract exists at `MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`. It defines the future `*_backtest_candidates.csv` format before artifact writing is implemented.
+
 ## GARCH
 
 GARCH requires optional package `arch`.
