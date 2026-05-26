@@ -352,6 +352,8 @@ Phase 2.2 implementation status: candidate snapshot CSV writer implemented. Gene
 
 Studio save control status: selected Strategy Ranking candidates can be saved as `*_backtest_candidates*.csv` artifacts. Backtest execution remains future work.
 
+Backtest Outcome Result CSV artifact contract created at `MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`.
+
 - Extract candidates from Strategy Ranking output or annotated CSV/report context.
 - Save candidate snapshot CSV.
 
