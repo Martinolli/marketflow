@@ -121,6 +121,8 @@ When a Strategy Ranking candidate is sent to Monte Carlo, Studio now treats that
 
 A planning checkpoint exists at `MARKETFLOW_MONTE_CARLO_BACKTEST_REFACTOR_PLAN.md`. The planned refactor will compare Monte Carlo forecast probabilities with actual historical TP/SL/neither outcomes. This is research/calibration only and does not create trade signals.
 
+Phase 1 outcome engine is implemented as a standalone tested utility. It is not wired into Studio yet.
+
 ## GARCH
 
 GARCH requires optional package `arch`.

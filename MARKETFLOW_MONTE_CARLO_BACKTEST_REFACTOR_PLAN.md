@@ -333,6 +333,8 @@ The UI should make calibration/research language explicit and avoid buy/sell lab
 
 ### Phase 1 - Outcome Engine Only
 
+Status: implemented as standalone outcome engine with synthetic tests.
+
 - Given one CSV and one candidate snapshot, compute actual outcome.
 - Unit tests with synthetic OHLC data.
 
