@@ -117,6 +117,10 @@ Strategy Ranking now prefers MC summaries matching the selected timeframe. If no
 
 When a Strategy Ranking candidate is sent to Monte Carlo, Studio now treats that candidate trade plan as the authoritative prefill. Analyst Packet validates that the Monte Carlo result matches the selected candidate before including it. Mismatched Monte Carlo runs can be included only as explicit manual scenarios.
 
+## Monte Carlo Backtest Refactor Plan
+
+A planning checkpoint exists at `MARKETFLOW_MONTE_CARLO_BACKTEST_REFACTOR_PLAN.md`. The planned refactor will compare Monte Carlo forecast probabilities with actual historical TP/SL/neither outcomes. This is research/calibration only and does not create trade signals.
+
 ## GARCH
 
 GARCH requires optional package `arch`.

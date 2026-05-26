@@ -90,6 +90,8 @@ The app can:
 
 See `MARKETFLOW_STUDIO_WORKFLOW.md` for the recommended cockpit flow across analysis, Strategy Ranking, Monte Carlo, Analyst Packet, and batch analysis.
 
+The Monte Carlo/backtest calibration refactor is planned in `MARKETFLOW_MONTE_CARLO_BACKTEST_REFACTOR_PLAN.md`.
+
 ### Design Review Checkpoint
 
 A current Studio design checkpoint is available at:
