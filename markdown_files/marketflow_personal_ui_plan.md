@@ -144,6 +144,7 @@ streamlit run apps/marketflow_studio.py
 * Backtest Phase 2.1 candidate snapshot service — implemented
 * Backtest Candidate CSV artifact contract — created
 * Backtest Phase 2.2 candidate CSV writer — implemented
+* Backtest candidate CSV artifact classification — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

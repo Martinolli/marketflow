@@ -327,6 +327,8 @@ Future tests should cover:
 
 Phase 2.2 status: implemented `marketflow/services/backtest_candidate_artifact_service.py` for filename generation, row conversion, and CSV writing. No Studio UI or artifact classification yet.
 
+Phase 2.2 artifact classification status: `*_backtest_candidates*.csv` files are classified as `backtest_candidates_csv` in Generated Artifacts.
+
 Next recommended task:
 Plan the next integration step for artifact browser classification or Studio save controls, then implement it separately with tests.
 

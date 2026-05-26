@@ -133,6 +133,8 @@ A Backtest Candidate CSV artifact contract exists at `MARKETFLOW_BACKTEST_CANDID
 
 A Phase 2.2 candidate CSV writer can save validated candidate snapshots to `*_backtest_candidates.csv`. It is not wired into Studio yet.
 
+Generated Artifacts classifies saved `*_backtest_candidates*.csv` files as `backtest_candidates_csv`.
+
 ## GARCH
 
 GARCH requires optional package `arch`.
