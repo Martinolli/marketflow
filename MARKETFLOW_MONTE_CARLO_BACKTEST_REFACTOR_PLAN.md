@@ -344,6 +344,8 @@ Phase 1.1 status: service wrapper implemented for JSON-safe single-candidate and
 
 Phase 2 design checkpoint created at `MARKETFLOW_CANDIDATE_SNAPSHOT_COLLECTION_DESIGN.md`.
 
+Phase 2.1 status: candidate snapshot normalization and validation service implemented. Snapshot CSV artifacts and Studio integration remain future work.
+
 - Extract candidates from Strategy Ranking output or annotated CSV/report context.
 - Save candidate snapshot CSV.
 

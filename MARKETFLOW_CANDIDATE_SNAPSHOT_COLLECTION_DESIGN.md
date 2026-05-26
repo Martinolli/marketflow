@@ -276,7 +276,9 @@ Future tests should cover:
 
 ## 18. Recommended Next Implementation Task
 
-Next recommended task:
-Implement `marketflow/services/backtest_candidate_service.py` with candidate normalization and validation tests only. No Studio UI and no artifact generation yet.
+Phase 2.1 status: implemented `marketflow/services/backtest_candidate_service.py` for normalization and validation only. No Studio UI or artifact generation yet.
 
-Status: design checkpoint only.
+Next recommended task:
+Plan the next service-first Phase 2 step for snapshot CSV artifact creation, then implement it separately with tests. No Studio UI until the snapshot artifact contract is stable.
+
+Status: Phase 2.1 implementation checkpoint recorded; Studio UI and artifact generation remain future work.

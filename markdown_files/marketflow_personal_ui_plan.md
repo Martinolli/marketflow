@@ -141,6 +141,7 @@ streamlit run apps/marketflow_studio.py
 * Backtest Phase 1 outcome engine — implemented
 * Backtest Phase 1.1 service wrapper — implemented
 * Candidate Snapshot Collection design checkpoint — created
+* Backtest Phase 2.1 candidate snapshot service — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

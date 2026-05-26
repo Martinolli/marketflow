@@ -127,6 +127,8 @@ A Phase 1.1 service wrapper is available for JSON-safe outcome evaluation. It is
 
 A Candidate Snapshot Collection design checkpoint exists at `MARKETFLOW_CANDIDATE_SNAPSHOT_COLLECTION_DESIGN.md`. It defines how selected Strategy Ranking candidates should become frozen backtest snapshots before implementation.
 
+A Phase 2.1 candidate snapshot service normalizes and validates selected Strategy Ranking candidates for future backtesting. It is not wired into Studio yet and does not generate artifacts.
+
 ## GARCH
 
 GARCH requires optional package `arch`.
