@@ -147,6 +147,7 @@ streamlit run apps/marketflow_studio.py
 * Backtest candidate CSV artifact classification — implemented
 * Studio Backtest Candidate Snapshot save control — implemented
 * Backtest Outcome Result CSV artifact contract — created
+* Repository cleanup planning checkpoint — created
 * Next planned milestone: PR review / merge to main
 
 ---

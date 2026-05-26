@@ -139,6 +139,10 @@ Studio can save the selected Strategy Ranking candidate as a Backtest Candidate 
 
 A Backtest Outcome Result CSV artifact contract exists at `MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`. It defines the future `*_backtest_results.csv` format before result writing is implemented.
 
+## Repository Cleanup Plan
+
+A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.
+
 ## GARCH
 
 GARCH requires optional package `arch`.
