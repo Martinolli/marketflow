@@ -135,6 +135,7 @@ streamlit run apps/marketflow_studio.py
 * Analyst Chat dry-run response polish — implemented
 * Analyst Review Notes artifact — implemented
 * P&F bulk generation annotated-only filter — implemented
+* P&F sidecar source hygiene indicators — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

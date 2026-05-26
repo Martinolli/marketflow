@@ -15,6 +15,32 @@ import pandas as pd
 from marketflow.services.report_index import infer_timeframe_from_csv_name
 
 
+def classify_pnf_sidecar_source(sidecar: dict[str, Any]) -> str:
+    """Classify the CSV source type recorded in a P&F sidecar."""
+    if not isinstance(sidecar, dict):
+        return "unknown"
+
+    for key in ("source_csv", "source_csv_path", "csv_path"):
+        value = sidecar.get(key)
+        if value is None or value == "":
+            continue
+        filename = Path(str(value)).name.lower()
+        if filename.endswith("_wyckoff_annotated.csv"):
+            return "wyckoff_annotated"
+        if filename.endswith(".csv"):
+            return "raw_csv"
+    return "unknown"
+
+
+def pnf_sidecar_source_warning(source_type: str) -> str:
+    """Return a display warning for a P&F sidecar source type."""
+    if source_type == "wyckoff_annotated":
+        return "Wyckoff annotated source."
+    if source_type == "raw_csv":
+        return "Raw CSV source; useful for visual P&F, but not preferred for candidate traceability."
+    return "Legacy or unknown source; source CSV metadata is missing."
+
+
 def _plot_point_and_figure_callable() -> Any:
     """Load the existing script helper without requiring scripts/ to be a package."""
     script_path = Path(__file__).resolve().parents[2] / "scripts" / "plot_annotated_features.py"

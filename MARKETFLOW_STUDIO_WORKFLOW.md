@@ -55,6 +55,8 @@ After generation:
 
 Bulk P&F generation processes only `*_wyckoff_annotated.csv` files. The selected CSV generator can still be used for a single selected CSV.
 
+P&F sidecars now display source hygiene indicators. Sidecars generated from `*_wyckoff_annotated.csv` are preferred for candidate traceability. Raw CSV sidecars may still be useful for visual review but are flagged as raw source.
+
 Use Charts tab > Generate Legacy Feature Plots to run the legacy plotting workflow from an annotated CSV without opening browser windows. The generated files are saved beside the CSV and can include P&F HTML/meta JSON, Wyckoff annotated charts, price-volume, volume profile, volume distribution, and spread/features HTML.
 
 ## Generated Artifacts

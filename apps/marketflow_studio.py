@@ -59,8 +59,10 @@ from marketflow.services.monte_carlo_service import (
     run_monte_carlo_for_csv,
 )
 from marketflow.services.pnf_service import (
+    classify_pnf_sidecar_source,
     generate_pnf_for_csv,
     generate_pnf_for_csvs,
+    pnf_sidecar_source_warning,
 )
 from marketflow.services.report_index import (
     find_latest_ticker_report,
@@ -314,7 +316,13 @@ def _pnf_sidecar_label(sidecar: dict[str, Any]) -> str:
     """Return a compact label for a P&F sidecar selector."""
     parts = [str(sidecar.get("filename") or Path(str(sidecar.get("path") or "")).name or "P&F sidecar")]
     details = []
-    for key in ("inferred_timeframe", "timeframe", "direction", "objective"):
+    source_type = sidecar.get("source_type") or classify_pnf_sidecar_source(sidecar)
+    for key in ("inferred_timeframe", "timeframe"):
+        value = sidecar.get(key)
+        if value is not None and value != "":
+            details.append(f"{key}: {value}")
+    details.append(f"source: {source_type}")
+    for key in ("direction", "objective"):
         value = sidecar.get(key)
         if value is not None and value != "":
             details.append(f"{key}: {value}")
@@ -325,9 +333,12 @@ def _pnf_sidecar_label(sidecar: dict[str, Any]) -> str:
 
 def _pnf_metadata_row(sidecar: dict[str, Any]) -> dict[str, Any]:
     """Return compact metadata for the selected P&F sidecar."""
+    source_type = sidecar.get("source_type") or classify_pnf_sidecar_source(sidecar)
     return {
         "filename": sidecar.get("filename"),
         "source_csv": sidecar.get("source_csv"),
+        "source_type": source_type,
+        "source_warning": sidecar.get("source_warning") or pnf_sidecar_source_warning(source_type),
         "timeframe": sidecar.get("inferred_timeframe") or sidecar.get("timeframe"),
         "direction": sidecar.get("direction"),
         "box_mode": sidecar.get("box_mode"),
@@ -344,6 +355,26 @@ def _pnf_metadata_row(sidecar: dict[str, Any]) -> dict[str, Any]:
         "objective_r_multiple": sidecar.get("objective_r_multiple"),
         "objective_notes": "; ".join(sidecar.get("objective_notes") or []),
     }
+
+
+def _pnf_source_review_rows(sidecars: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Return compact P&F sidecar source hygiene rows."""
+    rows = []
+    for sidecar in sidecars:
+        source_type = sidecar.get("source_type") or classify_pnf_sidecar_source(sidecar)
+        rows.append(
+            {
+                "filename": sidecar.get("filename"),
+                "source_csv": sidecar.get("source_csv"),
+                "timeframe": sidecar.get("inferred_timeframe") or sidecar.get("timeframe"),
+                "source_type": source_type,
+                "objective": sidecar.get("objective"),
+                "last_price": sidecar.get("last_price"),
+                "generated_by": sidecar.get("generated_by"),
+                "source_warning": sidecar.get("source_warning") or pnf_sidecar_source_warning(source_type),
+            }
+        )
+    return rows
 
 
 def _pnf_generation_result_rows(results: list[dict[str, Any]]) -> list[dict[str, Any]]:
@@ -1446,25 +1477,45 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             "The reconstructed P&F chart is built from sidecar JSON and may not include every visual "
             "feature from the saved HTML plot. Use Generated Artifacts to preview the original saved P&F HTML."
         )
-        selected_sidecar = st.selectbox(
-            "P&F sidecar",
-            options=pnf_sidecars,
-            format_func=_pnf_sidecar_label,
-            key="pnf_sidecar_chart_file",
+        st.markdown("##### P&F Sidecar Source Review")
+        source_filter = st.selectbox(
+            "P&F sidecar source filter",
+            options=["all", "wyckoff_annotated", "raw_csv", "unknown"],
+            key="pnf_sidecar_source_filter",
         )
+        displayed_pnf_sidecars = [
+            sidecar
+            for sidecar in pnf_sidecars
+            if source_filter == "all"
+            or (sidecar.get("source_type") or classify_pnf_sidecar_source(sidecar)) == source_filter
+        ]
         st.dataframe(
-            _safe_dataframe_rows([_pnf_metadata_row(selected_sidecar)]),
+            _safe_dataframe_rows(_pnf_source_review_rows(displayed_pnf_sidecars)),
             use_container_width=True,
             hide_index=True,
         )
-        try:
-            fig = build_pnf_chart_from_sidecar(selected_sidecar)
-            st.plotly_chart(fig, use_container_width=True)
-        except Exception as exc:
-            st.info("Could not render this P&F sidecar as a chart.")
-            with st.expander("P&F chart details"):
-                st.write(f"Type: `{type(exc).__name__}`")
-                st.code(str(exc))
+        if not displayed_pnf_sidecars:
+            st.info("No P&F sidecars match the selected source filter.")
+        else:
+            selected_sidecar = st.selectbox(
+                "P&F sidecar",
+                options=displayed_pnf_sidecars,
+                format_func=_pnf_sidecar_label,
+                key="pnf_sidecar_chart_file",
+            )
+            st.dataframe(
+                _safe_dataframe_rows([_pnf_metadata_row(selected_sidecar)]),
+                use_container_width=True,
+                hide_index=True,
+            )
+            try:
+                fig = build_pnf_chart_from_sidecar(selected_sidecar)
+                st.plotly_chart(fig, use_container_width=True)
+            except Exception as exc:
+                st.info("Could not render this P&F sidecar as a chart.")
+                with st.expander("P&F chart details"):
+                    st.write(f"Type: `{type(exc).__name__}`")
+                    st.code(str(exc))
 
     with st.expander("Generated Artifacts", expanded=False):
         _render_generated_artifacts(report_dir, key_prefix="charts_artifacts")
@@ -3359,6 +3410,8 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                         "match_reasons": "; ".join(selection.get("match_reasons") or []),
                         "candidate_timeframe": selection.get("candidate_timeframe"),
                         "candidate_csv": Path(str(selection.get("candidate_csv") or "")).name,
+                        "source_type": selected_sidecar.get("source_type"),
+                        "source_warning": selected_sidecar.get("source_warning"),
                         "sidecar_timeframe": selected_sidecar.get("inferred_timeframe") or selected_sidecar.get("timeframe"),
                         "box_size": selected_sidecar.get("box_size"),
                         "reversal": selected_sidecar.get("reversal"),
@@ -3390,6 +3443,8 @@ def _render_analyst_packet(result: dict[str, Any] | None) -> None:
                         {
                             "filename": item.get("filename"),
                             "source_csv": item.get("source_csv"),
+                            "source_type": item.get("source_type"),
+                            "source_warning": item.get("source_warning"),
                             "timeframe": item.get("inferred_timeframe") or item.get("timeframe"),
                             "direction": item.get("direction"),
                             "match_score": item.get("match_score"),

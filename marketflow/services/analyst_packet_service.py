@@ -11,6 +11,7 @@ from typing import Any
 
 import pandas as pd
 
+from marketflow.services.pnf_service import classify_pnf_sidecar_source, pnf_sidecar_source_warning
 from marketflow.services.report_index import infer_timeframe_from_csv_name
 
 
@@ -211,6 +212,8 @@ def _compact_pnf_record(record: dict[str, Any] | None) -> dict[str, Any] | None:
         "path",
         "source_csv",
         "source_csv_path",
+        "source_type",
+        "source_warning",
         "inferred_timeframe",
         "timeframe",
         "box_mode",
@@ -294,6 +297,13 @@ def _normalize_pnf_sidecar(path: str, data: dict[str, Any]) -> dict[str, Any]:
     direction_value = _first_pnf_value(data, ("direction", "count_direction", "trend"))
     last_price = _first_pnf_float(data, ("last_price", "spot", "current_price", "close"))
     objective = _first_pnf_float(data, ("objective", "objective_price", "target", "target_price"))
+    source_type = classify_pnf_sidecar_source(
+        {
+            "source_csv": source_csv,
+            "source_csv_path": source_csv_path,
+            "csv_path": _first_pnf_value(data, ("csv_path",)),
+        }
+    )
 
     distance_to_objective = None
     distance_to_objective_pct = None
@@ -311,6 +321,8 @@ def _normalize_pnf_sidecar(path: str, data: dict[str, Any]) -> dict[str, Any]:
         "filename": filename,
         "source_csv": str(source_csv) if source_csv is not None else None,
         "source_csv_path": str(source_csv_path) if source_csv_path is not None else None,
+        "source_type": source_type,
+        "source_warning": pnf_sidecar_source_warning(source_type),
         "inferred_timeframe": str(inferred_timeframe) if inferred_timeframe is not None else None,
         "box_mode": _first_pnf_value(data, ("box_mode", "scale", "pnf_scale")),
         "box_value": _first_pnf_float(data, ("box_value", "scale_value", "pnf_scale_value")),
@@ -770,6 +782,8 @@ def _build_pnf_section(
         selected_tf = selected.get("inferred_timeframe") or selected.get("timeframe")
         if candidate_csv and not selected.get("source_csv") and not selected.get("source_csv_path"):
             selection_notes.append("P&F sidecar selected by fallback matching; source CSV metadata missing.")
+        if selected.get("source_type") in {"raw_csv", "unknown"}:
+            selection_warnings.append("Selected P&F sidecar source is raw/unknown; review traceability.")
         if candidate_tf and selected_tf and str(selected_tf) != str(candidate_tf):
             selection_warnings.append(
                 f"P&F sidecar timeframe {selected_tf} differs from candidate timeframe {candidate_tf}."
