@@ -53,6 +53,8 @@ After generation:
 - the P&F gate can move from pending to pass/fail/unknown
 - Studio-generated P&F sidecars include source CSV, inferred timeframe, box settings, row limit, and generation metadata.
 
+Bulk P&F generation processes only `*_wyckoff_annotated.csv` files. The selected CSV generator can still be used for a single selected CSV.
+
 Use Charts tab > Generate Legacy Feature Plots to run the legacy plotting workflow from an annotated CSV without opening browser windows. The generated files are saved beside the CSV and can include P&F HTML/meta JSON, Wyckoff annotated charts, price-volume, volume profile, volume distribution, and spread/features HTML.
 
 ## Generated Artifacts

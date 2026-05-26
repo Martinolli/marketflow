@@ -276,6 +276,15 @@ def _annotated_csv_files_for_report(report_dir: str) -> list[str]:
     return list_annotated_csv_files(report_dir)
 
 
+def _wyckoff_annotated_csv_files(csv_files: list[str]) -> list[str]:
+    """Return only CSV files ending with `_wyckoff_annotated.csv`."""
+    return [
+        path
+        for path in csv_files
+        if Path(path).name.lower().endswith("_wyckoff_annotated.csv")
+    ]
+
+
 def _select_annotated_csv(
     csv_files: list[str],
     label: str,
@@ -1027,6 +1036,14 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             )
 
         nrows = None if row_choice == "All" else int(row_choice)
+        pnf_bulk_csv_files = _wyckoff_annotated_csv_files(csv_files)
+        if pnf_bulk_csv_files:
+            st.caption(
+                f"Bulk P&F generation will process {len(pnf_bulk_csv_files)} "
+                "Wyckoff annotated CSV file(s)."
+            )
+        else:
+            st.caption("No *_wyckoff_annotated.csv files are available for bulk P&F generation.")
         generate_col1, generate_col2 = st.columns(2)
         generation_results: list[dict[str, Any]] = []
         with generate_col1:
@@ -1042,9 +1059,12 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                     )
                 ]
         with generate_col2:
-            if st.button("Generate P&F for all annotated CSVs"):
+            if st.button(
+                "Generate P&F for all Wyckoff annotated CSVs",
+                disabled=not bool(pnf_bulk_csv_files),
+            ):
                 generation_results = generate_pnf_for_csvs(
-                    csv_files,
+                    pnf_bulk_csv_files,
                     box_size=box_size,
                     reversal=int(reversal),
                     nrows=nrows,
