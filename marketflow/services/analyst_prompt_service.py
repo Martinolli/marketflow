@@ -169,6 +169,9 @@ def build_wyckoff_analyst_prompt(
     pnf_selection = _as_dict(pnf.get("selection"))
     pnf_sidecar = _as_dict(pnf.get("selected_sidecar"))
     pnf_interpretation = _as_dict(pnf.get("objective_interpretation"))
+    eigen = _as_dict(packet.get("eigen"))
+    eigen_latest = _as_dict(eigen.get("latest"))
+    eigen_summary = _as_dict(eigen.get("summary"))
     wyckoff = _as_dict(packet.get("wyckoff_vpa"))
     selected_tf_context = _as_dict(packet.get("selected_timeframe_context") or wyckoff.get("selected_timeframe_context"))
     levels = _as_dict(packet.get("levels"))
@@ -182,8 +185,9 @@ def build_wyckoff_analyst_prompt(
             "Role",
             [
                 "- You are a Wyckoff Volume Analyst.",
-                "- Analyze the provided market packet using Wyckoff phase/event logic, volume-price analysis, support/resistance context, strategy candidate quality, Monte Carlo probabilities, P&F objective context, and risk management constraints.",
+                "- Analyze the provided market packet using Wyckoff phase/event logic, volume-price analysis, support/resistance context, strategy candidate quality, Monte Carlo probabilities, P&F objective context, Eigen diagnostic context, and risk management constraints.",
                 "- If P&F objective quality is supportive_extended, treat it as a longer-range objective requiring realism/timeframe review.",
+                "- Treat Eigen diagnostics as context only; do not treat them as trade signals.",
                 "- Do not provide financial advice. Provide an analytical review only.",
                 f"- Style directive: {_style_instruction(style)}",
             ],
@@ -293,6 +297,20 @@ def build_wyckoff_analyst_prompt(
                 _line("Objective quality", pnf_interpretation.get("objective_quality") or pnf_sidecar.get("objective_quality")),
                 _line("Objective R multiple", pnf_sidecar.get("objective_r_multiple")),
                 _line("Objective notes", "; ".join(pnf_interpretation.get("notes") or pnf_sidecar.get("objective_notes") or [])),
+            ],
+        ),
+        _section(
+            "Eigen Diagnostic Context",
+            [
+                _line("Available", eigen.get("available") if "available" in eigen else summary.get("eigen_available")),
+                _line("Matched by", eigen.get("matched_by") or summary.get("eigen_matched_by")),
+                _line("Latest residual", eigen_latest.get("pv_eigen_residual") if "pv_eigen_residual" in eigen_latest else summary.get("eigen_latest_residual")),
+                _line("Latest coupling", eigen_latest.get("pv_eigen_coupling") if "pv_eigen_coupling" in eigen_latest else summary.get("eigen_latest_coupling")),
+                _line("Latest divergence", eigen_latest.get("pv_effort_result_divergence") if "pv_effort_result_divergence" in eigen_latest else summary.get("eigen_latest_divergence")),
+                _line("Divergence count", eigen_summary.get("divergence_count") if "divergence_count" in eigen_summary else summary.get("eigen_divergence_count")),
+                _line("Recent divergence count", eigen_summary.get("recent_divergence_count") if "recent_divergence_count" in eigen_summary else summary.get("eigen_recent_divergence_count")),
+                _line("Observation", eigen_summary.get("observation")),
+                "- Guardrail: Treat Eigen as diagnostic/confirmatory context only, not as a trade signal.",
             ],
         ),
         _section(

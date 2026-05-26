@@ -133,6 +133,7 @@ Analyst Packet combines:
 - strategy candidate
 - Monte Carlo metrics
 - P&F sidecars if available
+- Eigen diagnostic context if available
 - profile/risk rules
 
 Analyst Packet can extract Wyckoff context from report JSON and the selected annotated CSV.
@@ -149,6 +150,10 @@ The Candidate Decision Card can be saved as a markdown Decision Summary artifact
 The packet can be downloaded or saved to the loaded report folder.
 
 It does not call an LLM yet.
+
+## Analyst Packet Eigen Context
+
+Analyst Packet can include read-only Eigen diagnostic context when matching `*_pv_eigen.csv` artifacts are available. Eigen context summarizes residual, coupling, divergence counts, and recent divergence state. It is diagnostic only and does not change Strategy Ranking, Monte Carlo, P&F gates, risk rank, or analyst readiness.
 
 ## Wyckoff Analyst Prompt Preview
 

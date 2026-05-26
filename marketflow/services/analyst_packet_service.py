@@ -383,6 +383,255 @@ def load_pnf_sidecars(report_dir: str | None) -> list[dict[str, Any]]:
     return records
 
 
+def _empty_eigen_context(observation: str, notes: list[str] | None = None) -> dict[str, Any]:
+    """Return the stable empty Eigen context shape."""
+    return {
+        "available": False,
+        "source_csv": None,
+        "eigen_csv": None,
+        "eigen_review_summary": None,
+        "matched_by": "none",
+        "timeframe": None,
+        "rows": None,
+        "latest": {
+            "timestamp": None,
+            "close": None,
+            "pv_eigen_residual": None,
+            "pv_eigen_coupling": None,
+            "pv_eigen_harmony": None,
+            "pv_effort_result_divergence": None,
+            "pv_divergence_strength": None,
+            "pv_eigen_status": None,
+        },
+        "summary": {
+            "divergence_count": None,
+            "recent_divergence_count": None,
+            "max_residual": None,
+            "mean_residual": None,
+            "mean_coupling": None,
+            "observation": observation,
+            "notes": notes or [],
+        },
+        "guardrail": "Eigen context is diagnostic only and does not change gates or scores.",
+    }
+
+
+def _eigen_artifact_timeframe(path: Path) -> str | None:
+    """Infer timeframe from an Eigen artifact filename."""
+    name = path.name
+    if name.endswith("_pv_eigen.csv"):
+        name = name[: -len("_pv_eigen.csv")] + ".csv"
+    return _infer_timeframe_from_text(name)
+
+
+def _select_eigen_csv(
+    eigen_csvs: list[Path],
+    *,
+    candidate_csv: str | None,
+    candidate_timeframe: str | None,
+) -> tuple[Path | None, str]:
+    """Select the best matching Eigen CSV without generating new data."""
+    if not eigen_csvs:
+        return None, "none"
+
+    candidate_stem = Path(str(candidate_csv)).stem if candidate_csv else None
+    if candidate_stem:
+        expected_name = f"{candidate_stem}_pv_eigen.csv".lower()
+        for path in eigen_csvs:
+            if path.name.lower() == expected_name:
+                return path, "candidate_csv"
+
+    if candidate_timeframe:
+        timeframe_matches = [
+            path
+            for path in eigen_csvs
+            if _eigen_artifact_timeframe(path) == str(candidate_timeframe)
+        ]
+        if timeframe_matches:
+            return max(timeframe_matches, key=lambda item: item.stat().st_mtime), "timeframe"
+
+    return max(eigen_csvs, key=lambda item: item.stat().st_mtime), "latest"
+
+
+def _select_eigen_review_summary(
+    summaries: list[Path],
+    *,
+    candidate_timeframe: str | None,
+) -> Path | None:
+    """Select the most relevant saved Eigen Review Summary markdown."""
+    if not summaries:
+        return None
+    if candidate_timeframe:
+        token = f"_{candidate_timeframe}_eigen_review_summary"
+        matches = [path for path in summaries if token in path.name.lower()]
+        if matches:
+            return max(matches, key=lambda item: item.stat().st_mtime)
+    return max(summaries, key=lambda item: item.stat().st_mtime)
+
+
+def _truthy_eigen_divergence(series: pd.Series) -> pd.Series:
+    """Normalize Eigen divergence values to booleans."""
+    if series.empty:
+        return pd.Series(dtype=bool)
+    if series.dtype == bool:
+        return series.fillna(False)
+    text = series.fillna(False).astype(str).str.strip().str.lower()
+    return text.isin({"true", "1", "yes", "y"})
+
+
+def _eigen_numeric(dataframe: pd.DataFrame, column: str) -> pd.Series:
+    """Return a numeric Eigen column or an empty numeric series."""
+    if column not in dataframe.columns:
+        return pd.Series(dtype=float)
+    return pd.to_numeric(dataframe[column], errors="coerce")
+
+
+def _eigen_latest_row(dataframe: pd.DataFrame) -> pd.Series:
+    """Return the latest ok Eigen row when available, else the final row."""
+    if dataframe.empty:
+        return pd.Series(dtype=object)
+    if "pv_eigen_status" in dataframe.columns:
+        ok_rows = dataframe[dataframe["pv_eigen_status"].astype(str).str.lower() == "ok"]
+        if not ok_rows.empty:
+            return ok_rows.iloc[-1]
+    return dataframe.iloc[-1]
+
+
+def _eigen_timestamp(row: pd.Series) -> str | None:
+    """Extract a timestamp-like value from an Eigen row."""
+    for column in ("timestamp", "datetime", "date", "time"):
+        value = row.get(column)
+        if value is not None and value != "":
+            return str(value)
+    return None
+
+
+def _eigen_bool(value: Any) -> bool | None:
+    """Convert a single divergence-like value to bool/None."""
+    if value is None or value == "":
+        return None
+    if isinstance(value, bool):
+        return value
+    text = str(value).strip().lower()
+    if text in {"true", "1", "yes", "y"}:
+        return True
+    if text in {"false", "0", "no", "n"}:
+        return False
+    return None
+
+
+def _build_eigen_context(
+    report_dir: str | Path | None,
+    *,
+    candidate_csv: str | None = None,
+    candidate_timeframe: str | None = None,
+) -> dict[str, Any]:
+    """
+    Build read-only Eigen diagnostic context from saved report artifacts.
+
+    This does not run the Eigen analyzer and does not change gates or scores.
+    """
+    if not report_dir:
+        return _empty_eigen_context("No report folder is available for Eigen artifact discovery.")
+
+    directory = Path(report_dir)
+    if not directory.exists() or not directory.is_dir():
+        return _empty_eigen_context("Report folder is unavailable for Eigen artifact discovery.")
+
+    eigen_csvs = sorted(
+        (path for path in directory.glob("*_pv_eigen.csv") if path.is_file()),
+        key=lambda item: item.stat().st_mtime,
+        reverse=True,
+    )
+    summaries = sorted(
+        (path for path in directory.glob("*eigen_review_summary*.md") if path.is_file()),
+        key=lambda item: item.stat().st_mtime,
+        reverse=True,
+    )
+    selected_csv, matched_by = _select_eigen_csv(
+        eigen_csvs,
+        candidate_csv=candidate_csv,
+        candidate_timeframe=candidate_timeframe,
+    )
+    selected_summary = _select_eigen_review_summary(summaries, candidate_timeframe=candidate_timeframe)
+
+    if selected_csv is None:
+        context = _empty_eigen_context("No matching Eigen CSV artifact found.")
+        context["eigen_review_summary"] = str(selected_summary) if selected_summary else None
+        context["summary"]["notes"] = [
+            "Generate a Price-Volume Eigen CSV from the Charts tab to include diagnostic context.",
+            "Eigen context is optional and does not affect gates or readiness.",
+        ]
+        return context
+
+    try:
+        dataframe = pd.read_csv(selected_csv)
+    except Exception as exc:
+        context = _empty_eigen_context(f"Could not read Eigen CSV artifact: {type(exc).__name__}: {exc}")
+        context["eigen_csv"] = str(selected_csv)
+        context["eigen_review_summary"] = str(selected_summary) if selected_summary else None
+        context["matched_by"] = matched_by
+        context["timeframe"] = _eigen_artifact_timeframe(selected_csv)
+        return context
+
+    rows = int(len(dataframe))
+    latest = _eigen_latest_row(dataframe)
+    divergence = (
+        _truthy_eigen_divergence(dataframe["pv_effort_result_divergence"])
+        if "pv_effort_result_divergence" in dataframe.columns
+        else pd.Series(False, index=dataframe.index)
+    )
+    divergence_count = int(divergence.sum()) if rows else 0
+    recent_span = min(20, max(1, int(rows * 0.1))) if rows else 0
+    recent_divergence_count = int(divergence.tail(recent_span).sum()) if recent_span else 0
+    residual = _eigen_numeric(dataframe, "pv_eigen_residual")
+    coupling = _eigen_numeric(dataframe, "pv_eigen_coupling")
+
+    if divergence_count == 0:
+        observation = "Eigen context available; no divergence rows detected in the selected artifact."
+    elif recent_divergence_count > 0:
+        observation = "Recent Eigen divergence rows exist; review chart/proximity context visually."
+    else:
+        observation = "Eigen divergence rows exist historically, but not in the recent window."
+
+    source_csv = candidate_csv if matched_by == "candidate_csv" else None
+    if not source_csv and selected_csv.name.endswith("_pv_eigen.csv"):
+        source_csv = selected_csv.with_name(selected_csv.name[: -len("_pv_eigen.csv")] + ".csv").name
+
+    return {
+        "available": True,
+        "source_csv": str(source_csv) if source_csv else None,
+        "eigen_csv": str(selected_csv),
+        "eigen_review_summary": str(selected_summary) if selected_summary else None,
+        "matched_by": matched_by,
+        "timeframe": _eigen_artifact_timeframe(selected_csv) or candidate_timeframe,
+        "rows": rows,
+        "latest": {
+            "timestamp": _eigen_timestamp(latest),
+            "close": _to_float(latest.get("close")),
+            "pv_eigen_residual": _to_float(latest.get("pv_eigen_residual")),
+            "pv_eigen_coupling": _to_float(latest.get("pv_eigen_coupling")),
+            "pv_eigen_harmony": _to_float(latest.get("pv_eigen_harmony")),
+            "pv_effort_result_divergence": _eigen_bool(latest.get("pv_effort_result_divergence")),
+            "pv_divergence_strength": _to_float(latest.get("pv_divergence_strength")),
+            "pv_eigen_status": str(latest.get("pv_eigen_status")) if latest.get("pv_eigen_status") is not None else None,
+        },
+        "summary": {
+            "divergence_count": divergence_count,
+            "recent_divergence_count": recent_divergence_count,
+            "max_residual": _to_float(residual.max()) if not residual.dropna().empty else None,
+            "mean_residual": _to_float(residual.mean()) if not residual.dropna().empty else None,
+            "mean_coupling": _to_float(coupling.mean()) if not coupling.dropna().empty else None,
+            "observation": observation,
+            "notes": [
+                f"Recent means the last {recent_span} row(s), using the smaller of 10% of rows or 20 rows.",
+                "Eigen context is diagnostic only and does not create trading signals.",
+            ],
+        },
+        "guardrail": "Eigen context is diagnostic only and does not change gates or scores.",
+    }
+
+
 def _attach_pnf_objective_r(
     records: list[dict[str, Any]],
     strategy_candidate: dict[str, Any] | None,
@@ -1531,6 +1780,7 @@ def _build_analyst_sections(
     strategy_trade_plan: dict[str, Any],
     monte_carlo: dict[str, Any] | None,
     pnf: dict[str, Any],
+    eigen: dict[str, Any],
     go_no_go: dict[str, Any],
 ) -> dict[str, Any]:
     """Build structured bridge sections for a future analyst prompt."""
@@ -1548,6 +1798,7 @@ def _build_analyst_sections(
             "strategy_trade_plan": strategy_trade_plan,
             "monte_carlo": monte_carlo,
             "pnf": pnf,
+            "eigen": eigen,
             "go_no_go": go_no_go,
         },
         "narrative_inputs": {
@@ -1563,11 +1814,13 @@ def _build_analyst_sections(
             {"item": "Strategy candidate present", "available": strategy_candidate is not None},
             {"item": "Monte Carlo metrics present", "available": monte_carlo is not None},
             {"item": "P&F objective present", "available": pnf_objective_present},
+            {"item": "Eigen diagnostic context present", "available": bool((eigen or {}).get("available"))},
         ],
         "levels_heatmap": levels,
         "final_summary_inputs": {
             "go_no_go": go_no_go,
             "pnf_gate": go_no_go.get("pnf_gate"),
+            "eigen": eigen,
             "best_pnf_objective": best_pnf,
             "report_baseline_risk": market_snapshot.get("report_baseline_risk") or market_snapshot.get("risk"),
             "strategy_trade_plan": strategy_trade_plan,
@@ -1604,6 +1857,7 @@ def _build_packet_summary(
     monte_carlo: dict[str, Any] | None,
     go_no_go: dict[str, Any],
     pnf: dict[str, Any],
+    eigen: dict[str, Any],
     wyckoff_vpa: dict[str, Any],
     report_json: dict[str, Any] | None,
 ) -> dict[str, Any]:
@@ -1615,6 +1869,8 @@ def _build_packet_summary(
     pnf_interpretation = pnf.get("objective_interpretation") if isinstance(pnf, dict) else {}
     if not isinstance(pnf_interpretation, dict):
         pnf_interpretation = {}
+    eigen_latest = eigen.get("latest") if isinstance(eigen, dict) and isinstance(eigen.get("latest"), dict) else {}
+    eigen_summary = eigen.get("summary") if isinstance(eigen, dict) and isinstance(eigen.get("summary"), dict) else {}
     selected_context = wyckoff_vpa.get("selected_timeframe_context") if isinstance(wyckoff_vpa, dict) else None
     return {
         "ticker": ticker,
@@ -1633,6 +1889,13 @@ def _build_packet_summary(
         "pnf_objective_direction": pnf_interpretation.get("objective_direction"),
         "pnf_objective_quality": pnf_interpretation.get("objective_quality"),
         "pnf_objective_supports_trade": pnf_interpretation.get("objective_supports_trade"),
+        "eigen_available": bool((eigen or {}).get("available")) if isinstance(eigen, dict) else False,
+        "eigen_matched_by": eigen.get("matched_by") if isinstance(eigen, dict) else None,
+        "eigen_latest_residual": eigen_latest.get("pv_eigen_residual"),
+        "eigen_latest_coupling": eigen_latest.get("pv_eigen_coupling"),
+        "eigen_latest_divergence": eigen_latest.get("pv_effort_result_divergence"),
+        "eigen_divergence_count": eigen_summary.get("divergence_count"),
+        "eigen_recent_divergence_count": eigen_summary.get("recent_divergence_count"),
         "wyckoff_events_available": bool((wyckoff_vpa or {}).get("events") or (wyckoff_vpa or {}).get("confirmed_events")),
         "wyckoff_phases_available": bool((wyckoff_vpa or {}).get("phases")),
         "selected_timeframe": (selected_context or {}).get("tf") if isinstance(selected_context, dict) else (
@@ -1706,6 +1969,11 @@ def build_analyst_packet(
     if not pnf.get("available"):
         warnings.append("No P&F data included yet; P&F gate remains pending.")
     warnings.extend(pnf.get("warnings") or [])
+    eigen = _build_eigen_context(
+        report_dir,
+        candidate_csv=normalized_candidate.get("csv") if isinstance(normalized_candidate, dict) else None,
+        candidate_timeframe=normalized_candidate.get("tf") if isinstance(normalized_candidate, dict) else None,
+    )
 
     go_no_go = _build_go_no_go(clean_profile, normalized_candidate, monte_carlo, pnf, warnings)
     pnf["gate"] = go_no_go.get("pnf_gate")
@@ -1726,6 +1994,7 @@ def build_analyst_packet(
         monte_carlo,
         go_no_go,
         pnf,
+        eigen,
         wyckoff_vpa,
         report_json,
     )
@@ -1748,6 +2017,7 @@ def build_analyst_packet(
         strategy_trade_plan,
         monte_carlo,
         pnf,
+        eigen,
         go_no_go,
     )
 
@@ -1773,6 +2043,7 @@ def build_analyst_packet(
         "report_baseline_risk": market_snapshot.get("report_baseline_risk") or market_snapshot.get("risk"),
         "monte_carlo": monte_carlo,
         "pnf": pnf,
+        "eigen": eigen,
         "levels": levels,
         "wyckoff_vpa": wyckoff_vpa,
         "selected_timeframe_context": wyckoff_vpa.get("selected_timeframe_context"),

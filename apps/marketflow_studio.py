@@ -2099,6 +2099,9 @@ def _candidate_decision_card_data(packet: dict[str, Any] | None) -> dict[str, An
     strategy_candidate = packet.get("strategy_candidate") if isinstance(packet.get("strategy_candidate"), dict) else {}
     monte_carlo = packet.get("monte_carlo") if isinstance(packet.get("monte_carlo"), dict) else {}
     pnf = packet.get("pnf") if isinstance(packet.get("pnf"), dict) else {}
+    eigen = packet.get("eigen") if isinstance(packet.get("eigen"), dict) else {}
+    eigen_latest = eigen.get("latest") if isinstance(eigen.get("latest"), dict) else {}
+    eigen_summary = eigen.get("summary") if isinstance(eigen.get("summary"), dict) else {}
     pnf_selection = pnf.get("selection") if isinstance(pnf.get("selection"), dict) else {}
     selected_sidecar = pnf.get("selected_sidecar") if isinstance(pnf.get("selected_sidecar"), dict) else {}
     pnf_interpretation = pnf.get("objective_interpretation") if isinstance(pnf.get("objective_interpretation"), dict) else {}
@@ -2179,6 +2182,14 @@ def _candidate_decision_card_data(packet: dict[str, Any] | None) -> dict[str, An
         ),
         "pnf_objective_distance_pct": pnf_interpretation.get("objective_distance_pct") or selected_sidecar.get("objective_distance_pct"),
         "pnf_objective_notes": pnf_interpretation.get("notes") or selected_sidecar.get("objective_notes") or [],
+        "eigen_available": packet_summary.get("eigen_available") if "eigen_available" in packet_summary else bool(eigen.get("available")),
+        "eigen_matched_by": packet_summary.get("eigen_matched_by") or eigen.get("matched_by"),
+        "eigen_latest_residual": packet_summary.get("eigen_latest_residual") if "eigen_latest_residual" in packet_summary else eigen_latest.get("pv_eigen_residual"),
+        "eigen_latest_coupling": packet_summary.get("eigen_latest_coupling") if "eigen_latest_coupling" in packet_summary else eigen_latest.get("pv_eigen_coupling"),
+        "eigen_latest_divergence": packet_summary.get("eigen_latest_divergence") if "eigen_latest_divergence" in packet_summary else eigen_latest.get("pv_effort_result_divergence"),
+        "eigen_divergence_count": packet_summary.get("eigen_divergence_count") if "eigen_divergence_count" in packet_summary else eigen_summary.get("divergence_count"),
+        "eigen_recent_divergence_count": packet_summary.get("eigen_recent_divergence_count") if "eigen_recent_divergence_count" in packet_summary else eigen_summary.get("recent_divergence_count"),
+        "eigen_observation": eigen_summary.get("observation"),
         "strategy_status": "available" if strategy_available else "missing",
         "monte_carlo_status": mc_status,
         "pnf_status": pnf_status,
@@ -2318,6 +2329,17 @@ def _build_candidate_decision_summary_markdown(
 - Objective notes: {_summary_notes(card.get("pnf_objective_notes"))}
 {objective_review}
 
+## Eigen Diagnostic Context
+- Available: {_summary_value(card.get("eigen_available"))}
+- Matched by: {_summary_value(card.get("eigen_matched_by"))}
+- Latest residual: {_summary_value(card.get("eigen_latest_residual"))}
+- Latest coupling: {_summary_value(card.get("eigen_latest_coupling"))}
+- Latest divergence: {_summary_value(card.get("eigen_latest_divergence"))}
+- Divergence count: {_summary_value(card.get("eigen_divergence_count"))}
+- Recent divergence count: {_summary_value(card.get("eigen_recent_divergence_count"))}
+- Observation: {_summary_value(card.get("eigen_observation"))}
+- Guardrail: Diagnostic only; does not change gates or scores.
+
 ## Analyst Packet Readiness
 - POP gate: {_summary_value(card.get("pop_gate"))}
 - P&F gate: {_summary_value(card.get("pnf_gate"))}
@@ -2398,6 +2420,10 @@ def _build_analyst_review_notes_markdown(
 - Monte Carlo TP first: {_summary_percent(card.get("pop_tp_first"))}
 - Monte Carlo SL first: {_summary_percent(card.get("p_sl_first"))}
 - Eigen review summary available: {_summary_value(context.get("eigen_review_summary_available"))}
+- Eigen latest residual: {_summary_value(card.get("eigen_latest_residual"))}
+- Eigen latest coupling: {_summary_value(card.get("eigen_latest_coupling"))}
+- Eigen latest divergence: {_summary_value(card.get("eigen_latest_divergence"))}
+- Eigen recent divergence count: {_summary_value(card.get("eigen_recent_divergence_count"))}
 - Analyst prompt available: {_summary_value(context.get("analyst_prompt_available"))}
 - Analyst response available: {_summary_value(context.get("analyst_response_available"))}
 
@@ -2674,6 +2700,22 @@ def _render_candidate_decision_card(packet: dict[str, Any], mc_excluded: bool = 
         st.warning("P&F objective is unusually far from last price.")
     if objective_r_multiple is not None and abs(objective_r_multiple) > 10:
         st.warning("P&F objective R is unusually large.")
+
+    st.markdown("#### Eigen Diagnostic Context")
+    eigen_cols = st.columns(4)
+    with eigen_cols[0]:
+        _display_optional_metric("Available", card.get("eigen_available"))
+        _display_optional_metric("Matched by", card.get("eigen_matched_by"))
+    with eigen_cols[1]:
+        _display_optional_metric("Latest residual", _format_number(card.get("eigen_latest_residual"), decimals=4))
+        _display_optional_metric("Latest coupling", _format_number(card.get("eigen_latest_coupling"), decimals=4))
+    with eigen_cols[2]:
+        _display_optional_metric("Latest divergence", card.get("eigen_latest_divergence"))
+        _display_optional_metric("Divergence count", card.get("eigen_divergence_count"))
+    with eigen_cols[3]:
+        _display_optional_metric("Recent divergence count", card.get("eigen_recent_divergence_count"))
+    _display_optional_metric("Observation", card.get("eigen_observation"))
+    st.caption("Eigen context is diagnostic only and does not change gates or scores.")
 
     st.markdown("#### P&F Objective Interpretation")
     st.dataframe(
