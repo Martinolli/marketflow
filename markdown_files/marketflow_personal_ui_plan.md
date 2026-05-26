@@ -139,6 +139,7 @@ streamlit run apps/marketflow_studio.py
 * Read-only Eigen context in Analyst Packet — implemented
 * Monte Carlo Backtest Refactor Plan — created
 * Backtest Phase 1 outcome engine — implemented
+* Backtest Phase 1.1 service wrapper — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

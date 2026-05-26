@@ -123,6 +123,8 @@ A planning checkpoint exists at `MARKETFLOW_MONTE_CARLO_BACKTEST_REFACTOR_PLAN.m
 
 Phase 1 outcome engine is implemented as a standalone tested utility. It is not wired into Studio yet.
 
+A Phase 1.1 service wrapper is available for JSON-safe outcome evaluation. It is not wired into Studio yet and does not generate artifacts.
+
 ## GARCH
 
 GARCH requires optional package `arch`.

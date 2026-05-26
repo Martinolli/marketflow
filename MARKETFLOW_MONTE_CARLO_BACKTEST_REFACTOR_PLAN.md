@@ -335,6 +335,8 @@ The UI should make calibration/research language explicit and avoid buy/sell lab
 
 Status: implemented as standalone outcome engine with synthetic tests.
 
+Phase 1.1 status: service wrapper implemented for JSON-safe single-candidate and simple batch evaluation. No Studio UI or artifacts yet.
+
 - Given one CSV and one candidate snapshot, compute actual outcome.
 - Unit tests with synthetic OHLC data.
 
