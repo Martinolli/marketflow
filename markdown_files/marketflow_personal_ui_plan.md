@@ -152,6 +152,7 @@ streamlit run apps/marketflow_studio.py
 * Backtest outcome result CSV artifact classification — implemented
 * Backtest outcome evaluation service — implemented
 * Studio Backtest Outcome Evaluation UI plan — created
+* Studio Backtest Outcome Evaluation section — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

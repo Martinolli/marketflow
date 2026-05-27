@@ -46,6 +46,10 @@ from marketflow.services.artifact_service import (
 )
 from marketflow.services.backtest_candidate_artifact_service import write_backtest_candidate_csv
 from marketflow.services.backtest_candidate_service import build_candidate_snapshot_from_strategy_candidate
+from marketflow.services.backtest_result_service import (
+    evaluate_candidate_snapshot_csv_to_results_csv,
+    read_candidate_snapshot_csv,
+)
 from marketflow.services.batch_service import (
     normalize_batch_tickers,
     run_batch_analysis,
@@ -1684,6 +1688,87 @@ def _report_dir_for_backtest_snapshot(result: dict[str, Any] | None) -> str | No
     return None
 
 
+def _backtest_candidate_csv_artifacts(report_dir: str | None) -> list[dict[str, Any]]:
+    """Return backtest candidate snapshot CSV artifacts for the selected report."""
+    if not report_dir:
+        return []
+    artifacts = [
+        artifact
+        for artifact in list_report_artifacts(report_dir)
+        if artifact.get("kind") == "backtest_candidates_csv"
+    ]
+    return sorted(
+        artifacts,
+        key=lambda artifact: (
+            str(artifact.get("modified") or ""),
+            str(artifact.get("name") or artifact.get("path") or ""),
+        ),
+        reverse=True,
+    )
+
+
+def _default_backtest_candidate_csv_index(artifacts: list[dict[str, Any]]) -> int:
+    """Return the default selected candidate snapshot artifact index."""
+    if not artifacts:
+        return 0
+    latest = st.session_state.get("latest_backtest_candidate_csv")
+    latest_path = str(latest.get("path") or "") if isinstance(latest, dict) else ""
+    if latest_path:
+        for index, artifact in enumerate(artifacts):
+            if str(artifact.get("path") or "") == latest_path:
+                return index
+    return 0
+
+
+def _backtest_candidate_preview_rows(rows: list[dict[str, Any]], max_rows: int = 5) -> list[dict[str, Any]]:
+    """Return compact candidate snapshot rows for preview."""
+    fields = [
+        "ticker",
+        "timeframe",
+        "source_csv",
+        "signal_timestamp",
+        "signal_row_index",
+        "entry",
+        "stop_loss",
+        "take_profit",
+        "validation_status",
+        "snapshot_success",
+    ]
+    return [{field: row.get(field) for field in fields} for row in rows[:max_rows] if isinstance(row, dict)]
+
+
+def _backtest_outcome_summary_rows(evaluation_result: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return compact rows summarizing a backtest outcome evaluation result."""
+    evaluation = evaluation_result.get("evaluation") if isinstance(evaluation_result.get("evaluation"), dict) else {}
+    write_result = evaluation_result.get("write_result") if isinstance(evaluation_result.get("write_result"), dict) else {}
+    return [
+        {"item": "Success", "value": evaluation_result.get("success")},
+        {"item": "Filename", "value": evaluation_result.get("filename") or write_result.get("filename")},
+        {"item": "Path", "value": evaluation_result.get("path") or write_result.get("path")},
+        {"item": "Candidate count", "value": evaluation.get("count")},
+        {"item": "Evaluated count", "value": evaluation.get("evaluated_count")},
+        {"item": "Success count", "value": evaluation.get("success_count")},
+        {"item": "Invalid count", "value": evaluation.get("invalid_count")},
+        {"item": "Skipped count", "value": evaluation.get("skipped_count")},
+    ]
+
+
+def _backtest_result_preview_rows(rows: list[dict[str, Any]], max_rows: int = 10) -> list[dict[str, Any]]:
+    """Return compact backtest result rows for preview."""
+    fields = [
+        "ticker",
+        "timeframe",
+        "outcome",
+        "realized_R",
+        "bars_to_hit",
+        "tie_break_policy",
+        "horizon_bars",
+        "backtest_success",
+        "outcome_error",
+    ]
+    return [{field: row.get(field) for field in fields} for row in rows[:max_rows] if isinstance(row, dict)]
+
+
 def _render_backtest_candidate_snapshot_section(result: dict[str, Any] | None) -> None:
     """Render save controls for the selected Strategy Ranking candidate snapshot."""
     st.markdown("#### Backtest Candidate Snapshot")
@@ -1756,6 +1841,145 @@ def _render_backtest_candidate_snapshot_section(result: dict[str, Any] | None) -
                 st.write(f"- {error}")
 
 
+def _render_backtest_outcome_evaluation_section(result: dict[str, Any] | None) -> None:
+    """Render deterministic backtest outcome evaluation controls."""
+    st.markdown("#### Backtest Outcome Evaluation")
+    st.caption(
+        "Evaluate saved Backtest Candidate Snapshot CSV artifacts against their referenced OHLC source CSVs. "
+        "This is a deterministic research/calibration step and does not create a trade signal."
+    )
+    st.info(
+        "Uses frozen candidate levels. Does not recompute Strategy Ranking, run Monte Carlo, or optimize "
+        "parameters. Same-bar ambiguity follows the selected tie-break policy."
+    )
+
+    report_dir = _report_dir_for_backtest_snapshot(result)
+    if not report_dir:
+        st.warning("No report folder is available for backtest outcome evaluation.")
+        return
+
+    artifacts = _backtest_candidate_csv_artifacts(report_dir)
+    if not artifacts:
+        st.info("No backtest candidate snapshot CSV artifacts were found. Save a Backtest Candidate Snapshot first.")
+        return
+
+    artifact_options = [str(artifact.get("path") or "") for artifact in artifacts]
+    artifact_by_path = {str(artifact.get("path") or ""): artifact for artifact in artifacts}
+    default_path = artifact_options[_default_backtest_candidate_csv_index(artifacts)]
+    if st.session_state.get("backtest_outcome_candidate_csv") not in artifact_options:
+        st.session_state["backtest_outcome_candidate_csv"] = default_path
+
+    selected_path = st.selectbox(
+        "Backtest Candidate Snapshot CSV",
+        options=artifact_options,
+        format_func=lambda path: (
+            f"{artifact_by_path[path].get('name') or Path(path).name}"
+            f" | {artifact_by_path[path].get('modified', '')}"
+        ),
+        key="backtest_outcome_candidate_csv",
+    )
+    st.caption(f"Selected candidate snapshot: `{selected_path}`")
+    st.caption("Expected output artifact kind: `backtest_results_csv`")
+
+    read_result = read_candidate_snapshot_csv(selected_path)
+    if read_result.get("success"):
+        rows = read_result.get("rows") or []
+        st.write(f"Candidate rows: `{read_result.get('count', len(rows))}`")
+        preview_rows = _backtest_candidate_preview_rows(rows)
+        if preview_rows:
+            st.dataframe(_safe_dataframe_rows(preview_rows), use_container_width=True, hide_index=True)
+    else:
+        st.error("Could not read the selected candidate snapshot CSV.")
+        for error in read_result.get("errors") or []:
+            st.write(f"- {error}")
+
+    control_col1, control_col2, control_col3 = st.columns(3)
+    with control_col1:
+        horizon_bars = st.number_input(
+            "Horizon bars",
+            min_value=1,
+            max_value=500,
+            value=20,
+            step=1,
+            key="backtest_outcome_horizon_bars",
+        )
+    with control_col2:
+        tie_break_policy = st.selectbox(
+            "Tie-break policy",
+            options=["conservative", "optimistic", "open_proximity", "unknown"],
+            index=0,
+            key="backtest_outcome_tie_break_policy",
+        )
+    with control_col3:
+        write_invalid_rows = st.checkbox(
+            "Write invalid rows",
+            value=True,
+            key="backtest_outcome_write_invalid_rows",
+            help="When enabled, invalid/incomplete candidate snapshots are preserved as INVALID rows for audit.",
+        )
+
+    evaluation_result = None
+    if st.button("Evaluate Backtest Outcomes"):
+        try:
+            evaluation_result = evaluate_candidate_snapshot_csv_to_results_csv(
+                selected_path,
+                output_dir=report_dir,
+                horizon_bars=int(horizon_bars),
+                tie_break_policy=tie_break_policy,
+                write_invalid_rows=write_invalid_rows,
+            )
+        except Exception as exc:
+            evaluation_result = {
+                "success": False,
+                "path": None,
+                "filename": None,
+                "evaluation": {},
+                "write_result": None,
+                "errors": [f"{type(exc).__name__}: {exc}"],
+                "warnings": [],
+            }
+        st.session_state["latest_backtest_outcome_evaluation"] = evaluation_result
+        st.session_state["latest_backtest_results_csv"] = {
+            "path": evaluation_result.get("path"),
+            "filename": evaluation_result.get("filename"),
+        }
+
+    if evaluation_result is None:
+        latest_evaluation = st.session_state.get("latest_backtest_outcome_evaluation")
+        if (
+            isinstance(latest_evaluation, dict)
+            and str(latest_evaluation.get("candidates_csv_path") or "") == selected_path
+        ):
+            evaluation_result = latest_evaluation
+
+    if isinstance(evaluation_result, dict):
+        if evaluation_result.get("success"):
+            st.success(f"Saved backtest outcome results: `{evaluation_result.get('path')}`")
+            st.caption("Saved file appears in Generated Artifacts as backtest_results_csv.")
+            st.caption("Refresh or revisit Generated Artifacts to see the new backtest_results_csv file.")
+        elif evaluation_result:
+            st.error("Backtest outcome evaluation did not produce a result CSV.")
+
+        st.dataframe(
+            _safe_dataframe_rows(_backtest_outcome_summary_rows(evaluation_result)),
+            use_container_width=True,
+            hide_index=True,
+        )
+        errors = evaluation_result.get("errors") or []
+        warnings = evaluation_result.get("warnings") or []
+        if errors:
+            st.warning("Errors: " + "; ".join(str(error) for error in errors))
+        if warnings:
+            st.info("Warnings: " + "; ".join(str(warning) for warning in warnings))
+
+        evaluation = evaluation_result.get("evaluation") if isinstance(evaluation_result.get("evaluation"), dict) else {}
+        result_rows = evaluation.get("result_rows") or []
+        preview_rows = _backtest_result_preview_rows(result_rows)
+        if preview_rows:
+            with st.expander("Backtest result row preview"):
+                st.dataframe(_safe_dataframe_rows(preview_rows), use_container_width=True, hide_index=True)
+
+
 def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dict[str, Any] | None = None) -> None:
     """Render strategy ranking output."""
     if not strategy_result:
@@ -1805,6 +2029,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
         )
     st.json(selected_candidate)
     _render_backtest_candidate_snapshot_section(result)
+    _render_backtest_outcome_evaluation_section(result)
 
     if st.button("Use selected candidate in Monte Carlo"):
         trade_plan = _trade_plan_from_strategy_candidate(selected_candidate)
@@ -4023,6 +4248,10 @@ def main() -> None:
         st.session_state.latest_backtest_candidate_snapshot = None
     if "latest_backtest_candidate_csv" not in st.session_state:
         st.session_state.latest_backtest_candidate_csv = None
+    if "latest_backtest_outcome_evaluation" not in st.session_state:
+        st.session_state.latest_backtest_outcome_evaluation = None
+    if "latest_backtest_results_csv" not in st.session_state:
+        st.session_state.latest_backtest_results_csv = None
 
     with st.sidebar:
         st.header("Analysis")

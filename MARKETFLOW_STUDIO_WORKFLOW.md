@@ -147,7 +147,9 @@ Generated Artifacts classifies saved `*_backtest_results*.csv` files as `backtes
 
 A service-only backtest outcome evaluation path exists for saved candidate snapshot CSVs. It can produce `*_backtest_results.csv`, but it is not wired into Studio yet.
 
-A Studio Backtest Outcome Evaluation UI plan exists at `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`. The service exists, but the Studio control is not implemented yet.
+A Studio Backtest Outcome Evaluation UI plan exists at `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`.
+
+Studio includes a Backtest Outcome Evaluation section on the Strategy Ranking page. It evaluates saved `backtest_candidates_csv` artifacts and writes `backtest_results_csv` artifacts. This remains research/calibration only and does not run Monte Carlo or create trade recommendations.
 
 ## Repository Cleanup Plan
 

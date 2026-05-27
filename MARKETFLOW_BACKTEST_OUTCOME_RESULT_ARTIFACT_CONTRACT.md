@@ -378,6 +378,8 @@ Evaluation service status: `marketflow/services/backtest_result_service.py` can 
 
 Studio UI planning status: `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md` defines the future Studio control for evaluating saved candidate snapshots into `*_backtest_results.csv`.
 
+Studio integration status: implemented on the Strategy Ranking page as a deterministic Backtest Outcome Evaluation section.
+
 ## 16. Artifact Browser Integration
 
 Implemented `artifact_service.py` classification:

@@ -360,6 +360,8 @@ Backtest outcome evaluation service status: implemented service-only candidate s
 
 Studio Backtest Outcome Evaluation UI plan created at `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`.
 
+Studio Backtest Outcome Evaluation status: implemented as a Strategy Ranking page section for saved candidate snapshot CSVs.
+
 - Extract candidates from Strategy Ranking output or annotated CSV/report context.
 - Save candidate snapshot CSV.
 

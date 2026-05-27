@@ -15,7 +15,9 @@ Implemented baseline:
 - `marketflow/services/backtest_result_artifact_service.py` writes `*_backtest_results.csv`.
 - `*_backtest_results*.csv` files are classified as `backtest_results_csv`.
 - `marketflow/services/backtest_result_service.py` evaluates saved candidate snapshot CSVs into result CSVs.
-- No Studio UI exists yet for running the outcome evaluation service.
+- Studio now includes a `Backtest Outcome Evaluation` section for running the outcome evaluation service.
+
+Implementation status: Studio now includes a `Backtest Outcome Evaluation` section on the Strategy Ranking page. It evaluates saved `backtest_candidates_csv` artifacts through `evaluate_candidate_snapshot_csv_to_results_csv(...)` and writes `backtest_results_csv` artifacts.
 
 ## 3. Proposed Studio Location
 
@@ -223,4 +225,4 @@ git diff --check
 Next recommended task:
 Implement the Studio Backtest Outcome Evaluation section on the Strategy Ranking page using `evaluate_candidate_snapshot_csv_to_results_csv(...)`.
 
-Status: Studio backtest outcome evaluation UI planning checkpoint only.
+Status: Studio backtest outcome evaluation UI implemented on the Strategy Ranking page.
