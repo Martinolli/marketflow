@@ -326,6 +326,14 @@ Known remaining active-test issue:
 
 - `tests/test_llm_interface.py` is no longer a collection blocker, but 5 tests fail because expected legacy behavior differs from current script behavior. This should be handled in a separate active-test reconciliation task, not by quarantining the test silently.
 
+## C2.2 LLM Interface Test Reconciliation Status
+
+`tests/test_llm_interface.py` was reconciled with the current `scripts.marketflow_analysis_llm_interface` behavior. The test is now treated as an active script-behavior test, not a deprecated collection blocker.
+
+- `python -m pytest tests\test_llm_interface.py -q`: passed, 16 tests.
+- Updated stale expectations around `safe_json_dump`, falsey/exception LLM results, current output filename format, and serialization fallback behavior.
+- Added direct tests for `safe_json_dump` and `CustomJSONEncoder`.
+
 ```text
 Status: test collection stabilization planning checkpoint only.
 ```

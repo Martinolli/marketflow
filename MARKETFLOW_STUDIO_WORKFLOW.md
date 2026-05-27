@@ -149,6 +149,8 @@ A test collection stabilization plan exists at `MARKETFLOW_TEST_COLLECTION_STABI
 
 Phase C2.1 revalidated pytest collection and quarantined deprecated backup test-like collection blockers without deleting prototype code.
 
+The LLM interface script test was reconciled with current script behavior and is no longer treated as a collection blocker.
+
 ## GARCH
 
 GARCH requires optional package `arch`.

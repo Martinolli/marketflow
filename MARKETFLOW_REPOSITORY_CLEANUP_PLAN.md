@@ -278,6 +278,8 @@ Phase C2 status: test collection stabilization plan created at `MARKETFLOW_TEST_
 
 Phase C2.1 status: pytest collection was revalidated and clearly deprecated backup collection blockers were quarantined by preserving contents under non-pytest-collectable names.
 
+Phase C2.2 status: `tests/test_llm_interface.py` was revalidated and reconciled with current script behavior instead of being quarantined.
+
 ### Phase C3 - Quarantine deprecated tests
 
 Move or rename only clearly deprecated tests so full pytest collection stops failing for deprecated/prototype areas.

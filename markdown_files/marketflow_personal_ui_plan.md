@@ -151,6 +151,7 @@ streamlit run apps/marketflow_studio.py
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented
+* LLM interface test reconciliation — implemented
 * Next planned milestone: PR review / merge to main
 
 ---
