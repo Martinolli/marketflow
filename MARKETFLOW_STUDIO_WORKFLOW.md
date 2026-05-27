@@ -147,6 +147,8 @@ Generated Artifacts classifies saved `*_backtest_results*.csv` files as `backtes
 
 A service-only backtest outcome evaluation path exists for saved candidate snapshot CSVs. It can produce `*_backtest_results.csv`, but it is not wired into Studio yet.
 
+A Studio Backtest Outcome Evaluation UI plan exists at `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`. The service exists, but the Studio control is not implemented yet.
+
 ## Repository Cleanup Plan
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.

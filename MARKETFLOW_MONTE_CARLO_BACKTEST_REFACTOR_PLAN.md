@@ -358,6 +358,8 @@ Backtest Outcome Result CSV writer status: implemented service-level filename ge
 
 Backtest outcome evaluation service status: implemented service-only candidate snapshot CSV evaluation to `*_backtest_results.csv`.
 
+Studio Backtest Outcome Evaluation UI plan created at `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`.
+
 - Extract candidates from Strategy Ranking output or annotated CSV/report context.
 - Save candidate snapshot CSV.
 

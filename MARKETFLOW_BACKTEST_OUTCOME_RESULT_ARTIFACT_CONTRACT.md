@@ -376,6 +376,8 @@ evaluate_candidate_snapshot_csv_to_results_csv(
 
 Evaluation service status: `marketflow/services/backtest_result_service.py` can read saved candidate snapshot CSVs, evaluate deterministic outcomes with the existing outcome service, and write `*_backtest_results.csv` artifacts. Studio integration and calibration remain future work.
 
+Studio UI planning status: `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md` defines the future Studio control for evaluating saved candidate snapshots into `*_backtest_results.csv`.
+
 ## 16. Artifact Browser Integration
 
 Implemented `artifact_service.py` classification:
