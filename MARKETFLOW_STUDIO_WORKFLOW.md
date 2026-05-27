@@ -139,7 +139,9 @@ Generated Artifacts classifies saved `*_backtest_candidates*.csv` files as `back
 
 Studio can save the selected Strategy Ranking candidate as a Backtest Candidate Snapshot CSV artifact. This writes `*_backtest_candidates*.csv` to the report folder and Generated Artifacts classifies it as `backtest_candidates_csv`. This is calibration/audit only and does not run a backtest.
 
-A Backtest Outcome Result CSV artifact contract exists at `MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`. It defines the future `*_backtest_results.csv` format before result writing is implemented.
+A Backtest Outcome Result CSV artifact contract exists at `MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`. It defines the `*_backtest_results.csv` format used by the service-level writer.
+
+A Backtest Outcome Result CSV writer service exists for future `*_backtest_results.csv` artifacts. It is not wired into Studio yet and does not run outcome evaluation by itself.
 
 ## Repository Cleanup Plan
 

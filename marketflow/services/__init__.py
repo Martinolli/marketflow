@@ -7,6 +7,7 @@ __all__ = [
     "analyst_prompt_service",
     "artifact_service",
     "backtest_candidate_artifact_service",
+    "backtest_result_artifact_service",
     "backtest_candidate_service",
     "backtest_service",
     "batch_service",
@@ -15,9 +16,12 @@ __all__ = [
     "report_index",
     "strategy_service",
     "BACKTEST_CANDIDATE_COLUMNS",
+    "BACKTEST_RESULT_COLUMNS",
     "build_backtest_candidates_filename",
+    "build_backtest_results_filename",
     "build_candidate_snapshot_from_strategy_candidate",
     "candidate_snapshot_row",
+    "backtest_result_row",
     "candidate_snapshot_dict_to_dataclass",
     "candidate_snapshot_to_dict",
     "evaluate_backtest_candidate",
@@ -28,6 +32,8 @@ __all__ = [
     "validate_candidate_snapshot",
     "write_backtest_candidate_csv",
     "write_backtest_candidates_csv",
+    "write_backtest_result_csv",
+    "write_backtest_results_csv",
 ]
 
 from marketflow.services.backtest_candidate_artifact_service import (
@@ -36,6 +42,13 @@ from marketflow.services.backtest_candidate_artifact_service import (
     candidate_snapshot_row,
     write_backtest_candidate_csv,
     write_backtest_candidates_csv,
+)
+from marketflow.services.backtest_result_artifact_service import (
+    BACKTEST_RESULT_COLUMNS,
+    backtest_result_row,
+    build_backtest_results_filename,
+    write_backtest_result_csv,
+    write_backtest_results_csv,
 )
 from marketflow.services.backtest_candidate_service import (
     build_candidate_snapshot_from_strategy_candidate,

@@ -16,7 +16,7 @@ Current implemented backtest pieces:
 - the outcome engine can evaluate one candidate against OHLC data
 - the backtest service wrapper returns JSON-safe outcome dictionaries
 
-There is no outcome result artifact writer yet, no `backtest_results_csv` classification, no calibration summary, and no Backtest Lab UI.
+The outcome result artifact writer now exists. There is no `backtest_results_csv` classification yet, no calibration summary, and no Backtest Lab UI.
 
 ## 3. Artifact Name
 
@@ -274,15 +274,15 @@ Rules:
 - future window starts after signal row
 - no future rows before signal row may be used to create snapshot fields
 
-## 14. Proposed Writer Service
+## 14. Writer Service
 
-Future file:
+Implemented file:
 
 ```text
 marketflow/services/backtest_result_artifact_service.py
 ```
 
-Planned functions:
+Implemented functions:
 
 ```python
 build_backtest_results_filename(
@@ -306,6 +306,16 @@ write_backtest_results_csv(
     *,
     ticker: str | None = None,
     timeframe: str | None = None,
+    timestamp: str | None = None,
+) -> dict[str, Any]
+
+write_backtest_result_csv(
+    result_row: dict[str, Any],
+    output_dir: str | Path,
+    *,
+    ticker: str | None = None,
+    timeframe: str | None = None,
+    timestamp: str | None = None,
 ) -> dict[str, Any]
 ```
 
@@ -324,7 +334,7 @@ Return shape:
 }
 ```
 
-Do not implement this service as part of this contract checkpoint.
+Implementation status: `marketflow/services/backtest_result_artifact_service.py` now implements filename generation, result row conversion, and CSV writing. Studio integration, result evaluation service, artifact classification, and calibration remain future work.
 
 ## 15. Proposed Evaluation Service
 
@@ -430,6 +440,6 @@ Future tests should cover:
 ## 21. Recommended Next Implementation Task
 
 Next recommended task:
-Implement `marketflow/services/backtest_result_artifact_service.py` for filename generation, result row conversion, and CSV writing, with tests. No Studio UI yet.
+Wire result evaluation and artifact classification in a future checkpoint. No Studio UI yet.
 
-Status: outcome result artifact contract planning checkpoint only.
+Status: outcome result artifact contract implemented at the writer-service layer only.
