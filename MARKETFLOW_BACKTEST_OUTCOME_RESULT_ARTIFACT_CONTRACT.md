@@ -16,7 +16,7 @@ Current implemented backtest pieces:
 - the outcome engine can evaluate one candidate against OHLC data
 - the backtest service wrapper returns JSON-safe outcome dictionaries
 
-The outcome result artifact writer now exists. There is no `backtest_results_csv` classification yet, no calibration summary, and no Backtest Lab UI.
+The outcome result artifact writer now exists. There is no calibration summary and no Backtest Lab UI.
 
 ## 3. Artifact Name
 
@@ -54,7 +54,7 @@ Future artifact kind:
 backtest_results_csv
 ```
 
-This should later be added to `marketflow/services/artifact_service.py`. Classification is not implemented in this planning checkpoint.
+Artifact classification status: `*_backtest_results*.csv` files are classified as `backtest_results_csv` in Generated Artifacts.
 
 ## 5. Input Sources
 
@@ -366,7 +366,7 @@ This should be implemented after the artifact contract is stable.
 
 ## 16. Artifact Browser Integration
 
-Future `artifact_service.py` classification:
+Implemented `artifact_service.py` classification:
 
 ```text
 *_backtest_results*.csv
@@ -383,7 +383,7 @@ Preview and download:
 - CSV preview can use existing CSV/artifact preview behavior if present
 - download-only is acceptable initially
 
-Do not implement artifact browser integration in this checkpoint.
+Generated Artifacts classification is implemented. Studio result evaluation and CSV preview changes remain future work.
 
 ## 17. Studio Integration Later
 

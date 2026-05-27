@@ -48,6 +48,8 @@ def _classify_artifact(path: Path) -> str:
         return "price_volume_eigen_csv"
     if suffix == ".csv" and "_backtest_candidates" in name:
         return "backtest_candidates_csv"
+    if suffix == ".csv" and "_backtest_results" in name:
+        return "backtest_results_csv"
     if suffix == ".csv" and name.endswith("_wyckoff_annotated.csv"):
         return "csv_annotated"
     if suffix == ".csv":

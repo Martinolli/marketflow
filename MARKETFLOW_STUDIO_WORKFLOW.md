@@ -143,6 +143,8 @@ A Backtest Outcome Result CSV artifact contract exists at `MARKETFLOW_BACKTEST_O
 
 A Backtest Outcome Result CSV writer service exists for future `*_backtest_results.csv` artifacts. It is not wired into Studio yet and does not run outcome evaluation by itself.
 
+Generated Artifacts classifies saved `*_backtest_results*.csv` files as `backtest_results_csv`.
+
 ## Repository Cleanup Plan
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.
