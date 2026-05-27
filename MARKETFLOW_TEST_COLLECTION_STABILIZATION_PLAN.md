@@ -348,6 +348,8 @@ Changes made:
 - `tests/test_wyckoff_phases.py` now uses deterministic synthetic OHLCV bars instead of random noise. The assertions target current supported detector behavior: expected event categories, A/D phase output, and accumulation/distribution trading-range context.
 - No production code was changed.
 
+Testing baseline checkpoint recorded at `MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md`.
+
 ```text
 Status: test collection stabilization planning checkpoint only.
 ```

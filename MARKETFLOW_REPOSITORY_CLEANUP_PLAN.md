@@ -282,6 +282,8 @@ Phase C2.2 status: `tests/test_llm_interface.py` was revalidated and reconciled 
 
 Phase C2.3 status: remaining active pytest failures were triaged separately from deprecated/prototype cleanup.
 
+Testing baseline checkpoint recorded at `MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md` after full pytest passed with skips/warnings only.
+
 ### Phase C3 - Quarantine deprecated tests
 
 Move or rename only clearly deprecated tests so full pytest collection stops failing for deprecated/prototype areas.

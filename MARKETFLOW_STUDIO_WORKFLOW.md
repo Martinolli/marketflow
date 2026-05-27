@@ -153,6 +153,8 @@ The LLM interface script test was reconciled with current script behavior and is
 
 Remaining active pytest failures were reconciled separately from deprecated/prototype cleanup.
 
+A testing baseline checkpoint exists at `MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md`. At that checkpoint, full pytest passed with `129 passed, 2 skipped, 26 warnings`.
+
 ## GARCH
 
 GARCH requires optional package `arch`.
