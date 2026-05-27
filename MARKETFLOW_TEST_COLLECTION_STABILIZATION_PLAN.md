@@ -334,6 +334,20 @@ Known remaining active-test issue:
 - Updated stale expectations around `safe_json_dump`, falsey/exception LLM results, current output filename format, and serialization fallback behavior.
 - Added direct tests for `safe_json_dump` and `CustomJSONEncoder`.
 
+## C2.3 Active Test Failure Reconciliation Status
+
+The remaining active pytest failures were triaged after collection stabilization:
+
+- `tests/test_data_provider.py::test_polygon_provider_get_data_success`
+- `tests/test_wyckoff_phases.py::test_accumulation_phases`
+- `tests/test_wyckoff_phases.py::test_distribution_phases`
+
+Changes made:
+
+- `tests/test_data_provider.py` now wires the dummy Polygon client into both `provider.client` and `provider.async_client`, matching the current provider fetch path.
+- `tests/test_wyckoff_phases.py` now uses deterministic synthetic OHLCV bars instead of random noise. The assertions target current supported detector behavior: expected event categories, A/D phase output, and accumulation/distribution trading-range context.
+- No production code was changed.
+
 ```text
 Status: test collection stabilization planning checkpoint only.
 ```

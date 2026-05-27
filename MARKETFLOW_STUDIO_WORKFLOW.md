@@ -151,6 +151,8 @@ Phase C2.1 revalidated pytest collection and quarantined deprecated backup test-
 
 The LLM interface script test was reconciled with current script behavior and is no longer treated as a collection blocker.
 
+Remaining active pytest failures were reconciled separately from deprecated/prototype cleanup.
+
 ## GARCH
 
 GARCH requires optional package `arch`.

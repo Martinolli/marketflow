@@ -47,7 +47,9 @@ def mock_provider(monkeypatch):
     provider = PolygonIOProvider()
     logger.info("Creating PolygonIOProvider instance for testing.")
     # Now, assign our specific dummy client for testing the get_data method.
-    provider.client = DummyClient()
+    dummy_client = DummyClient()
+    provider.client = dummy_client
+    provider.async_client = dummy_client
     logger.info("Assigning DummyClient to PolygonIOProvider instance.")
     # Ensure the provider is ready for testing
     assert isinstance(provider, PolygonIOProvider), "Provider should be an instance of PolygonIOProvider"

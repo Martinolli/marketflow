@@ -152,6 +152,7 @@ streamlit run apps/marketflow_studio.py
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented
 * LLM interface test reconciliation — implemented
+* Active pytest failure reconciliation — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

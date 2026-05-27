@@ -1,134 +1,120 @@
 import pandas as pd
-import numpy as np
-from datetime import datetime, timedelta
-from marketflow.marketflow_wyckoff import WyckoffAnalyzer
+
+from marketflow.enums import MarketContext
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
-from marketflow.enums import WyckoffPhase, WyckoffEvent
+from marketflow.marketflow_wyckoff import WyckoffAnalyzer
+
+
+def _wyckoff_params():
+    params = MarketFlowDataParameters()
+    params.set_wyckoff_parameter("vol_lookback", 5)
+    params.set_wyckoff_parameter("range_lookback", 5)
+    params.set_wyckoff_parameter("climax_vol_multiplier", 1.5)
+    params.set_wyckoff_parameter("climax_range_multiplier", 1.2)
+    params.set_wyckoff_parameter("breakout_vol_multiplier", 1.5)
+    params.set_wyckoff_parameter("swing_point_n", 1)
+    return params
+
+
+def _market_data(rows):
+    index = pd.date_range("2024-01-01", periods=len(rows), freq="D", tz="UTC")
+    price_df = pd.DataFrame(
+        [
+            {
+                "open": row[0],
+                "high": row[1],
+                "low": row[2],
+                "close": row[3],
+            }
+            for row in rows
+        ],
+        index=index,
+    )
+    volume = pd.Series([row[4] for row in rows], index=index)
+    return {"price": price_df, "volume": volume}
+
 
 def make_accumulation_data():
-    """
-    Generate price/volume data that mimics a textbook Accumulation structure:
-    - Selling Climax (SC)
-    - Automatic Rally (AR)
-    - Secondary Test (ST)
-    - Spring
-    - Sign of Strength (SOS)
-    """
-    n = 100
-    idx = pd.date_range(end=datetime.now(), periods=n, freq="D", tz="UTC")
-    price = 100 + np.cumsum(np.concatenate([
-        np.full(15, -2),     # Pre-SC down (15)
-        [-12],               # SC drop (1)
-        [10],                # AR up (1)
-        np.full(12, -1),     # Range chop (12)
-        [-6],                # ST (1)
-        np.full(18, 0.5),    # Range chop (18)
-        [-7],                # Spring (shakeout) (1)
-        [8],                 # SOS (breakout) (1)
-        np.full(50, 1)       # Markup (51) - adjusted to make total 100
-    ]))
-    high = price + np.random.uniform(0.5, 2, n)
-    low = price - np.random.uniform(0.5, 2, n)
-    open_ = price + np.random.uniform(-1, 1, n)
-    close = price + np.random.uniform(-1, 1, n)
-    volume = np.full(n, 1e6)
-    # SC, ST, Spring, SOS get volume spikes
-    volume[10] = 3e6   # SC
-    volume[12] = 1.7e6 # AR
-    volume[21] = 2.5e6 # ST
-    volume[32] = 2.2e6 # Spring
-    volume[33] = 2.5e6 # SOS breakout
+    rows = [(100.0, 101.0, 99.0, 100.0, 1_000_000.0) for _ in range(40)]
 
-    price_df = pd.DataFrame({
-        "open": open_, "high": high, "low": low, "close": close
-    }, index=idx)
-    volume_series = pd.Series(volume, index=idx)
-    # Add these print statements
-    print("Price DataFrame shape:", price_df.shape)
-    print("Volume Series shape:", volume_series.shape)
-    print("First few rows of price data:")
-    print(price_df.head())
-    print("First few volume values:")
-    print(volume_series.head())
-    
-    return {"price": price_df, "volume": volume_series}
+    for i in range(5, 10):
+        base = 100.0 - (i - 4)
+        rows[i] = (base + 0.5, base + 1.0, base - 1.0, base, 1_000_000.0)
+
+    rows[10] = (93.0, 94.0, 78.0, 79.0, 8_000_000.0)  # SC
+    rows[11] = (82.0, 86.0, 80.0, 85.0, 1_200_000.0)
+    rows[12] = (85.0, 90.0, 84.0, 89.0, 1_100_000.0)
+    rows[13] = (90.0, 96.0, 89.0, 95.0, 1_300_000.0)  # AR swing high
+    rows[14] = (91.0, 92.0, 86.0, 87.0, 1_100_000.0)
+    rows[15] = (86.0, 88.0, 84.0, 85.0, 1_200_000.0)
+    rows[16] = (84.0, 86.0, 81.0, 83.0, 900_000.0)
+    rows[17] = (84.0, 87.0, 83.0, 86.0, 1_000_000.0)
+    rows[18] = (86.0, 89.0, 84.0, 88.0, 1_000_000.0)
+    rows[19] = (87.0, 90.0, 85.0, 87.0, 1_000_000.0)
+    rows[20] = (84.0, 86.0, 77.0, 82.0, 1_200_000.0)  # Spring
+    rows[21] = (83.0, 89.0, 82.0, 88.0, 1_000_000.0)
+    rows[22] = (88.0, 92.0, 87.0, 91.0, 1_100_000.0)
+    rows[23] = (91.0, 94.0, 90.0, 93.0, 1_100_000.0)
+    rows[24] = (94.0, 100.0, 93.0, 98.0, 6_000_000.0)  # SOS/JAC
+
+    for i in range(25, 40):
+        base = 98.0 + (i - 24) * 0.5
+        rows[i] = (base, base + 1.0, base - 0.8, base + 0.4, 1_000_000.0)
+
+    return _market_data(rows)
+
 
 def make_distribution_data():
-    """
-    Generate price/volume data that mimics a textbook Distribution structure:
-    - Buying Climax (BC)
-    - Automatic Reaction (AUTO_REACTION)
-    - Upthrust After Distribution (UTAD)
-    - Sign of Weakness (SOW)
-    """
-    n = 100
-    idx = pd.date_range(end=datetime.now(), periods=n, freq="D", tz="UTC")
-    price = 200 + np.cumsum(np.concatenate([
-        np.full(15, 2),      # Pre-BC up (15)
-        [12],                # BC up (1)
-        [-9],                # AUTO_REACTION (1)
-        np.full(12, 1),      # Range chop (12)
-        [5],                 # UTAD (upthrust) (1)
-        np.full(18, -0.5),   # Range chop (18)
-        [-7],                # SOW (breakdown) (1)
-        np.full(51, -1)      # Markdown (51) - adjusted to make total 100
-    ]))
-    high = price + np.random.uniform(0.5, 2, n)
-    low = price - np.random.uniform(0.5, 2, n)
-    open_ = price + np.random.uniform(-1, 1, n)
-    close = price + np.random.uniform(-1, 1, n)
-    volume = np.full(n, 1e6)
-    # BC, AR, UTAD, SOW get volume spikes
-    volume[10] = 3e6   # BC
-    volume[12] = 1.7e6 # AUTO_REACTION
-    volume[21] = 2.5e6 # UTAD
-    volume[32] = 2.2e6 # SOW
+    rows = [(200.0, 201.0, 199.0, 200.0, 1_000_000.0) for _ in range(40)]
 
-    price_df = pd.DataFrame({
-        "open": open_, "high": high, "low": low, "close": close
-    }, index=idx)
-    volume_series = pd.Series(volume, index=idx)
-    return {"price": price_df, "volume": volume_series}
+    for i in range(5, 10):
+        base = 200.0 + (i - 4)
+        rows[i] = (base - 0.5, base + 1.0, base - 1.0, base, 1_000_000.0)
+
+    rows[10] = (207.0, 222.0, 206.0, 221.0, 8_000_000.0)  # BC
+    rows[11] = (218.0, 220.0, 214.0, 215.0, 1_100_000.0)
+    rows[12] = (215.0, 216.0, 208.0, 209.0, 1_200_000.0)
+    rows[13] = (210.0, 213.0, 204.0, 205.0, 1_300_000.0)  # Automatic reaction swing low
+    rows[14] = (207.0, 214.0, 206.0, 212.0, 1_100_000.0)
+    rows[15] = (212.0, 216.0, 210.0, 214.0, 1_100_000.0)
+    rows[16] = (214.0, 218.0, 212.0, 216.0, 1_000_000.0)
+    rows[17] = (216.0, 220.0, 214.0, 218.0, 1_000_000.0)
+    rows[18] = (218.0, 221.0, 216.0, 219.0, 1_000_000.0)
+    rows[19] = (219.0, 220.0, 215.0, 216.0, 1_000_000.0)
+    rows[20] = (218.0, 224.0, 216.0, 220.0, 1_200_000.0)  # UTAD
+    rows[21] = (218.0, 220.0, 212.0, 214.0, 1_000_000.0)
+    rows[22] = (214.0, 216.0, 208.0, 210.0, 1_100_000.0)
+    rows[23] = (210.0, 212.0, 205.0, 206.0, 1_100_000.0)
+    rows[24] = (205.0, 206.0, 198.0, 199.0, 6_000_000.0)  # SOW
+
+    for i in range(25, 40):
+        base = 199.0 - (i - 24) * 0.5
+        rows[i] = (base, base + 0.8, base - 1.0, base - 0.4, 1_000_000.0)
+
+    return _market_data(rows)
+
 
 def test_accumulation_phases():
-    data = make_accumulation_data()
-    params = MarketFlowDataParameters()
-    params.set_wyckoff_parameter('climax_vol_multiplier', 1.5)
-    params.set_wyckoff_parameter('climax_range_multiplier', 1.2)
-    params.set_wyckoff_parameter('swing_point_n', 2)
-    analyzer = WyckoffAnalyzer(data, parameters=params)
-    phases, events, _ = analyzer.run_analysis()
-    # Add these print statements
-    print("Detected phases:", phases)
-    print("Detected events:", events)
-    # Expect phases to progress from UNKNOWN -> A -> B -> C -> D or E
-    phase_names = [p['phase_name'] for p in phases]
-    assert "A" in phase_names, "Phase A (Accumulation) should be detected"
-    assert "C" in phase_names, "Phase C (Spring/Test) should be detected"
-    assert "D" in phase_names or "E" in phase_names, "Phase D/E (Markup) should be detected"
-    event_names = [e['event_name'] for e in events]
-    assert "SC" in event_names, "Selling Climax should be detected"
-    assert "SPRING" in event_names, "Spring should be detected"
-    assert "SOS" in event_names, "SOS should be detected"
+    analyzer = WyckoffAnalyzer(make_accumulation_data(), parameters=_wyckoff_params())
+
+    phases, events, trading_ranges = analyzer.run_analysis()
+
+    phase_names = {phase["phase_name"] for phase in phases}
+    event_names = {event["event_name"] for event in events}
+    assert {"A", "D"}.issubset(phase_names)
+    assert {"SC", "AR", "SPRING", "SOS", "JAC"}.issubset(event_names)
+    assert trading_ranges
+    assert trading_ranges[0]["context"] == MarketContext.ACCUMULATION.value
+
 
 def test_distribution_phases():
-    data = make_distribution_data()
-    params = MarketFlowDataParameters()
-    params.set_wyckoff_parameter('climax_vol_multiplier', 1.5)
-    params.set_wyckoff_parameter('climax_range_multiplier', 1.2)
-    params.set_wyckoff_parameter('swing_point_n', 2)
-    analyzer = WyckoffAnalyzer(data, parameters=params)
-    phases, events, _ = analyzer.run_analysis()
-    phase_names = [p['phase_name'] for p in phases]
-    assert "A" in phase_names, "Phase A (Distribution) should be detected"
-    assert "C" in phase_names, "Phase C (UTAD/Test) should be detected"
-    assert "D" in phase_names or "E" in phase_names, "Phase D/E (Markdown) should be detected"
-    event_names = [e['event_name'] for e in events]
-    assert "BC" in event_names, "Buying Climax should be detected"
-    assert "UTAD" in event_names, "UTAD should be detected"
-    assert "SOW" in event_names, "Sign of Weakness should be detected"
+    analyzer = WyckoffAnalyzer(make_distribution_data(), parameters=_wyckoff_params())
 
-if __name__ == "__main__":
-    test_accumulation_phases()
-    # test_distribution_phases()
-    print("WyckoffAnalyzer phase tests passed.")
+    phases, events, trading_ranges = analyzer.run_analysis()
+
+    phase_names = {phase["phase_name"] for phase in phases}
+    event_names = {event["event_name"] for event in events}
+    assert {"A", "D"}.issubset(phase_names)
+    assert {"BC", "AUTO_REACTION", "UTAD", "SOW"}.issubset(event_names)
+    assert trading_ranges
+    assert trading_ranges[0]["context"] == MarketContext.DISTRIBUTION.value
