@@ -334,17 +334,17 @@ Return shape:
 }
 ```
 
-Implementation status: `marketflow/services/backtest_result_artifact_service.py` now implements filename generation, result row conversion, and CSV writing. Studio integration, result evaluation service, artifact classification, and calibration remain future work.
+Implementation status: `marketflow/services/backtest_result_artifact_service.py` now implements filename generation, result row conversion, and CSV writing. Studio integration and calibration remain future work.
 
-## 15. Proposed Evaluation Service
+## 15. Evaluation Service
 
-Future service or extension:
+Implemented service:
 
 ```text
 marketflow/services/backtest_result_service.py
 ```
 
-Possible functions:
+Implemented functions:
 
 ```python
 evaluate_candidate_snapshot_row(
@@ -360,9 +360,21 @@ evaluate_candidate_snapshot_csv(
     horizon_bars: int = 20,
     tie_break_policy: str = "conservative",
 ) -> dict[str, Any]
+
+evaluate_candidate_snapshot_csv_to_results_csv(
+    candidates_csv_path: str | Path,
+    output_dir: str | Path | None = None,
+    *,
+    horizon_bars: int = 20,
+    tie_break_policy: str = "conservative",
+    write_invalid_rows: bool = True,
+    ticker: str | None = None,
+    timeframe: str | None = None,
+    timestamp: str | None = None,
+) -> dict[str, Any]
 ```
 
-This should be implemented after the artifact contract is stable.
+Evaluation service status: `marketflow/services/backtest_result_service.py` can read saved candidate snapshot CSVs, evaluate deterministic outcomes with the existing outcome service, and write `*_backtest_results.csv` artifacts. Studio integration and calibration remain future work.
 
 ## 16. Artifact Browser Integration
 
@@ -440,6 +452,6 @@ Future tests should cover:
 ## 21. Recommended Next Implementation Task
 
 Next recommended task:
-Wire result evaluation and artifact classification in a future checkpoint. No Studio UI yet.
+Wire service-only result evaluation into Studio in a future checkpoint. No Backtest Lab UI yet.
 
-Status: outcome result artifact contract implemented at the writer-service layer only.
+Status: outcome result artifact contract implemented at the writer and service-evaluation layer only.

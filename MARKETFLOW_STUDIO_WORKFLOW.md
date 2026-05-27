@@ -145,6 +145,8 @@ A Backtest Outcome Result CSV writer service exists for future `*_backtest_resul
 
 Generated Artifacts classifies saved `*_backtest_results*.csv` files as `backtest_results_csv`.
 
+A service-only backtest outcome evaluation path exists for saved candidate snapshot CSVs. It can produce `*_backtest_results.csv`, but it is not wired into Studio yet.
+
 ## Repository Cleanup Plan
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.

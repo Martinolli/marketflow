@@ -354,7 +354,9 @@ Studio save control status: selected Strategy Ranking candidates can be saved as
 
 Backtest Outcome Result CSV artifact contract created at `MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`.
 
-Backtest Outcome Result CSV writer status: implemented service-level filename generation, row conversion, and CSV writing. Studio integration and artifact classification remain future work.
+Backtest Outcome Result CSV writer status: implemented service-level filename generation, row conversion, and CSV writing. Generated Artifacts classification is implemented. Studio integration remains future work.
+
+Backtest outcome evaluation service status: implemented service-only candidate snapshot CSV evaluation to `*_backtest_results.csv`.
 
 - Extract candidates from Strategy Ranking output or annotated CSV/report context.
 - Save candidate snapshot CSV.
