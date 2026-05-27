@@ -276,6 +276,8 @@ Plan exact treatment for broken tests, optional dependency tests, missing fixtur
 
 Phase C2 status: test collection stabilization plan created at `MARKETFLOW_TEST_COLLECTION_STABILIZATION_PLAN.md`.
 
+Phase C2.1 status: pytest collection was revalidated and clearly deprecated backup collection blockers were quarantined by preserving contents under non-pytest-collectable names.
+
 ### Phase C3 - Quarantine deprecated tests
 
 Move or rename only clearly deprecated tests so full pytest collection stops failing for deprecated/prototype areas.

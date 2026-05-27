@@ -147,6 +147,8 @@ A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANU
 
 A test collection stabilization plan exists at `MARKETFLOW_TEST_COLLECTION_STABILIZATION_PLAN.md`. It defines how deprecated/broken tests will be handled before cleanup implementation.
 
+Phase C2.1 revalidated pytest collection and quarantined deprecated backup test-like collection blockers without deleting prototype code.
+
 ## GARCH
 
 GARCH requires optional package `arch`.

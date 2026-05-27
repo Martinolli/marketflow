@@ -150,6 +150,7 @@ streamlit run apps/marketflow_studio.py
 * Backtest Outcome Result CSV artifact contract — created
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
+* Test collection revalidation / deprecated backup test quarantine — implemented
 * Next planned milestone: PR review / merge to main
 
 ---

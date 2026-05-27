@@ -306,6 +306,26 @@ Next recommended task:
 Run pytest collection revalidation and then quarantine only clearly deprecated backup test-like files that fail collection, preserving them as manual/prototype scripts.
 ```
 
+## C2.1 Revalidation Status
+
+- `python -m pytest --collect-only -q`: passed after C2.1 cleanup; 129 tests collected.
+- `python -m pytest tests\test_llm_interface.py -q`: imports and runs after adding `scripts/__init__.py`, but has 5 assertion failures against current `scripts.marketflow_analysis_llm_interface` behavior.
+- Deprecated backup test-like files inspected: only `deprecated_backup/modules/plot_ohlc_test.py` and `deprecated_backup/modules/quick_connect_test.py` matched the deprecated backup test inventory.
+- Quarantine action taken: clearly deprecated backup collection blockers were renamed to non-pytest-collectable manual script names while preserving contents.
+
+Renamed deprecated backup collection blockers:
+
+- `deprecated_backup/modules/plot_ohlc_test.py` -> `deprecated_backup/modules/plot_ohlc_manual.py`
+- `deprecated_backup/modules/quick_connect_test.py` -> `deprecated_backup/modules/quick_connect_manual.py`
+
+Additional import-path stabilization:
+
+- Added `scripts/__init__.py` so repository scripts resolve before an installed third-party package named `scripts`. This made `tests/test_llm_interface.py` collect and run without changing the test or import statements.
+
+Known remaining active-test issue:
+
+- `tests/test_llm_interface.py` is no longer a collection blocker, but 5 tests fail because expected legacy behavior differs from current script behavior. This should be handled in a separate active-test reconciliation task, not by quarantining the test silently.
+
 ```text
 Status: test collection stabilization planning checkpoint only.
 ```
