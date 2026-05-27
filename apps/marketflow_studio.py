@@ -303,6 +303,43 @@ def _select_annotated_csv(
     )
 
 
+def _default_csv_for_timeframe(
+    csv_files: list[str],
+    timeframe: str | None,
+    *,
+    annotated_only: bool = False,
+) -> str | None:
+    """Return the first CSV matching a timeframe for initial selector defaults."""
+    if not timeframe:
+        return None
+
+    source_files = _wyckoff_annotated_csv_files(csv_files) if annotated_only else csv_files
+    for csv_path in source_files:
+        if infer_timeframe_from_csv_name(csv_path) == timeframe:
+            return csv_path
+    return None
+
+
+def _select_csv_with_default(
+    csv_files: list[str],
+    label: str,
+    key: str,
+    *,
+    default_csv: str | None = None,
+) -> str:
+    """Render a CSV selector that preserves its own selection across reruns."""
+    selected_csv = st.session_state.get(key)
+    if selected_csv not in csv_files:
+        st.session_state[key] = default_csv if default_csv in csv_files else csv_files[0]
+
+    return st.selectbox(
+        label,
+        options=csv_files,
+        format_func=lambda path: Path(path).name,
+        key=key,
+    )
+
+
 def _render_csv_file_context(csv_path: str) -> str | None:
     """Display selected CSV metadata shared by preview and chart tabs."""
     timeframe = infer_timeframe_from_csv_name(csv_path)
@@ -976,8 +1013,13 @@ def _render_charts(result: dict[str, Any] | None) -> None:
 
     csv_files = _annotated_csv_files_for_report(report_dir)
     chart_selected_csv: str | None = None
+    chart_timeframe: str | None = None
     if csv_files:
-        selected_csv = _select_annotated_csv(csv_files, "Chart CSV file", "chart_csv_file")
+        selected_csv = _select_csv_with_default(
+            csv_files,
+            "Chart CSV file",
+            "charts_main_timeframe",
+        )
         chart_selected_csv = selected_csv
         chart_rows = st.selectbox(
             "Chart rows",
@@ -986,7 +1028,7 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             key="chart_rows",
         )
 
-        timeframe = _render_csv_file_context(selected_csv)
+        chart_timeframe = _render_csv_file_context(selected_csv)
 
         dataframe = load_csv_for_chart(selected_csv, nrows=chart_rows)
         if dataframe is None:
@@ -994,8 +1036,8 @@ def _render_charts(result: dict[str, Any] | None) -> None:
         else:
             try:
                 title_parts = [Path(selected_csv).stem]
-                if timeframe:
-                    title_parts.append(timeframe)
+                if chart_timeframe:
+                    title_parts.append(chart_timeframe)
                 fig = build_basic_wyckoff_candlestick_chart(
                     dataframe,
                     title=" - ".join(title_parts),
@@ -1019,11 +1061,12 @@ def _render_charts(result: dict[str, Any] | None) -> None:
     if not csv_files:
         st.caption("Annotated CSV files are required before P&F sidecars can be generated.")
     else:
-        pnf_csv = st.selectbox(
+        pnf_default_csv = _default_csv_for_timeframe(csv_files, chart_timeframe, annotated_only=True)
+        pnf_csv = _select_csv_with_default(
+            csv_files,
             "P&F source CSV",
-            options=csv_files,
-            format_func=lambda path: Path(path).name,
-            key="pnf_generation_csv",
+            "pnf_selected_csv",
+            default_csv=pnf_default_csv,
         )
         row_choice = st.selectbox(
             "P&F row limit",
@@ -1077,6 +1120,7 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             )
         else:
             st.caption("No *_wyckoff_annotated.csv files are available for bulk P&F generation.")
+        st.caption(f"P&F selected source: `{Path(pnf_csv).name}`")
         generate_col1, generate_col2 = st.columns(2)
         generation_results: list[dict[str, Any]] = []
         with generate_col1:
@@ -1123,15 +1167,12 @@ def _render_charts(result: dict[str, Any] | None) -> None:
     if not csv_files:
         st.caption("Annotated CSV files are required before legacy feature plots can be generated.")
     else:
-        default_legacy_index = 0
-        if chart_selected_csv in csv_files:
-            default_legacy_index = csv_files.index(chart_selected_csv)
-        legacy_csv = st.selectbox(
+        legacy_default_csv = _default_csv_for_timeframe(csv_files, chart_timeframe) or chart_selected_csv
+        legacy_csv = _select_csv_with_default(
+            csv_files,
             "Legacy plot source CSV",
-            options=csv_files,
-            index=default_legacy_index,
-            format_func=lambda path: Path(path).name,
-            key="legacy_plot_generation_csv",
+            "legacy_plot_selected_csv",
+            default_csv=legacy_default_csv,
         )
         legacy_row_choice = st.selectbox(
             "Legacy plot row limit",
@@ -1156,6 +1197,7 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             include_spread = st.checkbox("Spread/features", value=True, key="legacy_include_spread")
 
         legacy_nrows = None if legacy_row_choice == "All" else int(legacy_row_choice)
+        st.caption(f"Legacy plot selected source: `{Path(legacy_csv).name}`")
         if st.button("Generate legacy plots for selected CSV"):
             legacy_result = generate_legacy_feature_plots_for_csv(
                 legacy_csv,
@@ -1184,15 +1226,12 @@ def _render_charts(result: dict[str, Any] | None) -> None:
     if not csv_files:
         st.caption("Annotated CSV files are required before Price-Volume Eigen features can be generated.")
     else:
-        default_eigen_index = 0
-        if chart_selected_csv in csv_files:
-            default_eigen_index = csv_files.index(chart_selected_csv)
-        eigen_csv = st.selectbox(
+        eigen_default_csv = _default_csv_for_timeframe(csv_files, chart_timeframe) or chart_selected_csv
+        eigen_csv = _select_csv_with_default(
+            csv_files,
             "Eigen analyzer source CSV",
-            options=csv_files,
-            index=default_eigen_index,
-            format_func=lambda path: Path(path).name,
-            key="eigen_generation_csv",
+            "eigen_source_csv",
+            default_csv=eigen_default_csv,
         )
         eigen_col1, eigen_col2, eigen_col3, eigen_col4 = st.columns(4)
         with eigen_col1:
@@ -1228,6 +1267,7 @@ def _render_charts(result: dict[str, Any] | None) -> None:
                 key="eigen_chart_rows",
             )
 
+        st.caption(f"Eigen Analyzer selected source: `{Path(eigen_csv).name}`")
         if st.button("Run Price-Volume Eigen Analyzer"):
             eigen_result = run_price_volume_eigen_for_csv(
                 eigen_csv,
@@ -1237,6 +1277,7 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             )
             if eigen_result.get("success"):
                 st.success("Price-Volume Eigen features generated.")
+                st.caption(f"Source: `{Path(eigen_csv).name}`")
                 st.caption(f"Output: `{eigen_result.get('output_path')}`")
                 latest = eigen_result.get("latest") if isinstance(eigen_result.get("latest"), dict) else {}
                 metric_col1, metric_col2, metric_col3, metric_col4 = st.columns(4)
@@ -1276,11 +1317,24 @@ def _render_charts(result: dict[str, Any] | None) -> None:
             if artifact.get("kind") == "price_volume_eigen_csv"
         ]
         if eigen_artifacts:
+            eigen_artifact_default = None
+            if chart_timeframe:
+                for artifact in eigen_artifacts:
+                    artifact_path = str(artifact.get("path") or artifact.get("name") or "")
+                    if infer_timeframe_from_csv_name(artifact_path) == chart_timeframe:
+                        eigen_artifact_default = artifact
+                        break
+            if st.session_state.get("eigen_preview_csv") not in eigen_artifacts:
+                st.session_state.eigen_preview_csv = eigen_artifact_default or eigen_artifacts[0]
             selected_eigen_artifact = st.selectbox(
                 "Existing Price-Volume Eigen CSV",
                 options=eigen_artifacts,
                 format_func=lambda artifact: artifact.get("name") or Path(str(artifact.get("path") or "")).name,
-                key="existing_eigen_csv_preview",
+                key="eigen_preview_csv",
+            )
+            st.caption(
+                "Eigen Preview selected file: "
+                f"`{selected_eigen_artifact.get('name') or Path(str(selected_eigen_artifact.get('path') or '')).name}`"
             )
             if st.button("Preview Eigen Chart"):
                 _render_eigen_chart_for_csv(

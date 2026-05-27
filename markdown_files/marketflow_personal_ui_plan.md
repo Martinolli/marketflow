@@ -137,6 +137,7 @@ streamlit run apps/marketflow_studio.py
 * P&F bulk generation annotated-only filter — implemented
 * P&F sidecar source hygiene indicators — implemented
 * Read-only Eigen context in Analyst Packet — implemented
+* Charts source/timeframe selection consistency — implemented
 * Monte Carlo Backtest Refactor Plan — created
 * Backtest Phase 1 outcome engine — implemented
 * Backtest Phase 1.1 service wrapper — implemented

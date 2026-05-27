@@ -59,6 +59,8 @@ P&F sidecars now display source hygiene indicators. Sidecars generated from `*_w
 
 Use Charts tab > Generate Legacy Feature Plots to run the legacy plotting workflow from an annotated CSV without opening browser windows. The generated files are saved beside the CSV and can include P&F HTML/meta JSON, Wyckoff annotated charts, price-volume, volume profile, volume distribution, and spread/features HTML.
 
+Charts-page tools now show and use their own selected source CSV. The top chart timeframe selector no longer silently overrides P&F, legacy plot, or Eigen tool selections.
+
 ## Generated Artifacts
 
 Reports tab includes a Generated Artifacts browser for saved HTML, JSON, TXT, and CSV outputs in the loaded report folder.
