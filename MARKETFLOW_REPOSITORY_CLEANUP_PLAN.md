@@ -274,6 +274,8 @@ Create and commit this cleanup plan.
 
 Plan exact treatment for broken tests, optional dependency tests, missing fixtures, and stale interface tests.
 
+Phase C2 status: test collection stabilization plan created at `MARKETFLOW_TEST_COLLECTION_STABILIZATION_PLAN.md`.
+
 ### Phase C3 - Quarantine deprecated tests
 
 Move or rename only clearly deprecated tests so full pytest collection stops failing for deprecated/prototype areas.

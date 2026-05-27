@@ -145,6 +145,8 @@ A Backtest Outcome Result CSV artifact contract exists at `MARKETFLOW_BACKTEST_O
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.
 
+A test collection stabilization plan exists at `MARKETFLOW_TEST_COLLECTION_STABILIZATION_PLAN.md`. It defines how deprecated/broken tests will be handled before cleanup implementation.
+
 ## GARCH
 
 GARCH requires optional package `arch`.
