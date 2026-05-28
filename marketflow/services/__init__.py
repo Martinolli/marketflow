@@ -7,6 +7,7 @@ __all__ = [
     "analyst_prompt_service",
     "artifact_service",
     "backtest_candidate_artifact_service",
+    "backtest_calibration_service",
     "backtest_result_artifact_service",
     "backtest_result_service",
     "backtest_candidate_service",
@@ -33,8 +34,13 @@ __all__ = [
     "evaluate_candidate_snapshot_row",
     "evaluate_candidate_snapshot_rows",
     "normalize_candidate_snapshot",
+    "normalize_outcome",
+    "read_backtest_results_csv",
     "outcome_result_to_dict",
     "read_candidate_snapshot_csv",
+    "summarize_backtest_results_csv",
+    "summarize_backtest_results_folder",
+    "summarize_backtest_results_rows",
     "validate_candidate_snapshot",
     "write_backtest_candidate_csv",
     "write_backtest_candidates_csv",
@@ -62,6 +68,13 @@ from marketflow.services.backtest_result_service import (
     evaluate_candidate_snapshot_row,
     evaluate_candidate_snapshot_rows,
     read_candidate_snapshot_csv,
+)
+from marketflow.services.backtest_calibration_service import (
+    normalize_outcome,
+    read_backtest_results_csv,
+    summarize_backtest_results_csv,
+    summarize_backtest_results_folder,
+    summarize_backtest_results_rows,
 )
 from marketflow.services.backtest_candidate_service import (
     build_candidate_snapshot_from_strategy_candidate,

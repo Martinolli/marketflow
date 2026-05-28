@@ -24,6 +24,8 @@ Candidate signal-location enrichment status: implemented. Saved candidate snapsh
 
 Backtest Calibration Summary planning exists at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`. This will summarize saved `*_backtest_results.csv` artifacts before future parameter calibration.
 
+Backtest Calibration Summary service status: implemented service-only summary metrics for saved `backtest_results_csv` artifacts.
+
 ## 3. Artifact Name
 
 Planned filename pattern:

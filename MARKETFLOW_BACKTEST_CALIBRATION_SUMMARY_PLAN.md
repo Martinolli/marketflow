@@ -8,6 +8,8 @@ This checkpoint is planning only. It does not change code, tests, Studio UI, Str
 
 This is research/calibration only. It is not financial advice, not an optimization engine, and not a trade signal generator.
 
+Implementation status: `marketflow/services/backtest_calibration_service.py` now provides service-only global and grouped summary metrics for saved `*_backtest_results*.csv` artifacts. Studio UI and markdown artifact writing remain future work.
+
 ## 2. Current Baseline
 
 The current implemented pipeline is:
@@ -354,4 +356,4 @@ Planned tests:
 Next recommended task:
 Implement `marketflow/services/backtest_calibration_service.py` with service-only summary metrics for saved `*_backtest_results*.csv` files.
 
-Status: Backtest Calibration Summary planning checkpoint only.
+Status: Backtest Calibration Summary service implemented at the service-only summary layer.

@@ -159,6 +159,8 @@ Backtest Candidate Snapshots are now conservatively enriched with signal row/tim
 
 A Backtest Calibration Summary plan exists at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`. It defines how saved `backtest_results_csv` artifacts will be summarized for future ticker/timeframe parameter calibration.
 
+A service-only Backtest Calibration Summary exists for saved `backtest_results_csv` artifacts. Studio UI and markdown artifact output are not wired yet.
+
 ## Repository Cleanup Plan
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.

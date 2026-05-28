@@ -378,6 +378,8 @@ Candidate signal-location enrichment status: implemented in the candidate snapsh
 
 Backtest Calibration Summary plan created at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`.
 
+Backtest Calibration Summary service status: implemented service-only result CSV summaries.
+
 - Compute actual versus forecast metrics.
 - Save summary JSON/Markdown.
 
