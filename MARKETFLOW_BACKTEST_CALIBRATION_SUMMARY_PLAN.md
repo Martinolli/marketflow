@@ -14,6 +14,8 @@ Markdown artifact writer status: implemented service-level markdown generation a
 
 Studio integration status: implemented as a Strategy Ranking page section that summarizes saved `backtest_results_csv` artifacts and can write `backtest_calibration_summary_md` markdown artifacts.
 
+Milestone status: `MARKETFLOW_BACKTEST_CALIBRATION_MILESTONE_STATUS.md` records the current Studio-visible backtest calibration workflow checkpoint.
+
 ## 2. Current Baseline
 
 The current implemented pipeline is:

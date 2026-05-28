@@ -160,6 +160,7 @@ streamlit run apps/marketflow_studio.py
 * Backtest Calibration Summary service — implemented
 * Backtest Calibration Summary markdown artifact writer — implemented
 * Studio Backtest Calibration Summary section — implemented
+* Backtest calibration milestone/status document — created
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

@@ -165,6 +165,8 @@ A service-level Backtest Calibration Summary markdown writer exists. Generated m
 
 Studio includes a Backtest Calibration Summary section on the Strategy Ranking page. It summarizes saved `backtest_results_csv` artifacts and can save previewable `backtest_calibration_summary_md` markdown artifacts. This remains calibration-only and does not optimize parameters or create trade recommendations.
 
+A milestone/status document exists at `MARKETFLOW_BACKTEST_CALIBRATION_MILESTONE_STATUS.md`. It records the current end-to-end Studio-visible backtest calibration workflow.
+
 ## Repository Cleanup Plan
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.
