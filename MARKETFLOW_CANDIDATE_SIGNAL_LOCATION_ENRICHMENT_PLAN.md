@@ -10,6 +10,8 @@ This enrichment must not generate trading signals, introduce future-data leakage
 
 Implementation status: conservative signal-location enrichment is implemented in `marketflow/services/backtest_candidate_service.py`. It uses explicit row/timestamp evidence first and can use latest-row fallback with a validation warning when Strategy Ranking candidates are confirmed as latest-row derived.
 
+Source hygiene status: Strategy Ranking source selection now prefers canonical Wyckoff annotated CSVs, which improves signal-location traceability.
+
 ## 2. Current Baseline
 
 The current implemented flow is:

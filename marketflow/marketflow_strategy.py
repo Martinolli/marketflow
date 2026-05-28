@@ -97,6 +97,108 @@ def _filename_matches_tf(path: str, tf: str | None) -> bool:
     return clean_tf in tokens
 
 
+def _is_wyckoff_annotated_csv(path: str) -> bool:
+    """Return True only for canonical Wyckoff annotated source CSV files."""
+    return os.path.basename(path).lower().endswith("_wyckoff_annotated.csv")
+
+
+def _is_generated_strategy_artifact_csv(path: str) -> bool:
+    """Return True for generated CSV artifacts that should not feed Strategy Ranking."""
+    filename = os.path.basename(path).lower()
+    if not filename.endswith(".csv"):
+        return False
+    generated_markers = (
+        "_pv_eigen.csv",
+        "_backtest_candidates",
+        "_backtest_results",
+        "_eigen_review_summary",
+        "_candidate_decision_summary",
+        "_analyst_review_notes",
+    )
+    return any(marker in filename for marker in generated_markers)
+
+
+def _filename_tokens(path: str) -> list[str]:
+    stem = os.path.splitext(os.path.basename(path))[0].lower()
+    return [token for token in re.split(r"[_\-.]+", stem) if token]
+
+
+def _csv_matches_timeframe(path: str, ticker: str, tf: str) -> bool:
+    """Return True when filename tokens match the requested ticker and timeframe."""
+    clean_ticker = str(ticker or "").strip().lower()
+    clean_tf = _normalize_tf(tf)
+    if not clean_ticker or not clean_tf:
+        return False
+    tokens = _filename_tokens(path)
+    return bool(tokens) and tokens[0] == clean_ticker and clean_tf in tokens
+
+
+def _csv_matches_timeframe_any_ticker(path: str, tf: str) -> bool:
+    clean_tf = _normalize_tf(tf)
+    return bool(clean_tf) and clean_tf in _filename_tokens(path)
+
+
+def _newest_csv(paths: list[str]) -> str:
+    return sorted(
+        paths,
+        key=lambda path: (os.path.getmtime(path), os.path.basename(path).lower()),
+        reverse=True,
+    )[0]
+
+
+def _select_strategy_source_csv(out_dir: str, ticker: str, tf: str) -> Optional[str]:
+    """Select the safest CSV source for Strategy Ranking."""
+    try:
+        csv_paths = [
+            os.path.join(out_dir, filename)
+            for filename in os.listdir(out_dir)
+            if filename.lower().endswith(".csv") and os.path.isfile(os.path.join(out_dir, filename))
+        ]
+    except Exception as e:
+        logger.error(f"Error listing CSV files in {out_dir}: {e}")
+        return None
+
+    logger.info(f"Found CSV candidates for ticker {ticker}: {sorted(csv_paths)}")
+    canonical_csvs = [path for path in csv_paths if _is_wyckoff_annotated_csv(path)]
+
+    exact_canonical = [
+        path
+        for path in canonical_csvs
+        if _csv_matches_timeframe(path, ticker, tf)
+    ]
+    if exact_canonical:
+        return _newest_csv(exact_canonical)
+
+    timeframe_canonical = [
+        path
+        for path in canonical_csvs
+        if _csv_matches_timeframe_any_ticker(path, tf)
+    ]
+    if timeframe_canonical:
+        logger.warning(
+            f"No canonical annotated CSV found for exact ticker/timeframe {ticker} {tf}; "
+            "falling back to annotated CSV matching timeframe only."
+        )
+        return _newest_csv(timeframe_canonical)
+
+    safe_fallbacks = [
+        path
+        for path in csv_paths
+        if not _is_generated_strategy_artifact_csv(path)
+        and not _is_wyckoff_annotated_csv(path)
+        and _csv_matches_timeframe(path, ticker, tf)
+    ]
+    if safe_fallbacks:
+        logger.warning(
+            f"No canonical annotated CSV found for {ticker} {tf}; "
+            "falling back to a non-generated CSV source."
+        )
+        return _newest_csv(safe_fallbacks)
+
+    logger.warning(f"No safe Strategy Ranking CSV source found for {ticker} {tf} in {out_dir}.")
+    return None
+
+
 def _mc_metadata(
     tf: str | None,
     matched_by: str,
@@ -319,15 +421,11 @@ def rank_long_candidates(
         out_dir = dirs[-1]
         logger.info(f"Using output directory for ticker {t}: {out_dir}")
 
-        # Locate CSV for timeframe
-        cands = sorted(glob.glob(os.path.join(out_dir, f"{t}_*{tf}*.csv")))
-        if not cands:
-            cands = sorted(glob.glob(os.path.join(out_dir, f"*{tf}*.csv")))
-        logger.info(f"Found CSV candidates for ticker {t}: {cands}")
-        if not cands:
-            logger.info(f"No CSV files found for ticker {t}, skipping.")
+        # Locate canonical source CSV for timeframe.
+        csv_path = _select_strategy_source_csv(out_dir, t, tf)
+        if not csv_path:
+            logger.info(f"No safe CSV source found for ticker {t} timeframe {tf}, skipping.")
             continue
-        csv_path = cands[-1]
         logger.info(f"Using CSV file for ticker {t}: {csv_path}")
 
         try:

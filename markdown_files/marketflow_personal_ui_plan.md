@@ -100,6 +100,7 @@ streamlit run apps/marketflow_studio.py
 * Milestone 4: Strategy Ranking tab — implemented
 * Strategy Ranking diagnostics — implemented
 * Strategy latest-batch diagnostics refinement — implemented
+* Strategy Ranking canonical source CSV selection — implemented
 * Monte Carlo tab, simple single-run mode — implemented
 * Streamlit logging control — implemented
 * Candidate-to-Monte Carlo handoff — implemented

@@ -106,6 +106,8 @@ For now, the safer workflow is:
 
 Strategy Ranking now prefers MC summaries matching the selected timeframe. If no matching summary is found, it may fall back to the latest available summary and mark the match mode in the results.
 
+Strategy Ranking now prefers canonical `*_wyckoff_annotated.csv` files as source CSVs and avoids generated derivative CSV artifacts such as `*_pv_eigen.csv`, `*_backtest_candidates*.csv`, and `*_backtest_results*.csv`.
+
 ## Monte Carlo Tab
 
 - Select CSV or use a selected Strategy Ranking candidate.
