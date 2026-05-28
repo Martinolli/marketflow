@@ -196,3 +196,65 @@ def test_no_mutation_of_input_rows():
     summarize_backtest_results_rows(rows)
 
     assert rows == original
+
+
+def test_no_future_bars_counted():
+    result = summarize_backtest_results_rows(
+        [
+            _row(
+                "NEITHER",
+                future_bars_available=0,
+                neither_reason="no_future_bars_available",
+            )
+        ]
+    )
+    summary = result["summary"]
+
+    assert summary["no_future_bars_count"] == 1
+    assert summary["no_future_bars_rate"] == 1.0
+
+
+def test_partial_future_window_counted():
+    result = summarize_backtest_results_rows(
+        [
+            _row(
+                "NEITHER",
+                future_bars_available=5,
+                neither_reason="partial_future_window_no_hit",
+            )
+        ]
+    )
+    summary = result["summary"]
+
+    assert summary["partial_future_window_count"] == 1
+    assert summary["partial_future_window_rate"] == 1.0
+
+
+def test_full_horizon_counted():
+    result = summarize_backtest_results_rows(
+        [
+            _row(
+                "NEITHER",
+                future_bars_available=20,
+                neither_reason="full_horizon_no_hit",
+            )
+        ]
+    )
+    summary = result["summary"]
+
+    assert summary["full_horizon_count"] == 1
+    assert summary["full_horizon_rate"] == 1.0
+
+
+def test_future_bars_available_mean_and_median():
+    result = summarize_backtest_results_rows(
+        [
+            _row("NEITHER", future_bars_available=0, neither_reason="no_future_bars_available"),
+            _row("NEITHER", future_bars_available=5, neither_reason="partial_future_window_no_hit"),
+            _row("NEITHER", future_bars_available=20, neither_reason="full_horizon_no_hit"),
+        ]
+    )
+    summary = result["summary"]
+
+    assert summary["mean_future_bars_available"] == 25 / 3
+    assert summary["median_future_bars_available"] == 5
