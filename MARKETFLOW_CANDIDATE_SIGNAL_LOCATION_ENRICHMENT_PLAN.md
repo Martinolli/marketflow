@@ -8,6 +8,8 @@ This checkpoint is planning only. It does not change Python code, Studio UI, tes
 
 This enrichment must not generate trading signals, introduce future-data leakage, recompute Strategy Ranking, join Monte Carlo results, or optimize candidate selection.
 
+Implementation status: conservative signal-location enrichment is implemented in `marketflow/services/backtest_candidate_service.py`. It uses explicit row/timestamp evidence first and can use latest-row fallback with a validation warning when Strategy Ranking candidates are confirmed as latest-row derived.
+
 ## 2. Current Baseline
 
 The current implemented flow is:
@@ -319,4 +321,4 @@ Manual flow:
 Next recommended task:
 Implement conservative signal-location enrichment in `marketflow/services/backtest_candidate_service.py`, with tests, using explicit row/timestamp first and latest-row fallback only if Strategy Ranking candidates are confirmed to be latest-row derived.
 
-Status: candidate snapshot signal-location enrichment planning checkpoint only.
+Status: candidate snapshot signal-location enrichment implemented in the candidate snapshot service.

@@ -21,6 +21,15 @@ VALIDATION_UNSUPPORTED_DIRECTION = "unsupported_direction"
 
 SUPPORTED_DIRECTIONS = {"long"}
 TIMEFRAME_TOKENS = ("15m", "30m", "1m", "5m", "1h", "4h", "1d", "1w")
+TIMESTAMP_COLUMN_CANDIDATES = (
+    "timestamp",
+    "datetime",
+    "date",
+    "Date",
+    "Datetime",
+    "Timestamp",
+    "time",
+)
 
 SNAPSHOT_FIELDS = [
     "ticker",
@@ -74,6 +83,15 @@ def _json_safe_value(value: Any) -> Any:
     return str(value)
 
 
+def _is_missing(value: Any) -> bool:
+    value = _json_safe_value(value)
+    if value is None:
+        return True
+    if isinstance(value, str) and not value.strip():
+        return True
+    return False
+
+
 def _to_float(value: Any) -> float | None:
     value = _json_safe_value(value)
     if value is None or isinstance(value, bool):
@@ -85,6 +103,14 @@ def _to_float(value: Any) -> float | None:
     if math.isnan(parsed) or math.isinf(parsed):
         return None
     return parsed
+
+
+def _numbers_close(left: Any, right: Any, *, tolerance: float = 1e-6) -> bool:
+    left_float = _to_float(left)
+    right_float = _to_float(right)
+    if left_float is None or right_float is None:
+        return False
+    return abs(left_float - right_float) <= tolerance
 
 
 def _to_int(value: Any) -> int | None:
@@ -125,9 +151,75 @@ def _first_present(candidate: dict[str, Any], *keys: str) -> tuple[Any, str | No
     for key in keys:
         if key in candidate:
             value = _json_safe_value(candidate.get(key))
-            if value is not None:
+            if not _is_missing(value):
                 return value, key
     return None, None
+
+
+def _timestamp_column(dataframe: pd.DataFrame) -> str | None:
+    for column in TIMESTAMP_COLUMN_CANDIDATES:
+        if column in dataframe.columns:
+            return column
+    return None
+
+
+def _read_source_csv(path: str | Path | None) -> tuple[pd.DataFrame | None, str | None]:
+    if _is_missing(path):
+        return None, "Missing source_csv."
+    try:
+        dataframe = pd.read_csv(Path(str(path)))
+    except Exception as exc:  # pragma: no cover - exact pandas errors vary by platform/version.
+        return None, f"Could not read source_csv: {exc}"
+    return dataframe, None
+
+
+def _row_timestamp(dataframe: pd.DataFrame, row_index: int) -> tuple[Any | None, str | None]:
+    column = _timestamp_column(dataframe)
+    if column is None:
+        return None, None
+    if row_index < 0 or row_index >= len(dataframe):
+        return None, None
+    return _json_safe_value(dataframe.iloc[row_index][column]), column
+
+
+def _first_existing_column(dataframe: pd.DataFrame, *columns: str) -> str | None:
+    for column in columns:
+        if column in dataframe.columns:
+            return column
+    return None
+
+
+def _text_matches(left: Any, right: Any) -> bool:
+    if _is_missing(left) or _is_missing(right):
+        return False
+    return str(left).strip().lower() == str(right).strip().lower()
+
+
+def _candidate_price(snapshot: dict[str, Any]) -> Any:
+    return snapshot.get("entry") if not _is_missing(snapshot.get("entry")) else snapshot.get("close")
+
+
+def _match_result(
+    *,
+    matched: bool,
+    method: str | None = None,
+    row_index: int | None = None,
+    timestamp: Any | None = None,
+    timestamp_source: str | None = None,
+    confidence: str = "none",
+    warnings: list[str] | None = None,
+    errors: list[str] | None = None,
+) -> dict[str, Any]:
+    return {
+        "matched": matched,
+        "method": method,
+        "row_index": row_index,
+        "timestamp": _json_safe_value(timestamp),
+        "timestamp_source": timestamp_source,
+        "confidence": confidence,
+        "warnings": warnings or [],
+        "errors": errors or [],
+    }
 
 
 def _computed_risk_reward(entry: float | None, stop_loss: float | None, take_profit: float | None) -> float | None:
@@ -139,6 +231,229 @@ def _computed_risk_reward(entry: float | None, stop_loss: float | None, take_pro
     if risk == 0:
         return None
     return (take_profit - entry) / risk
+
+
+def _locate_by_explicit_row_index(
+    snapshot: dict[str, Any],
+    dataframe: pd.DataFrame,
+) -> dict[str, Any] | None:
+    row_index = _to_int(snapshot.get("signal_row_index"))
+    if row_index is None:
+        return None
+    if row_index < 0 or row_index >= len(dataframe):
+        return _match_result(
+            matched=False,
+            warnings=[f"signal_row_index {row_index} is outside source CSV bounds."],
+        )
+
+    timestamp = snapshot.get("signal_timestamp")
+    timestamp_source = snapshot.get("signal_timestamp_source")
+    if _is_missing(timestamp):
+        timestamp, timestamp_source = _row_timestamp(dataframe, row_index)
+
+    return _match_result(
+        matched=True,
+        method="explicit_row_index",
+        row_index=row_index,
+        timestamp=timestamp,
+        timestamp_source=timestamp_source,
+        confidence="high",
+    )
+
+
+def _locate_by_explicit_timestamp(
+    snapshot: dict[str, Any],
+    dataframe: pd.DataFrame,
+) -> dict[str, Any] | None:
+    if _to_int(snapshot.get("signal_row_index")) is not None:
+        return None
+    timestamp = snapshot.get("signal_timestamp")
+    if _is_missing(timestamp):
+        return None
+
+    column = _timestamp_column(dataframe)
+    if column is None:
+        return _match_result(
+            matched=False,
+            warnings=["signal_timestamp present but source CSV has no timestamp column."],
+        )
+
+    target = str(timestamp).strip()
+    matches = [
+        int(position)
+        for position, value in enumerate(dataframe[column].tolist())
+        if str(_json_safe_value(value) or "").strip() == target
+    ]
+    if len(matches) == 1:
+        return _match_result(
+            matched=True,
+            method="explicit_timestamp",
+            row_index=matches[0],
+            timestamp=timestamp,
+            timestamp_source=column,
+            confidence="high",
+        )
+    if len(matches) > 1:
+        return _match_result(
+            matched=False,
+            warnings=["ambiguous timestamp match in source CSV."],
+        )
+    return _match_result(
+        matched=False,
+        warnings=["signal_timestamp did not match source CSV timestamp values."],
+    )
+
+
+def _locate_by_latest_row_assumption(dataframe: pd.DataFrame) -> dict[str, Any]:
+    row_index = len(dataframe) - 1
+    timestamp, timestamp_source = _row_timestamp(dataframe, row_index)
+    return _match_result(
+        matched=True,
+        method="latest_row_assumption",
+        row_index=row_index,
+        timestamp=timestamp,
+        timestamp_source=timestamp_source,
+        confidence="medium",
+        warnings=["signal location inferred from latest source row assumption"],
+    )
+
+
+def _locate_by_recent_context_match(
+    snapshot: dict[str, Any],
+    dataframe: pd.DataFrame,
+    *,
+    max_recent_rows: int,
+) -> dict[str, Any]:
+    close_column = _first_existing_column(dataframe, "close", "Close")
+    if close_column is None:
+        return _match_result(
+            matched=False,
+            warnings=["recent context match skipped because source CSV has no close column."],
+        )
+
+    candidate_price = _candidate_price(snapshot)
+    if _is_missing(candidate_price):
+        return _match_result(
+            matched=False,
+            warnings=["recent context match skipped because candidate has no entry/close value."],
+        )
+
+    phase_column = _first_existing_column(dataframe, "phase", "wyckoff_phase")
+    event_column = _first_existing_column(dataframe, "event", "wyckoff_event", "wyckoff_confirmed_event")
+    trend_column = _first_existing_column(dataframe, "trend")
+    context_checks = (
+        ("wyckoff_phase", phase_column),
+        ("wyckoff_event", event_column),
+        ("trend", trend_column),
+    )
+
+    start = max(0, len(dataframe) - max(1, max_recent_rows))
+    matches: list[int] = []
+    matched_context_count = 0
+    for row_index in range(start, len(dataframe)):
+        row = dataframe.iloc[row_index]
+        if not _numbers_close(candidate_price, row.get(close_column)):
+            continue
+
+        context_matches = 0
+        context_failed = False
+        for snapshot_key, column in context_checks:
+            if column is None or _is_missing(snapshot.get(snapshot_key)):
+                continue
+            if not _text_matches(snapshot.get(snapshot_key), row.get(column)):
+                context_failed = True
+                break
+            context_matches += 1
+        if context_failed:
+            continue
+
+        matches.append(row_index)
+        matched_context_count = max(matched_context_count, context_matches)
+
+    if len(matches) == 1:
+        timestamp, timestamp_source = _row_timestamp(dataframe, matches[0])
+        return _match_result(
+            matched=True,
+            method="recent_context_match",
+            row_index=matches[0],
+            timestamp=timestamp,
+            timestamp_source=timestamp_source,
+            confidence="high" if matched_context_count else "medium",
+        )
+    if len(matches) > 1:
+        return _match_result(
+            matched=False,
+            warnings=["ambiguous recent context match in source CSV."],
+        )
+    return _match_result(matched=False)
+
+
+def locate_candidate_in_source_csv(
+    snapshot: dict[str, Any],
+    *,
+    max_recent_rows: int = 20,
+    latest_row_fallback: bool = True,
+) -> dict[str, Any]:
+    """Locate a candidate snapshot row in its source CSV without mutating the snapshot."""
+
+    dataframe, read_error = _read_source_csv(snapshot.get("source_csv"))
+    if read_error is not None:
+        return _match_result(matched=False, errors=[read_error])
+    if dataframe is None or dataframe.empty:
+        return _match_result(matched=False, errors=["source_csv is empty."])
+
+    explicit_row_match = _locate_by_explicit_row_index(snapshot, dataframe)
+    if explicit_row_match is not None:
+        return explicit_row_match
+
+    explicit_timestamp_match = _locate_by_explicit_timestamp(snapshot, dataframe)
+    if explicit_timestamp_match is not None:
+        return explicit_timestamp_match
+
+    # rank_long_candidates reads each source CSV and builds candidate context from df.iloc[-1].
+    # This fallback is therefore allowed, but it stays visible as a validation warning.
+    if latest_row_fallback:
+        return _locate_by_latest_row_assumption(dataframe)
+
+    recent_match = _locate_by_recent_context_match(
+        snapshot,
+        dataframe,
+        max_recent_rows=max_recent_rows,
+    )
+    return recent_match
+
+
+def enrich_candidate_snapshot_signal_location(
+    snapshot: dict[str, Any],
+    *,
+    max_recent_rows: int = 20,
+    latest_row_fallback: bool = True,
+) -> dict[str, Any]:
+    """Return a copy of snapshot enriched with conservative signal location evidence."""
+
+    enriched_snapshot = dict(snapshot)
+    match = locate_candidate_in_source_csv(
+        enriched_snapshot,
+        max_recent_rows=max_recent_rows,
+        latest_row_fallback=latest_row_fallback,
+    )
+
+    if match["matched"]:
+        if match.get("row_index") is not None:
+            enriched_snapshot["signal_row_index"] = match["row_index"]
+        if not _is_missing(match.get("timestamp")) and _is_missing(enriched_snapshot.get("signal_timestamp")):
+            enriched_snapshot["signal_timestamp"] = _json_safe_value(match.get("timestamp"))
+        if not _is_missing(match.get("timestamp_source")) and (
+            _is_missing(enriched_snapshot.get("signal_timestamp_source"))
+            or match.get("method") == "explicit_timestamp"
+        ):
+            enriched_snapshot["signal_timestamp_source"] = match.get("timestamp_source")
+
+    return {
+        "success": bool(match["matched"]),
+        "snapshot": {field: _json_safe_value(enriched_snapshot.get(field)) for field in SNAPSHOT_FIELDS},
+        "match": match,
+    }
 
 
 def normalize_candidate_snapshot(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -200,7 +515,7 @@ def validate_candidate_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
         statuses.append(VALIDATION_UNSUPPORTED_DIRECTION)
         errors.append("Only long candidate snapshots are supported in this phase.")
 
-    if not snapshot.get("source_csv"):
+    if _is_missing(snapshot.get("source_csv")):
         statuses.append(VALIDATION_MISSING_SOURCE_CSV)
         errors.append("Missing source_csv.")
 
@@ -211,7 +526,7 @@ def validate_candidate_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
         statuses.append(VALIDATION_MISSING_LEVELS)
         errors.append("Missing entry, stop_loss, or take_profit.")
 
-    if snapshot.get("signal_row_index") is None and not snapshot.get("signal_timestamp"):
+    if snapshot.get("signal_row_index") is None and _is_missing(snapshot.get("signal_timestamp")):
         statuses.append(VALIDATION_MISSING_SIGNAL_LOCATION)
         errors.append("Missing signal_row_index or signal_timestamp.")
 
@@ -220,13 +535,13 @@ def validate_candidate_snapshot(snapshot: dict[str, Any]) -> dict[str, Any]:
             statuses.append(VALIDATION_INVALID_LEVELS)
             errors.append("Invalid long levels; expected stop_loss < entry < take_profit.")
 
-    if not snapshot.get("ticker"):
+    if _is_missing(snapshot.get("ticker")):
         warnings.append("Missing ticker.")
-    if not snapshot.get("timeframe"):
+    if _is_missing(snapshot.get("timeframe")):
         warnings.append("Missing timeframe.")
     if _to_float(snapshot.get("risk_reward")) is None:
         warnings.append("risk_reward missing or could not be computed.")
-    if snapshot.get("signal_timestamp") and not snapshot.get("signal_timestamp_source"):
+    if not _is_missing(snapshot.get("signal_timestamp")) and _is_missing(snapshot.get("signal_timestamp_source")):
         warnings.append("signal_timestamp present without signal_timestamp_source.")
 
     priority = [
@@ -255,11 +570,15 @@ def build_candidate_snapshot_from_strategy_candidate(
     snapshot = normalize_candidate_snapshot(candidate)
     if report_dir is not None:
         snapshot["source_report_dir"] = str(report_dir)
+    enrichment = enrich_candidate_snapshot_signal_location(snapshot)
+    snapshot = enrichment["snapshot"]
     validation = validate_candidate_snapshot(snapshot)
+    validation["warnings"].extend(enrichment.get("match", {}).get("warnings", []))
     return {
         "success": validation["status"] == VALIDATION_VALID,
         "snapshot": snapshot,
         "validation": validation,
+        "signal_location_enrichment": enrichment.get("match"),
     }
 
 

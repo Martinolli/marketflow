@@ -20,6 +20,8 @@ The outcome result artifact writer now exists. There is no calibration summary a
 
 Candidate signal-location enrichment planning exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`. This addresses snapshots that currently evaluate as `INVALID` due to missing signal location.
 
+Candidate signal-location enrichment status: implemented. Saved candidate snapshots can now include `signal_row_index` and/or `signal_timestamp` when source CSV evidence is available, reducing `INVALID` outcomes caused only by missing signal location.
+
 ## 3. Artifact Name
 
 Planned filename pattern:

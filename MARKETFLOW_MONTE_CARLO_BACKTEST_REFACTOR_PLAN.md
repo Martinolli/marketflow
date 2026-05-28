@@ -364,6 +364,8 @@ Studio Backtest Outcome Evaluation status: implemented as a Strategy Ranking pag
 
 Candidate signal-location enrichment plan created at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
+Candidate signal-location enrichment status: implemented in the candidate snapshot service.
+
 - Extract candidates from Strategy Ranking output or annotated CSV/report context.
 - Save candidate snapshot CSV.
 
