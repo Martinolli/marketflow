@@ -380,6 +380,8 @@ Backtest Calibration Summary plan created at `MARKETFLOW_BACKTEST_CALIBRATION_SU
 
 Backtest Calibration Summary service status: implemented service-only result CSV summaries.
 
+Backtest Calibration Summary artifact writer status: implemented markdown summary writer for saved result CSV summaries.
+
 - Compute actual versus forecast metrics.
 - Save summary JSON/Markdown.
 

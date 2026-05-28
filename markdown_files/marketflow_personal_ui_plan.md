@@ -158,6 +158,7 @@ streamlit run apps/marketflow_studio.py
 * Candidate signal-location enrichment — implemented
 * Backtest Calibration Summary plan — created
 * Backtest Calibration Summary service — implemented
+* Backtest Calibration Summary markdown artifact writer — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

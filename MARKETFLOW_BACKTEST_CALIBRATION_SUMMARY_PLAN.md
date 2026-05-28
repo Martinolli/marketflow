@@ -10,6 +10,8 @@ This is research/calibration only. It is not financial advice, not an optimizati
 
 Implementation status: `marketflow/services/backtest_calibration_service.py` now provides service-only global and grouped summary metrics for saved `*_backtest_results*.csv` artifacts. Studio UI and markdown artifact writing remain future work.
 
+Markdown artifact writer status: implemented service-level markdown generation and saving for Backtest Calibration Summary results. Studio UI remains future work.
+
 ## 2. Current Baseline
 
 The current implemented pipeline is:

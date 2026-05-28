@@ -26,6 +26,8 @@ Backtest Calibration Summary planning exists at `MARKETFLOW_BACKTEST_CALIBRATION
 
 Backtest Calibration Summary service status: implemented service-only summary metrics for saved `backtest_results_csv` artifacts.
 
+Backtest Calibration Summary markdown artifact status: implemented. Files containing `_backtest_calibration_summary` are classified as `backtest_calibration_summary_md`.
+
 ## 3. Artifact Name
 
 Planned filename pattern:
