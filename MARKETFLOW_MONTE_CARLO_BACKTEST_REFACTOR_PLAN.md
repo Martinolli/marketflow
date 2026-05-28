@@ -362,6 +362,8 @@ Studio Backtest Outcome Evaluation UI plan created at `MARKETFLOW_STUDIO_BACKTES
 
 Studio Backtest Outcome Evaluation status: implemented as a Strategy Ranking page section for saved candidate snapshot CSVs.
 
+Candidate signal-location enrichment plan created at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
+
 - Extract candidates from Strategy Ranking output or annotated CSV/report context.
 - Save candidate snapshot CSV.
 

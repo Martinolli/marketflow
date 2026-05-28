@@ -151,6 +151,8 @@ A Studio Backtest Outcome Evaluation UI plan exists at `MARKETFLOW_STUDIO_BACKTE
 
 Studio includes a Backtest Outcome Evaluation section on the Strategy Ranking page. It evaluates saved `backtest_candidates_csv` artifacts and writes `backtest_results_csv` artifacts. This remains research/calibration only and does not run Monte Carlo or create trade recommendations.
 
+A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`. This is the next bridge needed so saved candidate snapshots can evaluate into meaningful deterministic outcomes.
+
 ## Repository Cleanup Plan
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.

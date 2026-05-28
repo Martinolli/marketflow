@@ -18,6 +18,8 @@ Current implemented backtest pieces:
 
 The outcome result artifact writer now exists. There is no calibration summary and no Backtest Lab UI.
 
+Candidate signal-location enrichment planning exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`. This addresses snapshots that currently evaluate as `INVALID` due to missing signal location.
+
 ## 3. Artifact Name
 
 Planned filename pattern:
