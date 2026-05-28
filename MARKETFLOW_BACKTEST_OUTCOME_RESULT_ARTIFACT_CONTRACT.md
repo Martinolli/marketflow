@@ -22,6 +22,8 @@ Candidate signal-location enrichment planning exists at `MARKETFLOW_CANDIDATE_SI
 
 Candidate signal-location enrichment status: implemented. Saved candidate snapshots can now include `signal_row_index` and/or `signal_timestamp` when source CSV evidence is available, reducing `INVALID` outcomes caused only by missing signal location.
 
+Backtest Calibration Summary planning exists at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`. This will summarize saved `*_backtest_results.csv` artifacts before future parameter calibration.
+
 ## 3. Artifact Name
 
 Planned filename pattern:

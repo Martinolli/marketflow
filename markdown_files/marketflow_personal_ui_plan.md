@@ -156,6 +156,7 @@ streamlit run apps/marketflow_studio.py
 * Studio Backtest Outcome Evaluation section — implemented
 * Candidate signal-location enrichment plan — created
 * Candidate signal-location enrichment — implemented
+* Backtest Calibration Summary plan — created
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

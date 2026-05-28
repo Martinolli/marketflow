@@ -157,6 +157,8 @@ A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGN
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
 
+A Backtest Calibration Summary plan exists at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`. It defines how saved `backtest_results_csv` artifacts will be summarized for future ticker/timeframe parameter calibration.
+
 ## Repository Cleanup Plan
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.

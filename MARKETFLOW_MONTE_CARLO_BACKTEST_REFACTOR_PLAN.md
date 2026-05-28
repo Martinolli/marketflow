@@ -376,6 +376,8 @@ Candidate signal-location enrichment status: implemented in the candidate snapsh
 
 ### Phase 4 - Calibration Summary
 
+Backtest Calibration Summary plan created at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`.
+
 - Compute actual versus forecast metrics.
 - Save summary JSON/Markdown.
 
