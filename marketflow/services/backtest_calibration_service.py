@@ -189,6 +189,23 @@ def _summary_for_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
     realized_values = _numeric_values(rows, "realized_R")
     bars_to_hit_values = _numeric_values(rows, "bars_to_hit")
     planned_rr_values = _numeric_values(rows, "planned_rr")
+    future_bars_values = _numeric_values(rows, "future_bars_available")
+    no_future_bars_count = sum(
+        1
+        for row in rows
+        if _to_float(row.get("future_bars_available")) == 0
+        or str(_json_safe_value(row.get("neither_reason")) or "").strip() == "no_future_bars_available"
+    )
+    partial_future_window_count = sum(
+        1
+        for row in rows
+        if str(_json_safe_value(row.get("neither_reason")) or "").strip() == "partial_future_window_no_hit"
+    )
+    full_horizon_count = sum(
+        1
+        for row in rows
+        if str(_json_safe_value(row.get("neither_reason")) or "").strip() == "full_horizon_no_hit"
+    )
 
     return {
         "count": count,
@@ -209,6 +226,14 @@ def _summary_for_rows(rows: list[dict[str, Any]]) -> dict[str, Any]:
         "mean_bars_to_hit": _mean(bars_to_hit_values),
         "median_bars_to_hit": _median(bars_to_hit_values),
         "mean_planned_rr": _mean(planned_rr_values),
+        "mean_future_bars_available": _mean(future_bars_values),
+        "median_future_bars_available": _median(future_bars_values),
+        "no_future_bars_count": no_future_bars_count,
+        "partial_future_window_count": partial_future_window_count,
+        "full_horizon_count": full_horizon_count,
+        "no_future_bars_rate": _rate(no_future_bars_count, count),
+        "partial_future_window_rate": _rate(partial_future_window_count, count),
+        "full_horizon_rate": _rate(full_horizon_count, count),
         "small_sample_warning": _small_sample_warning(count),
     }
 

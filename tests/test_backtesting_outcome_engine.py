@@ -42,6 +42,11 @@ def test_tp_first_outcome():
     assert result.hit_row_index == 2
     assert result.hit_timestamp == "2026-01-03"
     assert result.realized_R == pytest.approx(2.0)
+    assert result.future_bars_available == 2
+    assert result.evaluation_window_start_index == 1
+    assert result.evaluation_window_end_index == 2
+    assert result.signal_is_latest_row is False
+    assert result.neither_reason is None
 
 
 def test_sl_first_outcome():
@@ -58,6 +63,9 @@ def test_sl_first_outcome():
     assert result.outcome == "SL_FIRST"
     assert result.bars_to_hit == 1
     assert result.realized_R == -1.0
+    assert result.future_bars_available == 2
+    assert result.signal_is_latest_row is False
+    assert result.neither_reason is None
 
 
 def test_neither_outcome_uses_mark_to_market_r():
@@ -75,6 +83,63 @@ def test_neither_outcome_uses_mark_to_market_r():
     assert result.bars_to_hit is None
     assert result.mark_to_market_close == 103
     assert result.realized_R == pytest.approx(0.6)
+    assert result.future_bars_available == 2
+    assert result.evaluation_window_start_index == 1
+    assert result.evaluation_window_end_index == 2
+    assert result.signal_is_latest_row is False
+    assert result.neither_reason == "partial_future_window_no_hit"
+
+
+def test_neither_latest_row_records_no_future_bars():
+    data = _frame(
+        [
+            {"timestamp": "2026-01-01", "open": 100, "high": 101, "low": 99, "close": 100},
+            {"timestamp": "2026-01-02", "open": 101, "high": 106, "low": 98, "close": 101},
+        ]
+    )
+
+    result = evaluate_candidate_outcome(data, _candidate(signal_row_index=1), horizon_bars=5)
+
+    assert result.outcome == "NEITHER"
+    assert result.future_bars_available == 0
+    assert result.signal_is_latest_row is True
+    assert result.neither_reason == "no_future_bars_available"
+    assert result.evaluation_window_start_index is None
+    assert result.evaluation_window_end_index is None
+
+
+def test_neither_partial_future_window_records_reason():
+    data = _frame(
+        [
+            {"timestamp": "2026-01-01", "open": 100, "high": 101, "low": 99, "close": 100},
+            {"timestamp": "2026-01-02", "open": 101, "high": 106, "low": 98, "close": 101},
+            {"timestamp": "2026-01-03", "open": 102, "high": 107, "low": 99, "close": 103},
+        ]
+    )
+
+    result = evaluate_candidate_outcome(data, _candidate(), horizon_bars=5)
+
+    assert result.outcome == "NEITHER"
+    assert result.future_bars_available == 2
+    assert result.future_bars_available < 5
+    assert result.neither_reason == "partial_future_window_no_hit"
+
+
+def test_neither_full_horizon_records_reason():
+    data = _frame(
+        [
+            {"timestamp": "2026-01-01", "open": 100, "high": 101, "low": 99, "close": 100},
+            {"timestamp": "2026-01-02", "open": 101, "high": 106, "low": 98, "close": 101},
+            {"timestamp": "2026-01-03", "open": 102, "high": 107, "low": 99, "close": 103},
+            {"timestamp": "2026-01-04", "open": 103, "high": 108, "low": 100, "close": 104},
+        ]
+    )
+
+    result = evaluate_candidate_outcome(data, _candidate(), horizon_bars=3)
+
+    assert result.outcome == "NEITHER"
+    assert result.future_bars_available == 3
+    assert result.neither_reason == "full_horizon_no_hit"
 
 
 def test_same_bar_conservative_tie_break():
@@ -121,6 +186,8 @@ def test_same_bar_unknown_tie_break():
     assert result.outcome == "AMBIGUOUS"
     assert result.same_bar_hit is True
     assert result.realized_R is None
+    assert result.future_bars_available == 1
+    assert result.neither_reason is None
 
 
 def test_same_bar_open_proximity_tie_break_tp_first():

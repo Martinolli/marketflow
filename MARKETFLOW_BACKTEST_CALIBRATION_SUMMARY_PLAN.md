@@ -16,6 +16,8 @@ Studio integration status: implemented as a Strategy Ranking page section that s
 
 Milestone status: `MARKETFLOW_BACKTEST_CALIBRATION_MILESTONE_STATUS.md` records the current Studio-visible backtest calibration workflow checkpoint.
 
+Future-bar availability diagnostics status: implemented. Calibration summaries now include future-bar availability metrics and NEITHER reason breakdown fields.
+
 ## 2. Current Baseline
 
 The current implemented pipeline is:

@@ -44,6 +44,11 @@ def test_single_dataframe_candidate_returns_success_dict():
     assert result["settings"] == {"horizon_bars": 2, "tie_break_policy": "conservative"}
     assert result["outcome"]["outcome"] == "TP_FIRST"
     assert result["outcome"]["realized_R"] == 2.0
+    assert result["outcome"]["future_bars_available"] == 2
+    assert result["outcome"]["evaluation_window_start_index"] == 1
+    assert result["outcome"]["evaluation_window_end_index"] == 2
+    assert result["outcome"]["signal_is_latest_row"] is False
+    assert result["outcome"]["neither_reason"] is None
     assert result["error"] is None
 
 
@@ -136,3 +141,5 @@ def test_outcome_result_to_dict_converts_nan_to_none():
 
     assert data["realized_R"] is None
     assert data["mark_to_market_close"] is None
+    assert data["future_bars_available"] is None
+    assert data["neither_reason"] is None

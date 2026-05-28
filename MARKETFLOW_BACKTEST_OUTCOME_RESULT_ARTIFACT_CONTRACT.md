@@ -28,6 +28,8 @@ Backtest Calibration Summary service status: implemented service-only summary me
 
 Backtest Calibration Summary markdown artifact status: implemented. Files containing `_backtest_calibration_summary` are classified as `backtest_calibration_summary_md`.
 
+Future-bar availability diagnostics status: implemented. Backtest result rows now include future-bar availability and NEITHER reason fields so calibration summaries can distinguish no-future-data cases from full-horizon no-hit cases.
+
 ## 3. Artifact Name
 
 Planned filename pattern:
@@ -115,6 +117,11 @@ realized_R
 same_bar_hit
 tie_break_policy
 horizon_bars
+future_bars_available
+evaluation_window_start_index
+evaluation_window_end_index
+signal_is_latest_row
+neither_reason
 hit_timestamp
 hit_row_index
 planned_rr
@@ -189,6 +196,11 @@ Expected serialized types:
 | `same_bar_hit` | boolean | True when TP and SL were both touched in one OHLC bar. |
 | `tie_break_policy` | string | Tie-break policy used for same-bar ambiguity. |
 | `horizon_bars` | integer | Evaluation horizon setting. |
+| `future_bars_available` | integer | Count of future bars available in the evaluation window. |
+| `evaluation_window_start_index` | integer | First future row index evaluated, if any future bars exist. |
+| `evaluation_window_end_index` | integer | Last future row index in the evaluated window, if any future bars exist. |
+| `signal_is_latest_row` | boolean | True when the signal row was the latest available source row. |
+| `neither_reason` | string | Reason for `NEITHER`: `no_future_bars_available`, `partial_future_window_no_hit`, or `full_horizon_no_hit`. |
 | `hit_timestamp` | string | Timestamp of first hit row, if any. |
 | `hit_row_index` | integer | Row index of first hit row, if any. |
 | `planned_rr` | float | Planned R used by the outcome engine. |

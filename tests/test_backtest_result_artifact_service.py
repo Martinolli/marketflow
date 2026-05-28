@@ -95,6 +95,9 @@ def test_row_conversion_tp_first_preserves_contract():
     assert row["same_bar_hit"] is False
     assert row["tie_break_policy"] == "conservative"
     assert row["horizon_bars"] == 20
+    assert "future_bars_available" in row
+    assert row["future_bars_available"] == ""
+    assert "neither_reason" in row
     assert row["entry"] == 62.34
     assert row["stop_loss"] == 55.76
     assert row["take_profit"] == 72.20
@@ -226,3 +229,31 @@ def test_csv_value_safety_for_result_fields():
     assert row["outcome_error"] == '{"codes":[1,2],"reason":"bad"}'
     assert row["mark_to_market_close"] == ""
     assert list_row["outcome_error"] == 'first; {"code":"x"}'
+
+
+def test_result_row_includes_future_bar_diagnostic_columns():
+    row = _result_row(
+        outcome="NEITHER",
+        bars_to_hit=None,
+        future_bars_available=0,
+        evaluation_window_start_index=None,
+        evaluation_window_end_index=None,
+        signal_is_latest_row=True,
+        neither_reason="no_future_bars_available",
+    )
+
+    assert row["future_bars_available"] == 0
+    assert row["evaluation_window_start_index"] == ""
+    assert row["evaluation_window_end_index"] == ""
+    assert row["signal_is_latest_row"] is True
+    assert row["neither_reason"] == "no_future_bars_available"
+
+
+def test_result_row_without_future_bar_diagnostics_writes_empty_fields():
+    row = _result_row(outcome="NEITHER", bars_to_hit=None, realized_R=0.0)
+
+    assert row["future_bars_available"] == ""
+    assert row["evaluation_window_start_index"] == ""
+    assert row["evaluation_window_end_index"] == ""
+    assert row["signal_is_latest_row"] == ""
+    assert row["neither_reason"] == ""

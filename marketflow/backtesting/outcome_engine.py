@@ -103,6 +103,11 @@ def _invalid_result(
     signal_row_index: int | None = None,
     signal_timestamp: str | None = None,
     planned_rr: float | None = None,
+    future_bars_available: int | None = None,
+    evaluation_window_start_index: int | None = None,
+    evaluation_window_end_index: int | None = None,
+    signal_is_latest_row: bool | None = None,
+    neither_reason: str | None = None,
 ) -> OutcomeResult:
     """Build an INVALID outcome result."""
     return OutcomeResult(
@@ -122,6 +127,11 @@ def _invalid_result(
         planned_rr=planned_rr,
         mark_to_market_close=None,
         error=error,
+        future_bars_available=future_bars_available,
+        evaluation_window_start_index=evaluation_window_start_index,
+        evaluation_window_end_index=evaluation_window_end_index,
+        signal_is_latest_row=signal_is_latest_row,
+        neither_reason=neither_reason,
     )
 
 
@@ -203,6 +213,32 @@ def _close_for_mark_to_market(
     if 0 <= signal_index < len(data):
         return _to_float(data.iloc[signal_index].get("close"))
     return None
+
+
+def _future_window_diagnostics(
+    data: pd.DataFrame,
+    *,
+    signal_index: int,
+    horizon_bars: int,
+) -> tuple[pd.DataFrame, dict[str, int | bool | None]]:
+    """Return future rows plus deterministic evaluation-window diagnostics."""
+    future_rows = data.iloc[signal_index + 1 : signal_index + 1 + horizon_bars]
+    future_bars_available = len(future_rows)
+    return future_rows, {
+        "future_bars_available": future_bars_available,
+        "evaluation_window_start_index": signal_index + 1 if future_bars_available > 0 else None,
+        "evaluation_window_end_index": signal_index + future_bars_available if future_bars_available > 0 else None,
+        "signal_is_latest_row": signal_index >= len(data) - 1,
+    }
+
+
+def _neither_reason(*, future_bars_available: int, horizon_bars: int) -> str:
+    """Explain why a NEITHER outcome had no TP/SL hit."""
+    if future_bars_available == 0:
+        return "no_future_bars_available"
+    if future_bars_available < horizon_bars:
+        return "partial_future_window_no_hit"
+    return "full_horizon_no_hit"
 
 
 def _mark_to_market_r(close: float | None, entry: float, stop_loss: float) -> float | None:
@@ -288,7 +324,11 @@ def evaluate_candidate_outcome(
     stop_loss = float(normalized.stop_loss)  # validated above
     take_profit = float(normalized.take_profit)  # validated above
     planned_rr = float(planned_rr) if planned_rr is not None else None
-    future_rows = data.iloc[signal_index + 1 : signal_index + 1 + horizon_bars]
+    future_rows, diagnostics = _future_window_diagnostics(
+        data,
+        signal_index=signal_index,
+        horizon_bars=horizon_bars,
+    )
 
     for position, (_, row) in enumerate(future_rows.iterrows(), start=1):
         high = _to_float(row.get("high"))
@@ -327,6 +367,7 @@ def evaluate_candidate_outcome(
                 planned_rr=planned_rr,
                 mark_to_market_close=None,
                 error=None,
+                **diagnostics,
             )
         if hit_tp:
             return OutcomeResult(
@@ -346,6 +387,7 @@ def evaluate_candidate_outcome(
                 planned_rr=planned_rr,
                 mark_to_market_close=None,
                 error=None,
+                **diagnostics,
             )
         if hit_sl:
             return OutcomeResult(
@@ -365,9 +407,11 @@ def evaluate_candidate_outcome(
                 planned_rr=planned_rr,
                 mark_to_market_close=None,
                 error=None,
+                **diagnostics,
             )
 
     mark_to_market_close = _close_for_mark_to_market(data, signal_index=signal_index, future_rows=future_rows)
+    future_bars_available = int(diagnostics["future_bars_available"] or 0)
     return OutcomeResult(
         outcome="NEITHER",
         bars_to_hit=None,
@@ -385,6 +429,11 @@ def evaluate_candidate_outcome(
         planned_rr=planned_rr,
         mark_to_market_close=mark_to_market_close,
         error=None,
+        neither_reason=_neither_reason(
+            future_bars_available=future_bars_available,
+            horizon_bars=horizon_bars,
+        ),
+        **diagnostics,
     )
 
 

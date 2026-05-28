@@ -47,3 +47,8 @@ class OutcomeResult:
     planned_rr: float | None
     mark_to_market_close: float | None
     error: str | None = None
+    future_bars_available: int | None = None
+    evaluation_window_start_index: int | None = None
+    evaluation_window_end_index: int | None = None
+    signal_is_latest_row: bool | None = None
+    neither_reason: str | None = None

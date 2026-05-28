@@ -153,6 +153,8 @@ A Studio Backtest Outcome Evaluation UI plan exists at `MARKETFLOW_STUDIO_BACKTE
 
 Studio includes a Backtest Outcome Evaluation section on the Strategy Ranking page. It evaluates saved `backtest_candidates_csv` artifacts and writes `backtest_results_csv` artifacts. This remains research/calibration only and does not run Monte Carlo or create trade recommendations.
 
+Backtest result rows include future-bar availability diagnostics, including `future_bars_available`, evaluation window indices, `signal_is_latest_row`, and `neither_reason`.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

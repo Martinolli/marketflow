@@ -135,6 +135,11 @@ def test_evaluate_valid_snapshot_row_tp_first(tmp_path):
     assert result["result_row"]["backtest_success"] is True
     assert result["result_row"]["ticker"] == "LOAR"
     assert result["result_row"]["entry"] == 100.0
+    assert result["result_row"]["future_bars_available"] == 1
+    assert result["result_row"]["evaluation_window_start_index"] == 1
+    assert result["result_row"]["evaluation_window_end_index"] == 1
+    assert result["result_row"]["signal_is_latest_row"] is False
+    assert result["result_row"]["neither_reason"] == ""
 
 
 def test_evaluate_valid_snapshot_row_sl_first(tmp_path):
