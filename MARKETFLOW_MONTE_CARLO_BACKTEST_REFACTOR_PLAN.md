@@ -10,6 +10,8 @@ This plan incorporates ideas from the local note `markdown_files/monte_carlo_bac
 
 Monte Carlo forecast-vs-actual calibration plan created at `MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`.
 
+Monte Carlo summary metadata enrichment status: implemented for future forecast-vs-actual calibration.
+
 ## 2. Current Workflow Baseline
 
 Current Studio evidence flow:

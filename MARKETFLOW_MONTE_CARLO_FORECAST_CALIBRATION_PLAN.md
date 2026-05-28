@@ -6,6 +6,8 @@ This plan defines how MarketFlow should compare Monte Carlo forecast probabiliti
 
 This checkpoint is planning only. It is for research/calibration only, is not financial advice, is not a trade signal generator, is not parameter optimization yet, and includes no code changes.
 
+Monte Carlo summary metadata enrichment status: implemented. Newly generated `*_mc_summary.json` files now include `join_metadata` for future forecast-vs-actual calibration joins.
+
 ## 2. Current Baseline
 
 Current workflow:

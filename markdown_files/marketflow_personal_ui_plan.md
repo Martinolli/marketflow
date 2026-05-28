@@ -163,6 +163,7 @@ streamlit run apps/marketflow_studio.py
 * Backtest calibration milestone/status document — created
 * Backtest future-bar availability diagnostics — implemented
 * Monte Carlo forecast-vs-actual calibration plan — created
+* Monte Carlo summary join metadata enrichment — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

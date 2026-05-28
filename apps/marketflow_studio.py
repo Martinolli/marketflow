@@ -2620,6 +2620,41 @@ def _format_alignment_path(path: Any) -> str | None:
     return Path(str(path)).name
 
 
+def _candidate_snapshot_context_for_monte_carlo(
+    *,
+    selected_csv: str,
+    timeframe: str | None,
+    entry: Any,
+    stop_loss: Any,
+    take_profit: Any,
+) -> tuple[dict[str, Any] | None, str | None]:
+    """Return latest candidate snapshot metadata only when it matches current MC inputs."""
+    snapshot_result = st.session_state.get("latest_backtest_candidate_snapshot")
+    if not isinstance(snapshot_result, dict):
+        return None, None
+    snapshot = snapshot_result.get("snapshot")
+    if not isinstance(snapshot, dict):
+        return None, None
+    if not snapshot.get("source_csv") or not _paths_match_optional(snapshot.get("source_csv"), selected_csv):
+        return None, None
+    if (snapshot.get("timeframe") or None) != (timeframe or None):
+        return None, None
+    if not (
+        _numbers_match(snapshot.get("entry"), entry)
+        and _numbers_match(snapshot.get("stop_loss"), stop_loss)
+        and _numbers_match(snapshot.get("take_profit"), take_profit)
+    ):
+        return None, None
+
+    save_result = st.session_state.get("latest_backtest_candidate_csv")
+    candidate_snapshot_file = None
+    if isinstance(save_result, dict):
+        candidate_snapshot_file = save_result.get("filename")
+        if not candidate_snapshot_file and save_result.get("path"):
+            candidate_snapshot_file = Path(str(save_result.get("path"))).name
+    return snapshot, candidate_snapshot_file
+
+
 def _safe_filename_part(value: Any, fallback: str) -> str:
     """Return a compact filename-safe token."""
     text = str(value or fallback).strip() or fallback
@@ -3541,6 +3576,37 @@ def _render_monte_carlo_results(monte_carlo_result: dict[str, Any] | None) -> No
                 "This is allowed for manual scenario testing, but Analyst Packet will treat it as a modified MC scenario."
             )
 
+    join_metadata = monte_carlo_result.get("join_metadata")
+    if not isinstance(join_metadata, dict):
+        join_metadata = result.get("join_metadata") if isinstance(result.get("join_metadata"), dict) else {}
+    summary_enrichment = monte_carlo_result.get("summary_enrichment")
+    st.markdown("#### Monte Carlo Join Metadata")
+    if isinstance(summary_enrichment, dict):
+        if summary_enrichment.get("success"):
+            st.caption(f"Summary JSON enriched: `{summary_enrichment.get('filename')}`")
+        elif summary_enrichment.get("warnings"):
+            st.info("Summary JSON enrichment: " + "; ".join(str(item) for item in summary_enrichment.get("warnings") or []))
+        elif summary_enrichment.get("errors"):
+            st.warning("Summary JSON enrichment failed: " + "; ".join(str(item) for item in summary_enrichment.get("errors") or []))
+    if join_metadata:
+        fields = (
+            "ticker",
+            "timeframe",
+            "source_csv",
+            "candidate_snapshot_file",
+            "signal_row_index",
+            "signal_timestamp",
+            "join_key_preferred",
+            "join_key_secondary",
+        )
+        st.dataframe(
+            _safe_dataframe_rows([{"field": field, "value": join_metadata.get(field)} for field in fields]),
+            use_container_width=True,
+            hide_index=True,
+        )
+    else:
+        st.caption("No Monte Carlo join metadata is available for this run.")
+
     col1, col2, col3, col4 = st.columns(4)
     with col1:
         _display_optional_metric("Model", params.get("model"))
@@ -3761,6 +3827,31 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
             for message in validation_errors:
                 st.warning(message)
         else:
+            source_candidate = st.session_state.get("selected_strategy_candidate")
+            if not isinstance(source_candidate, dict):
+                source_candidate = (prefill or {}).get("source_candidate") if isinstance(prefill, dict) else None
+            inputs_match_prefill = (
+                prefill_matches_selected_csv
+                and _numbers_match((prefill or {}).get("entry"), entry)
+                and _numbers_match((prefill or {}).get("stop_loss"), stop_loss)
+                and _numbers_match((prefill or {}).get("take_profit"), take_profit)
+            )
+            trade_plan = {
+                "ticker": (prefill or {}).get("ticker") or (result or {}).get("ticker"),
+                "csv": selected_csv,
+                "tf": timeframe,
+                "entry": float(entry),
+                "stop_loss": float(stop_loss),
+                "take_profit": float(take_profit),
+                "source": "strategy_ranking" if inputs_match_prefill else "manual",
+            }
+            candidate_snapshot, candidate_snapshot_file = _candidate_snapshot_context_for_monte_carlo(
+                selected_csv=selected_csv,
+                timeframe=timeframe,
+                entry=entry,
+                stop_loss=stop_loss,
+                take_profit=take_profit,
+            )
             with st.spinner("Running Monte Carlo simulation..."):
                 mc_result = run_monte_carlo_for_csv(
                     csv_path=selected_csv,
@@ -3774,25 +3865,11 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
                     block_len=int(block_len),
                     seed=int(seed),
                     save_plots=save_plots,
+                    trade_plan=trade_plan,
+                    candidate_snapshot=candidate_snapshot,
+                    candidate_snapshot_file=candidate_snapshot_file,
+                    source_report_dir=report_dir,
                 )
-                source_candidate = st.session_state.get("selected_strategy_candidate")
-                if not isinstance(source_candidate, dict):
-                    source_candidate = (prefill or {}).get("source_candidate") if isinstance(prefill, dict) else None
-                inputs_match_prefill = (
-                    prefill_matches_selected_csv
-                    and _numbers_match((prefill or {}).get("entry"), entry)
-                    and _numbers_match((prefill or {}).get("stop_loss"), stop_loss)
-                    and _numbers_match((prefill or {}).get("take_profit"), take_profit)
-                )
-                trade_plan = {
-                    "ticker": (prefill or {}).get("ticker") or (result or {}).get("ticker"),
-                    "csv": selected_csv,
-                    "tf": timeframe,
-                    "entry": float(entry),
-                    "stop_loss": float(stop_loss),
-                    "take_profit": float(take_profit),
-                    "source": "strategy_ranking" if inputs_match_prefill else "manual",
-                }
                 mc_result["trade_plan"] = trade_plan
                 mc_result["source_candidate"] = source_candidate if isinstance(source_candidate, dict) else None
                 mc_result["alignment"] = _monte_carlo_alignment(source_candidate, mc_result)

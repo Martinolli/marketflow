@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import json
+import math
 import traceback
 import importlib
 import sys
@@ -18,6 +20,147 @@ from marketflow.services.report_index import infer_timeframe_from_csv_name
 SUPPORTED_MODELS = {"bootstrap", "gbm", "garch"}
 OPTIONAL_SIMULATOR_IMPORTS = {"arch", "lightgbm"}
 MONTE_CARLO_OUTPUT_PATTERNS = ("*_mc_summary.json", "*_mc_paths.html", "*_mc_hits.html")
+
+
+def _json_safe_value(value: Any) -> Any:
+    """Return a JSON-safe value for persisted Monte Carlo metadata."""
+    if value is None:
+        return None
+    if value is pd.NA:
+        return None
+    if isinstance(value, Path):
+        return str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe_value(item) for item in value]
+    if hasattr(value, "item") and not isinstance(value, (str, bytes, bytearray)):
+        try:
+            value = value.item()
+        except (AttributeError, TypeError, ValueError):
+            pass
+    if value is pd.NA:
+        return None
+    try:
+        if bool(pd.isna(value)):
+            return None
+    except (TypeError, ValueError):
+        pass
+    if isinstance(value, float) and math.isnan(value):
+        return None
+    if isinstance(value, (str, int, float, bool)):
+        return value
+    return str(value)
+
+
+def _first_present(*values: Any) -> Any:
+    """Return the first non-empty value."""
+    for value in values:
+        safe = _json_safe_value(value)
+        if safe is None:
+            continue
+        if isinstance(safe, str) and not safe.strip():
+            continue
+        return safe
+    return None
+
+
+def _source_csv_name(value: Any) -> str | None:
+    """Return a basename for a source CSV value."""
+    value = _first_present(value)
+    if value is None:
+        return None
+    return Path(str(value)).name
+
+
+def _infer_ticker_from_csv_name(csv_path: str | Path | None) -> str | None:
+    """Infer ticker from a canonical MarketFlow CSV filename when possible."""
+    if not csv_path:
+        return None
+    stem = Path(str(csv_path)).name
+    if "_" not in stem:
+        return None
+    ticker = stem.split("_", 1)[0].strip()
+    return ticker or None
+
+
+def _join_key(*parts: Any) -> str | None:
+    """Build a compact join key when every part is present."""
+    values = [_first_present(part) for part in parts]
+    if any(value is None for value in values):
+        return None
+    return "|".join(str(value) for value in values)
+
+
+def build_monte_carlo_join_metadata(
+    *,
+    csv_path: str | Path | None = None,
+    timeframe: str | None = None,
+    trade_plan: dict[str, Any] | None = None,
+    candidate_snapshot: dict[str, Any] | None = None,
+    candidate_snapshot_file: str | None = None,
+    source_report_dir: str | Path | None = None,
+) -> dict[str, Any]:
+    """Build JSON-safe metadata for future MC forecast-vs-actual joins."""
+    trade = dict(trade_plan) if isinstance(trade_plan, dict) else {}
+    snapshot = dict(candidate_snapshot) if isinstance(candidate_snapshot, dict) else {}
+    source_csv_value = _first_present(snapshot.get("source_csv"), snapshot.get("csv"), trade.get("source_csv"), trade.get("csv"), csv_path)
+    source_csv_path = _first_present(snapshot.get("source_csv"), snapshot.get("csv"), trade.get("source_csv"), trade.get("csv"), csv_path)
+    selected_timeframe = _first_present(
+        snapshot.get("timeframe"),
+        snapshot.get("tf"),
+        trade.get("timeframe"),
+        trade.get("tf"),
+        timeframe,
+        infer_timeframe_from_csv_name(str(csv_path or "")),
+    )
+    ticker = _first_present(
+        snapshot.get("ticker"),
+        trade.get("ticker"),
+        _infer_ticker_from_csv_name(source_csv_value),
+        _infer_ticker_from_csv_name(csv_path),
+    )
+
+    metadata = {
+        "ticker": ticker,
+        "timeframe": selected_timeframe,
+        "source_csv": _source_csv_name(source_csv_value),
+        "source_csv_path": source_csv_path,
+        "source_report_dir": _first_present(snapshot.get("source_report_dir"), source_report_dir),
+        "candidate_snapshot_file": _first_present(candidate_snapshot_file),
+        "signal_row_index": _first_present(snapshot.get("signal_row_index"), trade.get("signal_row_index")),
+        "signal_timestamp": _first_present(snapshot.get("signal_timestamp"), trade.get("signal_timestamp")),
+        "entry": _first_present(snapshot.get("entry"), trade.get("entry")),
+        "stop_loss": _first_present(snapshot.get("stop_loss"), snapshot.get("sl"), trade.get("stop_loss"), trade.get("sl")),
+        "take_profit": _first_present(
+            snapshot.get("take_profit"),
+            snapshot.get("tp"),
+            trade.get("take_profit"),
+            trade.get("tp"),
+        ),
+        "risk_reward": _first_present(snapshot.get("risk_reward"), snapshot.get("rr"), trade.get("risk_reward"), trade.get("rr")),
+        "strategy_score": _first_present(snapshot.get("strategy_score"), snapshot.get("score"), trade.get("strategy_score"), trade.get("score")),
+        "wyckoff_phase": _first_present(snapshot.get("wyckoff_phase"), snapshot.get("phase"), trade.get("wyckoff_phase"), trade.get("phase")),
+        "wyckoff_event": _first_present(snapshot.get("wyckoff_event"), snapshot.get("event"), trade.get("wyckoff_event"), trade.get("event")),
+        "trend": _first_present(snapshot.get("trend"), trade.get("trend")),
+        "candidate_source": _first_present(snapshot.get("candidate_source"), trade.get("candidate_source"), trade.get("source")),
+        "source_strategy_rank": _first_present(snapshot.get("source_strategy_rank"), trade.get("source_strategy_rank")),
+        "candidate_validation_status": _first_present(snapshot.get("validation_status"), trade.get("validation_status")),
+        "candidate_snapshot_success": _first_present(snapshot.get("snapshot_success"), trade.get("snapshot_success")),
+        "metadata_version": "mc_join_metadata_v1",
+    }
+    metadata["join_key_preferred"] = _join_key(
+        metadata["ticker"],
+        metadata["timeframe"],
+        metadata["candidate_snapshot_file"],
+    )
+    metadata["join_key_secondary"] = _join_key(
+        metadata["ticker"],
+        metadata["timeframe"],
+        metadata["source_csv"],
+        metadata["signal_row_index"],
+    )
+    return {key: _json_safe_value(value) for key, value in metadata.items()}
 
 
 def _install_optional_dependency_stub(module_name: str) -> None:
@@ -145,6 +288,55 @@ def list_monte_carlo_outputs(csv_path: str) -> list[dict[str, Any]]:
         return []
 
 
+def enrich_latest_monte_carlo_summary_json(
+    csv_path: str | Path,
+    join_metadata: dict[str, Any],
+) -> dict[str, Any]:
+    """Add join metadata to the newest Monte Carlo summary JSON beside a CSV."""
+    result = {
+        "success": False,
+        "path": None,
+        "filename": None,
+        "errors": [],
+        "warnings": [],
+    }
+    summaries = [
+        item
+        for item in list_monte_carlo_outputs(str(csv_path))
+        if item.get("kind") == "summary_json" and item.get("path")
+    ]
+    if not summaries:
+        result["warnings"].append("No Monte Carlo summary JSON found to enrich.")
+        return result
+
+    summary_path = Path(str(summaries[0]["path"]))
+    try:
+        payload = json.loads(summary_path.read_text(encoding="utf-8"))
+        if not isinstance(payload, dict):
+            result["errors"].append("Monte Carlo summary JSON is not an object.")
+            return result
+        safe_metadata = _json_safe_value(join_metadata)
+        payload["join_metadata"] = safe_metadata
+        for key in (
+            "ticker",
+            "timeframe",
+            "source_csv",
+            "source_csv_path",
+            "source_report_dir",
+            "candidate_snapshot_file",
+        ):
+            if safe_metadata.get(key) is not None:
+                payload[key] = safe_metadata.get(key)
+        summary_path.write_text(json.dumps(payload, indent=2, default=str), encoding="utf-8")
+        result["success"] = True
+        result["path"] = str(summary_path)
+        result["filename"] = summary_path.name
+        return result
+    except Exception as exc:
+        result["errors"].append(f"{type(exc).__name__}: {exc}")
+        return result
+
+
 def run_monte_carlo_for_csv(
     csv_path: str,
     entry: float | None,
@@ -158,6 +350,10 @@ def run_monte_carlo_for_csv(
     seed: int = 42,
     nrows: int | None = 4000,
     save_plots: bool = True,
+    trade_plan: dict[str, Any] | None = None,
+    candidate_snapshot: dict[str, Any] | None = None,
+    candidate_snapshot_file: str | None = None,
+    source_report_dir: str | Path | None = None,
 ) -> dict[str, Any]:
     """
     Run a single Monte Carlo trade simulation for one CSV.
@@ -211,6 +407,20 @@ def run_monte_carlo_for_csv(
             save_plots=save_plots,
             save_json=True,
         )
+        join_metadata = build_monte_carlo_join_metadata(
+            csv_path=path,
+            timeframe=selected_timeframe,
+            trade_plan=trade_plan,
+            candidate_snapshot=candidate_snapshot,
+            candidate_snapshot_file=candidate_snapshot_file,
+            source_report_dir=source_report_dir,
+        )
+        if isinstance(result, dict):
+            result["join_metadata"] = join_metadata
+            for key in ("ticker", "timeframe", "source_csv", "source_csv_path", "candidate_snapshot_file"):
+                if join_metadata.get(key) is not None:
+                    result[key] = join_metadata.get(key)
+        enrichment_result = enrich_latest_monte_carlo_summary_json(path, join_metadata)
 
         return {
             "success": True,
@@ -219,6 +429,12 @@ def run_monte_carlo_for_csv(
             "traceback": None,
             "csv_path": str(path),
             "timeframe": selected_timeframe,
+            "ticker": join_metadata.get("ticker"),
+            "source_csv": join_metadata.get("source_csv"),
+            "source_csv_path": join_metadata.get("source_csv_path"),
+            "candidate_snapshot_file": join_metadata.get("candidate_snapshot_file"),
+            "join_metadata": join_metadata,
+            "summary_enrichment": enrichment_result,
             "result": result,
             "output_files": list_monte_carlo_outputs(str(path)),
         }
