@@ -12,6 +12,8 @@ Implementation status: `marketflow/services/backtest_calibration_service.py` now
 
 Markdown artifact writer status: implemented service-level markdown generation and saving for Backtest Calibration Summary results. Studio UI remains future work.
 
+Studio integration status: implemented as a Strategy Ranking page section that summarizes saved `backtest_results_csv` artifacts and can write `backtest_calibration_summary_md` markdown artifacts.
+
 ## 2. Current Baseline
 
 The current implemented pipeline is:

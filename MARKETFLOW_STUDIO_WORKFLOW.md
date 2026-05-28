@@ -163,6 +163,8 @@ A service-only Backtest Calibration Summary exists for saved `backtest_results_c
 
 A service-level Backtest Calibration Summary markdown writer exists. Generated markdown files containing `_backtest_calibration_summary` are classified as `backtest_calibration_summary_md` and previewable in Generated Artifacts.
 
+Studio includes a Backtest Calibration Summary section on the Strategy Ranking page. It summarizes saved `backtest_results_csv` artifacts and can save previewable `backtest_calibration_summary_md` markdown artifacts. This remains calibration-only and does not optimize parameters or create trade recommendations.
+
 ## Repository Cleanup Plan
 
 A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.

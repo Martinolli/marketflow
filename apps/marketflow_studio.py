@@ -44,6 +44,10 @@ from marketflow.services.artifact_service import (
     list_report_artifacts,
     read_text_artifact,
 )
+from marketflow.services.backtest_calibration_artifact_service import (
+    summarize_folder_to_backtest_calibration_markdown,
+)
+from marketflow.services.backtest_calibration_service import summarize_backtest_results_folder
 from marketflow.services.backtest_candidate_artifact_service import write_backtest_candidate_csv
 from marketflow.services.backtest_candidate_service import build_candidate_snapshot_from_strategy_candidate
 from marketflow.services.backtest_result_service import (
@@ -1707,6 +1711,25 @@ def _backtest_candidate_csv_artifacts(report_dir: str | None) -> list[dict[str, 
     )
 
 
+def _backtest_result_csv_artifacts(report_dir: str | None) -> list[dict[str, Any]]:
+    """Return backtest result CSV artifacts for the selected report."""
+    if not report_dir:
+        return []
+    artifacts = [
+        artifact
+        for artifact in list_report_artifacts(report_dir)
+        if artifact.get("kind") == "backtest_results_csv"
+    ]
+    return sorted(
+        artifacts,
+        key=lambda artifact: (
+            str(artifact.get("modified") or ""),
+            str(artifact.get("name") or artifact.get("path") or ""),
+        ),
+        reverse=True,
+    )
+
+
 def _default_backtest_candidate_csv_index(artifacts: list[dict[str, Any]]) -> int:
     """Return the default selected candidate snapshot artifact index."""
     if not artifacts:
@@ -1767,6 +1790,60 @@ def _backtest_result_preview_rows(rows: list[dict[str, Any]], max_rows: int = 10
         "outcome_error",
     ]
     return [{field: row.get(field) for field in fields} for row in rows[:max_rows] if isinstance(row, dict)]
+
+
+def _backtest_calibration_filename_context(result: dict[str, Any] | None) -> tuple[str | None, str | None]:
+    """Return best-effort ticker/timeframe filename context for calibration summary artifacts."""
+    candidate = _current_strategy_candidate_for_backtest()
+    ticker = candidate.get("ticker") if isinstance(candidate, dict) else None
+    timeframe = None
+    if isinstance(candidate, dict):
+        timeframe = candidate.get("tf") or candidate.get("timeframe")
+    if not ticker and isinstance(result, dict):
+        ticker = result.get("ticker")
+    return ticker, timeframe
+
+
+def _backtest_calibration_status_rows(
+    summary_result: dict[str, Any],
+    artifact_result: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Return compact display rows for a calibration summary result."""
+    artifact_result = artifact_result if isinstance(artifact_result, dict) else {}
+    return [
+        {"item": "Summary success", "value": summary_result.get("success")},
+        {"item": "File count", "value": summary_result.get("file_count")},
+        {"item": "Read count", "value": summary_result.get("read_count")},
+        {"item": "Row count", "value": summary_result.get("count")},
+        {"item": "Source result files", "value": len(summary_result.get("source_result_files") or [])},
+        {"item": "Saved markdown", "value": artifact_result.get("success")},
+        {"item": "Markdown filename", "value": artifact_result.get("filename")},
+        {"item": "Markdown path", "value": artifact_result.get("path")},
+    ]
+
+
+def _render_backtest_calibration_summary_tables(summary_result: dict[str, Any]) -> None:
+    """Render calibration summary tables from a service result."""
+    st.write("Global Summary")
+    summary_rows = summary_result.get("summary_rows") or []
+    if summary_rows:
+        st.dataframe(_safe_dataframe_rows(summary_rows), use_container_width=True, hide_index=True)
+    else:
+        st.info("No global summary rows are available.")
+
+    grouped_rows = summary_result.get("grouped_summary_rows") or []
+    if grouped_rows:
+        with st.expander(f"Grouped Summary ({len(grouped_rows)} rows)", expanded=len(grouped_rows) <= 10):
+            st.dataframe(_safe_dataframe_rows(grouped_rows), use_container_width=True, hide_index=True)
+    else:
+        st.info("No grouped summary rows are available.")
+
+    invalid_reason_rows = summary_result.get("invalid_reason_rows") or []
+    st.write("Invalid Row Review")
+    if invalid_reason_rows:
+        st.dataframe(_safe_dataframe_rows(invalid_reason_rows), use_container_width=True, hide_index=True)
+    else:
+        st.caption("No invalid rows were summarized.")
 
 
 def _render_backtest_candidate_snapshot_section(result: dict[str, Any] | None) -> None:
@@ -1980,6 +2057,130 @@ def _render_backtest_outcome_evaluation_section(result: dict[str, Any] | None) -
                 st.dataframe(_safe_dataframe_rows(preview_rows), use_container_width=True, hide_index=True)
 
 
+def _render_backtest_calibration_summary_section(result: dict[str, Any] | None) -> None:
+    """Render service-only Backtest Calibration Summary controls."""
+    st.markdown("#### Backtest Calibration Summary")
+    st.caption(
+        "Summarize saved Backtest Outcome Result CSV artifacts for ticker/timeframe calibration review. "
+        "This is a research/calibration summary and does not optimize parameters or create trade signals."
+    )
+    st.info(
+        "Calibration only. Reads saved result CSVs, does not rerun backtests, does not run Monte Carlo, "
+        "and does not optimize parameters. Small samples should not be overinterpreted."
+    )
+
+    report_dir = _report_dir_for_backtest_snapshot(result)
+    if not report_dir:
+        st.warning("No report folder is available for Backtest Calibration Summary.")
+        return
+
+    artifacts = _backtest_result_csv_artifacts(report_dir)
+    if not artifacts:
+        st.info("No backtest result CSV artifacts were found. Run Backtest Outcome Evaluation first.")
+        return
+
+    artifact_rows = [
+        {
+            "name": artifact.get("name"),
+            "kind": artifact.get("kind"),
+            "timeframe": artifact.get("timeframe"),
+            "modified": artifact.get("modified"),
+            "path": artifact.get("path"),
+        }
+        for artifact in artifacts
+    ]
+    st.write(f"Available backtest result CSV artifacts: `{len(artifact_rows)}`")
+    st.dataframe(_safe_dataframe_rows(artifact_rows), use_container_width=True, hide_index=True)
+    st.caption("Expected output: `backtest_calibration_summary_md`")
+
+    save_markdown = st.checkbox(
+        "Save markdown calibration summary",
+        value=True,
+        key="backtest_calibration_save_markdown",
+    )
+
+    if st.button("Summarize Backtest Calibration"):
+        try:
+            summary_result = summarize_backtest_results_folder(report_dir)
+        except Exception as exc:
+            summary_result = {
+                "success": False,
+                "report_dir": report_dir,
+                "source_result_files": [],
+                "file_count": len(artifacts),
+                "read_count": 0,
+                "count": 0,
+                "summary": {},
+                "summary_rows": [],
+                "grouped_summary_rows": [],
+                "invalid_reason_rows": [],
+                "warnings": [],
+                "errors": [f"{type(exc).__name__}: {exc}"],
+            }
+
+        st.session_state["latest_backtest_calibration_summary"] = summary_result
+        st.session_state["latest_backtest_calibration_summary_artifact"] = None
+        artifact_result = None
+        if save_markdown and summary_result.get("success"):
+            ticker, timeframe = _backtest_calibration_filename_context(result)
+            try:
+                artifact_result = summarize_folder_to_backtest_calibration_markdown(
+                    report_dir,
+                    ticker=ticker,
+                    timeframe=timeframe,
+                )
+            except Exception as exc:
+                artifact_result = {
+                    "success": False,
+                    "path": None,
+                    "filename": None,
+                    "errors": [f"{type(exc).__name__}: {exc}"],
+                    "warnings": [],
+                }
+            st.session_state["latest_backtest_calibration_summary_artifact"] = artifact_result
+
+        if artifact_result is not None and artifact_result.get("success"):
+            st.success(f"Saved Backtest Calibration Summary: `{artifact_result.get('path')}`")
+            st.caption("Saved file appears in Generated Artifacts as backtest_calibration_summary_md.")
+            st.caption("Refresh or revisit Generated Artifacts to preview the backtest_calibration_summary_md file.")
+        elif artifact_result is not None and not artifact_result.get("success"):
+            st.error("Could not save Backtest Calibration Summary markdown.")
+
+    latest_summary = st.session_state.get("latest_backtest_calibration_summary")
+    latest_artifact = st.session_state.get("latest_backtest_calibration_summary_artifact")
+
+    if isinstance(latest_summary, dict):
+        if latest_summary.get("success"):
+            st.success("Backtest Calibration Summary is available.")
+        else:
+            st.warning("Backtest Calibration Summary did not complete successfully.")
+
+        st.dataframe(
+            _safe_dataframe_rows(_backtest_calibration_status_rows(latest_summary, latest_artifact)),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        warnings = latest_summary.get("warnings") or []
+        errors = latest_summary.get("errors") or []
+        if warnings:
+            st.info("Warnings: " + "; ".join(str(warning) for warning in warnings))
+        if errors:
+            st.warning("Errors: " + "; ".join(str(error) for error in errors))
+
+        if isinstance(latest_artifact, dict):
+            artifact_errors = latest_artifact.get("errors") or []
+            artifact_warnings = latest_artifact.get("warnings") or []
+            if latest_artifact.get("path"):
+                st.caption(f"Last saved markdown artifact: `{latest_artifact.get('path')}`")
+            if artifact_warnings:
+                st.info("Artifact warnings: " + "; ".join(str(warning) for warning in artifact_warnings))
+            if artifact_errors:
+                st.warning("Artifact errors: " + "; ".join(str(error) for error in artifact_errors))
+
+        _render_backtest_calibration_summary_tables(latest_summary)
+
+
 def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dict[str, Any] | None = None) -> None:
     """Render strategy ranking output."""
     if not strategy_result:
@@ -2030,6 +2231,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
     st.json(selected_candidate)
     _render_backtest_candidate_snapshot_section(result)
     _render_backtest_outcome_evaluation_section(result)
+    _render_backtest_calibration_summary_section(result)
 
     if st.button("Use selected candidate in Monte Carlo"):
         trade_plan = _trade_plan_from_strategy_candidate(selected_candidate)
@@ -4252,6 +4454,10 @@ def main() -> None:
         st.session_state.latest_backtest_outcome_evaluation = None
     if "latest_backtest_results_csv" not in st.session_state:
         st.session_state.latest_backtest_results_csv = None
+    if "latest_backtest_calibration_summary" not in st.session_state:
+        st.session_state.latest_backtest_calibration_summary = None
+    if "latest_backtest_calibration_summary_artifact" not in st.session_state:
+        st.session_state.latest_backtest_calibration_summary_artifact = None
 
     with st.sidebar:
         st.header("Analysis")
