@@ -163,6 +163,8 @@ No Monte Carlo, Strategy Ranking, P&F, Eigen, or backtest math was changed in th
 
 Post-milestone improvement: future-bar availability diagnostics were added after this milestone to make `NEITHER` outcomes easier to interpret.
 
+Future planning status: Monte Carlo forecast-vs-actual calibration is planned in `MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`.
+
 - Backtest Outcome Evaluation is long-only
 - Calibration Summary currently summarizes all `backtest_results_csv` files in current report folder
 - no multi-select yet

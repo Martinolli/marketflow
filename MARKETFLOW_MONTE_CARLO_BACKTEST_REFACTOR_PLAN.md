@@ -8,6 +8,8 @@ The goal is calibration and research: measure how forecast probabilities such as
 
 This plan incorporates ideas from the local note `markdown_files/monte_carlo_backtest_refactor.md`, including single-run versus backtest modes, model calibration, saved statistical exports, backtest CLI concepts, and known risks such as sequential performance, naming clarity, and silent model fallback behavior. The original note remains unchanged.
 
+Monte Carlo forecast-vs-actual calibration plan created at `MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`.
+
 ## 2. Current Workflow Baseline
 
 Current Studio evidence flow:
