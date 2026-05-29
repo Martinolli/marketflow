@@ -203,6 +203,8 @@ Post-milestone implementation status: Studio Data Horizon / Parameter Sufficienc
 
 Related milestone status: `MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md` records the completed Studio-visible Data Horizon / Parameter Sufficiency workflow.
 
+Post-milestone implementation status: Studio horizon alignment warning implemented to make MC/backtest horizon mismatch visible before calibration.
+
 ## 11. Resume Checklist
 
 ```text

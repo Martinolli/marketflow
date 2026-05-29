@@ -1941,6 +1941,99 @@ def _render_monte_carlo_calibration_summary_tables(summary_result: dict[str, Any
             st.dataframe(_safe_dataframe_rows(unmatched_outcomes), use_container_width=True, hide_index=True)
 
 
+def _session_horizon_value(key: str) -> int | None:
+    """Return a positive integer horizon from Streamlit session state."""
+    durable_key = f"latest_{key}"
+    value = st.session_state.get(key)
+    if value is None:
+        value = st.session_state.get(durable_key)
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return None
+    if parsed > 0:
+        st.session_state[durable_key] = parsed
+    return parsed if parsed > 0 else None
+
+
+def _horizon_alignment_context() -> dict[str, Any]:
+    """Return Backtest Outcome and Monte Carlo horizon alignment context."""
+    backtest_horizon = _session_horizon_value("backtest_outcome_horizon_bars")
+    monte_carlo_horizon = _session_horizon_value("monte_carlo_horizon_bars")
+    notes: list[str] = []
+    warning = None
+    horizon_match: bool | None = None
+
+    if backtest_horizon is None:
+        notes.append("Backtest Outcome horizon is not set yet.")
+    if monte_carlo_horizon is None:
+        notes.append("Monte Carlo horizon is not set yet.")
+
+    if backtest_horizon is not None and monte_carlo_horizon is not None:
+        horizon_match = backtest_horizon == monte_carlo_horizon
+        if not horizon_match:
+            warning = (
+                "Backtest Outcome horizon and Monte Carlo horizon are different. "
+                "Forecast-vs-actual calibration will classify matched rows as horizon_mismatch "
+                "and will not score them."
+            )
+
+    return {
+        "backtest_horizon": backtest_horizon,
+        "monte_carlo_horizon": monte_carlo_horizon,
+        "horizon_match": horizon_match,
+        "warning": warning,
+        "notes": notes,
+    }
+
+
+def _horizon_alignment_rows(context: dict[str, Any]) -> list[dict[str, Any]]:
+    """Return compact display rows for horizon alignment context."""
+    horizon_match = context.get("horizon_match")
+    if horizon_match is True:
+        impact = "scoreable horizon condition satisfied"
+    elif horizon_match is False:
+        impact = "horizon_mismatch; forecast-vs-actual rows are not scoreable"
+    else:
+        impact = "not enough horizon context yet"
+
+    return [
+        {"item": "Backtest Outcome horizon", "value": context.get("backtest_horizon")},
+        {"item": "Monte Carlo horizon", "value": context.get("monte_carlo_horizon")},
+        {"item": "Horizon match", "value": horizon_match},
+        {"item": "Calibration impact", "value": impact},
+    ]
+
+
+def _render_horizon_alignment_warning(location: str = "") -> None:
+    """Render a lightweight non-blocking Backtest/Monte Carlo horizon alignment warning."""
+    context = _horizon_alignment_context()
+    backtest_horizon = context.get("backtest_horizon")
+    monte_carlo_horizon = context.get("monte_carlo_horizon")
+    horizon_match = context.get("horizon_match")
+
+    if backtest_horizon is None and monte_carlo_horizon is None:
+        return
+
+    label = "Horizon alignment"
+    if location:
+        label = f"{label} ({location.replace('_', ' ')})"
+
+    if horizon_match is True:
+        st.caption(f"Backtest and Monte Carlo horizons are aligned: `{backtest_horizon}` bars.")
+        return
+
+    if horizon_match is False:
+        st.warning(str(context.get("warning")))
+        with st.expander(label, expanded=False):
+            st.dataframe(_safe_dataframe_rows(_horizon_alignment_rows(context)), use_container_width=True, hide_index=True)
+        return
+
+    notes = context.get("notes") or []
+    if notes:
+        st.caption("Horizon alignment: " + " ".join(str(note) for note in notes))
+
+
 def _render_monte_carlo_forecast_calibration_summary_section(result: dict[str, Any] | None) -> None:
     """Render Monte Carlo forecast-vs-actual calibration summary controls."""
     st.markdown("#### Monte Carlo Forecast Calibration Summary")
@@ -2002,6 +2095,8 @@ def _render_monte_carlo_forecast_calibration_summary_section(result: dict[str, A
         value=True,
         key="monte_carlo_calibration_save_markdown",
     )
+
+    _render_horizon_alignment_warning(location="monte_carlo_calibration")
 
     if st.button("Summarize Monte Carlo Forecast Calibration"):
         try:
@@ -2476,6 +2571,8 @@ def _render_backtest_outcome_evaluation_section(result: dict[str, Any] | None) -
             key="backtest_outcome_write_invalid_rows",
             help="When enabled, invalid/incomplete candidate snapshots are preserved as INVALID rows for audit.",
         )
+
+    _render_horizon_alignment_warning(location="backtest")
 
     evaluation_result = None
     if st.button("Evaluate Backtest Outcomes"):
@@ -4284,9 +4381,18 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
     with col5:
         paths = st.number_input("Paths", min_value=1000, max_value=50000, value=10000, step=1000)
     with col6:
-        horizon = st.number_input("Horizon", min_value=1, max_value=250, value=20, step=1)
+        horizon = st.number_input(
+            "Horizon",
+            min_value=1,
+            max_value=250,
+            value=20,
+            step=1,
+            key="monte_carlo_horizon_bars",
+        )
     with col7:
         block_len = st.number_input("Block Length", min_value=1, max_value=100, value=8, step=1)
+
+    _render_horizon_alignment_warning(location="monte_carlo")
 
     seed = st.number_input("Seed", value=42, step=1)
     save_plots = st.checkbox("Save plots", value=True)

@@ -187,6 +187,8 @@ downloadable = true
 
 Browser smoke confirmed the section appears in the intended location. Markdown save works. Generated Artifacts preview guidance is shown. No Monte Carlo, Backtest, Strategy Ranking, P&F, or Eigen logic was changed.
 
+Post-milestone implementation status: Studio horizon alignment warnings implemented between Backtest Outcome Evaluation and Monte Carlo.
+
 ## 10. Current Guardrails
 
 - diagnostics only
