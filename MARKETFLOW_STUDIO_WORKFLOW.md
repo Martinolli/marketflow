@@ -169,6 +169,8 @@ A milestone/status document exists at `MARKETFLOW_MONTE_CARLO_CALIBRATION_MILEST
 
 A Data Horizon / Parameter Sufficiency Diagnostics plan exists at `MARKETFLOW_DATA_HORIZON_PARAMETER_SUFFICIENCY_PLAN.md`. It defines how timeframe periods, Eigen windows, Monte Carlo horizons, and Backtest Outcome horizons should be checked before calibration.
 
+A service-only Data Horizon / Parameter Sufficiency Diagnostics layer exists. It assesses source CSV row counts, timeframe coverage, Eigen windows, Monte Carlo horizons, and Backtest Outcome horizons before future UI wiring.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

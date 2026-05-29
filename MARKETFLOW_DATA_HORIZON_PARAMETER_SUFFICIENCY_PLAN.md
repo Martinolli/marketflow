@@ -6,6 +6,8 @@ This plan defines how MarketFlow should assess whether available data is suffici
 
 This is a planning-only checkpoint. It makes no code changes, changes no defaults, and adds no UI. The work described here is research/calibration only. It is not financial advice, not parameter optimization, and not a trade signal system.
 
+Service status: service-only Data Horizon / Parameter Sufficiency Diagnostics implemented in `marketflow/services/data_sufficiency_service.py`. Studio UI and markdown artifact writing remain future work.
+
 ## 2. Current Baseline
 
 Current implemented workflow:

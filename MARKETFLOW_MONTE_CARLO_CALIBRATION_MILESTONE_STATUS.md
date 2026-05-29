@@ -195,6 +195,8 @@ B — create a Data Horizon / Parameter Sufficiency Diagnostics planning checkpo
 
 Data Horizon / Parameter Sufficiency Diagnostics plan created at `MARKETFLOW_DATA_HORIZON_PARAMETER_SUFFICIENCY_PLAN.md`.
 
+Post-milestone implementation status: service-only Data Horizon / Parameter Sufficiency Diagnostics implemented.
+
 ## 11. Resume Checklist
 
 ```text
