@@ -197,6 +197,8 @@ Data Horizon / Parameter Sufficiency Diagnostics plan created at `MARKETFLOW_DAT
 
 Post-milestone implementation status: service-only Data Horizon / Parameter Sufficiency Diagnostics implemented.
 
+Post-milestone implementation status: Data Horizon / Parameter Sufficiency markdown writer implemented.
+
 ## 11. Resume Checklist
 
 ```text

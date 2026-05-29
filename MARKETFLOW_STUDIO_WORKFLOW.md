@@ -171,6 +171,8 @@ A Data Horizon / Parameter Sufficiency Diagnostics plan exists at `MARKETFLOW_DA
 
 A service-only Data Horizon / Parameter Sufficiency Diagnostics layer exists. It assesses source CSV row counts, timeframe coverage, Eigen windows, Monte Carlo horizons, and Backtest Outcome horizons before future UI wiring.
 
+A service-level Data Horizon / Parameter Sufficiency markdown writer exists. Generated markdown files containing `_data_sufficiency_summary` are classified as `data_sufficiency_summary_md` and previewable in Generated Artifacts. Studio UI is not wired yet.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
