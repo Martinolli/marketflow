@@ -159,9 +159,11 @@ Backtest result rows include future-bar availability diagnostics, including `fut
 
 A Monte Carlo forecast-vs-actual calibration plan exists at `MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`. It depends on future-bar availability diagnostics to avoid judging not-yet-mature rows as forecast failures.
 
-A service-only Monte Carlo forecast-vs-actual calibration join exists. It joins enriched `*_mc_summary.json` files to `backtest_results_csv` rows, applies maturity/horizon eligibility checks, and computes first calibration metrics. Studio UI is not wired yet.
+A service-only Monte Carlo forecast-vs-actual calibration join exists. It joins enriched `*_mc_summary.json` files to `backtest_results_csv` rows, applies maturity/horizon eligibility checks, and computes first calibration metrics.
 
-A service-level Monte Carlo forecast-vs-actual calibration markdown writer exists. Generated markdown files containing `_monte_carlo_calibration_summary` are classified as `monte_carlo_calibration_summary_md` and previewable in Generated Artifacts. Studio UI is not wired yet.
+A service-level Monte Carlo forecast-vs-actual calibration markdown writer exists. Generated markdown files containing `_monte_carlo_calibration_summary` are classified as `monte_carlo_calibration_summary_md` and previewable in Generated Artifacts.
+
+Studio includes a Monte Carlo Forecast Calibration Summary section on the Strategy Ranking page. It joins enriched `*_mc_summary.json` files to `backtest_results_csv`, displays eligibility and calibration summaries, and can save previewable `monte_carlo_calibration_summary_md` markdown artifacts. This remains calibration-only and does not optimize parameters or create trade recommendations.
 
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 

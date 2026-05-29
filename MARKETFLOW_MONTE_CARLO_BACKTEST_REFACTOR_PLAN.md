@@ -16,6 +16,8 @@ Monte Carlo forecast-vs-actual calibration service status: service-only join and
 
 Monte Carlo forecast-vs-actual calibration markdown writer status: implemented.
 
+Studio Monte Carlo Forecast Calibration Summary status: implemented as a Strategy Ranking page section.
+
 ## 2. Current Workflow Baseline
 
 Current Studio evidence flow:

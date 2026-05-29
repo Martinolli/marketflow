@@ -166,6 +166,7 @@ streamlit run apps/marketflow_studio.py
 * Monte Carlo summary join metadata enrichment — implemented
 * Monte Carlo forecast-vs-actual calibration service — implemented
 * Monte Carlo forecast-vs-actual calibration markdown writer — implemented
+* Studio Monte Carlo Forecast Calibration Summary section — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

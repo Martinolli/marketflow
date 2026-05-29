@@ -8,9 +8,11 @@ This checkpoint began as planning only. It is for research/calibration only, is 
 
 Monte Carlo summary metadata enrichment status: implemented. Newly generated `*_mc_summary.json` files now include `join_metadata` for future forecast-vs-actual calibration joins.
 
-Service status: service-only Monte Carlo forecast-vs-actual calibration join implemented in `marketflow/services/monte_carlo_calibration_service.py`. Studio UI remains future work.
+Service status: service-only Monte Carlo forecast-vs-actual calibration join implemented in `marketflow/services/monte_carlo_calibration_service.py`.
 
-Markdown artifact writer status: implemented service-level markdown generation and saving for Monte Carlo forecast-vs-actual calibration summaries. Studio UI remains future work.
+Markdown artifact writer status: implemented service-level markdown generation and saving for Monte Carlo forecast-vs-actual calibration summaries.
+
+Studio integration status: implemented as a Strategy Ranking page section that summarizes enriched `*_mc_summary.json` forecast artifacts against `backtest_results_csv` outcome artifacts and can write `monte_carlo_calibration_summary_md` markdown artifacts.
 
 ## 2. Current Baseline
 
