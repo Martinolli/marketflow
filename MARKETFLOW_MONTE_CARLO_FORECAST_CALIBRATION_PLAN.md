@@ -14,6 +14,8 @@ Markdown artifact writer status: implemented service-level markdown generation a
 
 Studio integration status: implemented as a Strategy Ranking page section that summarizes enriched `*_mc_summary.json` forecast artifacts against `backtest_results_csv` outcome artifacts and can write `monte_carlo_calibration_summary_md` markdown artifacts.
 
+Milestone status: `MARKETFLOW_MONTE_CARLO_CALIBRATION_MILESTONE_STATUS.md` records the current Studio-visible Monte Carlo forecast calibration workflow checkpoint.
+
 ## 2. Current Baseline
 
 Current workflow:

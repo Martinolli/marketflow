@@ -165,6 +165,8 @@ A service-level Monte Carlo forecast-vs-actual calibration markdown writer exist
 
 Studio includes a Monte Carlo Forecast Calibration Summary section on the Strategy Ranking page. It joins enriched `*_mc_summary.json` files to `backtest_results_csv`, displays eligibility and calibration summaries, and can save previewable `monte_carlo_calibration_summary_md` markdown artifacts. This remains calibration-only and does not optimize parameters or create trade recommendations.
 
+A milestone/status document exists at `MARKETFLOW_MONTE_CARLO_CALIBRATION_MILESTONE_STATUS.md`. It records the current end-to-end Studio-visible Monte Carlo forecast calibration workflow.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
