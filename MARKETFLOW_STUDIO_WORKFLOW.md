@@ -159,6 +159,8 @@ Backtest result rows include future-bar availability diagnostics, including `fut
 
 A Monte Carlo forecast-vs-actual calibration plan exists at `MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`. It depends on future-bar availability diagnostics to avoid judging not-yet-mature rows as forecast failures.
 
+A service-only Monte Carlo forecast-vs-actual calibration join exists. It joins enriched `*_mc_summary.json` files to `backtest_results_csv` rows, applies maturity/horizon eligibility checks, and computes first calibration metrics. Studio UI is not wired yet.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

@@ -4,9 +4,11 @@
 
 This plan defines how MarketFlow should compare Monte Carlo forecast probabilities against deterministic backtest outcomes.
 
-This checkpoint is planning only. It is for research/calibration only, is not financial advice, is not a trade signal generator, is not parameter optimization yet, and includes no code changes.
+This checkpoint began as planning only. It is for research/calibration only, is not financial advice, is not a trade signal generator, and is not parameter optimization.
 
 Monte Carlo summary metadata enrichment status: implemented. Newly generated `*_mc_summary.json` files now include `join_metadata` for future forecast-vs-actual calibration joins.
+
+Service status: service-only Monte Carlo forecast-vs-actual calibration join implemented in `marketflow/services/monte_carlo_calibration_service.py`. Studio UI and markdown artifact writing remain future work.
 
 ## 2. Current Baseline
 

@@ -12,6 +12,8 @@ Monte Carlo forecast-vs-actual calibration plan created at `MARKETFLOW_MONTE_CAR
 
 Monte Carlo summary metadata enrichment status: implemented for future forecast-vs-actual calibration.
 
+Monte Carlo forecast-vs-actual calibration service status: service-only join and summary metrics implemented.
+
 ## 2. Current Workflow Baseline
 
 Current Studio evidence flow:
