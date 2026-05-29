@@ -167,6 +167,8 @@ Studio includes a Monte Carlo Forecast Calibration Summary section on the Strate
 
 A milestone/status document exists at `MARKETFLOW_MONTE_CARLO_CALIBRATION_MILESTONE_STATUS.md`. It records the current end-to-end Studio-visible Monte Carlo forecast calibration workflow.
 
+A Data Horizon / Parameter Sufficiency Diagnostics plan exists at `MARKETFLOW_DATA_HORIZON_PARAMETER_SUFFICIENCY_PLAN.md`. It defines how timeframe periods, Eigen windows, Monte Carlo horizons, and Backtest Outcome horizons should be checked before calibration.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

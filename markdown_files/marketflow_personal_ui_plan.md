@@ -168,6 +168,7 @@ streamlit run apps/marketflow_studio.py
 * Monte Carlo forecast-vs-actual calibration markdown writer — implemented
 * Studio Monte Carlo Forecast Calibration Summary section — implemented
 * Monte Carlo calibration milestone/status document — created
+* Data Horizon / Parameter Sufficiency Diagnostics plan — created
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

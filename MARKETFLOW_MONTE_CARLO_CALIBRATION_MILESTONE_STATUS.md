@@ -193,6 +193,8 @@ F. Pause feature work and do a repository/documentation cleanup pass.
 Recommended next step:
 B — create a Data Horizon / Parameter Sufficiency Diagnostics planning checkpoint, because timeframe periods, Eigen windows, MC horizons, and backtest horizons now directly affect calibration reliability.
 
+Data Horizon / Parameter Sufficiency Diagnostics plan created at `MARKETFLOW_DATA_HORIZON_PARAMETER_SUFFICIENCY_PLAN.md`.
+
 ## 11. Resume Checklist
 
 ```text
