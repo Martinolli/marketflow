@@ -201,6 +201,8 @@ Post-milestone implementation status: Data Horizon / Parameter Sufficiency markd
 
 Post-milestone implementation status: Studio Data Horizon / Parameter Sufficiency section implemented.
 
+Related milestone status: `MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md` records the completed Studio-visible Data Horizon / Parameter Sufficiency workflow.
+
 ## 11. Resume Checklist
 
 ```text

@@ -175,6 +175,8 @@ A service-level Data Horizon / Parameter Sufficiency markdown writer exists. Gen
 
 Studio includes a Data Horizon / Parameter Sufficiency section on the Strategy Ranking page. It assesses canonical source CSV row counts against Eigen/PCA windows, Monte Carlo horizons, and Backtest Outcome horizons, displays warnings, and can save previewable `data_sufficiency_summary_md` markdown artifacts.
 
+A Data Horizon / Parameter Sufficiency milestone/status document exists at `MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md`. It records the current service, markdown writer, Studio section, artifact classification, verification baseline, and guardrails.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
