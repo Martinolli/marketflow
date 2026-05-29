@@ -161,6 +161,8 @@ A Monte Carlo forecast-vs-actual calibration plan exists at `MARKETFLOW_MONTE_CA
 
 A service-only Monte Carlo forecast-vs-actual calibration join exists. It joins enriched `*_mc_summary.json` files to `backtest_results_csv` rows, applies maturity/horizon eligibility checks, and computes first calibration metrics. Studio UI is not wired yet.
 
+A service-level Monte Carlo forecast-vs-actual calibration markdown writer exists. Generated markdown files containing `_monte_carlo_calibration_summary` are classified as `monte_carlo_calibration_summary_md` and previewable in Generated Artifacts. Studio UI is not wired yet.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

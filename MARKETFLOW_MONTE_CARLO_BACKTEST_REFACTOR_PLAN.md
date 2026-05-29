@@ -14,6 +14,8 @@ Monte Carlo summary metadata enrichment status: implemented for future forecast-
 
 Monte Carlo forecast-vs-actual calibration service status: service-only join and summary metrics implemented.
 
+Monte Carlo forecast-vs-actual calibration markdown writer status: implemented.
+
 ## 2. Current Workflow Baseline
 
 Current Studio evidence flow:
