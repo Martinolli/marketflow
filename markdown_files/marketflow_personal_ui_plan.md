@@ -171,6 +171,7 @@ streamlit run apps/marketflow_studio.py
 * Data Horizon / Parameter Sufficiency Diagnostics plan — created
 * Data Horizon / Parameter Sufficiency Diagnostics service — implemented
 * Data Horizon / Parameter Sufficiency markdown writer — implemented
+* Studio Data Horizon / Parameter Sufficiency section — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

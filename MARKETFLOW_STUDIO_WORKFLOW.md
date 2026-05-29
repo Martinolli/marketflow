@@ -171,7 +171,9 @@ A Data Horizon / Parameter Sufficiency Diagnostics plan exists at `MARKETFLOW_DA
 
 A service-only Data Horizon / Parameter Sufficiency Diagnostics layer exists. It assesses source CSV row counts, timeframe coverage, Eigen windows, Monte Carlo horizons, and Backtest Outcome horizons before future UI wiring.
 
-A service-level Data Horizon / Parameter Sufficiency markdown writer exists. Generated markdown files containing `_data_sufficiency_summary` are classified as `data_sufficiency_summary_md` and previewable in Generated Artifacts. Studio UI is not wired yet.
+A service-level Data Horizon / Parameter Sufficiency markdown writer exists. Generated markdown files containing `_data_sufficiency_summary` are classified as `data_sufficiency_summary_md` and previewable in Generated Artifacts.
+
+Studio includes a Data Horizon / Parameter Sufficiency section on the Strategy Ranking page. It assesses canonical source CSV row counts against Eigen/PCA windows, Monte Carlo horizons, and Backtest Outcome horizons, displays warnings, and can save previewable `data_sufficiency_summary_md` markdown artifacts.
 
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 

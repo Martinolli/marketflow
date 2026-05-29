@@ -58,6 +58,12 @@ from marketflow.services.batch_service import (
     normalize_batch_tickers,
     run_batch_analysis,
 )
+from marketflow.services.data_sufficiency_artifact_service import (
+    summarize_folder_to_data_sufficiency_markdown,
+)
+from marketflow.services.data_sufficiency_service import (
+    summarize_report_folder_data_sufficiency,
+)
 from marketflow.services.eigen_service import (
     compare_price_volume_eigen_windows,
     review_eigen_wyckoff_proximity,
@@ -2083,6 +2089,245 @@ def _render_monte_carlo_forecast_calibration_summary_section(result: dict[str, A
         _render_monte_carlo_calibration_summary_tables(latest_summary)
 
 
+DATA_SUFFICIENCY_ROW_COLUMNS = [
+    "ticker",
+    "timeframe",
+    "source_csv_name",
+    "rows_available",
+    "first_timestamp",
+    "last_timestamp",
+    "configured_period",
+    "eigen_window",
+    "monte_carlo_horizon",
+    "backtest_horizon",
+    "minimum_rows_required",
+    "data_sufficiency_status",
+    "eigen_sufficiency_status",
+    "monte_carlo_sufficiency_status",
+    "backtest_sufficiency_status",
+    "calibration_sufficiency_status",
+    "noise_warning",
+    "provider_limit_warning",
+]
+
+
+def _data_sufficiency_status_rows(
+    sufficiency_result: dict[str, Any],
+    artifact_result: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Return compact display rows for a Data Horizon / Parameter Sufficiency result."""
+    artifact_result = artifact_result if isinstance(artifact_result, dict) else {}
+    summary = sufficiency_result.get("summary") if isinstance(sufficiency_result.get("summary"), dict) else {}
+    return [
+        {"item": "Summary success", "value": sufficiency_result.get("success")},
+        {"item": "CSV files", "value": sufficiency_result.get("csv_file_count")},
+        {"item": "Sufficient", "value": summary.get("sufficient_count")},
+        {"item": "Limited", "value": summary.get("limited_count")},
+        {"item": "Insufficient", "value": summary.get("insufficient_count")},
+        {"item": "Provider limited", "value": summary.get("provider_limited_count")},
+        {"item": "Not yet mature", "value": summary.get("not_yet_mature_count")},
+        {"item": "Unknown", "value": summary.get("unknown_count")},
+        {"item": "Noise warnings", "value": summary.get("noise_warning_count")},
+        {"item": "Provider-limit warnings", "value": summary.get("provider_limit_warning_count")},
+        {"item": "Minimum rows required max", "value": summary.get("minimum_rows_required_max")},
+        {"item": "Rows available min", "value": summary.get("rows_available_min")},
+        {"item": "Rows available max", "value": summary.get("rows_available_max")},
+        {"item": "Saved markdown", "value": artifact_result.get("success")},
+        {"item": "Markdown filename", "value": artifact_result.get("filename")},
+        {"item": "Markdown path", "value": artifact_result.get("path")},
+    ]
+
+
+def _render_data_sufficiency_summary_tables(sufficiency_result: dict[str, Any]) -> None:
+    """Render Data Horizon / Parameter Sufficiency tables from a service result."""
+    summary = sufficiency_result.get("summary") if isinstance(sufficiency_result.get("summary"), dict) else {}
+    st.write("Summary")
+    if summary:
+        st.dataframe(_safe_dataframe_rows([summary]), use_container_width=True, hide_index=True)
+    else:
+        st.info("No data sufficiency summary is available.")
+
+    rows = sufficiency_result.get("rows") or []
+    compact_rows = [
+        {column: row.get(column) for column in DATA_SUFFICIENCY_ROW_COLUMNS}
+        for row in rows
+        if isinstance(row, dict)
+    ]
+    with st.expander(f"CSV Sufficiency Rows ({len(compact_rows)} rows)", expanded=bool(compact_rows)):
+        if compact_rows:
+            st.dataframe(_safe_dataframe_rows(compact_rows), use_container_width=True, hide_index=True)
+        else:
+            st.caption("No CSV sufficiency rows are available.")
+
+    warning_rows = [
+        {
+            "ticker": row.get("ticker"),
+            "timeframe": row.get("timeframe"),
+            "source_csv_name": row.get("source_csv_name"),
+            "rows_available": row.get("rows_available"),
+            "noise_warning": row.get("noise_warning"),
+            "provider_limit_warning": row.get("provider_limit_warning"),
+            "notes": row.get("notes"),
+        }
+        for row in rows
+        if isinstance(row, dict) and (row.get("noise_warning") or row.get("provider_limit_warning"))
+    ]
+    if warning_rows:
+        with st.expander(f"Warning Review ({len(warning_rows)} rows)", expanded=True):
+            st.dataframe(_safe_dataframe_rows(warning_rows), use_container_width=True, hide_index=True)
+
+
+def _session_int_default(key: str, fallback: int) -> int:
+    value = st.session_state.get(key, fallback)
+    try:
+        parsed = int(value)
+    except (TypeError, ValueError):
+        return fallback
+    return parsed if parsed > 0 else fallback
+
+
+def _render_data_sufficiency_section(result: dict[str, Any] | None) -> None:
+    """Render Data Horizon / Parameter Sufficiency diagnostics controls."""
+    st.markdown("#### Data Horizon / Parameter Sufficiency")
+    st.caption(
+        "Assess whether the current report folder has enough source data for Eigen/PCA windows, "
+        "Monte Carlo horizons, Backtest Outcome horizons, and calibration review. This is diagnostics "
+        "only and does not optimize parameters."
+    )
+    st.info(
+        "Reads saved source CSV artifacts, prefers canonical `*_wyckoff_annotated.csv`, and ignores "
+        "derivative CSVs such as `*_pv_eigen.csv`, `*_backtest_candidates*.csv`, and "
+        "`*_backtest_results*.csv`. Does not rerun analysis, Monte Carlo, or backtests. No automatic "
+        "parameter optimization. Sufficient rows do not imply predictive validity. Low-timeframe noise "
+        "remains visible."
+    )
+
+    report_dir = _report_dir_for_backtest_snapshot(result)
+    if not report_dir:
+        st.warning("No report folder is available for Data Sufficiency diagnostics.")
+        return
+
+    control_col1, control_col2, control_col3 = st.columns(3)
+    with control_col1:
+        eigen_window = st.number_input(
+            "Eigen/PCA window",
+            min_value=1,
+            max_value=1000,
+            value=80,
+            step=1,
+            key="data_sufficiency_eigen_window",
+        )
+    with control_col2:
+        monte_carlo_horizon = st.number_input(
+            "Monte Carlo horizon bars",
+            min_value=1,
+            max_value=1000,
+            value=_session_int_default("monte_carlo_horizon_bars", 60),
+            step=1,
+            key="data_sufficiency_monte_carlo_horizon",
+        )
+    with control_col3:
+        backtest_horizon = st.number_input(
+            "Backtest horizon bars",
+            min_value=1,
+            max_value=1000,
+            value=_session_int_default("backtest_outcome_horizon_bars", 60),
+            step=1,
+            key="data_sufficiency_backtest_horizon",
+        )
+
+    save_markdown = st.checkbox(
+        "Save markdown data sufficiency summary",
+        value=True,
+        key="data_sufficiency_save_markdown",
+    )
+
+    if st.button("Summarize Data Sufficiency"):
+        parameter_context = {
+            "eigen_window": int(eigen_window),
+            "monte_carlo_horizon": int(monte_carlo_horizon),
+            "backtest_horizon": int(backtest_horizon),
+        }
+        try:
+            sufficiency_result = summarize_report_folder_data_sufficiency(
+                report_dir,
+                parameter_context=parameter_context,
+            )
+        except Exception as exc:
+            sufficiency_result = {
+                "success": False,
+                "report_dir": report_dir,
+                "csv_file_count": 0,
+                "rows": [],
+                "summary": {},
+                "warnings": [],
+                "errors": [f"{type(exc).__name__}: {exc}"],
+            }
+
+        st.session_state["latest_data_sufficiency_summary"] = sufficiency_result
+        st.session_state["latest_data_sufficiency_summary_artifact"] = None
+        artifact_result = None
+        if save_markdown and sufficiency_result.get("success"):
+            ticker, timeframe = _backtest_calibration_filename_context(result)
+            try:
+                artifact_result = summarize_folder_to_data_sufficiency_markdown(
+                    report_dir,
+                    parameter_context=parameter_context,
+                    ticker=ticker,
+                    timeframe=timeframe,
+                )
+            except Exception as exc:
+                artifact_result = {
+                    "success": False,
+                    "path": None,
+                    "filename": None,
+                    "errors": [f"{type(exc).__name__}: {exc}"],
+                    "warnings": [],
+                }
+            st.session_state["latest_data_sufficiency_summary_artifact"] = artifact_result
+
+        if artifact_result is not None and artifact_result.get("success"):
+            st.success(f"Saved Data Sufficiency Summary: `{artifact_result.get('path')}`")
+            st.caption("Saved file appears in Generated Artifacts as data_sufficiency_summary_md.")
+            st.caption("Refresh or revisit Generated Artifacts to preview the data_sufficiency_summary_md file.")
+        elif artifact_result is not None and not artifact_result.get("success"):
+            st.error("Could not save Data Sufficiency Summary markdown.")
+
+    latest_summary = st.session_state.get("latest_data_sufficiency_summary")
+    latest_artifact = st.session_state.get("latest_data_sufficiency_summary_artifact")
+
+    if isinstance(latest_summary, dict):
+        if latest_summary.get("success"):
+            st.success("Data Horizon / Parameter Sufficiency Summary is available.")
+        else:
+            st.warning("Data Horizon / Parameter Sufficiency Summary did not complete successfully.")
+
+        st.dataframe(
+            _safe_dataframe_rows(_data_sufficiency_status_rows(latest_summary, latest_artifact)),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+        warnings = latest_summary.get("warnings") or []
+        errors = latest_summary.get("errors") or []
+        if warnings:
+            st.info("Warnings: " + "; ".join(str(warning) for warning in warnings))
+        if errors:
+            st.warning("Errors: " + "; ".join(str(error) for error in errors))
+
+        if isinstance(latest_artifact, dict):
+            artifact_errors = latest_artifact.get("errors") or []
+            artifact_warnings = latest_artifact.get("warnings") or []
+            if latest_artifact.get("path"):
+                st.caption(f"Last saved Data Sufficiency artifact: `{latest_artifact.get('path')}`")
+            if artifact_warnings:
+                st.info("Artifact warnings: " + "; ".join(str(warning) for warning in artifact_warnings))
+            if artifact_errors:
+                st.warning("Artifact errors: " + "; ".join(str(error) for error in artifact_errors))
+
+        _render_data_sufficiency_summary_tables(latest_summary)
+
+
 def _render_backtest_candidate_snapshot_section(result: dict[str, Any] | None) -> None:
     """Render save controls for the selected Strategy Ranking candidate snapshot."""
     st.markdown("#### Backtest Candidate Snapshot")
@@ -2466,6 +2711,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
             "the selected timeframe."
         )
     st.json(selected_candidate)
+    _render_data_sufficiency_section(result)
     _render_backtest_candidate_snapshot_section(result)
     _render_backtest_outcome_evaluation_section(result)
     _render_backtest_calibration_summary_section(result)

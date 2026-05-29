@@ -8,7 +8,9 @@ This is a planning-only checkpoint. It makes no code changes, changes no default
 
 Service status: service-only Data Horizon / Parameter Sufficiency Diagnostics implemented in `marketflow/services/data_sufficiency_service.py`. Studio UI remains future work.
 
-Markdown artifact writer status: implemented service-level markdown generation and saving for Data Horizon / Parameter Sufficiency Diagnostics summaries. Studio UI remains future work.
+Markdown artifact writer status: implemented service-level markdown generation and saving for Data Horizon / Parameter Sufficiency Diagnostics summaries.
+
+Studio integration status: implemented as a Strategy Ranking page section that summarizes report-folder source CSV sufficiency and can write `data_sufficiency_summary_md` markdown artifacts.
 
 ## 2. Current Baseline
 

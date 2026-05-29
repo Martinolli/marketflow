@@ -199,6 +199,8 @@ Post-milestone implementation status: service-only Data Horizon / Parameter Suff
 
 Post-milestone implementation status: Data Horizon / Parameter Sufficiency markdown writer implemented.
 
+Post-milestone implementation status: Studio Data Horizon / Parameter Sufficiency section implemented.
+
 ## 11. Resume Checklist
 
 ```text
