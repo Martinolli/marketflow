@@ -191,6 +191,8 @@ Post-milestone implementation status: Studio horizon alignment warnings implemen
 
 Parameter Profile plan created at `MARKETFLOW_PARAMETER_PROFILE_PLAN.md`.
 
+Post-milestone implementation status: service-only Parameter Profile service implemented.
+
 ## 10. Current Guardrails
 
 - diagnostics only

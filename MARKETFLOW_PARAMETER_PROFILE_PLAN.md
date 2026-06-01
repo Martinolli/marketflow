@@ -356,6 +356,8 @@ Implement service-only `marketflow/services/parameter_profile_service.py` with b
 
 ## 17. Final Status
 
+Service status: service-only Parameter Profile service implemented in `marketflow/services/parameter_profile_service.py`. Studio UI remains future work.
+
 ```text
 Status: MarketFlow Parameter Profile planning checkpoint only.
 ```
