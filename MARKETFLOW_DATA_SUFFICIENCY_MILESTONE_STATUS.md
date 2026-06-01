@@ -189,6 +189,8 @@ Browser smoke confirmed the section appears in the intended location. Markdown s
 
 Post-milestone implementation status: Studio horizon alignment warnings implemented between Backtest Outcome Evaluation and Monte Carlo.
 
+Parameter Profile plan created at `MARKETFLOW_PARAMETER_PROFILE_PLAN.md`.
+
 ## 10. Current Guardrails
 
 - diagnostics only

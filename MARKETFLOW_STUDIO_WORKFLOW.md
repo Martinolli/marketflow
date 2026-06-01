@@ -179,6 +179,8 @@ A Data Horizon / Parameter Sufficiency milestone/status document exists at `MARK
 
 Studio warns when Backtest Outcome horizon and Monte Carlo horizon differ. Horizon mismatch does not block execution, but forecast-vs-actual calibration treats joined rows with mismatched horizons as not scoreable.
 
+A Parameter Profile planning document exists at `MARKETFLOW_PARAMETER_PROFILE_PLAN.md`. It defines future profile-based defaults for Eigen/PCA windows, Backtest horizons, Monte Carlo horizons, paths, block length, and low-timeframe posture.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
