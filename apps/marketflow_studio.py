@@ -80,6 +80,12 @@ from marketflow.services.monte_carlo_calibration_artifact_service import (
 from marketflow.services.monte_carlo_calibration_service import (
     summarize_monte_carlo_calibration_folder,
 )
+from marketflow.services.parameter_profile_service import (
+    build_session_update_from_profile,
+    get_timeframe_posture,
+    list_parameter_profiles,
+    parameter_profile_summary_rows,
+)
 from marketflow.services.pnf_service import (
     classify_pnf_sidecar_source,
     generate_pnf_for_csv,
@@ -114,6 +120,15 @@ LEGACY_PLOT_ROW_OPTIONS = ["All", 200, 500, 1000, 2000]
 STRATEGY_TIMEFRAMES = ["1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"]
 WYCKOFF_PHASE_OPTIONS = ["A", "B", "C", "D", "E", "UNKNOWN"]
 MONTE_CARLO_MODELS = ["bootstrap", "gbm", "garch"]
+PARAMETER_PROFILE_WIDGET_SESSION_KEYS = {
+    "data_sufficiency_eigen_window",
+    "data_sufficiency_backtest_horizon",
+    "data_sufficiency_monte_carlo_horizon",
+    "backtest_outcome_horizon_bars",
+    "monte_carlo_horizon_bars",
+    "monte_carlo_paths",
+    "monte_carlo_block_len",
+}
 
 
 def _load_latest_result(ticker: str) -> dict[str, Any]:
@@ -2281,6 +2296,213 @@ def _session_int_default(key: str, fallback: int) -> int:
     return parsed if parsed > 0 else fallback
 
 
+def _number_input_value_kwargs(key: str, fallback: int | float) -> dict[str, Any]:
+    """Return explicit number input value kwargs from pending profile, state, or fallback."""
+    pending_updates = st.session_state.get("pending_parameter_profile_session_updates")
+    if isinstance(pending_updates, dict) and key in pending_updates:
+        value = pending_updates.pop(key)
+        if not pending_updates:
+            st.session_state.pop("pending_parameter_profile_session_updates", None)
+        return {"value": value}
+    if key in st.session_state:
+        return {"value": st.session_state[key]}
+    return {"value": fallback}
+
+
+def _parameter_profile_label(profile: dict[str, Any]) -> str:
+    """Return a compact label for Parameter Profile selectbox options."""
+    label = profile.get("label") or profile.get("name") or "Parameter Profile"
+    name = profile.get("name") or "unknown"
+    return f"{label} | {name}"
+
+
+def _selected_candidate_timeframe() -> str | None:
+    """Return the selected Strategy Ranking candidate timeframe when available."""
+    candidate = _current_strategy_candidate_for_backtest()
+    if not isinstance(candidate, dict):
+        return None
+    timeframe = candidate.get("tf") or candidate.get("timeframe")
+    return str(timeframe).strip() if timeframe else None
+
+
+def _parameter_profile_status_rows(
+    profile_name: str | None,
+    session_update_result: dict[str, Any] | None = None,
+    selected_timeframe: str | None = None,
+) -> list[dict[str, Any]]:
+    """Return compact status rows for the selected Parameter Profile."""
+    profiles = {
+        str(profile.get("name") or ""): profile
+        for profile in list_parameter_profiles()
+        if isinstance(profile, dict)
+    }
+    profile = profiles.get(str(profile_name or ""))
+    update_result = (
+        session_update_result
+        if isinstance(session_update_result, dict)
+        else build_session_update_from_profile(profile_name)
+    )
+    posture_result = (
+        get_timeframe_posture(profile_name, selected_timeframe)
+        if selected_timeframe
+        else None
+    )
+    posture = posture_result.get("posture") if isinstance(posture_result, dict) else None
+
+    return [
+        {"item": "Selected profile", "value": profile_name},
+        {"item": "Label", "value": profile.get("label") if profile else None},
+        {"item": "Eigen/PCA window", "value": profile.get("eigen_window") if profile else None},
+        {"item": "Backtest horizon", "value": profile.get("backtest_horizon") if profile else None},
+        {"item": "Monte Carlo horizon", "value": profile.get("monte_carlo_horizon") if profile else None},
+        {"item": "Monte Carlo paths", "value": profile.get("monte_carlo_paths") if profile else None},
+        {"item": "Monte Carlo block length", "value": profile.get("monte_carlo_block_len") if profile else None},
+        {"item": "Minimum rows floor", "value": profile.get("minimum_rows_floor") if profile else None},
+        {"item": "Preferred timeframes", "value": ", ".join(profile.get("preferred_timeframes") or []) if profile else None},
+        {"item": "Guardrails", "value": ", ".join(profile.get("guardrails") or []) if profile else None},
+        {"item": "Selected timeframe posture", "value": posture},
+        {"item": "Session update success", "value": update_result.get("success") if isinstance(update_result, dict) else None},
+    ]
+
+
+def _apply_parameter_profile_session_updates(update_result: dict[str, Any]) -> None:
+    """Apply profile values to Streamlit session state for current/future widgets."""
+    if not isinstance(update_result, dict) or not update_result.get("success"):
+        return
+    session_updates = update_result.get("session_updates")
+    if not isinstance(session_updates, dict):
+        return
+    pending_updates = st.session_state.get("pending_parameter_profile_session_updates")
+    if not isinstance(pending_updates, dict):
+        pending_updates = {}
+    for key, value in session_updates.items():
+        if key in PARAMETER_PROFILE_WIDGET_SESSION_KEYS:
+            pending_updates[key] = value
+        else:
+            st.session_state[key] = value
+    if pending_updates:
+        st.session_state["pending_parameter_profile_session_updates"] = pending_updates
+    for key in ("backtest_outcome_horizon_bars", "monte_carlo_horizon_bars"):
+        if key in session_updates:
+            st.session_state[f"latest_{key}"] = session_updates[key]
+    st.session_state["selected_parameter_profile_name"] = update_result.get("profile_name")
+    st.session_state["latest_parameter_profile_update"] = update_result
+
+
+def _render_parameter_profile_selector(result: dict[str, Any] | None = None) -> None:
+    """Render a non-blocking Parameter Profile selector for current session controls."""
+    st.markdown("#### Parameter Profile Selector")
+    st.caption(
+        "Apply a predefined parameter profile to standardize Eigen/PCA window, Backtest horizon, "
+        "Monte Carlo horizon, paths, and block length. This is not optimization and does not create "
+        "trade signals."
+    )
+
+    profiles = list_parameter_profiles()
+    if not profiles:
+        st.warning("No Parameter Profiles are available.")
+        return
+
+    applied_profile_name = st.session_state.get("selected_parameter_profile_name")
+    default_index = 0
+    if applied_profile_name:
+        for index, profile in enumerate(profiles):
+            if profile.get("name") == applied_profile_name:
+                default_index = index
+                break
+
+    selected_profile = st.selectbox(
+        "Parameter profile",
+        options=profiles,
+        index=default_index,
+        format_func=_parameter_profile_label,
+        key="parameter_profile_selector",
+    )
+    selected_profile_name = selected_profile.get("name")
+    selected_timeframe = _selected_candidate_timeframe()
+
+    with st.expander("Built-in Parameter Profiles", expanded=False):
+        st.dataframe(
+            _safe_dataframe_rows(parameter_profile_summary_rows()),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    if selected_timeframe:
+        posture_result = get_timeframe_posture(selected_profile_name, selected_timeframe)
+        posture = posture_result.get("posture")
+        if posture == "review_only":
+            st.warning(posture_result.get("warning") or "Timeframe is review-only for this profile.")
+        elif posture == "avoid":
+            st.warning(posture_result.get("warning") or "Timeframe is not recommended for this profile.")
+        elif posture == "preferred":
+            st.success(f"Selected candidate timeframe `{selected_timeframe}` is preferred for this profile.")
+        else:
+            st.caption(f"Selected candidate timeframe `{selected_timeframe}` posture: `{posture or 'unknown'}`")
+
+    update_preview = build_session_update_from_profile(selected_profile_name)
+    st.dataframe(
+        _safe_dataframe_rows(
+            _parameter_profile_status_rows(
+                selected_profile_name,
+                session_update_result=update_preview,
+                selected_timeframe=selected_timeframe,
+            )
+        ),
+        use_container_width=True,
+        hide_index=True,
+    )
+
+    if st.button("Apply Parameter Profile"):
+        update_result = build_session_update_from_profile(selected_profile_name)
+        if update_result.get("success"):
+            _apply_parameter_profile_session_updates(update_result)
+            st.success(f"Applied Parameter Profile: `{selected_profile_name}`")
+            update_keys = ", ".join((update_result.get("session_updates") or {}).keys())
+            st.caption(f"Applied session keys: {update_keys}")
+        else:
+            st.error("Could not apply Parameter Profile.")
+        for warning in update_result.get("warnings") or []:
+            st.info(str(warning))
+        for error in update_result.get("errors") or []:
+            st.warning(str(error))
+        st.dataframe(
+            _safe_dataframe_rows(
+                _parameter_profile_status_rows(
+                    selected_profile_name,
+                    session_update_result=update_result,
+                    selected_timeframe=selected_timeframe,
+                )
+            ),
+            use_container_width=True,
+            hide_index=True,
+        )
+
+    latest_update = st.session_state.get("latest_parameter_profile_update")
+    if isinstance(latest_update, dict):
+        st.caption(f"Current applied profile: `{latest_update.get('profile_name')}`")
+        with st.expander("Latest Parameter Profile session update", expanded=False):
+            st.dataframe(
+                _safe_dataframe_rows(
+                    _parameter_profile_status_rows(
+                        latest_update.get("profile_name"),
+                        session_update_result=latest_update,
+                        selected_timeframe=selected_timeframe,
+                    )
+                ),
+                use_container_width=True,
+                hide_index=True,
+            )
+            updates = latest_update.get("session_updates") or {}
+            if updates:
+                st.write("Applied session keys")
+                st.json(updates)
+            if latest_update.get("warnings"):
+                st.info("Warnings: " + "; ".join(str(warning) for warning in latest_update.get("warnings") or []))
+            if latest_update.get("errors"):
+                st.warning("Errors: " + "; ".join(str(error) for error in latest_update.get("errors") or []))
+
+
 def _render_data_sufficiency_section(result: dict[str, Any] | None) -> None:
     """Render Data Horizon / Parameter Sufficiency diagnostics controls."""
     st.markdown("#### Data Horizon / Parameter Sufficiency")
@@ -2308,27 +2530,33 @@ def _render_data_sufficiency_section(result: dict[str, Any] | None) -> None:
             "Eigen/PCA window",
             min_value=1,
             max_value=1000,
-            value=80,
             step=1,
             key="data_sufficiency_eigen_window",
+            **_number_input_value_kwargs("data_sufficiency_eigen_window", 80),
         )
     with control_col2:
         monte_carlo_horizon = st.number_input(
             "Monte Carlo horizon bars",
             min_value=1,
             max_value=1000,
-            value=_session_int_default("monte_carlo_horizon_bars", 60),
             step=1,
             key="data_sufficiency_monte_carlo_horizon",
+            **_number_input_value_kwargs(
+                "data_sufficiency_monte_carlo_horizon",
+                _session_int_default("monte_carlo_horizon_bars", 60),
+            ),
         )
     with control_col3:
         backtest_horizon = st.number_input(
             "Backtest horizon bars",
             min_value=1,
             max_value=1000,
-            value=_session_int_default("backtest_outcome_horizon_bars", 60),
             step=1,
             key="data_sufficiency_backtest_horizon",
+            **_number_input_value_kwargs(
+                "data_sufficiency_backtest_horizon",
+                _session_int_default("backtest_outcome_horizon_bars", 60),
+            ),
         )
 
     save_markdown = st.checkbox(
@@ -2553,9 +2781,9 @@ def _render_backtest_outcome_evaluation_section(result: dict[str, Any] | None) -
             "Horizon bars",
             min_value=1,
             max_value=500,
-            value=20,
             step=1,
             key="backtest_outcome_horizon_bars",
+            **_number_input_value_kwargs("backtest_outcome_horizon_bars", 20),
         )
     with control_col2:
         tie_break_policy = st.selectbox(
@@ -2808,6 +3036,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
             "the selected timeframe."
         )
     st.json(selected_candidate)
+    _render_parameter_profile_selector(result)
     _render_data_sufficiency_section(result)
     _render_backtest_candidate_snapshot_section(result)
     _render_backtest_outcome_evaluation_section(result)
@@ -4379,18 +4608,32 @@ def _render_monte_carlo(result: dict[str, Any] | None) -> None:
         model = st.selectbox("Model", options=MONTE_CARLO_MODELS, index=0)
         st.caption("Bootstrap is the recommended default. GARCH requires optional package `arch`.")
     with col5:
-        paths = st.number_input("Paths", min_value=1000, max_value=50000, value=10000, step=1000)
+        paths = st.number_input(
+            "Paths",
+            min_value=1000,
+            max_value=50000,
+            step=1000,
+            key="monte_carlo_paths",
+            **_number_input_value_kwargs("monte_carlo_paths", 10000),
+        )
     with col6:
         horizon = st.number_input(
             "Horizon",
             min_value=1,
             max_value=250,
-            value=20,
             step=1,
             key="monte_carlo_horizon_bars",
+            **_number_input_value_kwargs("monte_carlo_horizon_bars", 20),
         )
     with col7:
-        block_len = st.number_input("Block Length", min_value=1, max_value=100, value=8, step=1)
+        block_len = st.number_input(
+            "Block Length",
+            min_value=1,
+            max_value=100,
+            step=1,
+            key="monte_carlo_block_len",
+            **_number_input_value_kwargs("monte_carlo_block_len", 8),
+        )
 
     _render_horizon_alignment_warning(location="monte_carlo")
 

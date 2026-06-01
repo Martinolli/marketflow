@@ -181,7 +181,9 @@ Studio warns when Backtest Outcome horizon and Monte Carlo horizon differ. Horiz
 
 A Parameter Profile planning document exists at `MARKETFLOW_PARAMETER_PROFILE_PLAN.md`. It defines future profile-based defaults for Eigen/PCA windows, Backtest horizons, Monte Carlo horizons, paths, block length, and low-timeframe posture.
 
-A service-only Parameter Profile layer exists. It defines built-in profiles for Fast Test, Daily/Swing, Intraday Tactical, Conservative Research, and Review-Only Low-Timeframe. Studio UI is not wired yet.
+A service-only Parameter Profile layer exists. It defines built-in profiles for Fast Test, Daily/Swing, Intraday Tactical, Conservative Research, and Review-Only Low-Timeframe.
+
+Studio includes a Parameter Profile Selector on the Strategy Ranking page. It can apply built-in profiles such as Fast Test, Daily/Swing, Intraday Tactical, Conservative Research, and Review-Only Low-Timeframe to current session controls for Data Sufficiency, Backtest Outcome Evaluation, and Monte Carlo.
 
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 

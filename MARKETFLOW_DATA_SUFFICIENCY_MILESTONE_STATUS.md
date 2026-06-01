@@ -193,6 +193,8 @@ Parameter Profile plan created at `MARKETFLOW_PARAMETER_PROFILE_PLAN.md`.
 
 Post-milestone implementation status: service-only Parameter Profile service implemented.
 
+Post-milestone implementation status: Studio Parameter Profile Selector implemented.
+
 ## 10. Current Guardrails
 
 - diagnostics only

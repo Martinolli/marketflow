@@ -356,7 +356,9 @@ Implement service-only `marketflow/services/parameter_profile_service.py` with b
 
 ## 17. Final Status
 
-Service status: service-only Parameter Profile service implemented in `marketflow/services/parameter_profile_service.py`. Studio UI remains future work.
+Service status: service-only Parameter Profile service implemented in `marketflow/services/parameter_profile_service.py`.
+
+Studio integration status: implemented as a Strategy Ranking page Parameter Profile Selector that applies built-in profile values to current session controls. Profile selection is non-optimizing and can be manually overridden.
 
 ```text
 Status: MarketFlow Parameter Profile planning checkpoint only.

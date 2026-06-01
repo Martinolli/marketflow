@@ -176,6 +176,7 @@ streamlit run apps/marketflow_studio.py
 * Studio Backtest/Monte Carlo horizon alignment warning — implemented
 * Parameter Profile plan — created
 * Parameter Profile service — implemented
+* Studio Parameter Profile Selector — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented
