@@ -178,6 +178,7 @@ streamlit run apps/marketflow_studio.py
 * Parameter Profile service — implemented
 * Studio Parameter Profile Selector — implemented
 * Parameter Profile milestone/status document — created
+* Profile validation summary — created
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

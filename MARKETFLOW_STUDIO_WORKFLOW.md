@@ -187,6 +187,8 @@ Studio includes a Parameter Profile Selector on the Strategy Ranking page. It ca
 
 A Parameter Profile milestone/status document exists at `MARKETFLOW_PARAMETER_PROFILE_MILESTONE_STATUS.md`. It records the current service, Studio selector, session keys, verification baseline, guardrails, and known limitations.
 
+A profile validation summary exists at `MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md`. It records the first validation results for AAPL, IONQ, AAAU, and LOAR, including data sufficiency, horizon alignment, Monte Carlo/backtest joining, and latest-row maturity constraints.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

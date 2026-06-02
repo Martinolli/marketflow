@@ -6,6 +6,8 @@ This document records the current MarketFlow milestone/status after completing t
 
 This is a documentation-only checkpoint. It records the current repository and application status as a clean reference before future features. Parameter profiles are standardization helpers for research/calibration workflows. They are not optimization, not financial advice, and not a trade signal system.
 
+Validation status: `MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md` records the first validation run across AAPL, IONQ, AAAU, and LOAR using the Studio Parameter Profile Selector.
+
 ## 2. Current Commit
 
 ```text
