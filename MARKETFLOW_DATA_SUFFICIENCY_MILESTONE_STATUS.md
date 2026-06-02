@@ -191,6 +191,8 @@ Post-milestone implementation status: Studio horizon alignment warnings implemen
 
 Parameter Profile plan created at `MARKETFLOW_PARAMETER_PROFILE_PLAN.md`.
 
+Related milestone status: `MARKETFLOW_PARAMETER_PROFILE_MILESTONE_STATUS.md` records the completed Studio-visible Parameter Profile workflow.
+
 Post-milestone implementation status: service-only Parameter Profile service implemented.
 
 Post-milestone implementation status: Studio Parameter Profile Selector implemented.

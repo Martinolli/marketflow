@@ -1,5 +1,7 @@
 # MARKETFLOW_PARAMETER_PROFILE_PLAN
 
+Milestone status: `MARKETFLOW_PARAMETER_PROFILE_MILESTONE_STATUS.md` records the current Studio-visible Parameter Profile workflow checkpoint.
+
 ## 1. Purpose
 
 This plan defines future MarketFlow parameter profiles for different analysis purposes and timeframes.

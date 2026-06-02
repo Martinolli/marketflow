@@ -185,6 +185,8 @@ A service-only Parameter Profile layer exists. It defines built-in profiles for 
 
 Studio includes a Parameter Profile Selector on the Strategy Ranking page. It can apply built-in profiles such as Fast Test, Daily/Swing, Intraday Tactical, Conservative Research, and Review-Only Low-Timeframe to current session controls for Data Sufficiency, Backtest Outcome Evaluation, and Monte Carlo.
 
+A Parameter Profile milestone/status document exists at `MARKETFLOW_PARAMETER_PROFILE_MILESTONE_STATUS.md`. It records the current service, Studio selector, session keys, verification baseline, guardrails, and known limitations.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
