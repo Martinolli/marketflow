@@ -197,6 +197,8 @@ A service-level Historical Walk-Forward Validation markdown writer exists. Gener
 
 A Walk-Forward Validation milestone/status document exists at `MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md`. It records the current service, markdown writer, artifact classification, smoke result, test baseline, guardrails, and known limitations.
 
+Studio includes a Historical Walk-Forward Validation section on the Strategy Ranking page. It allows selecting a canonical source CSV, choosing a parameter profile, setting step/max cases/event filters, running deterministic walk-forward validation, and saving previewable `walk_forward_validation_summary_md` artifacts.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

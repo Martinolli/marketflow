@@ -183,6 +183,7 @@ streamlit run apps/marketflow_studio.py
 * Historical Walk-Forward Validation service — implemented
 * Historical Walk-Forward Validation markdown writer — implemented
 * Walk-Forward Validation milestone/status document — created
+* Studio Historical Walk-Forward Validation section — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

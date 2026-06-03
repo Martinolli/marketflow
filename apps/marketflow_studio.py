@@ -109,6 +109,12 @@ from marketflow.services.strategy_service import (
     normalize_tickers,
     rank_latest_candidates,
 )
+from marketflow.services.walk_forward_validation_artifact_service import (
+    summarize_csv_to_walk_forward_validation_markdown,
+)
+from marketflow.services.walk_forward_validation_service import (
+    build_and_evaluate_walk_forward_cases_from_csv,
+)
 
 
 DEFAULT_TIMEFRAMES = ["1d", "4h", "1h"]
@@ -1777,6 +1783,31 @@ def _monte_carlo_summary_json_artifacts(report_dir: str | None) -> list[dict[str
     )
 
 
+def _walk_forward_source_csv_artifacts(report_dir: str) -> list[dict[str, Any]]:
+    """Return canonical source CSV artifacts for walk-forward validation."""
+    if not report_dir:
+        return []
+    artifacts = [
+        artifact
+        for artifact in list_report_artifacts(report_dir)
+        if artifact.get("kind") == "csv_annotated"
+        or str(artifact.get("name") or "").lower().endswith("_wyckoff_annotated.csv")
+    ]
+    return sorted(
+        artifacts,
+        key=lambda artifact: (
+            str(artifact.get("timeframe") or ""),
+            str(artifact.get("name") or artifact.get("path") or ""),
+        ),
+    )
+
+
+def _walk_forward_profile_options() -> list[dict[str, Any]]:
+    """Return Parameter Profile options for walk-forward validation controls."""
+    profiles = list_parameter_profiles()
+    return [profile for profile in profiles if isinstance(profile, dict)]
+
+
 def _default_backtest_candidate_csv_index(artifacts: list[dict[str, Any]]) -> int:
     """Return the default selected candidate snapshot artifact index."""
     if not artifacts:
@@ -2285,6 +2316,365 @@ def _render_data_sufficiency_summary_tables(sufficiency_result: dict[str, Any]) 
     if warning_rows:
         with st.expander(f"Warning Review ({len(warning_rows)} rows)", expanded=True):
             st.dataframe(_safe_dataframe_rows(warning_rows), use_container_width=True, hide_index=True)
+
+
+WALK_FORWARD_CASE_COLUMNS = [
+    "ticker",
+    "timeframe",
+    "profile_name",
+    "signal_row_index",
+    "signal_timestamp",
+    "entry",
+    "stop_loss",
+    "take_profit",
+    "risk_reward",
+    "wyckoff_phase",
+    "wyckoff_event",
+    "trend",
+    "lookback_rows_available",
+    "future_bars_available",
+    "snapshot_success",
+]
+
+WALK_FORWARD_RESULT_COLUMNS = [
+    "ticker",
+    "timeframe",
+    "profile_name",
+    "signal_row_index",
+    "signal_timestamp",
+    "outcome",
+    "future_bars_available",
+    "horizon_bars",
+    "bars_to_hit",
+    "realized_R",
+    "backtest_success",
+    "wyckoff_phase",
+    "wyckoff_event",
+    "trend",
+]
+
+
+def _walk_forward_default_profile_index(
+    profiles: list[dict[str, Any]],
+    selected_timeframe: str | None,
+) -> int:
+    """Return a profile default for the selected source timeframe."""
+    if not profiles:
+        return 0
+    timeframe = str(selected_timeframe or "").strip().lower()
+    preferred_name = None
+    if timeframe in {"1d", "4h"}:
+        preferred_name = "daily_swing"
+    elif timeframe in {"1h", "30m", "15m"}:
+        preferred_name = "intraday_tactical"
+    else:
+        preferred_name = st.session_state.get("selected_parameter_profile_name") or "fast_test"
+    for index, profile in enumerate(profiles):
+        if profile.get("name") == preferred_name:
+            return index
+    return 0
+
+
+def _walk_forward_validation_status_rows(
+    result: dict[str, Any] | None,
+    write_result: dict[str, Any] | None = None,
+) -> list[dict[str, Any]]:
+    """Return compact status rows for a walk-forward validation result."""
+    walk_forward_result = result or {}
+    if isinstance(walk_forward_result.get("walk_forward_result"), dict):
+        walk_forward_result = walk_forward_result["walk_forward_result"]
+    build_result = walk_forward_result.get("build_result") if isinstance(walk_forward_result.get("build_result"), dict) else {}
+    evaluation_result = (
+        walk_forward_result.get("evaluation_result")
+        if isinstance(walk_forward_result.get("evaluation_result"), dict)
+        else {}
+    )
+    summary = walk_forward_result.get("summary") if isinstance(walk_forward_result.get("summary"), dict) else {}
+    artifact_result = write_result if isinstance(write_result, dict) else {}
+    if not artifact_result and isinstance(result, dict) and isinstance(result.get("write_result"), dict):
+        artifact_result = result["write_result"]
+
+    return [
+        {"item": "Success", "value": walk_forward_result.get("success")},
+        {"item": "Source CSV", "value": build_result.get("source_csv_name") or build_result.get("csv_path")},
+        {"item": "Ticker", "value": build_result.get("ticker")},
+        {"item": "Timeframe", "value": build_result.get("timeframe")},
+        {"item": "Profile", "value": build_result.get("profile_name") or evaluation_result.get("profile_name")},
+        {"item": "Row count", "value": build_result.get("row_count")},
+        {"item": "Minimum lookback rows", "value": build_result.get("minimum_lookback_rows")},
+        {"item": "Horizon bars", "value": build_result.get("horizon_bars") or evaluation_result.get("horizon_bars")},
+        {"item": "Require mature future", "value": build_result.get("require_mature_future")},
+        {"item": "Case count", "value": build_result.get("case_count")},
+        {"item": "Evaluated count", "value": evaluation_result.get("evaluated_count")},
+        {"item": "Scoreable count", "value": summary.get("scoreable_count")},
+        {"item": "TP_FIRST", "value": summary.get("tp_first_count")},
+        {"item": "SL_FIRST", "value": summary.get("sl_first_count")},
+        {"item": "NEITHER", "value": summary.get("neither_count")},
+        {"item": "INVALID", "value": summary.get("invalid_count")},
+        {"item": "AMBIGUOUS", "value": summary.get("ambiguous_count")},
+        {"item": "Markdown saved", "value": artifact_result.get("success")},
+        {"item": "Markdown filename", "value": artifact_result.get("filename")},
+        {"item": "Markdown path", "value": artifact_result.get("path")},
+    ]
+
+
+def _walk_forward_messages(result: dict[str, Any], key: str) -> list[Any]:
+    """Collect warnings/errors from combined walk-forward result shapes."""
+    messages: list[Any] = []
+    messages.extend(result.get(key) or [])
+    build_result = result.get("build_result")
+    if isinstance(build_result, dict):
+        messages.extend(build_result.get(key) or [])
+    evaluation_result = result.get("evaluation_result")
+    if isinstance(evaluation_result, dict):
+        messages.extend(evaluation_result.get(key) or [])
+    return messages
+
+
+def _render_walk_forward_validation_tables(walk_forward_result: dict[str, Any]) -> None:
+    """Render bounded walk-forward summary, cases, and deterministic result rows."""
+    summary = walk_forward_result.get("summary") if isinstance(walk_forward_result.get("summary"), dict) else {}
+    build_result = walk_forward_result.get("build_result") if isinstance(walk_forward_result.get("build_result"), dict) else {}
+    evaluation_result = (
+        walk_forward_result.get("evaluation_result")
+        if isinstance(walk_forward_result.get("evaluation_result"), dict)
+        else {}
+    )
+    cases = [row for row in build_result.get("cases") or [] if isinstance(row, dict)]
+    result_rows = [row for row in evaluation_result.get("result_rows") or [] if isinstance(row, dict)]
+
+    st.write("Summary")
+    if summary:
+        st.dataframe(_safe_dataframe_rows([summary]), use_container_width=True, hide_index=True)
+    else:
+        st.info("No walk-forward summary is available.")
+
+    case_rows = [{column: row.get(column) for column in WALK_FORWARD_CASE_COLUMNS} for row in cases[:100]]
+    with st.expander(f"Walk-Forward Cases ({len(cases)} rows)", expanded=bool(case_rows) and len(case_rows) <= 25):
+        if case_rows:
+            st.dataframe(_safe_dataframe_rows(case_rows), use_container_width=True, hide_index=True)
+            if len(cases) > len(case_rows):
+                st.caption(f"Showing first {len(case_rows)} of {len(cases)} cases.")
+        else:
+            st.caption("No walk-forward cases are available.")
+
+    display_result_rows = [
+        {column: row.get(column) for column in WALK_FORWARD_RESULT_COLUMNS}
+        for row in result_rows[:200]
+    ]
+    with st.expander(
+        f"Deterministic Outcome Rows ({len(result_rows)} rows)",
+        expanded=bool(display_result_rows) and len(display_result_rows) <= 25,
+    ):
+        if display_result_rows:
+            st.dataframe(_safe_dataframe_rows(display_result_rows), use_container_width=True, hide_index=True)
+            if len(result_rows) > len(display_result_rows):
+                st.caption(f"Showing first {len(display_result_rows)} of {len(result_rows)} result rows.")
+        else:
+            st.caption("No deterministic outcome rows are available.")
+
+    warnings = _walk_forward_messages(walk_forward_result, "warnings")
+    errors = _walk_forward_messages(walk_forward_result, "errors")
+    if warnings:
+        with st.expander(f"Walk-Forward Warnings ({len(warnings)})", expanded=True):
+            for warning in warnings:
+                st.info(str(warning))
+    if errors:
+        with st.expander(f"Walk-Forward Errors ({len(errors)})", expanded=True):
+            for error in errors:
+                st.warning(str(error))
+
+
+def _parse_walk_forward_event_filters(text: str | None) -> list[str] | None:
+    """Parse comma-separated walk-forward event filters."""
+    events = [item.strip() for item in str(text or "").split(",") if item.strip()]
+    return events or None
+
+
+def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> None:
+    """Render Historical Walk-Forward Validation controls."""
+    st.markdown("#### Historical Walk-Forward Validation")
+    st.caption(
+        "Build mature historical candidate cases from a source CSV, evaluate deterministic outcomes, and save "
+        "a previewable walk_forward_validation_summary_md artifact. This is validation only and does not "
+        "optimize parameters or create trade signals."
+    )
+    st.info(
+        "Uses historical rows only. Future bars are used only for outcome evaluation. No Monte Carlo forecast "
+        "integration yet. No Strategy Ranking historical row-limited mode yet. Candidate scaffold is "
+        "deterministic and long-only in this first implementation. Historical validation does not guarantee "
+        "future performance."
+    )
+
+    report_dir = _report_dir_for_backtest_snapshot(result)
+    if not report_dir:
+        st.warning("No report folder is available for Walk-Forward Validation.")
+        return
+
+    source_csv_artifacts = _walk_forward_source_csv_artifacts(report_dir)
+    if not source_csv_artifacts:
+        st.info("No canonical *_wyckoff_annotated.csv files were found. Run analysis first.")
+        return
+
+    artifact_rows = [
+        {
+            "name": artifact.get("name"),
+            "timeframe": artifact.get("timeframe"),
+            "modified": artifact.get("modified"),
+            "path": artifact.get("path"),
+        }
+        for artifact in source_csv_artifacts
+    ]
+    st.write(f"Available source CSV artifacts: `{len(artifact_rows)}`")
+    st.dataframe(_safe_dataframe_rows(artifact_rows), use_container_width=True, hide_index=True)
+
+    selected_artifact = st.selectbox(
+        "Walk-forward source CSV",
+        source_csv_artifacts,
+        format_func=lambda item: f"{item.get('name')} | {item.get('timeframe') or ''}",
+        key="walk_forward_source_csv_artifact",
+    )
+
+    profile_options = _walk_forward_profile_options()
+    if not profile_options:
+        st.warning("No Parameter Profiles are available for Walk-Forward Validation.")
+        return
+    selected_timeframe = selected_artifact.get("timeframe")
+    default_profile_index = _walk_forward_default_profile_index(profile_options, selected_timeframe)
+    selected_profile = st.selectbox(
+        "Walk-forward parameter profile",
+        profile_options,
+        index=default_profile_index,
+        format_func=_parameter_profile_label,
+        key="walk_forward_profile",
+    )
+    selected_profile_name = selected_profile.get("name")
+
+    control_col1, control_col2, control_col3 = st.columns(3)
+    with control_col1:
+        step = st.number_input(
+            "Signal row step",
+            min_value=1,
+            max_value=500,
+            value=25,
+            step=1,
+            key="walk_forward_step",
+        )
+    with control_col2:
+        max_cases = st.number_input(
+            "Max cases",
+            min_value=1,
+            max_value=1000,
+            value=25,
+            step=1,
+            key="walk_forward_max_cases",
+        )
+    with control_col3:
+        require_mature_future = st.checkbox(
+            "Require mature future window",
+            value=True,
+            key="walk_forward_require_mature_future",
+        )
+
+    event_filter_text = st.text_input(
+        "Event filters optional",
+        value="",
+        help="Comma-separated Wyckoff events, e.g. SPRING_WEAK, UT_WEAK. Leave blank for all events.",
+        key="walk_forward_event_filters",
+    )
+    save_markdown = st.checkbox(
+        "Save markdown walk-forward validation summary",
+        value=True,
+        key="walk_forward_save_markdown",
+    )
+
+    if st.button("Run Walk-Forward Validation"):
+        event_filters = _parse_walk_forward_event_filters(event_filter_text)
+        st.session_state["latest_walk_forward_validation_result"] = None
+        st.session_state["latest_walk_forward_validation_artifact"] = None
+        try:
+            if save_markdown:
+                wrapper_result = summarize_csv_to_walk_forward_validation_markdown(
+                    selected_artifact["path"],
+                    output_dir=report_dir,
+                    profile_name=str(selected_profile_name),
+                    step=int(step),
+                    max_cases=int(max_cases),
+                    event_filters=event_filters,
+                    require_mature_future=bool(require_mature_future),
+                )
+                walk_forward_result = wrapper_result.get("walk_forward_result")
+                artifact_result = wrapper_result.get("write_result")
+                st.session_state["latest_walk_forward_validation_result"] = walk_forward_result
+                st.session_state["latest_walk_forward_validation_artifact"] = artifact_result
+                run_success = bool(wrapper_result.get("success"))
+                run_errors = wrapper_result.get("errors") or []
+                run_warnings = wrapper_result.get("warnings") or []
+            else:
+                walk_forward_result = build_and_evaluate_walk_forward_cases_from_csv(
+                    selected_artifact["path"],
+                    profile_name=str(selected_profile_name),
+                    step=int(step),
+                    max_cases=int(max_cases),
+                    event_filters=event_filters,
+                    require_mature_future=bool(require_mature_future),
+                )
+                artifact_result = None
+                st.session_state["latest_walk_forward_validation_result"] = walk_forward_result
+                st.session_state["latest_walk_forward_validation_artifact"] = None
+                run_success = bool(walk_forward_result.get("success"))
+                run_errors = walk_forward_result.get("errors") or []
+                run_warnings = walk_forward_result.get("warnings") or []
+        except Exception as exc:
+            walk_forward_result = {
+                "success": False,
+                "build_result": {},
+                "evaluation_result": {},
+                "summary": {},
+                "warnings": [],
+                "errors": [f"{type(exc).__name__}: {exc}"],
+            }
+            artifact_result = None
+            st.session_state["latest_walk_forward_validation_result"] = walk_forward_result
+            st.session_state["latest_walk_forward_validation_artifact"] = None
+            run_success = False
+            run_errors = walk_forward_result["errors"]
+            run_warnings = []
+
+        if run_success:
+            st.success("Walk-Forward Validation completed.")
+        else:
+            st.warning("Walk-Forward Validation did not complete successfully.")
+        if isinstance(artifact_result, dict) and artifact_result.get("success"):
+            st.success(f"Saved Walk-Forward Validation Summary: `{artifact_result.get('path')}`")
+            st.caption("Saved file appears in Generated Artifacts as walk_forward_validation_summary_md.")
+        if run_warnings:
+            st.info("Warnings: " + "; ".join(str(warning) for warning in run_warnings))
+        if run_errors:
+            st.warning("Errors: " + "; ".join(str(error) for error in run_errors))
+
+    latest_result = st.session_state.get("latest_walk_forward_validation_result")
+    latest_artifact = st.session_state.get("latest_walk_forward_validation_artifact")
+    if isinstance(latest_result, dict):
+        if latest_result.get("success"):
+            st.success("Walk-Forward Validation result is available.")
+        else:
+            st.warning("Latest Walk-Forward Validation result is not successful.")
+        st.dataframe(
+            _safe_dataframe_rows(_walk_forward_validation_status_rows(latest_result, latest_artifact)),
+            use_container_width=True,
+            hide_index=True,
+        )
+        if isinstance(latest_artifact, dict):
+            artifact_errors = latest_artifact.get("errors") or []
+            artifact_warnings = latest_artifact.get("warnings") or []
+            if latest_artifact.get("path"):
+                st.caption(f"Last saved Walk-Forward Validation artifact: `{latest_artifact.get('path')}`")
+            if artifact_warnings:
+                st.info("Artifact warnings: " + "; ".join(str(warning) for warning in artifact_warnings))
+            if artifact_errors:
+                st.warning("Artifact errors: " + "; ".join(str(error) for error in artifact_errors))
+        _render_walk_forward_validation_tables(latest_result)
 
 
 def _session_int_default(key: str, fallback: int) -> int:
@@ -3038,6 +3428,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
     st.json(selected_candidate)
     _render_parameter_profile_selector(result)
     _render_data_sufficiency_section(result)
+    _render_walk_forward_validation_section(result)
     _render_backtest_candidate_snapshot_section(result)
     _render_backtest_outcome_evaluation_section(result)
     _render_backtest_calibration_summary_section(result)
@@ -5368,6 +5759,10 @@ def main() -> None:
         st.session_state.latest_backtest_calibration_summary = None
     if "latest_backtest_calibration_summary_artifact" not in st.session_state:
         st.session_state.latest_backtest_calibration_summary_artifact = None
+    if "latest_walk_forward_validation_result" not in st.session_state:
+        st.session_state.latest_walk_forward_validation_result = None
+    if "latest_walk_forward_validation_artifact" not in st.session_state:
+        st.session_state.latest_walk_forward_validation_artifact = None
 
     with st.sidebar:
         st.header("Analysis")

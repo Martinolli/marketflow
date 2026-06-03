@@ -6,6 +6,8 @@ This document records the current MarketFlow milestone/status after completing t
 
 This is a documentation-only checkpoint. It records the current repository and application status as a clean reference before Studio UI wiring or Monte Carlo forecast integration. Walk-forward validation is research/calibration only. It is not financial advice, not a trade signal system, and not automatic optimization.
 
+Post-milestone implementation status: Studio Walk-Forward Validation section implemented.
+
 ## 2. Current Commit
 
 ```text

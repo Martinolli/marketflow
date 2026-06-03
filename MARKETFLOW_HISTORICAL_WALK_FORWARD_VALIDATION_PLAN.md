@@ -16,6 +16,8 @@ Markdown artifact writer status: implemented service-level markdown generation a
 
 Milestone status: `MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md` records the current service-level Historical Walk-Forward Validation workflow and markdown artifact writer checkpoint.
 
+Studio integration status: implemented as a Strategy Ranking page section that runs service-level historical walk-forward validation and can save `walk_forward_validation_summary_md` artifacts.
+
 ## 2. Current Checkpoint
 
 ```text
