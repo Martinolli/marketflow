@@ -193,6 +193,8 @@ A Historical Walk-Forward Candidate Validation plan exists at `MARKETFLOW_HISTOR
 
 A service-only Historical Walk-Forward Validation layer exists. It builds historical candidate cases from source CSVs using profile-aware lookback/future-bar rules and evaluates deterministic outcomes without Studio UI.
 
+A service-level Historical Walk-Forward Validation markdown writer exists. Generated markdown files containing `_walk_forward_validation_summary` are classified as `walk_forward_validation_summary_md` and previewable in Generated Artifacts. Studio UI is not wired yet.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

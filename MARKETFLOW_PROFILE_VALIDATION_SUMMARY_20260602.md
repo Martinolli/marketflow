@@ -258,6 +258,8 @@ Next planning status: `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md` de
 
 Implementation status: service-only historical walk-forward case builder and deterministic evaluator implemented.
 
+Implementation status: Historical Walk-Forward Validation markdown artifact writer implemented.
+
 Alternative next tasks:
 
 - tune profile values after more validation

@@ -12,6 +12,8 @@ The core validation constraint is no future data leakage: data after a historica
 
 Service status: service-only Historical Walk-Forward Validation service implemented in `marketflow/services/walk_forward_validation_service.py`. First implementation builds historical cases and evaluates deterministic backtest outcomes. Studio UI, markdown artifacts, and Monte Carlo forecast integration remain future work.
 
+Markdown artifact writer status: implemented service-level markdown generation and saving for Historical Walk-Forward Validation summaries. Studio UI and Monte Carlo forecast integration remain future work.
+
 ## 2. Current Checkpoint
 
 ```text
