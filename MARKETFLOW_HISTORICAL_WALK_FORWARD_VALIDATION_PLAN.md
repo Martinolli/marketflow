@@ -10,6 +10,8 @@ The plan is intended to solve the latest-row `future_bars_available = 0` limitat
 
 The core validation constraint is no future data leakage: data after a historical decision row may be used only after candidate generation to evaluate what happened next.
 
+Service status: service-only Historical Walk-Forward Validation service implemented in `marketflow/services/walk_forward_validation_service.py`. First implementation builds historical cases and evaluates deterministic backtest outcomes. Studio UI, markdown artifacts, and Monte Carlo forecast integration remain future work.
+
 ## 2. Current Checkpoint
 
 ```text

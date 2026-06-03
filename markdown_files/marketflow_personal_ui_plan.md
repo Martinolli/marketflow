@@ -180,6 +180,7 @@ streamlit run apps/marketflow_studio.py
 * Parameter Profile milestone/status document — created
 * Profile validation summary — created
 * Historical Walk-Forward Candidate Validation plan — created
+* Historical Walk-Forward Validation service — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

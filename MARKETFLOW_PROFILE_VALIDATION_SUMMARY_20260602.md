@@ -256,6 +256,8 @@ Current latest-row candidates are not scoreable immediately. Walk-forward valida
 
 Next planning status: `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md` defines the next proposed path for validating historical candidates with mature future bars.
 
+Implementation status: service-only historical walk-forward case builder and deterministic evaluator implemented.
+
 Alternative next tasks:
 
 - tune profile values after more validation

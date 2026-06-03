@@ -191,6 +191,8 @@ A profile validation summary exists at `MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20
 
 A Historical Walk-Forward Candidate Validation plan exists at `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md`. It defines how future service work should generate historical candidate cases with mature future bars while preventing future-data leakage.
 
+A service-only Historical Walk-Forward Validation layer exists. It builds historical candidate cases from source CSVs using profile-aware lookback/future-bar rules and evaluates deterministic outcomes without Studio UI.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
