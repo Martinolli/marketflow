@@ -189,6 +189,8 @@ A Parameter Profile milestone/status document exists at `MARKETFLOW_PARAMETER_PR
 
 A profile validation summary exists at `MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md`. It records the first validation results for AAPL, IONQ, AAAU, and LOAR, including data sufficiency, horizon alignment, Monte Carlo/backtest joining, and latest-row maturity constraints.
 
+A Historical Walk-Forward Candidate Validation plan exists at `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md`. It defines how future service work should generate historical candidate cases with mature future bars while preventing future-data leakage.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.

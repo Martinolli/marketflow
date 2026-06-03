@@ -254,6 +254,8 @@ Historical walk-forward candidate validation plan
 
 Current latest-row candidates are not scoreable immediately. Walk-forward validation can test historical candidate rows with known future bars. It is the correct path to evaluate whether the strategy has evidence, and it should be planned before implementation.
 
+Next planning status: `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md` defines the next proposed path for validating historical candidates with mature future bars.
+
 Alternative next tasks:
 
 - tune profile values after more validation

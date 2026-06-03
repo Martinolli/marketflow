@@ -8,6 +8,8 @@ This is a documentation-only checkpoint. It records the current repository and a
 
 Validation status: `MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md` records the first validation run across AAPL, IONQ, AAAU, and LOAR using the Studio Parameter Profile Selector.
 
+Related plan: `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md` defines the proposed historical walk-forward validation approach after the first profile validation run.
+
 ## 2. Current Commit
 
 ```text
