@@ -260,6 +260,8 @@ Implementation status: service-only historical walk-forward case builder and det
 
 Implementation status: Historical Walk-Forward Validation markdown artifact writer implemented.
 
+Related milestone status: `MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md` records the completed service-level walk-forward validation workflow and markdown artifact writer.
+
 Alternative next tasks:
 
 - tune profile values after more validation

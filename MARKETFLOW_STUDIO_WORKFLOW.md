@@ -195,6 +195,8 @@ A service-only Historical Walk-Forward Validation layer exists. It builds histor
 
 A service-level Historical Walk-Forward Validation markdown writer exists. Generated markdown files containing `_walk_forward_validation_summary` are classified as `walk_forward_validation_summary_md` and previewable in Generated Artifacts. Studio UI is not wired yet.
 
+A Walk-Forward Validation milestone/status document exists at `MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md`. It records the current service, markdown writer, artifact classification, smoke result, test baseline, guardrails, and known limitations.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
