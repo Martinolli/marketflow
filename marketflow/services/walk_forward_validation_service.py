@@ -32,6 +32,10 @@ DEFAULT_TIMESTAMP_COLUMNS = (
 )
 
 DEFAULT_EVENT_COLUMNS = (
+    "wyckoff_confirmed_event",
+    "confirmed_wyckoff_event",
+    "confirmed_event",
+    "wyckoff_event_confirmed",
     "wyckoff_event",
     "event",
     "phase_event",
@@ -274,6 +278,9 @@ def build_walk_forward_candidate_from_row(
     timeframe: str | None = None,
     timestamp_column: str | None = None,
     ohlc_columns: dict[str, str | None] | None = None,
+    event_column: str | None = None,
+    phase_column: str | None = None,
+    trend_column: str | None = None,
     risk_reward: float = DEFAULT_RISK_REWARD,
     risk_fraction: float = DEFAULT_RISK_FRACTION,
     walk_forward_run_id: str | None = None,
@@ -310,9 +317,15 @@ def build_walk_forward_candidate_from_row(
 
     timestamp = _column_value(row_series, timestamp_column)
     strategy_score = _first_present_row_value(row_series, ("strategy_score", "score"))
-    wyckoff_phase = _first_present_row_value(row_series, DEFAULT_PHASE_COLUMNS)
-    wyckoff_event = _first_present_row_value(row_series, DEFAULT_EVENT_COLUMNS)
-    trend = _first_present_row_value(row_series, DEFAULT_TREND_COLUMNS)
+    wyckoff_phase = _column_value(row_series, phase_column)
+    if _is_missing(wyckoff_phase):
+        wyckoff_phase = _first_present_row_value(row_series, DEFAULT_PHASE_COLUMNS)
+    wyckoff_event = _column_value(row_series, event_column)
+    if _is_missing(wyckoff_event):
+        wyckoff_event = _first_present_row_value(row_series, DEFAULT_EVENT_COLUMNS)
+    trend = _column_value(row_series, trend_column)
+    if _is_missing(trend):
+        trend = _first_present_row_value(row_series, DEFAULT_TREND_COLUMNS)
     future_start = signal_row_index + 1
     future_end = min(signal_row_index + horizon, total_rows - 1) if horizon is not None else total_rows - 1
 
@@ -335,6 +348,9 @@ def build_walk_forward_candidate_from_row(
         "wyckoff_phase": _json_safe_value(wyckoff_phase),
         "wyckoff_event": _json_safe_value(wyckoff_event),
         "trend": _json_safe_value(trend),
+        "wyckoff_event_source": event_column,
+        "wyckoff_phase_source": phase_column,
+        "trend_source": trend_column,
         "direction": "long",
         "candidate_source": "walk_forward_validation",
         "profile_name": profile_name,
@@ -479,6 +495,9 @@ def build_walk_forward_cases_from_csv(
             timeframe=effective_timeframe,
             timestamp_column=timestamp_column,
             ohlc_columns=ohlc_columns,
+            event_column=event_column,
+            phase_column=phase_column,
+            trend_column=trend_column,
             risk_reward=risk_reward,
             risk_fraction=risk_fraction,
             walk_forward_run_id=run_id,

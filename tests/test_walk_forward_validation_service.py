@@ -101,6 +101,49 @@ def test_event_filter_selects_only_matching_rows(tmp_path):
     assert {case["wyckoff_event"] for case in result["cases"]} == {"SPRING_WEAK"}
 
 
+def test_build_cases_uses_wyckoff_confirmed_event_for_filter(tmp_path):
+    rows = _rows(320)
+    for index, row in enumerate(rows):
+        row["wyckoff_event"] = "SC"
+        row["wyckoff_confirmed_event"] = "SPRING_WEAK" if index % 2 == 0 else "UT_WEAK"
+    path = tmp_path / "IONQ_30m_wyckoff_annotated.csv"
+    pd.DataFrame(rows).to_csv(path, index=False)
+
+    result = build_walk_forward_cases_from_csv(
+        path,
+        profile_name="fast_test",
+        event_filters=["SPRING_WEAK"],
+        step=1,
+        max_cases=5,
+        require_mature_future=True,
+    )
+
+    assert result["success"] is True
+    assert result["case_count"] > 0
+    assert result["event_column"] == "wyckoff_confirmed_event"
+    assert all(case["wyckoff_event"] == "SPRING_WEAK" for case in result["cases"])
+    assert all(case["wyckoff_event_source"] == "wyckoff_confirmed_event" for case in result["cases"])
+
+
+def test_build_cases_falls_back_to_raw_wyckoff_event_when_confirmed_missing(tmp_path):
+    path = _csv(tmp_path, 320)
+
+    result = build_walk_forward_cases_from_csv(
+        path,
+        profile_name="fast_test",
+        event_filters=["SPRING_WEAK"],
+        step=1,
+        max_cases=5,
+        require_mature_future=True,
+    )
+
+    assert result["success"] is True
+    assert result["case_count"] > 0
+    assert result["event_column"] == "wyckoff_event"
+    assert all(case["wyckoff_event"] == "SPRING_WEAK" for case in result["cases"])
+    assert all(case["wyckoff_event_source"] == "wyckoff_event" for case in result["cases"])
+
+
 def test_missing_event_column_with_filter_returns_zero_cases(tmp_path):
     path = _csv(tmp_path, 320, include_event=False)
 
@@ -146,6 +189,9 @@ def test_candidate_fields_valid(tmp_path):
     assert case["source_csv"] == str(path)
     assert case["candidate_source"] == "walk_forward_validation"
     assert case["profile_name"] == "fast_test"
+    assert case["wyckoff_event_source"] == "wyckoff_event"
+    assert case["wyckoff_phase_source"] == "wyckoff_phase"
+    assert case["trend_source"] == "trend"
 
 
 def test_evaluate_cases_returns_result_rows(tmp_path):

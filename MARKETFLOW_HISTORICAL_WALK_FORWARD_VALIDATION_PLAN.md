@@ -18,6 +18,8 @@ Milestone status: `MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md` recor
 
 Studio integration status: implemented as a Strategy Ranking page section that runs service-level historical walk-forward validation and can save `walk_forward_validation_summary_md` artifacts.
 
+Event column fix: historical walk-forward event filtering prioritizes confirmed event columns such as `wyckoff_confirmed_event` before falling back to raw `wyckoff_event`.
+
 ## 2. Current Checkpoint
 
 ```text

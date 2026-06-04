@@ -2428,7 +2428,37 @@ def _walk_forward_messages(result: dict[str, Any], key: str) -> list[Any]:
     evaluation_result = result.get("evaluation_result")
     if isinstance(evaluation_result, dict):
         messages.extend(evaluation_result.get(key) or [])
-    return messages
+    return _dedupe_messages(messages)
+
+
+def _dedupe_messages(messages: list[Any]) -> list[str]:
+    """Return unique non-empty message strings while preserving order."""
+    seen: set[str] = set()
+    output: list[str] = []
+    for message in messages:
+        text = str(message)
+        if text and text not in seen:
+            output.append(text)
+            seen.add(text)
+    return output
+
+
+def _walk_forward_case_count(result: dict[str, Any] | None) -> int | None:
+    """Return build case count from combined walk-forward result shapes."""
+    if not isinstance(result, dict):
+        return None
+    build_result = result.get("build_result")
+    if isinstance(build_result, dict) and build_result.get("case_count") is not None:
+        try:
+            return int(build_result.get("case_count"))
+        except (TypeError, ValueError):
+            return None
+    if result.get("case_count") is not None:
+        try:
+            return int(result.get("case_count"))
+        except (TypeError, ValueError):
+            return None
+    return None
 
 
 def _render_walk_forward_validation_tables(walk_forward_result: dict[str, Any]) -> None:
@@ -2608,8 +2638,8 @@ def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> No
                 st.session_state["latest_walk_forward_validation_result"] = walk_forward_result
                 st.session_state["latest_walk_forward_validation_artifact"] = artifact_result
                 run_success = bool(wrapper_result.get("success"))
-                run_errors = wrapper_result.get("errors") or []
-                run_warnings = wrapper_result.get("warnings") or []
+                run_errors = _dedupe_messages(wrapper_result.get("errors") or [])
+                run_warnings = _dedupe_messages(wrapper_result.get("warnings") or [])
             else:
                 walk_forward_result = build_and_evaluate_walk_forward_cases_from_csv(
                     selected_artifact["path"],
@@ -2623,8 +2653,8 @@ def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> No
                 st.session_state["latest_walk_forward_validation_result"] = walk_forward_result
                 st.session_state["latest_walk_forward_validation_artifact"] = None
                 run_success = bool(walk_forward_result.get("success"))
-                run_errors = walk_forward_result.get("errors") or []
-                run_warnings = walk_forward_result.get("warnings") or []
+                run_errors = _walk_forward_messages(walk_forward_result, "errors")
+                run_warnings = _walk_forward_messages(walk_forward_result, "warnings")
         except Exception as exc:
             walk_forward_result = {
                 "success": False,
@@ -2641,11 +2671,22 @@ def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> No
             run_errors = walk_forward_result["errors"]
             run_warnings = []
 
+        artifact_saved = isinstance(artifact_result, dict) and bool(artifact_result.get("success"))
+        case_count = _walk_forward_case_count(walk_forward_result)
         if run_success:
             st.success("Walk-Forward Validation completed.")
+        elif case_count == 0 and artifact_saved:
+            st.warning(
+                "No walk-forward cases were built for the selected CSV/profile/filter settings. "
+                "A markdown diagnostic summary was saved."
+            )
+            st.info("Try removing event filters, reducing the step, increasing max cases, or selecting another timeframe.")
+        elif case_count == 0:
+            st.warning("No walk-forward cases were built for the selected CSV/profile/filter settings.")
+            st.info("Try removing event filters, reducing the step, increasing max cases, or selecting another timeframe.")
         else:
             st.warning("Walk-Forward Validation did not complete successfully.")
-        if isinstance(artifact_result, dict) and artifact_result.get("success"):
+        if artifact_saved:
             st.success(f"Saved Walk-Forward Validation Summary: `{artifact_result.get('path')}`")
             st.caption("Saved file appears in Generated Artifacts as walk_forward_validation_summary_md.")
         if run_warnings:
@@ -2666,8 +2707,8 @@ def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> No
             hide_index=True,
         )
         if isinstance(latest_artifact, dict):
-            artifact_errors = latest_artifact.get("errors") or []
-            artifact_warnings = latest_artifact.get("warnings") or []
+            artifact_errors = _dedupe_messages(latest_artifact.get("errors") or [])
+            artifact_warnings = _dedupe_messages(latest_artifact.get("warnings") or [])
             if latest_artifact.get("path"):
                 st.caption(f"Last saved Walk-Forward Validation artifact: `{latest_artifact.get('path')}`")
             if artifact_warnings:

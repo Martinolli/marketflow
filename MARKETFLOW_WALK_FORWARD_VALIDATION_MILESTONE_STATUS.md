@@ -8,6 +8,8 @@ This is a documentation-only checkpoint. It records the current repository and a
 
 Post-milestone implementation status: Studio Walk-Forward Validation section implemented.
 
+Post-milestone fix status: Walk-Forward Validation now prioritizes confirmed event columns such as `wyckoff_confirmed_event` for event filtering and case metadata.
+
 ## 2. Current Commit
 
 ```text
