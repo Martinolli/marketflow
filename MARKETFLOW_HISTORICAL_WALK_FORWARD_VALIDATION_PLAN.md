@@ -20,6 +20,8 @@ Studio integration status: implemented as a Strategy Ranking page section that r
 
 Event column fix: historical walk-forward event filtering prioritizes confirmed event columns such as `wyckoff_confirmed_event` before falling back to raw `wyckoff_event`.
 
+CSV artifact status: Walk-Forward Validation can export cases, deterministic result rows, and compact summary CSV artifacts for statistical review.
+
 ## 2. Current Checkpoint
 
 ```text

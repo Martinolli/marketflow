@@ -6,10 +6,21 @@ import pandas as pd
 
 from marketflow.services.artifact_service import list_report_artifacts
 from marketflow.services.walk_forward_validation_artifact_service import (
+    WALK_FORWARD_CASES_CSV_KIND,
+    WALK_FORWARD_RESULTS_CSV_KIND,
+    WALK_FORWARD_SUMMARY_CSV_KIND,
     WALK_FORWARD_VALIDATION_SUMMARY_KIND,
+    build_walk_forward_cases_filename,
+    build_walk_forward_results_filename,
+    build_walk_forward_summary_filename,
     build_walk_forward_validation_summary_filename,
     build_walk_forward_validation_summary_markdown,
+    summarize_csv_to_walk_forward_validation_artifacts,
     summarize_csv_to_walk_forward_validation_markdown,
+    write_walk_forward_cases_csv,
+    write_walk_forward_results_csv,
+    write_walk_forward_summary_csv,
+    write_walk_forward_validation_csv_artifacts,
     write_walk_forward_validation_summary_markdown,
 )
 
@@ -29,6 +40,7 @@ def _minimal_result() -> dict:
             "horizon_bars": 60,
             "require_mature_future": True,
             "case_count": 1,
+            "event_filters": ["SPRING_WEAK"],
             "cases": [
                 {
                     "ticker": "IONQ",
@@ -51,6 +63,11 @@ def _minimal_result() -> dict:
                     "future_window_start_index": 241,
                     "future_window_end_index": 300,
                     "snapshot_success": True,
+                    "wyckoff_event_source": "wyckoff_confirmed_event",
+                    "wyckoff_phase_source": "wyckoff_phase",
+                    "trend_source": "trend",
+                    "walk_forward_run_id": "run-1",
+                    "walk_forward_case_id": "case-1",
                 }
             ],
         },
@@ -140,6 +157,37 @@ def test_fallback_filename():
     assert filename == "marketflow_walk_forward_validation_summary_20260603_120000.md"
 
 
+def test_csv_filename_builders_with_ticker_timeframe_profile():
+    kwargs = {
+        "ticker": "IONQ",
+        "timeframe": "30m",
+        "profile_name": "intraday_tactical",
+        "timestamp": "20260603_120000",
+    }
+
+    assert build_walk_forward_cases_filename(**kwargs) == (
+        "IONQ_30m_intraday_tactical_walk_forward_cases_20260603_120000.csv"
+    )
+    assert build_walk_forward_results_filename(**kwargs) == (
+        "IONQ_30m_intraday_tactical_walk_forward_results_20260603_120000.csv"
+    )
+    assert build_walk_forward_summary_filename(**kwargs) == (
+        "IONQ_30m_intraday_tactical_walk_forward_summary_20260603_120000.csv"
+    )
+
+
+def test_csv_filename_builders_fallback():
+    assert build_walk_forward_cases_filename(timestamp="20260603_120000") == (
+        "marketflow_walk_forward_cases_20260603_120000.csv"
+    )
+    assert build_walk_forward_results_filename(timestamp="20260603_120000") == (
+        "marketflow_walk_forward_results_20260603_120000.csv"
+    )
+    assert build_walk_forward_summary_filename(timestamp="20260603_120000") == (
+        "marketflow_walk_forward_summary_20260603_120000.csv"
+    )
+
+
 def test_unsafe_filename_parts_sanitized():
     filename = build_walk_forward_validation_summary_filename(
         ticker="IO/NQ",
@@ -215,6 +263,119 @@ def test_write_markdown_file_success(tmp_path):
     assert result["kind"] == WALK_FORWARD_VALIDATION_SUMMARY_KIND
 
 
+def test_write_cases_csv_creates_file_and_kind(tmp_path):
+    result = write_walk_forward_cases_csv(
+        _minimal_result(),
+        tmp_path,
+        ticker="IONQ",
+        timeframe="30m",
+        profile_name="intraday_tactical",
+        timestamp="20260603_120000",
+    )
+
+    rows = pd.read_csv(result["path"])
+
+    assert result["success"] is True
+    assert Path(result["path"]).exists()
+    assert result["kind"] == WALK_FORWARD_CASES_CSV_KIND
+    assert result["row_count"] == 1
+    assert rows.loc[0, "wyckoff_event_source"] == "wyckoff_confirmed_event"
+    assert rows.loc[0, "walk_forward_case_id"] == "case-1"
+
+
+def test_write_results_csv_creates_file_and_kind(tmp_path):
+    result = write_walk_forward_results_csv(
+        _minimal_result(),
+        tmp_path,
+        ticker="IONQ",
+        timeframe="30m",
+        profile_name="intraday_tactical",
+        timestamp="20260603_120000",
+    )
+
+    rows = pd.read_csv(result["path"])
+
+    assert result["success"] is True
+    assert Path(result["path"]).exists()
+    assert result["kind"] == WALK_FORWARD_RESULTS_CSV_KIND
+    assert result["row_count"] == 1
+    assert rows.loc[0, "outcome"] == "TP_FIRST"
+    assert rows.loc[0, "walk_forward_case_id"] == "case-1"
+
+
+def test_write_summary_csv_creates_file_and_kind(tmp_path):
+    result = write_walk_forward_summary_csv(
+        _minimal_result(),
+        tmp_path,
+        ticker="IONQ",
+        timeframe="30m",
+        profile_name="intraday_tactical",
+        timestamp="20260603_120000",
+    )
+
+    rows = pd.read_csv(result["path"])
+
+    assert result["success"] is True
+    assert Path(result["path"]).exists()
+    assert result["kind"] == WALK_FORWARD_SUMMARY_CSV_KIND
+    assert result["row_count"] == 1
+    assert rows.loc[0, "scoreable_count"] == 1
+    assert rows.loc[0, "case_count"] == 1
+
+
+def test_combined_csv_artifacts_writer_writes_selected_files(tmp_path):
+    result = write_walk_forward_validation_csv_artifacts(
+        _minimal_result(),
+        tmp_path,
+        ticker="IONQ",
+        timeframe="30m",
+        profile_name="intraday_tactical",
+        timestamp="20260603_120000",
+        include_cases=True,
+        include_results=False,
+        include_summary=True,
+    )
+
+    kinds = {artifact["kind"] for artifact in result["artifacts"]}
+
+    assert result["success"] is True
+    assert kinds == {WALK_FORWARD_CASES_CSV_KIND, WALK_FORWARD_SUMMARY_CSV_KIND}
+    assert result["results_result"] is None
+
+
+def test_header_only_cases_and_results_csv_when_no_rows(tmp_path):
+    empty_result = {
+        "success": False,
+        "build_result": {
+            "ticker": "IONQ",
+            "timeframe": "30m",
+            "profile_name": "intraday_tactical",
+            "cases": [],
+            "case_count": 0,
+            "event_filters": ["DOES_NOT_EXIST"],
+        },
+        "evaluation_result": {"result_rows": [], "evaluated_count": 0},
+        "summary": {},
+        "warnings": ["No walk-forward cases were built."],
+        "errors": [],
+    }
+
+    cases_result = write_walk_forward_cases_csv(empty_result, tmp_path, timestamp="20260603_120000")
+    results_result = write_walk_forward_results_csv(empty_result, tmp_path, timestamp="20260603_120000")
+
+    cases_rows = pd.read_csv(cases_result["path"])
+    results_rows = pd.read_csv(results_result["path"])
+
+    assert cases_result["success"] is True
+    assert results_result["success"] is True
+    assert cases_result["row_count"] == 0
+    assert results_result["row_count"] == 0
+    assert cases_rows.empty
+    assert results_rows.empty
+    assert "No walk-forward cases were available." in cases_result["warnings"]
+    assert "No walk-forward result rows were available." in results_result["warnings"]
+
+
 def test_collision_suffix(tmp_path):
     first = write_walk_forward_validation_summary_markdown(
         _minimal_result(),
@@ -265,6 +426,51 @@ def test_artifact_classification(tmp_path):
     assert item["kind"] == WALK_FORWARD_VALIDATION_SUMMARY_KIND
     assert item["previewable"] is True
     assert item["downloadable"] is True
+
+
+def test_csv_artifact_classification(tmp_path):
+    paths = [
+        tmp_path / "IONQ_30m_intraday_tactical_walk_forward_cases_20260603_120000.csv",
+        tmp_path / "IONQ_30m_intraday_tactical_walk_forward_results_20260603_120000.csv",
+        tmp_path / "IONQ_30m_intraday_tactical_walk_forward_summary_20260603_120000.csv",
+    ]
+    for path in paths:
+        path.write_text("a\n", encoding="utf-8")
+
+    items = list_report_artifacts(tmp_path)
+    kinds = {item["name"]: item["kind"] for item in items}
+
+    assert kinds[paths[0].name] == WALK_FORWARD_CASES_CSV_KIND
+    assert kinds[paths[1].name] == WALK_FORWARD_RESULTS_CSV_KIND
+    assert kinds[paths[2].name] == WALK_FORWARD_SUMMARY_CSV_KIND
+
+
+def test_convenience_full_artifact_writer_creates_markdown_and_csv(tmp_path):
+    csv_path = tmp_path / "IONQ_30m_wyckoff_annotated.csv"
+    pd.DataFrame(_rows(320)).to_csv(csv_path, index=False)
+
+    result = summarize_csv_to_walk_forward_validation_artifacts(
+        csv_path,
+        profile_name="fast_test",
+        step=20,
+        max_cases=3,
+        timestamp="20260603_120000",
+        save_markdown=True,
+        save_cases_csv=True,
+        save_results_csv=True,
+        save_summary_csv=True,
+    )
+    kinds = {artifact["kind"] for artifact in result["artifacts"]}
+
+    assert result["success"] is True
+    assert {
+        WALK_FORWARD_VALIDATION_SUMMARY_KIND,
+        WALK_FORWARD_CASES_CSV_KIND,
+        WALK_FORWARD_RESULTS_CSV_KIND,
+        WALK_FORWARD_SUMMARY_CSV_KIND,
+    }.issubset(kinds)
+    assert all(Path(artifact["path"]).exists() for artifact in result["artifacts"])
+    assert result["csv_result"]["summary_result"]["row_count"] == 1
 
 
 def test_markdown_truncates_long_cases_and_results():

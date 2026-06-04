@@ -10,6 +10,8 @@ Post-milestone implementation status: Studio Walk-Forward Validation section imp
 
 Post-milestone fix status: Walk-Forward Validation now prioritizes confirmed event columns such as `wyckoff_confirmed_event` for event filtering and case metadata.
 
+Post-milestone implementation status: Walk-Forward Validation CSV artifact writers implemented for cases, deterministic results, and compact summaries.
+
 ## 2. Current Commit
 
 ```text

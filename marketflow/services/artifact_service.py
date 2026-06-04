@@ -50,6 +50,12 @@ def _classify_artifact(path: Path) -> str:
         return "backtest_candidates_csv"
     if suffix == ".csv" and "_backtest_results" in name:
         return "backtest_results_csv"
+    if suffix == ".csv" and "_walk_forward_cases" in name:
+        return "walk_forward_cases_csv"
+    if suffix == ".csv" and "_walk_forward_results" in name:
+        return "walk_forward_results_csv"
+    if suffix == ".csv" and "_walk_forward_summary" in name:
+        return "walk_forward_summary_csv"
     if suffix == ".csv" and name.endswith("_wyckoff_annotated.csv"):
         return "csv_annotated"
     if suffix == ".csv":

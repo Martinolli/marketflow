@@ -201,6 +201,8 @@ Studio includes a Historical Walk-Forward Validation section on the Strategy Ran
 
 Walk-Forward Validation event filtering uses confirmed Wyckoff event columns when available, including `wyckoff_confirmed_event`. Empty-case warnings are deduplicated in Studio.
 
+Studio Walk-Forward Validation can save markdown and CSV artifacts. CSV artifacts include `walk_forward_cases_csv`, `walk_forward_results_csv`, and `walk_forward_summary_csv`.
+
 A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
