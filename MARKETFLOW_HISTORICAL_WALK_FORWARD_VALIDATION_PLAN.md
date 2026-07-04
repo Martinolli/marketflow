@@ -22,6 +22,8 @@ Event column fix: historical walk-forward event filtering prioritizes confirmed 
 
 CSV artifact status: Walk-Forward Validation can export cases, deterministic result rows, and compact summary CSV artifacts for statistical review.
 
+Campaign aggregation status: saved walk-forward CSV artifacts can be aggregated across timeframe/event/profile runs to support campaign-level statistical review.
+
 ## 2. Current Checkpoint
 
 ```text

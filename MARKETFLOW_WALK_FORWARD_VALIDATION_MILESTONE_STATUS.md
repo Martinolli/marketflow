@@ -12,6 +12,8 @@ Post-milestone fix status: Walk-Forward Validation now prioritizes confirmed eve
 
 Post-milestone implementation status: Walk-Forward Validation CSV artifact writers implemented for cases, deterministic results, and compact summaries.
 
+Post-milestone implementation status: Walk-Forward Campaign Aggregator implemented to combine saved walk-forward summary/results CSV artifacts into grouped campaign reports.
+
 ## 2. Current Commit
 
 ```text

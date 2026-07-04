@@ -4,6 +4,8 @@ MarketFlow Studio is a local cockpit for reviewing MarketFlow reports, ranking s
 
 Studio uses the sidebar Workspace selector to render one page at a time. This keeps heavy pages such as Charts, Generated Artifacts, Monte Carlo plots, and Analyst Packet views from rendering when they are hidden.
 
+Studio includes a Walk-Forward Campaign Aggregator that combines previously saved walk-forward CSV artifacts and exports campaign summary/results/report artifacts.
+
 ## Design Review Checkpoint
 
 For the current Studio milestone review, see:

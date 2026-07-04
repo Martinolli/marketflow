@@ -52,6 +52,10 @@ def _classify_artifact(path: Path) -> str:
         return "backtest_results_csv"
     if suffix == ".csv" and "_walk_forward_cases" in name:
         return "walk_forward_cases_csv"
+    if suffix == ".csv" and "_walk_forward_campaign_results" in name:
+        return "walk_forward_campaign_results_csv"
+    if suffix == ".csv" and "_walk_forward_campaign_summary" in name:
+        return "walk_forward_campaign_summary_csv"
     if suffix == ".csv" and "_walk_forward_results" in name:
         return "walk_forward_results_csv"
     if suffix == ".csv" and "_walk_forward_summary" in name:
@@ -98,6 +102,8 @@ def _classify_artifact(path: Path) -> str:
         return "data_sufficiency_summary_md"
     if suffix == ".md" and "_walk_forward_validation_summary" in name:
         return "walk_forward_validation_summary_md"
+    if suffix == ".md" and "_walk_forward_campaign_report" in name:
+        return "walk_forward_campaign_report_md"
     if suffix == ".md" and "_eigen_review_summary" in name:
         return "eigen_review_summary_md"
     if suffix == ".md" and "_analyst_review_notes" in name:

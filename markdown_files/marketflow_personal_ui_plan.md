@@ -186,6 +186,7 @@ streamlit run apps/marketflow_studio.py
 * Studio Historical Walk-Forward Validation section — implemented
 * Walk-Forward confirmed event filtering fix — implemented
 * Walk-Forward Validation CSV writers — implemented
+* Walk-Forward Campaign Aggregator — implemented
 * Repository cleanup planning checkpoint — created
 * Test collection stabilization plan — created
 * Test collection revalidation / deprecated backup test quarantine — implemented

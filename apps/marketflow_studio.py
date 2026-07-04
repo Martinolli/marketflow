@@ -116,6 +116,9 @@ from marketflow.services.walk_forward_validation_artifact_service import (
 from marketflow.services.walk_forward_validation_service import (
     build_and_evaluate_walk_forward_cases_from_csv,
 )
+from marketflow.services.walk_forward_campaign_service import (
+    write_walk_forward_campaign_artifacts,
+)
 
 
 DEFAULT_TIMEFRAMES = ["1d", "4h", "1h"]
@@ -2795,6 +2798,117 @@ def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> No
         _render_walk_forward_validation_tables(latest_result)
 
 
+def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | None) -> None:
+    """Render controls for aggregating previously saved walk-forward CSV artifacts."""
+    st.markdown("#### Walk-Forward Campaign Aggregator")
+    st.caption(
+        "Campaign Aggregator combines previously saved walk-forward CSV artifacts. "
+        "It does not rerun validation."
+    )
+
+    report_dir = _report_dir_for_backtest_snapshot(result)
+    root_dir = st.text_input(
+        "Campaign root folder",
+        value=report_dir or "",
+        key="walk_forward_campaign_root_dir",
+        help="Folder containing saved *_walk_forward_summary_*.csv and *_walk_forward_results_*.csv files.",
+    )
+    recursive = st.checkbox(
+        "Search campaign folder recursively",
+        value=True,
+        key="walk_forward_campaign_recursive",
+    )
+    group_options = [
+        "ticker",
+        "timeframe",
+        "profile_name",
+        "wyckoff_event",
+        "wyckoff_phase",
+        "trend",
+        "outcome",
+    ]
+    group_by = st.multiselect(
+        "Campaign group by",
+        options=group_options,
+        default=["ticker", "timeframe", "profile_name", "wyckoff_event"],
+        key="walk_forward_campaign_group_by",
+    )
+    save_col1, save_col2, save_col3 = st.columns(3)
+    with save_col1:
+        save_results_csv = st.checkbox(
+            "Save campaign results CSV", value=True, key="walk_forward_campaign_save_results_csv"
+        )
+    with save_col2:
+        save_summary_csv = st.checkbox(
+            "Save campaign summary CSV", value=True, key="walk_forward_campaign_save_summary_csv"
+        )
+    with save_col3:
+        save_report_md = st.checkbox(
+            "Save campaign markdown report", value=True, key="walk_forward_campaign_save_report_md"
+        )
+
+    if st.button("Run Campaign Aggregator"):
+        if not root_dir.strip():
+            campaign_result = {
+                "success": False,
+                "warnings": [],
+                "errors": ["Campaign root folder is required."],
+                "discovery_result": {},
+                "grouped_summary_result": {},
+                "artifacts": [],
+            }
+        else:
+            candidate = _current_strategy_candidate_for_backtest()
+            ticker = candidate.get("ticker") if isinstance(candidate, dict) else None
+            try:
+                campaign_result = write_walk_forward_campaign_artifacts(
+                    root_dir=root_dir.strip(),
+                    recursive=bool(recursive),
+                    ticker=str(ticker) if ticker else None,
+                    group_by=list(group_by),
+                    save_results_csv=bool(save_results_csv),
+                    save_summary_csv=bool(save_summary_csv),
+                    save_report_md=bool(save_report_md),
+                )
+            except Exception as exc:
+                campaign_result = {
+                    "success": False,
+                    "warnings": [],
+                    "errors": [f"{type(exc).__name__}: {exc}"],
+                    "discovery_result": {},
+                    "grouped_summary_result": {},
+                    "artifacts": [],
+                }
+        st.session_state["latest_walk_forward_campaign_result"] = campaign_result
+
+    campaign_result = st.session_state.get("latest_walk_forward_campaign_result")
+    if not isinstance(campaign_result, dict):
+        return
+    discovery = campaign_result.get("discovery_result") or {}
+    st.write(
+        "Discovered walk-forward artifacts: "
+        f"`{discovery.get('summary_count', 0)}` summary CSV(s), "
+        f"`{discovery.get('results_count', 0)}` results CSV(s)."
+    )
+    grouped = campaign_result.get("grouped_summary_result") or {}
+    grouped_dataframe = grouped.get("dataframe")
+    if grouped_dataframe is not None and not grouped_dataframe.empty:
+        st.write("Grouped Campaign Summary")
+        st.dataframe(grouped_dataframe, use_container_width=True, hide_index=True)
+    artifact_rows = _walk_forward_saved_artifact_rows(campaign_result.get("artifacts"))
+    if artifact_rows:
+        st.write("Saved Campaign Artifacts")
+        st.dataframe(_safe_dataframe_rows(artifact_rows), use_container_width=True, hide_index=True)
+    if campaign_result.get("success"):
+        st.success("Walk-Forward Campaign Aggregator completed.")
+    warnings = _dedupe_messages(campaign_result.get("warnings") or [])
+    errors = _dedupe_messages(campaign_result.get("errors") or [])
+    if warnings:
+        st.info("Warnings: " + "; ".join(str(warning) for warning in warnings))
+    if errors:
+        st.warning("Errors: " + "; ".join(str(error) for error in errors))
+
+
 def _session_int_default(key: str, fallback: int) -> int:
     value = st.session_state.get(key, fallback)
     try:
@@ -3547,6 +3661,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
     _render_parameter_profile_selector(result)
     _render_data_sufficiency_section(result)
     _render_walk_forward_validation_section(result)
+    _render_walk_forward_campaign_aggregator_section(result)
     _render_backtest_candidate_snapshot_section(result)
     _render_backtest_outcome_evaluation_section(result)
     _render_backtest_calibration_summary_section(result)
@@ -5883,6 +5998,8 @@ def main() -> None:
         st.session_state.latest_walk_forward_validation_artifact = None
     if "latest_walk_forward_validation_artifacts" not in st.session_state:
         st.session_state.latest_walk_forward_validation_artifacts = []
+    if "latest_walk_forward_campaign_result" not in st.session_state:
+        st.session_state.latest_walk_forward_campaign_result = None
 
     with st.sidebar:
         st.header("Analysis")
