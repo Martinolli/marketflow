@@ -49,7 +49,7 @@ def test_sync_get_data():
         print(f"An error occurred: {e}")
     print("-" * 40 + "\n")
 
-async def test_async_get_data():
+async def _test_async_get_data():
     """Tests the asynchronous get_data_async method."""
     print("--- Testing asynchronous get_data_async() ---")
     try:
@@ -74,6 +74,10 @@ async def test_async_get_data():
     except Exception as e:
         print(f"An error occurred: {e}")
     print("-" * 40 + "\n")
+
+def test_async_get_data():
+    """Run the asynchronous get_data test in a pytest-compatible event loop."""
+    asyncio.run(_test_async_get_data())
 
 def test_sync_get_multi_timeframe_data():
     """Tests the synchronous get_multi_timeframe_data method."""
@@ -112,7 +116,7 @@ def test_sync_get_multi_timeframe_data():
         print(f"An error occurred: {e}")
     print("-" * 40 + "\n")
 
-async def test_async_get_multi_timeframe_data():
+async def _test_async_get_multi_timeframe_data():
     """Tests the asynchronous get_multi_timeframe_data_async method."""
     print("--- Testing asynchronous get_multi_timeframe_data_async() ---")
     try:
@@ -149,6 +153,10 @@ async def test_async_get_multi_timeframe_data():
         print(f"An error occurred: {e}")
     print("-" * 40 + "\n")
 
+def test_async_get_multi_timeframe_data():
+    """Run the asynchronous multi-timeframe test in a pytest-compatible event loop."""
+    asyncio.run(_test_async_get_multi_timeframe_data())
+
 def run_sync_tests():
     """Runs all synchronous tests."""
     print("--- Running Synchronous Tests ---")
@@ -159,8 +167,8 @@ def run_sync_tests():
 async def run_async_tests():
     """Runs all asynchronous tests."""
     print("--- Running Asynchronous Tests ---")
-    await test_async_get_data()
-    await test_async_get_multi_timeframe_data()
+    await _test_async_get_data()
+    await _test_async_get_multi_timeframe_data()
     print("--- Asynchronous Tests Completed ---\n")
 
 if __name__ == "__main__":
