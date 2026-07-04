@@ -14,6 +14,8 @@ Post-milestone implementation status: Walk-Forward Validation CSV artifact write
 
 Post-milestone implementation status: Walk-Forward Campaign Aggregator implemented to combine saved walk-forward summary/results CSV artifacts into grouped campaign reports.
 
+Post-milestone implementation status: Walk-Forward Run Registry implemented to track saved validation runs and separate requested event filters from observed result-row events.
+
 ## 2. Current Commit
 
 ```text

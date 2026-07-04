@@ -6,6 +6,8 @@ Studio uses the sidebar Workspace selector to render one page at a time. This ke
 
 Studio includes a Walk-Forward Campaign Aggregator that combines previously saved walk-forward CSV artifacts and exports campaign summary/results/report artifacts.
 
+Studio Campaign Aggregator can use the Walk-Forward Run Registry to deduplicate runs, exclude stale runs, and group by requested run filter versus observed Wyckoff event.
+
 ## Design Review Checkpoint
 
 For the current Studio milestone review, see:

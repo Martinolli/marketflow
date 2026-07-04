@@ -13,6 +13,14 @@ from marketflow.services.walk_forward_validation_service import (
     build_and_evaluate_walk_forward_cases_from_csv,
     summarize_walk_forward_validation,
 )
+from marketflow.services.walk_forward_run_registry_service import (
+    build_walk_forward_run_metadata,
+    build_walk_forward_run_registry_csv_filename,
+    build_walk_forward_run_registry_json_filename,
+    normalize_run_event_filter,
+    upsert_walk_forward_run_registry,
+    write_walk_forward_run_registry_csv,
+)
 
 
 WALK_FORWARD_VALIDATION_SUMMARY_KIND = "walk_forward_validation_summary_md"
@@ -73,6 +81,13 @@ RESULT_COLUMNS = [
     "walk_forward_run_id",
     "walk_forward_case_id",
     "candidate_source",
+    "run_id",
+    "run_signature",
+    "run_event_filter",
+    "run_step",
+    "run_max_cases",
+    "run_require_mature_future",
+    "source_csv_sha256",
 ]
 
 SUMMARY_COLUMNS = [
@@ -560,6 +575,7 @@ def write_walk_forward_results_csv(
     timeframe: str | None = None,
     profile_name: str | None = None,
     timestamp: str | None = None,
+    run_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     result = {
         "success": False,
@@ -577,6 +593,7 @@ def write_walk_forward_results_csv(
         evaluation_result = _evaluation_result(walk_forward_result if isinstance(walk_forward_result, dict) else {})
         case_lookup = _case_lookup(walk_forward_result if isinstance(walk_forward_result, dict) else {})
         rows = []
+        metadata = run_metadata if isinstance(run_metadata, dict) else {}
         for result_row in _extract_result_rows(walk_forward_result):
             row = dict(result_row)
             case = _matching_case(row, case_lookup)
@@ -589,6 +606,13 @@ def write_walk_forward_results_csv(
                 if _is_missing(row.get(key)):
                     row[key] = case.get(key)
             row.setdefault("profile_name", build_result.get("profile_name") or evaluation_result.get("profile_name"))
+            row["run_id"] = metadata.get("run_id")
+            row["run_signature"] = metadata.get("run_signature")
+            row["run_event_filter"] = metadata.get("run_event_filter")
+            row["run_step"] = metadata.get("step")
+            row["run_max_cases"] = metadata.get("max_cases")
+            row["run_require_mature_future"] = metadata.get("require_mature_future")
+            row["source_csv_sha256"] = metadata.get("source_csv_sha256")
             rows.append(row)
         if not rows:
             result["warnings"].append("No walk-forward result rows were available.")
@@ -679,6 +703,7 @@ def write_walk_forward_validation_csv_artifacts(
     include_cases: bool = True,
     include_results: bool = True,
     include_summary: bool = True,
+    run_metadata: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     cases_result = (
         write_walk_forward_cases_csv(
@@ -700,6 +725,7 @@ def write_walk_forward_validation_csv_artifacts(
             timeframe=timeframe,
             profile_name=profile_name,
             timestamp=timestamp,
+            run_metadata=run_metadata,
         )
         if include_results
         else None
@@ -731,6 +757,46 @@ def write_walk_forward_validation_csv_artifacts(
         "errors": errors,
         "warnings": warnings,
     }
+
+
+def _run_event_filter_value(event_filters: list[str] | None) -> str:
+    return normalize_run_event_filter(",".join(str(item) for item in event_filters or []))
+
+
+def _write_walk_forward_run_registry_artifacts(
+    *,
+    walk_forward_result: dict[str, Any],
+    source_csv_path: str | Path,
+    output_dir: Path,
+    ticker: str | None,
+    event_filters: list[str] | None,
+    step: int | None,
+    max_cases: int | None,
+    require_mature_future: bool | None,
+    artifacts: list[dict[str, Any]],
+    created_at: str,
+) -> tuple[dict[str, Any], dict[str, Any], dict[str, Any]]:
+    metadata = build_walk_forward_run_metadata(
+        validation_result=walk_forward_result,
+        source_csv_path=source_csv_path,
+        run_event_filter=_run_event_filter_value(event_filters),
+        step=step,
+        max_cases=max_cases,
+        require_mature_future=require_mature_future,
+        artifacts=artifacts,
+        created_at=created_at,
+    )
+    json_path = output_dir / build_walk_forward_run_registry_json_filename(ticker=ticker)
+    csv_path = output_dir / build_walk_forward_run_registry_csv_filename(ticker=ticker)
+    registry_result = upsert_walk_forward_run_registry(
+        registry_path=json_path,
+        run_metadata=metadata,
+    )
+    registry_csv_result = write_walk_forward_run_registry_csv(
+        registry_json_path=json_path,
+        registry_csv_path=csv_path,
+    )
+    return metadata, registry_result, registry_csv_result
 
 
 def write_walk_forward_validation_summary_markdown(
@@ -811,12 +877,50 @@ def summarize_csv_to_walk_forward_validation_markdown(
         profile_name=profile_name,
         timestamp=timestamp,
     )
+    created_at = datetime.now().isoformat(timespec="seconds")
+    registry_metadata = None
+    registry_result = None
+    registry_csv_result = None
+    if write_result.get("path"):
+        registry_metadata, registry_result, registry_csv_result = _write_walk_forward_run_registry_artifacts(
+            walk_forward_result=walk_forward_result,
+            source_csv_path=csv_path,
+            output_dir=directory,
+            ticker=ticker or (build_result.get("ticker") if isinstance(build_result, dict) else None),
+            event_filters=event_filters,
+            step=step,
+            max_cases=max_cases,
+            require_mature_future=require_mature_future,
+            artifacts=[write_result],
+            created_at=created_at,
+        )
     errors = list(walk_forward_result.get("errors") or []) + list(write_result.get("errors") or [])
     warnings = list(walk_forward_result.get("warnings") or []) + list(write_result.get("warnings") or [])
+    for registry_artifact in (registry_result, registry_csv_result):
+        if isinstance(registry_artifact, dict):
+            errors.extend(registry_artifact.get("errors") or [])
+            warnings.extend(registry_artifact.get("warnings") or [])
+    registry_success = all(
+        bool(item.get("success"))
+        for item in (registry_result, registry_csv_result)
+        if isinstance(item, dict)
+    )
     return {
-        "success": bool(walk_forward_result.get("success")) and bool(write_result.get("success")),
+        "success": (
+            bool(walk_forward_result.get("success"))
+            and bool(write_result.get("success"))
+            and registry_success
+        ),
         "walk_forward_result": walk_forward_result,
         "write_result": write_result,
+        "run_metadata": registry_metadata,
+        "registry_result": registry_result,
+        "registry_csv_result": registry_csv_result,
+        "artifacts": [
+            item
+            for item in (write_result, registry_result, registry_csv_result)
+            if isinstance(item, dict) and item.get("path")
+        ],
         "path": write_result.get("path"),
         "filename": write_result.get("filename"),
         "errors": errors,
@@ -860,6 +964,17 @@ def summarize_csv_to_walk_forward_validation_artifacts(
     artifact_ticker = ticker or (build_result.get("ticker") if isinstance(build_result, dict) else None)
     artifact_timeframe = timeframe or (build_result.get("timeframe") if isinstance(build_result, dict) else None)
     artifact_profile = profile_name or (build_result.get("profile_name") if isinstance(build_result, dict) else None)
+    created_at = datetime.now().isoformat(timespec="seconds")
+    preliminary_run_metadata = build_walk_forward_run_metadata(
+        validation_result=walk_forward_result,
+        source_csv_path=csv_path,
+        run_event_filter=_run_event_filter_value(event_filters),
+        step=step,
+        max_cases=max_cases,
+        require_mature_future=require_mature_future,
+        artifacts=None,
+        created_at=created_at,
+    )
 
     markdown_result = (
         write_walk_forward_validation_summary_markdown(
@@ -883,6 +998,7 @@ def summarize_csv_to_walk_forward_validation_artifacts(
         include_cases=save_cases_csv,
         include_results=save_results_csv,
         include_summary=save_summary_csv,
+        run_metadata=preliminary_run_metadata,
     )
     if not (save_cases_csv or save_results_csv or save_summary_csv):
         csv_result = None
@@ -895,6 +1011,27 @@ def summarize_csv_to_walk_forward_validation_artifacts(
         ]
         if isinstance(item, dict) and item.get("path")
     ]
+    registry_metadata = None
+    registry_result = None
+    registry_csv_result = None
+    if artifact_results:
+        registry_metadata, registry_result, registry_csv_result = _write_walk_forward_run_registry_artifacts(
+            walk_forward_result=walk_forward_result,
+            source_csv_path=csv_path,
+            output_dir=directory,
+            ticker=artifact_ticker,
+            event_filters=event_filters,
+            step=step,
+            max_cases=max_cases,
+            require_mature_future=require_mature_future,
+            artifacts=artifact_results,
+            created_at=created_at,
+        )
+        artifact_results.extend(
+            item
+            for item in (registry_result, registry_csv_result)
+            if isinstance(item, dict) and item.get("path")
+        )
     errors = list(walk_forward_result.get("errors") or [])
     warnings = list(walk_forward_result.get("warnings") or [])
     if isinstance(markdown_result, dict):
@@ -903,12 +1040,18 @@ def summarize_csv_to_walk_forward_validation_artifacts(
     if isinstance(csv_result, dict):
         errors.extend(csv_result.get("errors") or [])
         warnings.extend(csv_result.get("warnings") or [])
+    for registry_artifact in (registry_result, registry_csv_result):
+        if isinstance(registry_artifact, dict):
+            errors.extend(registry_artifact.get("errors") or [])
+            warnings.extend(registry_artifact.get("warnings") or [])
 
     selected_write_results = [
         item
         for item in [
             markdown_result,
             csv_result,
+            registry_result,
+            registry_csv_result,
         ]
         if isinstance(item, dict)
     ]
@@ -918,6 +1061,9 @@ def summarize_csv_to_walk_forward_validation_artifacts(
         "walk_forward_result": walk_forward_result,
         "markdown_result": markdown_result,
         "csv_result": csv_result,
+        "run_metadata": registry_metadata or preliminary_run_metadata,
+        "registry_result": registry_result,
+        "registry_csv_result": registry_csv_result,
         "artifacts": artifact_results,
         "errors": errors,
         "warnings": warnings,

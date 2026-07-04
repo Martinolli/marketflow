@@ -9,12 +9,23 @@ from typing import Any
 
 import pandas as pd
 
+from marketflow.services.walk_forward_run_registry_service import (
+    read_walk_forward_run_registry,
+    refresh_walk_forward_run_registry_staleness,
+)
+
 
 WALK_FORWARD_CAMPAIGN_RESULTS_CSV_KIND = "walk_forward_campaign_results_csv"
 WALK_FORWARD_CAMPAIGN_SUMMARY_CSV_KIND = "walk_forward_campaign_summary_csv"
 WALK_FORWARD_CAMPAIGN_REPORT_MD_KIND = "walk_forward_campaign_report_md"
 
-DEFAULT_CAMPAIGN_GROUP_BY = ["ticker", "timeframe", "profile_name", "wyckoff_event"]
+DEFAULT_CAMPAIGN_GROUP_BY = [
+    "ticker",
+    "timeframe",
+    "profile_name",
+    "run_event_filter",
+    "wyckoff_event",
+]
 NORMALIZED_RESULT_COLUMNS = [
     "ticker",
     "timeframe",
@@ -29,6 +40,16 @@ NORMALIZED_RESULT_COLUMNS = [
     "bars_to_hit",
     "same_bar_hit",
     "backtest_success",
+    "run_id",
+    "run_signature",
+    "run_event_filter",
+    "run_step",
+    "run_max_cases",
+    "run_require_mature_future",
+    "source_csv_sha256",
+    "is_stale",
+    "is_active",
+    "registry_mode",
     "source_file",
     "source_path",
 ]
@@ -126,6 +147,121 @@ def discover_walk_forward_campaign_files(
     return result
 
 
+def _discover_registry_paths(root: Path, recursive: bool) -> list[str]:
+    if not root.exists() or not root.is_dir():
+        return []
+    search = root.rglob if recursive else root.glob
+    return sorted(
+        str(path)
+        for path in search("*_walk_forward_run_registry.json")
+        if path.is_file()
+    )
+
+
+def _registry_run_key(run: dict[str, Any]) -> str:
+    return str(
+        run.get("run_id")
+        or run.get("run_signature")
+        or run.get("results_csv_path")
+        or run.get("created_at")
+        or ""
+    )
+
+
+def _select_registry_campaign_runs(
+    root: Path,
+    *,
+    recursive: bool,
+    deduplicate_runs: bool,
+    include_stale_runs: bool,
+    active_only: bool,
+) -> dict[str, Any]:
+    registry_paths = _discover_registry_paths(root, recursive)
+    result = {
+        "success": bool(registry_paths),
+        "mode": "run_registry" if registry_paths else "file_discovery",
+        "registry_paths": registry_paths,
+        "registry_file_count": len(registry_paths),
+        "runs": [],
+        "selected_runs": [],
+        "total_run_count": 0,
+        "selected_run_count": 0,
+        "active_run_count": 0,
+        "stale_run_count": 0,
+        "ignored_inactive_count": 0,
+        "ignored_stale_count": 0,
+        "ignored_duplicate_count": 0,
+        "ignored_run_count": 0,
+        "warnings": [],
+        "errors": [],
+    }
+    if not registry_paths:
+        return result
+
+    runs: list[dict[str, Any]] = []
+    for registry_path in registry_paths:
+        refresh = refresh_walk_forward_run_registry_staleness(registry_path)
+        result["warnings"].extend(refresh.get("warnings") or [])
+        result["errors"].extend(refresh.get("errors") or [])
+        read_result = read_walk_forward_run_registry(registry_path)
+        result["warnings"].extend(read_result.get("warnings") or [])
+        result["errors"].extend(read_result.get("errors") or [])
+        for run in read_result.get("runs") or []:
+            row = dict(run)
+            row["registry_path"] = registry_path
+            runs.append(row)
+
+    result["runs"] = runs
+    result["total_run_count"] = len(runs)
+    result["active_run_count"] = sum(bool(run.get("is_active")) for run in runs)
+    result["stale_run_count"] = sum(bool(run.get("is_stale")) for run in runs)
+    candidates: list[dict[str, Any]] = []
+    ignored_ids: set[int] = set()
+    for index, run in enumerate(runs):
+        if active_only and not bool(run.get("is_active")):
+            result["ignored_inactive_count"] += 1
+            ignored_ids.add(index)
+            continue
+        if not include_stale_runs and bool(run.get("is_stale")):
+            result["ignored_stale_count"] += 1
+            ignored_ids.add(index)
+            continue
+        candidates.append(run)
+
+    candidates.sort(
+        key=lambda run: (str(run.get("created_at") or ""), _registry_run_key(run)),
+        reverse=True,
+    )
+    if deduplicate_runs:
+        deduplicated: list[dict[str, Any]] = []
+        seen_ids: set[str] = set()
+        seen_signatures: set[str] = set()
+        for run in candidates:
+            run_id = str(run.get("run_id") or "").strip()
+            signature = str(run.get("run_signature") or "").strip()
+            duplicate = (
+                (run_id and run_id in seen_ids)
+                or (signature and signature in seen_signatures)
+            )
+            if duplicate:
+                result["ignored_duplicate_count"] += 1
+                continue
+            if run_id:
+                seen_ids.add(run_id)
+            if signature:
+                seen_signatures.add(signature)
+            deduplicated.append(run)
+        candidates = deduplicated
+    result["selected_runs"] = candidates
+    result["selected_run_count"] = len(candidates)
+    result["ignored_run_count"] = (
+        len(ignored_ids) + result["ignored_duplicate_count"]
+    )
+    result["warnings"] = list(dict.fromkeys(result["warnings"]))
+    result["errors"] = list(dict.fromkeys(result["errors"]))
+    return result
+
+
 def _dataframe_rows(dataframe: pd.DataFrame) -> list[dict[str, Any]]:
     if dataframe.empty:
         return []
@@ -209,10 +345,21 @@ def normalize_walk_forward_result_rows(dataframe: pd.DataFrame) -> pd.DataFrame:
         if column not in normalized.columns:
             normalized[column] = None
     for index, row in normalized.iterrows():
-        context = _filename_context(row.get("source_file") or row.get("source_path"))
+        source_value = row.get("source_file")
+        if _is_missing(source_value):
+            source_value = row.get("source_path")
+        context = _filename_context(source_value)
         for column in ("ticker", "timeframe", "profile_name"):
             if _is_missing(row.get(column)) and context.get(column):
                 normalized.at[index, column] = context[column]
+        if _is_missing(row.get("run_event_filter")):
+            normalized.at[index, "run_event_filter"] = "UNKNOWN_RUN_FILTER"
+        if _is_missing(row.get("registry_mode")):
+            normalized.at[index, "registry_mode"] = "file_discovery"
+        if _is_missing(row.get("is_stale")):
+            normalized.at[index, "is_stale"] = False
+        if _is_missing(row.get("is_active")):
+            normalized.at[index, "is_active"] = True
     for column in NUMERIC_RESULT_COLUMNS:
         normalized[column] = pd.to_numeric(normalized[column], errors="coerce")
     return normalized[NORMALIZED_RESULT_COLUMNS].copy()
@@ -228,6 +375,22 @@ def _number_or_none(value: Any) -> float | None:
         return None
     number = float(value)
     return number if math.isfinite(number) else None
+
+
+def _unique_run_count(group: pd.DataFrame, *, stale_only: bool = False) -> int:
+    keys: set[str] = set()
+    for _, row in group.iterrows():
+        if stale_only and not _truthy_count(pd.Series([row.get("is_stale")])):
+            continue
+        key = ""
+        for column in ("run_id", "run_signature", "source_path", "source_file"):
+            value = row.get(column)
+            if not _is_missing(value):
+                key = str(value).strip()
+                break
+        if key:
+            keys.add(key)
+    return len(keys)
 
 
 def build_walk_forward_campaign_grouped_summary(
@@ -257,6 +420,10 @@ def build_walk_forward_campaign_grouped_summary(
     if "wyckoff_event" in groups:
         frame["wyckoff_event"] = frame["wyckoff_event"].map(
             lambda value: "NO_CONFIRMED_EVENT" if _is_missing(value) else str(value).strip()
+        )
+    if "run_event_filter" in groups:
+        frame["run_event_filter"] = frame["run_event_filter"].map(
+            lambda value: "UNKNOWN_RUN_FILTER" if _is_missing(value) else str(value).strip()
         )
     for column in groups:
         if column != "wyckoff_event":
@@ -304,6 +471,17 @@ def build_walk_forward_campaign_grouped_summary(
                 "same_bar_hit_count": _truthy_count(group["same_bar_hit"]) if "same_bar_hit" in group else 0,
                 "mean_bars_to_hit": _number_or_none(bars.mean()) if not bars.empty else None,
                 "source_file_count": source_file_count,
+                "run_count": _unique_run_count(group),
+                "stale_run_count": _unique_run_count(group, stale_only=True),
+                "registry_mode": ",".join(
+                    sorted(
+                        {
+                            str(value).strip()
+                            for value in group.get("registry_mode", pd.Series(dtype=object)).dropna()
+                            if str(value).strip()
+                        }
+                    )
+                ) or "file_discovery",
             }
         )
         rows.append(row)
@@ -356,7 +534,19 @@ def build_walk_forward_campaign_report_markdown(
     weakest = sorted(numeric_groups, key=lambda row: float(row["mean_realized_R"]))[:5]
     group_columns = [
         column
-        for column in [*DEFAULT_CAMPAIGN_GROUP_BY, "sample_count", "scoreable_count", "win_rate", "mean_realized_R"]
+        for column in [
+            *DEFAULT_CAMPAIGN_GROUP_BY,
+            "run_count",
+            "source_file_count",
+            "sample_count",
+            "scoreable_count",
+            "win_rate",
+            "loss_rate",
+            "mean_realized_R",
+            "median_realized_R",
+            "stale_run_count",
+            "registry_mode",
+        ]
         if any(column in row for row in grouped_rows)
     ]
     outcome_row = {
@@ -436,6 +626,61 @@ def _write_dataframe_artifact(
     return result
 
 
+def _registered_artifact_path(run: dict[str, Any], field: str) -> str | None:
+    value = run.get(field)
+    if _is_missing(value):
+        return None
+    path = Path(str(value))
+    if path.exists():
+        return str(path)
+    registry_path = Path(str(run.get("registry_path") or ""))
+    candidates = [registry_path.parent / path, registry_path.parent / path.name]
+    for candidate in candidates:
+        if candidate.exists():
+            return str(candidate)
+    return str(path)
+
+
+def _path_lookup_key(value: Any) -> str:
+    if _is_missing(value):
+        return ""
+    try:
+        return str(Path(str(value)).resolve())
+    except OSError:
+        return str(Path(str(value)))
+
+
+def _add_registry_metadata_to_results(
+    dataframe: pd.DataFrame, runs: list[dict[str, Any]]
+) -> pd.DataFrame:
+    if dataframe.empty:
+        return dataframe
+    lookup = {
+        _path_lookup_key(_registered_artifact_path(run, "results_csv_path")): run
+        for run in runs
+        if _registered_artifact_path(run, "results_csv_path")
+    }
+    enriched = dataframe.copy()
+    for index, row in enriched.iterrows():
+        run = lookup.get(_path_lookup_key(row.get("source_path")))
+        if not run:
+            continue
+        for target, source in (
+            ("run_id", "run_id"),
+            ("run_signature", "run_signature"),
+            ("run_event_filter", "run_event_filter"),
+            ("run_step", "step"),
+            ("run_max_cases", "max_cases"),
+            ("run_require_mature_future", "require_mature_future"),
+            ("source_csv_sha256", "source_csv_sha256"),
+            ("is_stale", "is_stale"),
+            ("is_active", "is_active"),
+        ):
+            enriched.at[index, target] = run.get(source)
+        enriched.at[index, "registry_mode"] = "run_registry"
+    return enriched
+
+
 def write_walk_forward_campaign_artifacts(
     *,
     root_dir: str | Path,
@@ -447,13 +692,74 @@ def write_walk_forward_campaign_artifacts(
     save_results_csv: bool = True,
     save_summary_csv: bool = True,
     save_report_md: bool = True,
+    use_run_registry: bool = True,
+    deduplicate_runs: bool = True,
+    include_stale_runs: bool = False,
+    active_only: bool = True,
 ) -> dict[str, Any]:
     root = Path(root_dir)
     destination = Path(output_dir) if output_dir is not None else root
-    discovery = discover_walk_forward_campaign_files(root, recursive=recursive)
+    registry_result = _select_registry_campaign_runs(
+        root,
+        recursive=recursive,
+        deduplicate_runs=deduplicate_runs,
+        include_stale_runs=include_stale_runs,
+        active_only=active_only,
+    ) if use_run_registry else {
+        "success": False,
+        "mode": "file_discovery",
+        "registry_paths": [],
+        "registry_file_count": 0,
+        "runs": [],
+        "selected_runs": [],
+        "total_run_count": 0,
+        "selected_run_count": 0,
+        "active_run_count": 0,
+        "stale_run_count": 0,
+        "ignored_inactive_count": 0,
+        "ignored_stale_count": 0,
+        "ignored_duplicate_count": 0,
+        "ignored_run_count": 0,
+        "warnings": [],
+        "errors": [],
+    }
+    registry_mode = bool(use_run_registry and registry_result["registry_file_count"])
+    if registry_mode:
+        selected_runs = registry_result["selected_runs"]
+        summary_paths = list(dict.fromkeys(
+            path
+            for run in selected_runs
+            if (path := _registered_artifact_path(run, "summary_csv_path"))
+        ))
+        results_paths = list(dict.fromkeys(
+            path
+            for run in selected_runs
+            if (path := _registered_artifact_path(run, "results_csv_path"))
+        ))
+        discovery = {
+            "success": bool(summary_paths or results_paths),
+            "root_dir": str(root),
+            "summary_csv_paths": summary_paths,
+            "results_csv_paths": results_paths,
+            "summary_count": len(summary_paths),
+            "results_count": len(results_paths),
+            "warnings": [],
+            "errors": [],
+        }
+        if not discovery["success"]:
+            discovery["warnings"].append(
+                "No eligible registry runs referenced walk-forward summary or results CSV artifacts."
+            )
+    else:
+        discovery = discover_walk_forward_campaign_files(root, recursive=recursive)
     summary_load = load_walk_forward_summary_csvs(discovery["summary_csv_paths"])
     results_load = load_walk_forward_results_csvs(discovery["results_csv_paths"])
-    normalized = normalize_walk_forward_result_rows(results_load["dataframe"])
+    source_dataframe = results_load["dataframe"]
+    if registry_mode:
+        source_dataframe = _add_registry_metadata_to_results(
+            source_dataframe, registry_result["selected_runs"]
+        )
+    normalized = normalize_walk_forward_result_rows(source_dataframe)
     grouped = build_walk_forward_campaign_grouped_summary(normalized, group_by=group_by)
     artifacts: list[dict[str, Any]] = []
     warnings = [
@@ -461,13 +767,27 @@ def write_walk_forward_campaign_artifacts(
         *summary_load["warnings"],
         *results_load["warnings"],
         *grouped["warnings"],
+        *registry_result["warnings"],
     ]
     errors = [
         *discovery["errors"],
         *summary_load["errors"],
         *results_load["errors"],
         *grouped["errors"],
+        *registry_result["errors"],
     ]
+    campaign_metadata = {
+        "registry_mode": "run_registry" if registry_mode else "file_discovery",
+        "use_run_registry": bool(use_run_registry),
+        "deduplicate_runs": bool(deduplicate_runs),
+        "include_stale_runs": bool(include_stale_runs),
+        "active_only": bool(active_only),
+        "registry_file_count": registry_result["registry_file_count"],
+        "selected_run_count": registry_result["selected_run_count"],
+        "active_run_count": registry_result["active_run_count"],
+        "stale_run_count": registry_result["stale_run_count"],
+        "ignored_run_count": registry_result["ignored_run_count"],
+    }
     campaign_result = {
         "success": False,
         "root_dir": str(root),
@@ -476,6 +796,8 @@ def write_walk_forward_campaign_artifacts(
         "summary_load_result": summary_load,
         "results_load_result": results_load,
         "grouped_summary_result": grouped,
+        "registry_result": registry_result,
+        "campaign_metadata": campaign_metadata,
         "artifacts": artifacts,
         "results_artifact": None,
         "summary_artifact": None,
@@ -518,6 +840,7 @@ def write_walk_forward_campaign_artifacts(
                 result_rows=_dataframe_rows(normalized),
                 metadata={
                     "root_dir": str(root),
+                    **campaign_metadata,
                     "summary_file_count": summary_load["file_count"],
                     "results_file_count": results_load["file_count"],
                     "result_row_count": len(normalized),

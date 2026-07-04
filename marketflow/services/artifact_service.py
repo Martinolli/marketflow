@@ -44,6 +44,8 @@ def _classify_artifact(path: Path) -> str:
         return "report_json"
     if name.endswith("_llm_analysis.json"):
         return "llm_json"
+    if suffix == ".json" and "_walk_forward_run_registry" in name:
+        return "walk_forward_run_registry_json"
     if suffix == ".csv" and name.endswith("_pv_eigen.csv"):
         return "price_volume_eigen_csv"
     if suffix == ".csv" and "_backtest_candidates" in name:
@@ -52,6 +54,8 @@ def _classify_artifact(path: Path) -> str:
         return "backtest_results_csv"
     if suffix == ".csv" and "_walk_forward_cases" in name:
         return "walk_forward_cases_csv"
+    if suffix == ".csv" and "_walk_forward_run_registry" in name:
+        return "walk_forward_run_registry_csv"
     if suffix == ".csv" and "_walk_forward_campaign_results" in name:
         return "walk_forward_campaign_results_csv"
     if suffix == ".csv" and "_walk_forward_campaign_summary" in name:

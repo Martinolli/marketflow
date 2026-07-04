@@ -2687,7 +2687,9 @@ def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> No
                 artifact_result = wrapper_result.get("write_result")
                 st.session_state["latest_walk_forward_validation_result"] = walk_forward_result
                 st.session_state["latest_walk_forward_validation_artifact"] = artifact_result
-                st.session_state["latest_walk_forward_validation_artifacts"] = [artifact_result] if artifact_result else []
+                st.session_state["latest_walk_forward_validation_artifacts"] = wrapper_result.get("artifacts") or (
+                    [artifact_result] if artifact_result else []
+                )
                 run_success = bool(wrapper_result.get("success"))
                 run_errors = _dedupe_messages(wrapper_result.get("errors") or [])
                 run_warnings = _dedupe_messages(wrapper_result.get("warnings") or [])
@@ -2745,18 +2747,18 @@ def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> No
         if markdown_saved:
             st.success(f"Saved Walk-Forward Validation Summary: `{artifact_result.get('path')}`")
             st.caption("Saved file appears in Generated Artifacts as walk_forward_validation_summary_md.")
-        csv_artifact_rows = [
+        supplemental_artifact_rows = [
             row
             for row in saved_artifact_rows
             if str(row.get("kind") or "").startswith("walk_forward_")
             and row.get("kind") != "walk_forward_validation_summary_md"
         ]
-        if csv_artifact_rows:
-            st.success(f"Saved Walk-Forward CSV artifact(s): `{len(csv_artifact_rows)}`")
-            st.dataframe(_safe_dataframe_rows(csv_artifact_rows), use_container_width=True, hide_index=True)
+        if supplemental_artifact_rows:
+            st.success(f"Saved Walk-Forward artifact(s): `{len(supplemental_artifact_rows)}`")
+            st.dataframe(_safe_dataframe_rows(supplemental_artifact_rows), use_container_width=True, hide_index=True)
             st.caption(
-                "Saved CSV files appear in Generated Artifacts as walk_forward_cases_csv, "
-                "walk_forward_results_csv, and walk_forward_summary_csv."
+                "Saved files appear in Generated Artifacts as walk-forward CSV artifacts and "
+                "walk_forward_run_registry_json/csv manifests."
             )
         if run_warnings:
             st.info("Warnings: " + "; ".join(str(warning) for warning in run_warnings))
@@ -2786,15 +2788,15 @@ def _render_walk_forward_validation_section(result: dict[str, Any] | None) -> No
             if artifact_errors:
                 st.warning("Artifact errors: " + "; ".join(str(error) for error in artifact_errors))
         latest_artifact_rows = _walk_forward_saved_artifact_rows(latest_artifacts)
-        csv_artifact_rows = [
+        supplemental_artifact_rows = [
             row
             for row in latest_artifact_rows
             if str(row.get("kind") or "").startswith("walk_forward_")
             and row.get("kind") != "walk_forward_validation_summary_md"
         ]
-        if csv_artifact_rows:
-            st.write("Saved Walk-Forward CSV Artifacts")
-            st.dataframe(_safe_dataframe_rows(csv_artifact_rows), use_container_width=True, hide_index=True)
+        if supplemental_artifact_rows:
+            st.write("Saved Walk-Forward Artifacts")
+            st.dataframe(_safe_dataframe_rows(supplemental_artifact_rows), use_container_width=True, hide_index=True)
         _render_walk_forward_validation_tables(latest_result)
 
 
@@ -2822,6 +2824,7 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
         "ticker",
         "timeframe",
         "profile_name",
+        "run_event_filter",
         "wyckoff_event",
         "wyckoff_phase",
         "trend",
@@ -2830,9 +2833,24 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
     group_by = st.multiselect(
         "Campaign group by",
         options=group_options,
-        default=["ticker", "timeframe", "profile_name", "wyckoff_event"],
+        default=["ticker", "timeframe", "profile_name", "run_event_filter", "wyckoff_event"],
         key="walk_forward_campaign_group_by",
     )
+    registry_col1, registry_col2 = st.columns(2)
+    with registry_col1:
+        use_run_registry = st.checkbox(
+            "Use run registry if available", value=True, key="walk_forward_campaign_use_registry"
+        )
+        deduplicate_runs = st.checkbox(
+            "Deduplicate runs", value=True, key="walk_forward_campaign_deduplicate_runs"
+        )
+    with registry_col2:
+        include_stale_runs = st.checkbox(
+            "Include stale runs", value=False, key="walk_forward_campaign_include_stale_runs"
+        )
+        active_only = st.checkbox(
+            "Active runs only", value=True, key="walk_forward_campaign_active_only"
+        )
     save_col1, save_col2, save_col3 = st.columns(3)
     with save_col1:
         save_results_csv = st.checkbox(
@@ -2869,6 +2887,10 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
                     save_results_csv=bool(save_results_csv),
                     save_summary_csv=bool(save_summary_csv),
                     save_report_md=bool(save_report_md),
+                    use_run_registry=bool(use_run_registry),
+                    deduplicate_runs=bool(deduplicate_runs),
+                    include_stale_runs=bool(include_stale_runs),
+                    active_only=bool(active_only),
                 )
             except Exception as exc:
                 campaign_result = {
@@ -2885,11 +2907,49 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
     if not isinstance(campaign_result, dict):
         return
     discovery = campaign_result.get("discovery_result") or {}
+    campaign_metadata = campaign_result.get("campaign_metadata") or {}
+    registry_result = campaign_result.get("registry_result") or {}
+    st.write(
+        "Registry mode: "
+        f"`{campaign_metadata.get('registry_mode', 'file_discovery')}` | "
+        f"registry files: `{registry_result.get('registry_file_count', 0)}` | "
+        f"active runs: `{registry_result.get('active_run_count', 0)}` | "
+        f"stale runs: `{registry_result.get('stale_run_count', 0)}` | "
+        f"ignored runs: `{registry_result.get('ignored_run_count', 0)}`"
+    )
+    registry_paths = registry_result.get("registry_paths") or []
+    if registry_paths:
+        st.caption("Registry files: " + "; ".join(f"`{path}`" for path in registry_paths))
     st.write(
         "Discovered walk-forward artifacts: "
         f"`{discovery.get('summary_count', 0)}` summary CSV(s), "
         f"`{discovery.get('results_count', 0)}` results CSV(s)."
     )
+    registry_runs = registry_result.get("runs") or []
+    if registry_runs:
+        registry_columns = [
+            "run_id",
+            "ticker",
+            "timeframe",
+            "profile_name",
+            "run_event_filter",
+            "step",
+            "max_cases",
+            "require_mature_future",
+            "case_count",
+            "scoreable_count",
+            "status",
+            "is_stale",
+            "is_active",
+            "created_at",
+        ]
+        registry_rows = [
+            {column: run.get(column) for column in registry_columns}
+            for run in registry_runs
+            if isinstance(run, dict)
+        ]
+        st.write("Run Registry Status")
+        st.dataframe(_safe_dataframe_rows(registry_rows), use_container_width=True, hide_index=True)
     grouped = campaign_result.get("grouped_summary_result") or {}
     grouped_dataframe = grouped.get("dataframe")
     if grouped_dataframe is not None and not grouped_dataframe.empty:

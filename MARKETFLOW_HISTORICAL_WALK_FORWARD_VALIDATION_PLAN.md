@@ -24,6 +24,8 @@ CSV artifact status: Walk-Forward Validation can export cases, deterministic res
 
 Campaign aggregation status: saved walk-forward CSV artifacts can be aggregated across timeframe/event/profile runs to support campaign-level statistical review.
 
+Run registry status: saved walk-forward validation artifacts now register run metadata, including source CSV fingerprint, run event filter, step, max cases, mature-window setting, artifact paths, and stale/active status.
+
 ## 2. Current Checkpoint
 
 ```text
