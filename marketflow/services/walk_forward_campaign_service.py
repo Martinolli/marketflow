@@ -10,6 +10,8 @@ from typing import Any
 import pandas as pd
 
 from marketflow.services.walk_forward_run_registry_service import (
+    build_walk_forward_run_coverage_reason,
+    normalize_walk_forward_run_coverage_status,
     read_walk_forward_run_registry,
     refresh_walk_forward_run_registry_staleness,
 )
@@ -17,6 +19,7 @@ from marketflow.services.walk_forward_run_registry_service import (
 
 WALK_FORWARD_CAMPAIGN_RESULTS_CSV_KIND = "walk_forward_campaign_results_csv"
 WALK_FORWARD_CAMPAIGN_SUMMARY_CSV_KIND = "walk_forward_campaign_summary_csv"
+WALK_FORWARD_CAMPAIGN_COVERAGE_CSV_KIND = "walk_forward_campaign_coverage_csv"
 WALK_FORWARD_CAMPAIGN_REPORT_MD_KIND = "walk_forward_campaign_report_md"
 
 DEFAULT_CAMPAIGN_GROUP_BY = [
@@ -55,6 +58,45 @@ NORMALIZED_RESULT_COLUMNS = [
 ]
 NUMERIC_RESULT_COLUMNS = ["realized_R", "future_bars_available", "horizon_bars", "bars_to_hit"]
 TIMEFRAME_TOKENS = {"1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m"}
+COVERAGE_COLUMNS = [
+    "run_id",
+    "ticker",
+    "timeframe",
+    "profile_name",
+    "run_event_filter",
+    "step",
+    "max_cases",
+    "require_mature_future",
+    "status",
+    "coverage_status",
+    "coverage_reason",
+    "included_in_campaign",
+    "exclusion_reason",
+    "is_active",
+    "is_stale",
+    "source_csv_filename",
+    "source_csv_path",
+    "source_csv_sha256",
+    "summary_csv_path",
+    "results_csv_path",
+    "cases_csv_path",
+    "markdown_path",
+    "case_count",
+    "evaluated_count",
+    "scoreable_count",
+    "tp_first_count",
+    "sl_first_count",
+    "neither_count",
+    "invalid_count",
+    "ambiguous_count",
+    "mean_realized_R",
+    "median_realized_R",
+    "result_row_count",
+    "observed_event_count",
+    "observed_events",
+    "registry_mode",
+    "created_at",
+]
 
 
 def _is_missing(value: Any) -> bool:
@@ -102,6 +144,13 @@ def build_walk_forward_campaign_report_filename(
 ) -> str:
     prefix = _safe_filename_part(ticker) or "marketflow"
     return f"{prefix}_walk_forward_campaign_report_{_timestamp_for_filename(timestamp)}.md"
+
+
+def build_walk_forward_campaign_coverage_filename(
+    *, ticker: str | None = None, created_at: str | None = None
+) -> str:
+    prefix = _safe_filename_part(ticker) or "marketflow"
+    return f"{prefix}_walk_forward_campaign_coverage_{_timestamp_for_filename(created_at)}.csv"
 
 
 def discover_walk_forward_campaign_files(
@@ -184,6 +233,7 @@ def _select_registry_campaign_runs(
         "registry_file_count": len(registry_paths),
         "runs": [],
         "selected_runs": [],
+        "ignored_runs": [],
         "total_run_count": 0,
         "selected_run_count": 0,
         "active_run_count": 0,
@@ -216,15 +266,18 @@ def _select_registry_campaign_runs(
     result["active_run_count"] = sum(bool(run.get("is_active")) for run in runs)
     result["stale_run_count"] = sum(bool(run.get("is_stale")) for run in runs)
     candidates: list[dict[str, Any]] = []
+    ignored_runs: list[dict[str, Any]] = []
     ignored_ids: set[int] = set()
     for index, run in enumerate(runs):
         if active_only and not bool(run.get("is_active")):
             result["ignored_inactive_count"] += 1
             ignored_ids.add(index)
+            ignored_runs.append({**run, "exclusion_reason": "inactive run excluded"})
             continue
         if not include_stale_runs and bool(run.get("is_stale")):
             result["ignored_stale_count"] += 1
             ignored_ids.add(index)
+            ignored_runs.append({**run, "exclusion_reason": "stale run excluded"})
             continue
         candidates.append(run)
 
@@ -245,6 +298,7 @@ def _select_registry_campaign_runs(
             )
             if duplicate:
                 result["ignored_duplicate_count"] += 1
+                ignored_runs.append({**run, "exclusion_reason": "duplicate run excluded"})
                 continue
             if run_id:
                 seen_ids.add(run_id)
@@ -253,6 +307,7 @@ def _select_registry_campaign_runs(
             deduplicated.append(run)
         candidates = deduplicated
     result["selected_runs"] = candidates
+    result["ignored_runs"] = ignored_runs
     result["selected_run_count"] = len(candidates)
     result["ignored_run_count"] = (
         len(ignored_ids) + result["ignored_duplicate_count"]
@@ -491,6 +546,214 @@ def build_walk_forward_campaign_grouped_summary(
     return result
 
 
+def _coverage_key(run: dict[str, Any]) -> str:
+    for field in ("run_id", "run_signature", "results_csv_path", "source_path"):
+        value = run.get(field)
+        if not _is_missing(value):
+            return f"{field}:{value}"
+    return ""
+
+
+def _coverage_results_usable(path: str | None) -> bool:
+    if not path or not Path(path).is_file():
+        return False
+    try:
+        pd.read_csv(path, nrows=0)
+        return True
+    except Exception:
+        return False
+
+
+def _fallback_coverage_runs(result_rows: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    runs: dict[str, dict[str, Any]] = {}
+    for row in result_rows:
+        source_path = str(row.get("source_path") or "").strip()
+        source_file = str(row.get("source_file") or Path(source_path).name).strip()
+        key = source_path or source_file
+        if not key:
+            continue
+        context = _filename_context(source_file)
+        run = runs.setdefault(
+            key,
+            {
+                "run_id": f"file:{source_file}",
+                "ticker": row.get("ticker") or context.get("ticker"),
+                "timeframe": row.get("timeframe") or context.get("timeframe"),
+                "profile_name": row.get("profile_name") or context.get("profile_name"),
+                "run_event_filter": "UNKNOWN_RUN_FILTER",
+                "results_csv_path": source_path,
+                "case_count": 0,
+                "evaluated_count": 0,
+                "scoreable_count": 0,
+                "status": "complete",
+                "is_active": True,
+                "is_stale": False,
+            },
+        )
+        run["case_count"] += 1
+        run["evaluated_count"] += 1
+        if str(row.get("outcome") or "").strip().upper() in {"TP_FIRST", "SL_FIRST", "NEITHER"}:
+            run["scoreable_count"] += 1
+    return list(runs.values())
+
+
+def _fallback_coverage_runs_for_paths(
+    paths: list[str], result_rows: list[dict[str, Any]]
+) -> list[dict[str, Any]]:
+    runs = _fallback_coverage_runs(result_rows)
+    known_paths = {_path_lookup_key(run.get("results_csv_path")) for run in runs}
+    for value in paths:
+        if _path_lookup_key(value) in known_paths:
+            continue
+        path = Path(value)
+        context = _filename_context(path.name)
+        runs.append(
+            {
+                "run_id": f"file:{path.name}",
+                "ticker": context.get("ticker"),
+                "timeframe": context.get("timeframe"),
+                "profile_name": context.get("profile_name"),
+                "run_event_filter": "UNKNOWN_RUN_FILTER",
+                "results_csv_path": str(path),
+                "case_count": 0,
+                "evaluated_count": 0,
+                "scoreable_count": 0,
+                "status": "zero_cases",
+                "is_active": True,
+                "is_stale": False,
+            }
+        )
+    return runs
+
+
+def build_walk_forward_campaign_coverage_rows(
+    *,
+    registry_runs: list[dict[str, Any]] | None = None,
+    selected_runs: list[dict[str, Any]] | None = None,
+    ignored_runs: list[dict[str, Any]] | None = None,
+    result_rows: list[dict[str, Any]] | None = None,
+    registry_mode: str | None = None,
+) -> dict[str, Any]:
+    """Build one coverage row per registered run without inventing performance rows."""
+    mode = str(registry_mode or "file_discovery")
+    results = [dict(row) for row in result_rows or [] if isinstance(row, dict)]
+    runs = [dict(run) for run in registry_runs or [] if isinstance(run, dict)]
+    warnings: list[str] = []
+    if mode != "run_registry":
+        if not runs:
+            runs = _fallback_coverage_runs(results)
+        warnings.append(
+            "Campaign coverage is limited because no run registry metadata was available."
+        )
+    selected = [dict(run) for run in selected_runs or runs if isinstance(run, dict)]
+    ignored = [dict(run) for run in ignored_runs or [] if isinstance(run, dict)]
+    selected_keys = {_coverage_key(run) for run in selected if _coverage_key(run)}
+    ignored_by_key = {
+        _coverage_key(run): str(run.get("exclusion_reason") or "run excluded")
+        for run in ignored
+        if _coverage_key(run)
+    }
+
+    rows: list[dict[str, Any]] = []
+    for run in runs:
+        run_id = str(run.get("run_id") or "").strip()
+        registered_results_path = _registered_artifact_path(run, "results_csv_path")
+        matched_results: list[dict[str, Any]] = []
+        for result_row in results:
+            row_run_id = str(result_row.get("run_id") or "").strip()
+            if run_id and row_run_id == run_id:
+                matched_results.append(result_row)
+                continue
+            if registered_results_path and _path_lookup_key(result_row.get("source_path")) == _path_lookup_key(registered_results_path):
+                matched_results.append(result_row)
+
+        events = sorted(
+            {
+                "NO_CONFIRMED_EVENT" if _is_missing(row.get("wyckoff_event")) else str(row.get("wyckoff_event")).strip()
+                for row in matched_results
+            }
+        )
+        coverage_status = normalize_walk_forward_run_coverage_status(run)
+        key = _coverage_key(run)
+        selected_run = key in selected_keys
+        results_usable = _coverage_results_usable(registered_results_path)
+        if not results_usable and coverage_status not in {"inactive", "stale", "failed"}:
+            coverage_status = "missing_results"
+        included = bool(selected_run and results_usable)
+        exclusion_reason = ignored_by_key.get(key, "")
+        if not included and not exclusion_reason:
+            if not results_usable:
+                exclusion_reason = "results CSV missing or unusable"
+            elif not selected_run:
+                exclusion_reason = "run not selected"
+        row = {
+            column: run.get(column)
+            for column in COVERAGE_COLUMNS
+            if column not in {
+                "coverage_status",
+                "coverage_reason",
+                "included_in_campaign",
+                "exclusion_reason",
+                "result_row_count",
+                "observed_event_count",
+                "observed_events",
+                "registry_mode",
+            }
+        }
+        row.update(
+            {
+                "run_event_filter": run.get("run_event_filter") or "UNKNOWN_RUN_FILTER",
+                "coverage_status": coverage_status,
+                "coverage_reason": (
+                    "results CSV missing"
+                    if coverage_status == "missing_results"
+                    else build_walk_forward_run_coverage_reason(run)
+                ),
+                "included_in_campaign": included,
+                "exclusion_reason": exclusion_reason,
+                "result_row_count": len(matched_results),
+                "observed_event_count": len(events),
+                "observed_events": "; ".join(events),
+                "registry_mode": mode,
+            }
+        )
+        rows.append({column: row.get(column) for column in COVERAGE_COLUMNS})
+
+    dataframe = pd.DataFrame(rows, columns=COVERAGE_COLUMNS)
+    status_counts = {
+        status: sum(row.get("coverage_status") == status for row in rows)
+        for status in (
+            "complete",
+            "no_matching_cases",
+            "zero_cases",
+            "insufficient_data",
+            "stale",
+            "inactive",
+            "missing_results",
+            "failed",
+        )
+    }
+    included_count = sum(bool(row.get("included_in_campaign")) for row in rows)
+    return {
+        "success": bool(rows),
+        "rows": _dataframe_rows(dataframe),
+        "dataframe": dataframe,
+        "total_run_count": len(rows),
+        "included_run_count": included_count,
+        "excluded_run_count": len(rows) - included_count,
+        "complete_count": status_counts["complete"],
+        "no_matching_cases_count": status_counts["no_matching_cases"],
+        "zero_cases_count": status_counts["zero_cases"],
+        "insufficient_data_count": status_counts["insufficient_data"],
+        "stale_count": status_counts["stale"],
+        "inactive_count": status_counts["inactive"],
+        "missing_results_count": status_counts["missing_results"],
+        "failed_count": status_counts["failed"],
+        "warnings": warnings,
+        "errors": [],
+    }
+
+
 def _md_value(value: Any) -> str:
     if _is_missing(value):
         return ""
@@ -514,6 +777,8 @@ def _markdown_table(rows: list[dict[str, Any]], columns: list[str], max_rows: in
 def build_walk_forward_campaign_report_markdown(
     *,
     grouped_summary_rows: list[dict[str, Any]],
+    coverage_rows: list[dict[str, Any]] | None = None,
+    coverage_result: dict[str, Any] | None = None,
     summary_rows: list[dict[str, Any]] | None = None,
     result_rows: list[dict[str, Any]] | None = None,
     metadata: dict[str, Any] | None = None,
@@ -521,6 +786,8 @@ def build_walk_forward_campaign_report_markdown(
     grouped_rows = [dict(row) for row in grouped_summary_rows or []]
     summaries = [dict(row) for row in summary_rows or []]
     results = [dict(row) for row in result_rows or []]
+    coverage = [dict(row) for row in coverage_rows or []]
+    coverage_summary = dict(coverage_result or {})
     meta = dict(metadata or {})
     input_paths = sorted(
         {
@@ -562,13 +829,44 @@ def build_walk_forward_campaign_report_markdown(
         ]
     }
     metadata_lines = [f"- Created: {_md_value(meta.pop('created_at', datetime.now().strftime('%Y-%m-%d %H:%M:%S')))}"]
+    if input_paths:
+        meta.setdefault("input_files", "; ".join(input_paths))
     metadata_lines.extend(f"- {key.replace('_', ' ').title()}: {_md_value(value)}" for key, value in meta.items())
-    input_lines = [f"- `{path}`" for path in input_paths] or ["_No input paths recorded._"]
+    coverage_counts = [
+        f"- Total Registered Runs: {coverage_summary.get('total_run_count', len(coverage))}",
+        f"- Included Runs: {coverage_summary.get('included_run_count', 0)}",
+        f"- Excluded Runs: {coverage_summary.get('excluded_run_count', 0)}",
+        f"- No Matching Cases: {coverage_summary.get('no_matching_cases_count', 0)}",
+        f"- Zero Cases: {coverage_summary.get('zero_cases_count', 0)}",
+        f"- Insufficient Data: {coverage_summary.get('insufficient_data_count', 0)}",
+        f"- Stale Runs: {coverage_summary.get('stale_count', 0)}",
+        f"- Inactive Runs: {coverage_summary.get('inactive_count', 0)}",
+        f"- Missing Results: {coverage_summary.get('missing_results_count', 0)}",
+        f"- Failed Runs: {coverage_summary.get('failed_count', 0)}",
+    ]
+    coverage_columns = [
+        "ticker",
+        "timeframe",
+        "profile_name",
+        "run_event_filter",
+        "coverage_status",
+        "included_in_campaign",
+        "coverage_reason",
+        "case_count",
+        "scoreable_count",
+        "result_row_count",
+        "is_stale",
+        "is_active",
+        "created_at",
+    ]
     sections = [
         "# MarketFlow Walk-Forward Campaign Report",
         "## Metadata\n\n" + "\n".join(metadata_lines),
-        "## Input Files\n\n" + "\n".join(input_lines),
-        "## Campaign Summary by Timeframe/Event\n\n" + _markdown_table(grouped_rows, group_columns),
+        "## Campaign Coverage by Registered Run\n\n"
+        + "\n".join(coverage_counts)
+        + "\n\n"
+        + _markdown_table(coverage, coverage_columns, max_rows=100),
+        "## Campaign Performance Summary by Result Rows\n\n" + _markdown_table(grouped_rows, group_columns),
         "## Best Groups by Mean R\n\n" + _markdown_table(best, group_columns, max_rows=5),
         "## Weakest Groups by Mean R\n\n" + _markdown_table(weakest, group_columns, max_rows=5),
         "## Outcome Distribution\n\n" + _markdown_table([outcome_row], list(outcome_row)),
@@ -691,6 +989,7 @@ def write_walk_forward_campaign_artifacts(
     group_by: list[str] | None = None,
     save_results_csv: bool = True,
     save_summary_csv: bool = True,
+    save_coverage_csv: bool = True,
     save_report_md: bool = True,
     use_run_registry: bool = True,
     deduplicate_runs: bool = True,
@@ -712,6 +1011,7 @@ def write_walk_forward_campaign_artifacts(
         "registry_file_count": 0,
         "runs": [],
         "selected_runs": [],
+        "ignored_runs": [],
         "total_run_count": 0,
         "selected_run_count": 0,
         "active_run_count": 0,
@@ -761,6 +1061,24 @@ def write_walk_forward_campaign_artifacts(
         )
     normalized = normalize_walk_forward_result_rows(source_dataframe)
     grouped = build_walk_forward_campaign_grouped_summary(normalized, group_by=group_by)
+    normalized_rows = _dataframe_rows(normalized)
+    if registry_mode:
+        coverage_runs = registry_result["runs"]
+        coverage_selected_runs = registry_result["selected_runs"]
+        coverage_ignored_runs = registry_result["ignored_runs"]
+    else:
+        coverage_runs = _fallback_coverage_runs_for_paths(
+            discovery["results_csv_paths"], normalized_rows
+        )
+        coverage_selected_runs = coverage_runs
+        coverage_ignored_runs = []
+    coverage = build_walk_forward_campaign_coverage_rows(
+        registry_runs=coverage_runs,
+        selected_runs=coverage_selected_runs,
+        ignored_runs=coverage_ignored_runs,
+        result_rows=normalized_rows,
+        registry_mode="run_registry" if registry_mode else "file_discovery",
+    )
     artifacts: list[dict[str, Any]] = []
     warnings = [
         *discovery["warnings"],
@@ -768,6 +1086,7 @@ def write_walk_forward_campaign_artifacts(
         *results_load["warnings"],
         *grouped["warnings"],
         *registry_result["warnings"],
+        *coverage["warnings"],
     ]
     errors = [
         *discovery["errors"],
@@ -775,6 +1094,7 @@ def write_walk_forward_campaign_artifacts(
         *results_load["errors"],
         *grouped["errors"],
         *registry_result["errors"],
+        *coverage["errors"],
     ]
     campaign_metadata = {
         "registry_mode": "run_registry" if registry_mode else "file_discovery",
@@ -787,6 +1107,14 @@ def write_walk_forward_campaign_artifacts(
         "active_run_count": registry_result["active_run_count"],
         "stale_run_count": registry_result["stale_run_count"],
         "ignored_run_count": registry_result["ignored_run_count"],
+        "coverage_row_count": coverage["total_run_count"],
+        "included_run_count": coverage["included_run_count"],
+        "excluded_run_count": coverage["excluded_run_count"],
+        "no_matching_cases_count": coverage["no_matching_cases_count"],
+        "zero_cases_count": coverage["zero_cases_count"],
+        "insufficient_data_count": coverage["insufficient_data_count"],
+        "missing_results_count": coverage["missing_results_count"],
+        "failed_count": coverage["failed_count"],
     }
     campaign_result = {
         "success": False,
@@ -796,16 +1124,18 @@ def write_walk_forward_campaign_artifacts(
         "summary_load_result": summary_load,
         "results_load_result": results_load,
         "grouped_summary_result": grouped,
+        "coverage_result": coverage,
         "registry_result": registry_result,
         "campaign_metadata": campaign_metadata,
         "artifacts": artifacts,
         "results_artifact": None,
         "summary_artifact": None,
+        "coverage_artifact": None,
         "report_artifact": None,
         "warnings": warnings,
         "errors": errors,
     }
-    if not grouped["success"]:
+    if not grouped["success"] and not coverage["success"]:
         return campaign_result
     try:
         destination.mkdir(parents=True, exist_ok=True)
@@ -827,6 +1157,15 @@ def write_walk_forward_campaign_artifacts(
             build_walk_forward_campaign_summary_filename(ticker=ticker, timestamp=timestamp),
             WALK_FORWARD_CAMPAIGN_SUMMARY_CSV_KIND,
         )
+    if save_coverage_csv:
+        campaign_result["coverage_artifact"] = _write_dataframe_artifact(
+            coverage["dataframe"],
+            destination,
+            build_walk_forward_campaign_coverage_filename(
+                ticker=ticker, created_at=timestamp
+            ),
+            WALK_FORWARD_CAMPAIGN_COVERAGE_CSV_KIND,
+        )
     if save_report_md:
         report_artifact = _artifact_result(WALK_FORWARD_CAMPAIGN_REPORT_MD_KIND)
         try:
@@ -836,8 +1175,10 @@ def write_walk_forward_campaign_artifacts(
             )
             markdown = build_walk_forward_campaign_report_markdown(
                 grouped_summary_rows=grouped["rows"],
+                coverage_rows=coverage["rows"],
+                coverage_result=coverage,
                 summary_rows=summary_load["rows"],
-                result_rows=_dataframe_rows(normalized),
+                result_rows=normalized_rows,
                 metadata={
                     "root_dir": str(root),
                     **campaign_metadata,
@@ -860,6 +1201,7 @@ def write_walk_forward_campaign_artifacts(
         for artifact in [
             campaign_result["results_artifact"],
             campaign_result["summary_artifact"],
+            campaign_result["coverage_artifact"],
             campaign_result["report_artifact"],
         ]
         if isinstance(artifact, dict)

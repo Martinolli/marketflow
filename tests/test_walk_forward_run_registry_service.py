@@ -4,6 +4,7 @@ import hashlib
 from pathlib import Path
 
 import pandas as pd
+import pytest
 
 from marketflow.services.artifact_service import list_report_artifacts
 from marketflow.services.walk_forward_campaign_service import (
@@ -17,10 +18,12 @@ from marketflow.services.walk_forward_run_registry_service import (
     build_source_csv_fingerprint,
     build_walk_forward_run_id,
     build_walk_forward_run_metadata,
+    build_walk_forward_run_coverage_reason,
     build_walk_forward_run_registry_csv_filename,
     build_walk_forward_run_registry_json_filename,
     build_walk_forward_run_signature,
     read_walk_forward_run_registry,
+    normalize_walk_forward_run_coverage_status,
     refresh_walk_forward_run_registry_staleness,
     upsert_walk_forward_run_registry,
     write_walk_forward_run_registry,
@@ -130,6 +133,48 @@ def test_blank_event_filter_signature_normalizes_to_no_event_filter() -> None:
     assert _signature(run_event_filter=None) == _signature(run_event_filter=NO_EVENT_FILTER)
 
 
+@pytest.mark.parametrize(
+    ("run", "expected_status", "expected_reason"),
+    [
+        (
+            {"status": "failed", "errors": [], "case_count": 0, "run_event_filter": "SPRING_WEAK"},
+            "no_matching_cases",
+            "no mature rows matched requested event filter",
+        ),
+        (
+            {"case_count": 0, "run_event_filter": "NO_EVENT_FILTER", "row_count": 100, "min_lookback_rows": 240},
+            "insufficient_data",
+            "insufficient source rows for selected profile/lookback",
+        ),
+        (
+            {"case_count": 0, "run_event_filter": "NO_EVENT_FILTER", "row_count": 300, "min_lookback_rows": 240},
+            "zero_cases",
+            "validation completed with zero cases",
+        ),
+        (
+            {"is_stale": True, "is_active": True},
+            "stale",
+            "source CSV changed or is missing",
+        ),
+        (
+            {"is_stale": True, "is_active": False},
+            "inactive",
+            "run is inactive or superseded",
+        ),
+        (
+            {"status": "failed", "errors": ["validation error"], "case_count": 0},
+            "failed",
+            "validation failed",
+        ),
+    ],
+)
+def test_coverage_status_and_reason_normalization(
+    run: dict, expected_status: str, expected_reason: str
+) -> None:
+    assert normalize_walk_forward_run_coverage_status(run) == expected_status
+    assert build_walk_forward_run_coverage_reason(run) == expected_reason
+
+
 def test_run_metadata_contains_identity_filter_fingerprint_artifacts_and_counts(tmp_path: Path) -> None:
     source = tmp_path / "IONQ_1h_wyckoff_annotated.csv"
     source.write_text("close\n10\n", encoding="utf-8")
@@ -151,6 +196,28 @@ def test_run_metadata_contains_identity_filter_fingerprint_artifacts_and_counts(
     assert result["status"] == "complete"
     assert result["is_stale"] is False
     assert result["is_active"] is True
+
+
+def test_run_metadata_marks_event_filtered_zero_case_without_errors_as_no_matching(tmp_path: Path) -> None:
+    source = tmp_path / "IONQ.csv"
+    source.write_text("close\n10\n", encoding="utf-8")
+    validation = _validation_result()
+    validation["success"] = False
+    validation["build_result"]["case_count"] = 0
+    validation["evaluation_result"]["evaluated_count"] = 0
+    validation["summary"]["scoreable_count"] = 0
+
+    result = build_walk_forward_run_metadata(
+        validation_result=validation,
+        source_csv_path=source,
+        run_event_filter="UT_WEAK",
+        step=20,
+        max_cases=25,
+        require_mature_future=True,
+    )
+
+    assert result["errors"] == []
+    assert result["status"] == "no_matching_cases"
 
 
 def test_registry_read_returns_empty_runs_when_missing(tmp_path: Path) -> None:
@@ -260,6 +327,9 @@ def test_campaign_aggregator_uses_registry_when_available(tmp_path: Path) -> Non
     assert campaign["campaign_metadata"]["registry_mode"] == "run_registry"
     assert campaign["registry_result"]["selected_run_count"] == 1
     assert campaign["registry_result"]["ignored_duplicate_count"] == 1
+    assert campaign["coverage_result"]["total_run_count"] == 2
+    assert campaign["coverage_result"]["included_run_count"] == 1
+    assert campaign["coverage_result"]["excluded_run_count"] == 1
     row = campaign["grouped_summary_result"]["rows"][0]
     assert row["run_event_filter"] == "UT_WEAK"
     assert row["wyckoff_event"] == "SPRING_WEAK"
@@ -277,6 +347,50 @@ def test_campaign_aggregator_falls_back_without_registry(tmp_path: Path) -> None
     assert campaign["success"] is True
     assert campaign["campaign_metadata"]["registry_mode"] == "file_discovery"
     assert campaign["grouped_summary_result"]["rows"][0]["run_event_filter"] == "UNKNOWN_RUN_FILTER"
+    assert campaign["coverage_result"]["total_run_count"] == 1
+    assert campaign["coverage_result"]["rows"][0]["coverage_status"] == "complete"
+    assert "limited" in campaign["coverage_result"]["warnings"][0]
+
+
+def test_campaign_aggregator_writes_coverage_when_registered_run_has_no_result_rows(tmp_path: Path) -> None:
+    source = tmp_path / "IONQ_1h_wyckoff_annotated.csv"
+    source.write_text("close\n1\n", encoding="utf-8")
+    results = tmp_path / "IONQ_1h_intraday_tactical_walk_forward_results_empty.csv"
+    results.write_text("ticker,outcome,wyckoff_event\n", encoding="utf-8")
+    summary = tmp_path / "IONQ_1h_intraday_tactical_walk_forward_summary_empty.csv"
+    summary.write_text("ticker,sample_count\nIONQ,0\n", encoding="utf-8")
+    metadata = _metadata(
+        source,
+        [
+            {"kind": "walk_forward_results_csv", "path": str(results)},
+            {"kind": "walk_forward_summary_csv", "path": str(summary)},
+        ],
+        event_filter="UT_WEAK",
+    )
+    metadata.update(
+        {
+            "status": "failed",
+            "errors": [],
+            "case_count": 0,
+            "evaluated_count": 0,
+            "scoreable_count": 0,
+        }
+    )
+    registry = tmp_path / "IONQ_walk_forward_run_registry.json"
+    write_walk_forward_run_registry(registry, [metadata])
+
+    campaign = write_walk_forward_campaign_artifacts(
+        root_dir=tmp_path,
+        save_results_csv=False,
+        save_summary_csv=False,
+        save_report_md=False,
+    )
+
+    assert campaign["success"] is True
+    assert campaign["grouped_summary_result"]["success"] is False
+    assert campaign["coverage_result"]["no_matching_cases_count"] == 1
+    assert campaign["coverage_result"]["rows"][0]["result_row_count"] == 0
+    assert Path(campaign["coverage_artifact"]["path"]).exists()
 
 
 def test_grouped_summary_separates_requested_filter_from_observed_event() -> None:

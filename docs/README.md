@@ -14,6 +14,7 @@ This index organizes current planning, milestone, workflow, design, and referenc
 
 - [Status directory](status/)
 - [Walk-Forward Validation milestone](status/MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md)
+- Campaign coverage and zero-case reporting are documented across the walk-forward plan, milestone, and Studio workflow in this index.
 - [Backtest Calibration milestone](status/MARKETFLOW_BACKTEST_CALIBRATION_MILESTONE_STATUS.md)
 - [Monte Carlo Calibration milestone](status/MARKETFLOW_MONTE_CARLO_CALIBRATION_MILESTONE_STATUS.md)
 - [Current historical testing checkpoint](status/MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md)

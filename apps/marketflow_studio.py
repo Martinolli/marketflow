@@ -2851,7 +2851,7 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
         active_only = st.checkbox(
             "Active runs only", value=True, key="walk_forward_campaign_active_only"
         )
-    save_col1, save_col2, save_col3 = st.columns(3)
+    save_col1, save_col2, save_col3, save_col4 = st.columns(4)
     with save_col1:
         save_results_csv = st.checkbox(
             "Save campaign results CSV", value=True, key="walk_forward_campaign_save_results_csv"
@@ -2861,6 +2861,10 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
             "Save campaign summary CSV", value=True, key="walk_forward_campaign_save_summary_csv"
         )
     with save_col3:
+        save_coverage_csv = st.checkbox(
+            "Save campaign coverage CSV", value=True, key="walk_forward_campaign_save_coverage_csv"
+        )
+    with save_col4:
         save_report_md = st.checkbox(
             "Save campaign markdown report", value=True, key="walk_forward_campaign_save_report_md"
         )
@@ -2873,6 +2877,7 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
                 "errors": ["Campaign root folder is required."],
                 "discovery_result": {},
                 "grouped_summary_result": {},
+                "coverage_result": {},
                 "artifacts": [],
             }
         else:
@@ -2886,6 +2891,7 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
                     group_by=list(group_by),
                     save_results_csv=bool(save_results_csv),
                     save_summary_csv=bool(save_summary_csv),
+                    save_coverage_csv=bool(save_coverage_csv),
                     save_report_md=bool(save_report_md),
                     use_run_registry=bool(use_run_registry),
                     deduplicate_runs=bool(deduplicate_runs),
@@ -2899,6 +2905,7 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
                     "errors": [f"{type(exc).__name__}: {exc}"],
                     "discovery_result": {},
                     "grouped_summary_result": {},
+                    "coverage_result": {},
                     "artifacts": [],
                 }
         st.session_state["latest_walk_forward_campaign_result"] = campaign_result
@@ -2950,10 +2957,52 @@ def _render_walk_forward_campaign_aggregator_section(result: dict[str, Any] | No
         ]
         st.write("Run Registry Status")
         st.dataframe(_safe_dataframe_rows(registry_rows), use_container_width=True, hide_index=True)
+    coverage = campaign_result.get("coverage_result") or {}
+    coverage_rows = coverage.get("rows") or []
+    if coverage_rows:
+        st.write(
+            "Campaign coverage: "
+            f"rows `{coverage.get('total_run_count', 0)}` | "
+            f"included `{coverage.get('included_run_count', 0)}` | "
+            f"excluded `{coverage.get('excluded_run_count', 0)}` | "
+            f"no matching cases `{coverage.get('no_matching_cases_count', 0)}` | "
+            f"zero cases `{coverage.get('zero_cases_count', 0)}` | "
+            f"insufficient data `{coverage.get('insufficient_data_count', 0)}` | "
+            f"stale `{coverage.get('stale_count', 0)}` | "
+            f"inactive `{coverage.get('inactive_count', 0)}` | "
+            f"failed `{coverage.get('failed_count', 0)}`"
+        )
+        coverage_columns = [
+            "run_id",
+            "ticker",
+            "timeframe",
+            "profile_name",
+            "run_event_filter",
+            "coverage_status",
+            "included_in_campaign",
+            "coverage_reason",
+            "case_count",
+            "scoreable_count",
+            "result_row_count",
+            "is_stale",
+            "is_active",
+            "created_at",
+        ]
+        compact_coverage_rows = [
+            {column: row.get(column) for column in coverage_columns}
+            for row in coverage_rows
+            if isinstance(row, dict)
+        ]
+        st.write("Campaign Coverage by Registered Run")
+        st.dataframe(
+            _safe_dataframe_rows(compact_coverage_rows),
+            use_container_width=True,
+            hide_index=True,
+        )
     grouped = campaign_result.get("grouped_summary_result") or {}
     grouped_dataframe = grouped.get("dataframe")
     if grouped_dataframe is not None and not grouped_dataframe.empty:
-        st.write("Grouped Campaign Summary")
+        st.write("Campaign Performance Summary by Result Rows")
         st.dataframe(grouped_dataframe, use_container_width=True, hide_index=True)
     artifact_rows = _walk_forward_saved_artifact_rows(campaign_result.get("artifacts"))
     if artifact_rows:

@@ -16,6 +16,8 @@ Post-milestone implementation status: Walk-Forward Campaign Aggregator implement
 
 Post-milestone implementation status: Walk-Forward Run Registry implemented to track saved validation runs and separate requested event filters from observed result-row events.
 
+Post-milestone implementation status: Walk-Forward Campaign Coverage implemented to show every registered run, including zero-case and no-matching-case runs, before grouped result-row performance summaries.
+
 ## 2. Current Commit
 
 ```text

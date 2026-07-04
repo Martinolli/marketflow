@@ -5,9 +5,12 @@ import pytest
 
 from marketflow.services.artifact_service import list_report_artifacts
 from marketflow.services.walk_forward_campaign_service import (
+    WALK_FORWARD_CAMPAIGN_COVERAGE_CSV_KIND,
     WALK_FORWARD_CAMPAIGN_REPORT_MD_KIND,
     WALK_FORWARD_CAMPAIGN_RESULTS_CSV_KIND,
     WALK_FORWARD_CAMPAIGN_SUMMARY_CSV_KIND,
+    build_walk_forward_campaign_coverage_filename,
+    build_walk_forward_campaign_coverage_rows,
     build_walk_forward_campaign_grouped_summary,
     build_walk_forward_campaign_report_markdown,
     build_walk_forward_campaign_report_filename,
@@ -46,6 +49,9 @@ def test_filename_builders_use_safe_ticker_and_fallback() -> None:
     )
     assert build_walk_forward_campaign_report_filename(timestamp=stamp) == (
         "marketflow_walk_forward_campaign_report_20260704_120000.md"
+    )
+    assert build_walk_forward_campaign_coverage_filename(ticker="IONQ", created_at=stamp) == (
+        "IONQ_walk_forward_campaign_coverage_20260704_120000.csv"
     )
 
 
@@ -162,6 +168,23 @@ def test_campaign_markdown_contains_required_sections_and_guardrails() -> None:
     grouped = build_walk_forward_campaign_grouped_summary(pd.DataFrame(_result_rows()))
     markdown = build_walk_forward_campaign_report_markdown(
         grouped_summary_rows=grouped["rows"],
+        coverage_rows=[
+            {
+                "ticker": "IONQ",
+                "timeframe": "1h",
+                "profile_name": "intraday_tactical",
+                "run_event_filter": "SPRING_WEAK",
+                "coverage_status": "no_matching_cases",
+                "included_in_campaign": True,
+                "coverage_reason": "no mature rows matched requested event filter",
+            }
+        ],
+        coverage_result={
+            "total_run_count": 1,
+            "included_run_count": 1,
+            "excluded_run_count": 0,
+            "no_matching_cases_count": 1,
+        },
         summary_rows=[{"source_path": "/reports/summary.csv"}],
         result_rows=[{"source_path": "/reports/results.csv"}],
         metadata={"ticker": "IONQ"},
@@ -170,8 +193,8 @@ def test_campaign_markdown_contains_required_sections_and_guardrails() -> None:
     for heading in (
         "# MarketFlow Walk-Forward Campaign Report",
         "## Metadata",
-        "## Input Files",
-        "## Campaign Summary by Timeframe/Event",
+        "## Campaign Coverage by Registered Run",
+        "## Campaign Performance Summary by Result Rows",
         "## Best Groups by Mean R",
         "## Weakest Groups by Mean R",
         "## Outcome Distribution",
@@ -179,6 +202,7 @@ def test_campaign_markdown_contains_required_sections_and_guardrails() -> None:
         "## Guardrails",
     ):
         assert heading in markdown
+    assert "No Matching Cases: 1" in markdown
     assert "Candidate quality remains separate from workflow validity." in markdown
 
 
@@ -200,25 +224,136 @@ def test_write_campaign_artifacts_creates_all_outputs_collision_safely(tmp_path:
     )
 
     assert first["success"] is True
-    assert len(first["artifacts"]) == 3
+    assert len(first["artifacts"]) == 4
     assert {artifact["kind"] for artifact in first["artifacts"]} == {
         WALK_FORWARD_CAMPAIGN_RESULTS_CSV_KIND,
         WALK_FORWARD_CAMPAIGN_SUMMARY_CSV_KIND,
+        WALK_FORWARD_CAMPAIGN_COVERAGE_CSV_KIND,
         WALK_FORWARD_CAMPAIGN_REPORT_MD_KIND,
     }
     assert all(Path(artifact["path"]).exists() for artifact in first["artifacts"])
     assert second["success"] is True
     assert all("_2." in artifact["filename"] for artifact in second["artifacts"])
     assert second["discovery_result"]["results_count"] == 1
+    assert first["coverage_result"]["total_run_count"] == 1
+    assert first["coverage_artifact"]["kind"] == WALK_FORWARD_CAMPAIGN_COVERAGE_CSV_KIND
 
 
 def test_artifact_classification_recognizes_campaign_outputs(tmp_path: Path) -> None:
     (tmp_path / "IONQ_walk_forward_campaign_results_1.csv").write_text("outcome\nTP_FIRST\n", encoding="utf-8")
     (tmp_path / "IONQ_walk_forward_campaign_summary_1.csv").write_text("sample_count\n1\n", encoding="utf-8")
+    (tmp_path / "IONQ_walk_forward_campaign_coverage_1.csv").write_text("run_id\nrun-1\n", encoding="utf-8")
     (tmp_path / "IONQ_walk_forward_campaign_report_1.md").write_text("# Report\n", encoding="utf-8")
 
     kinds = {artifact["kind"] for artifact in list_report_artifacts(str(tmp_path))}
 
     assert WALK_FORWARD_CAMPAIGN_RESULTS_CSV_KIND in kinds
     assert WALK_FORWARD_CAMPAIGN_SUMMARY_CSV_KIND in kinds
+    assert WALK_FORWARD_CAMPAIGN_COVERAGE_CSV_KIND in kinds
     assert WALK_FORWARD_CAMPAIGN_REPORT_MD_KIND in kinds
+
+
+def test_coverage_rows_include_zero_case_run_and_keep_filter_separate_from_observed_event(tmp_path: Path) -> None:
+    zero_results = tmp_path / "zero_results.csv"
+    zero_results.write_text("ticker,outcome,wyckoff_event\n", encoding="utf-8")
+    complete_results = tmp_path / "complete_results.csv"
+    complete_results.write_text("ticker,outcome,wyckoff_event\nIONQ,TP_FIRST,SPRING_WEAK\n", encoding="utf-8")
+    zero_run = {
+        "run_id": "zero-run",
+        "ticker": "IONQ",
+        "timeframe": "1h",
+        "profile_name": "intraday_tactical",
+        "run_event_filter": "UT_WEAK",
+        "status": "failed",
+        "errors": [],
+        "case_count": 0,
+        "evaluated_count": 0,
+        "scoreable_count": 0,
+        "results_csv_path": str(zero_results),
+        "is_active": True,
+        "is_stale": False,
+    }
+    complete_run = {
+        **zero_run,
+        "run_id": "complete-run",
+        "run_event_filter": "NO_EVENT_FILTER",
+        "status": "complete",
+        "case_count": 1,
+        "evaluated_count": 1,
+        "scoreable_count": 1,
+        "results_csv_path": str(complete_results),
+    }
+    result_rows = [
+        {
+            "run_id": "complete-run",
+            "source_path": str(complete_results),
+            "wyckoff_event": "SPRING_WEAK",
+            "outcome": "TP_FIRST",
+        }
+    ]
+
+    coverage = build_walk_forward_campaign_coverage_rows(
+        registry_runs=[zero_run, complete_run],
+        selected_runs=[zero_run, complete_run],
+        result_rows=result_rows,
+        registry_mode="run_registry",
+    )
+
+    assert coverage["total_run_count"] == 2
+    assert coverage["included_run_count"] == 2
+    assert coverage["no_matching_cases_count"] == 1
+    zero_row = next(row for row in coverage["rows"] if row["run_id"] == "zero-run")
+    complete_row = next(row for row in coverage["rows"] if row["run_id"] == "complete-run")
+    assert zero_row["coverage_status"] == "no_matching_cases"
+    assert zero_row["result_row_count"] == 0
+    assert zero_row["run_event_filter"] == "UT_WEAK"
+    assert complete_row["run_event_filter"] == "NO_EVENT_FILTER"
+    assert complete_row["observed_events"] == "SPRING_WEAK"
+    assert complete_row["result_row_count"] == 1
+
+
+def test_coverage_rows_explain_stale_inactive_and_missing_results_exclusions(tmp_path: Path) -> None:
+    results_path = tmp_path / "results.csv"
+    results_path.write_text("outcome\n", encoding="utf-8")
+    stale_run = {
+        "run_id": "stale",
+        "results_csv_path": str(results_path),
+        "is_active": True,
+        "is_stale": True,
+    }
+    inactive_run = {
+        "run_id": "inactive",
+        "results_csv_path": str(results_path),
+        "is_active": False,
+        "is_stale": False,
+    }
+    missing_run = {
+        "run_id": "missing",
+        "results_csv_path": str(tmp_path / "missing.csv"),
+        "is_active": True,
+        "is_stale": False,
+        "case_count": 1,
+    }
+
+    coverage = build_walk_forward_campaign_coverage_rows(
+        registry_runs=[stale_run, inactive_run, missing_run],
+        selected_runs=[missing_run],
+        ignored_runs=[
+            {**stale_run, "exclusion_reason": "stale run excluded"},
+            {**inactive_run, "exclusion_reason": "inactive run excluded"},
+        ],
+        result_rows=[],
+        registry_mode="run_registry",
+    )
+
+    rows = {row["run_id"]: row for row in coverage["rows"]}
+    assert rows["stale"]["coverage_status"] == "stale"
+    assert rows["stale"]["exclusion_reason"] == "stale run excluded"
+    assert rows["inactive"]["coverage_status"] == "inactive"
+    assert rows["inactive"]["exclusion_reason"] == "inactive run excluded"
+    assert rows["missing"]["coverage_status"] == "missing_results"
+    assert rows["missing"]["included_in_campaign"] is False
+    assert coverage["excluded_run_count"] == 3
+    assert coverage["missing_results_count"] == 1
+    build_walk_forward_campaign_coverage_filename,
+    build_walk_forward_campaign_coverage_rows,

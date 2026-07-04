@@ -13,6 +13,19 @@ from typing import Any
 WALK_FORWARD_RUN_REGISTRY_JSON_KIND = "walk_forward_run_registry_json"
 WALK_FORWARD_RUN_REGISTRY_CSV_KIND = "walk_forward_run_registry_csv"
 NO_EVENT_FILTER = "NO_EVENT_FILTER"
+UNKNOWN_RUN_FILTER = "UNKNOWN_RUN_FILTER"
+WALK_FORWARD_COVERAGE_STATUSES = {
+    "complete",
+    "partial",
+    "no_matching_cases",
+    "zero_cases",
+    "insufficient_data",
+    "stale",
+    "inactive",
+    "missing_results",
+    "failed",
+    "unknown",
+}
 
 REGISTRY_CSV_COLUMNS = [
     "run_id",
@@ -133,6 +146,87 @@ def _optional_int(value: Any) -> int | None:
         return None
 
 
+def _has_messages(value: Any) -> bool:
+    if isinstance(value, (list, tuple, set)):
+        return any(str(item).strip() for item in value)
+    return bool(str(value or "").strip())
+
+
+def _is_explicit_false(value: Any) -> bool:
+    return value is False or str(value).strip().lower() in {"false", "0", "no"}
+
+
+def _run_results_path_exists(run: dict[str, Any]) -> bool:
+    value = run.get("results_csv_path")
+    if value is None or not str(value).strip():
+        return False
+    path = Path(str(value))
+    if path.is_file():
+        return True
+    registry_path = Path(str(run.get("registry_path") or ""))
+    return any(
+        candidate.is_file()
+        for candidate in (registry_path.parent / path, registry_path.parent / path.name)
+    )
+
+
+def normalize_walk_forward_run_coverage_status(run: dict[str, Any]) -> str:
+    """Return a backward-compatible coverage status for one registered run."""
+    source = run if isinstance(run, dict) else {}
+    if "is_active" in source and _is_explicit_false(source.get("is_active")):
+        return "inactive"
+    if bool(source.get("is_stale")):
+        return "stale"
+
+    errors_present = _has_messages(source.get("errors"))
+    if errors_present:
+        return "failed"
+
+    case_count = _optional_int(source.get("case_count"))
+    evaluated_count = _optional_int(source.get("evaluated_count")) or 0
+    scoreable_count = _optional_int(source.get("scoreable_count")) or 0
+    row_count = _optional_int(source.get("row_count"))
+    min_lookback = _optional_int(
+        source.get("min_lookback_rows") or source.get("minimum_lookback_rows")
+    )
+    event_filter = str(source.get("run_event_filter") or "").strip().upper()
+    event_filtered = event_filter not in {"", NO_EVENT_FILTER, UNKNOWN_RUN_FILTER}
+
+    if "results_csv_path" in source and not _run_results_path_exists(source):
+        return "missing_results"
+    if (case_count or 0) == 0 and evaluated_count == 0 and scoreable_count == 0:
+        if event_filtered:
+            return "no_matching_cases"
+        if row_count is not None and min_lookback is not None and row_count < min_lookback:
+            return "insufficient_data"
+        return "zero_cases"
+
+    status = str(source.get("status") or "").strip().lower()
+    if status in WALK_FORWARD_COVERAGE_STATUSES:
+        return status
+    if scoreable_count > 0 or evaluated_count > 0 or (case_count or 0) > 0:
+        return "complete"
+    return "unknown"
+
+
+def build_walk_forward_run_coverage_reason(run: dict[str, Any]) -> str:
+    """Return a concise explanation for a run's normalized coverage status."""
+    status = normalize_walk_forward_run_coverage_status(run)
+    reasons = {
+        "complete": "result rows available",
+        "partial": "run completed with warnings or partial artifacts",
+        "no_matching_cases": "no mature rows matched requested event filter",
+        "zero_cases": "validation completed with zero cases",
+        "insufficient_data": "insufficient source rows for selected profile/lookback",
+        "stale": "source CSV changed or is missing",
+        "inactive": "run is inactive or superseded",
+        "missing_results": "results CSV missing",
+        "failed": "validation failed",
+        "unknown": "run coverage status is unknown",
+    }
+    return reasons[status]
+
+
 def build_walk_forward_run_signature(
     *,
     ticker: str | None,
@@ -226,6 +320,9 @@ def build_walk_forward_run_metadata(
     )
     case_count = _optional_int(build.get("case_count")) or 0
     evaluated_count = _optional_int(evaluation.get("evaluated_count")) or 0
+    scoreable_count = _optional_int(summary.get("scoreable_count")) or 0
+    row_count = _optional_int(build.get("row_count"))
+    min_lookback_rows = _optional_int(minimum_lookback)
     warnings = [*_messages(source, "warnings"), *(fingerprint.get("warnings") or [])]
     errors = _messages(source, "errors")
     for artifact in saved_artifacts:
@@ -234,13 +331,25 @@ def build_walk_forward_run_metadata(
     warnings = list(dict.fromkeys(item for item in warnings if item))
     errors = list(dict.fromkeys(item for item in errors if item))
     validation_success = bool(source.get("success"))
-    if not validation_success:
+    event_filtered = normalized_filter not in {NO_EVENT_FILTER, UNKNOWN_RUN_FILTER}
+    if errors:
         status = "failed"
     elif case_count == 0:
-        status = "zero_cases"
-    elif saved_artifacts and (warnings or errors):
+        if event_filtered:
+            status = "no_matching_cases"
+        elif (
+            row_count is not None
+            and min_lookback_rows is not None
+            and row_count < min_lookback_rows
+        ):
+            status = "insufficient_data"
+        else:
+            status = "zero_cases"
+    elif not validation_success:
+        status = "failed"
+    elif saved_artifacts and warnings:
         status = "partial"
-    elif evaluated_count > 0:
+    elif scoreable_count > 0 or evaluated_count > 0 or case_count > 0:
         status = "complete"
     else:
         status = "partial"
@@ -266,11 +375,11 @@ def build_walk_forward_run_metadata(
             bool(require_mature_future) if require_mature_future is not None else None
         ),
         "horizon_bars": _optional_int(horizon),
-        "min_lookback_rows": _optional_int(minimum_lookback),
-        "row_count": _optional_int(build.get("row_count")),
+        "min_lookback_rows": min_lookback_rows,
+        "row_count": row_count,
         "case_count": case_count,
         "evaluated_count": evaluated_count,
-        "scoreable_count": _optional_int(summary.get("scoreable_count")) or 0,
+        "scoreable_count": scoreable_count,
         "tp_first_count": _optional_int(summary.get("tp_first_count")) or 0,
         "sl_first_count": _optional_int(summary.get("sl_first_count")) or 0,
         "neither_count": _optional_int(summary.get("neither_count")) or 0,

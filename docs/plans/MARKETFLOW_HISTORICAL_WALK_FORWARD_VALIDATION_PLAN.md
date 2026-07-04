@@ -26,6 +26,8 @@ Campaign aggregation status: saved walk-forward CSV artifacts can be aggregated 
 
 Run registry status: saved walk-forward validation artifacts now register run metadata, including source CSV fingerprint, run event filter, step, max cases, mature-window setting, artifact paths, and stale/active status.
 
+Campaign coverage status: Campaign Aggregator reports now include a registered-run coverage table showing complete, zero-case, no-matching-case, insufficient-data, stale, inactive, missing-results, and failed runs separately from performance result rows.
+
 ## 2. Current Checkpoint
 
 ```text

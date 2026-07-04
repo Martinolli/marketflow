@@ -56,6 +56,8 @@ def _classify_artifact(path: Path) -> str:
         return "walk_forward_cases_csv"
     if suffix == ".csv" and "_walk_forward_run_registry" in name:
         return "walk_forward_run_registry_csv"
+    if suffix == ".csv" and "_walk_forward_campaign_coverage" in name:
+        return "walk_forward_campaign_coverage_csv"
     if suffix == ".csv" and "_walk_forward_campaign_results" in name:
         return "walk_forward_campaign_results_csv"
     if suffix == ".csv" and "_walk_forward_campaign_summary" in name:

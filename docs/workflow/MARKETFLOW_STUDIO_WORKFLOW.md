@@ -8,6 +8,8 @@ Studio includes a Walk-Forward Campaign Aggregator that combines previously save
 
 Studio Campaign Aggregator can use the Walk-Forward Run Registry to deduplicate runs, exclude stale runs, and group by requested run filter versus observed Wyckoff event.
 
+When reviewing Campaign Aggregator output, first inspect Campaign Coverage by Registered Run, then inspect Campaign Performance Summary by Result Rows. Coverage answers what was tested; performance answers how scoreable rows behaved.
+
 ## Design Review Checkpoint
 
 For the current Studio milestone review, see:
