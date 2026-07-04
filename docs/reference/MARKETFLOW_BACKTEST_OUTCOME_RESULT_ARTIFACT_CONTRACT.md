@@ -18,11 +18,11 @@ Current implemented backtest pieces:
 
 The outcome result artifact writer now exists. There is no calibration summary and no Backtest Lab UI.
 
-Candidate signal-location enrichment planning exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`. This addresses snapshots that currently evaluate as `INVALID` due to missing signal location.
+Candidate signal-location enrichment planning exists at `docs/plans/MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`. This addresses snapshots that currently evaluate as `INVALID` due to missing signal location.
 
 Candidate signal-location enrichment status: implemented. Saved candidate snapshots can now include `signal_row_index` and/or `signal_timestamp` when source CSV evidence is available, reducing `INVALID` outcomes caused only by missing signal location.
 
-Backtest Calibration Summary planning exists at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`. This will summarize saved `*_backtest_results.csv` artifacts before future parameter calibration.
+Backtest Calibration Summary planning exists at `docs/plans/MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`. This will summarize saved `*_backtest_results.csv` artifacts before future parameter calibration.
 
 Backtest Calibration Summary service status: implemented service-only summary metrics for saved `backtest_results_csv` artifacts.
 
@@ -398,7 +398,7 @@ evaluate_candidate_snapshot_csv_to_results_csv(
 
 Evaluation service status: `marketflow/services/backtest_result_service.py` can read saved candidate snapshot CSVs, evaluate deterministic outcomes with the existing outcome service, and write `*_backtest_results.csv` artifacts. Studio integration and calibration remain future work.
 
-Studio UI planning status: `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md` defines the future Studio control for evaluating saved candidate snapshots into `*_backtest_results.csv`.
+Studio UI planning status: `docs/plans/MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md` defines the future Studio control for evaluating saved candidate snapshots into `*_backtest_results.csv`.
 
 Studio integration status: implemented on the Strategy Ranking page as a deterministic Backtest Outcome Evaluation section.
 

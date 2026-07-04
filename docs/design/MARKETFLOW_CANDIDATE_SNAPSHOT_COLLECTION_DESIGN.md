@@ -227,7 +227,7 @@ Planned artifact kind:
 backtest_candidates_csv
 ```
 
-A dedicated CSV artifact contract exists at `MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`.
+A dedicated CSV artifact contract exists at `docs/reference/MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`.
 
 Artifact classification should be added in a later implementation step, not in this design checkpoint.
 

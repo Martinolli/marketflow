@@ -8,7 +8,7 @@ The goal is calibration and research: measure how forecast probabilities such as
 
 This plan incorporates ideas from the local note `markdown_files/monte_carlo_backtest_refactor.md`, including single-run versus backtest modes, model calibration, saved statistical exports, backtest CLI concepts, and known risks such as sequential performance, naming clarity, and silent model fallback behavior. The original note remains unchanged.
 
-Monte Carlo forecast-vs-actual calibration plan created at `MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`.
+Monte Carlo forecast-vs-actual calibration plan created at `docs/plans/MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`.
 
 Monte Carlo summary metadata enrichment status: implemented for future forecast-vs-actual calibration.
 
@@ -352,27 +352,27 @@ Phase 1.1 status: service wrapper implemented for JSON-safe single-candidate and
 
 ### Phase 2 - Candidate Snapshot Collection
 
-Phase 2 design checkpoint created at `MARKETFLOW_CANDIDATE_SNAPSHOT_COLLECTION_DESIGN.md`.
+Phase 2 design checkpoint created at `docs/design/MARKETFLOW_CANDIDATE_SNAPSHOT_COLLECTION_DESIGN.md`.
 
 Phase 2.1 status: candidate snapshot normalization and validation service implemented. Snapshot CSV artifacts and Studio integration remain future work.
 
-Phase 2.2 artifact contract checkpoint created at `MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`.
+Phase 2.2 artifact contract checkpoint created at `docs/reference/MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`.
 
 Phase 2.2 implementation status: candidate snapshot CSV writer implemented. Generated Artifacts classification and the selected-candidate Studio save control are implemented. Backtest execution remains future work.
 
 Studio save control status: selected Strategy Ranking candidates can be saved as `*_backtest_candidates*.csv` artifacts. Backtest execution remains future work.
 
-Backtest Outcome Result CSV artifact contract created at `MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`.
+Backtest Outcome Result CSV artifact contract created at `docs/reference/MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`.
 
 Backtest Outcome Result CSV writer status: implemented service-level filename generation, row conversion, and CSV writing. Generated Artifacts classification is implemented. Studio integration remains future work.
 
 Backtest outcome evaluation service status: implemented service-only candidate snapshot CSV evaluation to `*_backtest_results.csv`.
 
-Studio Backtest Outcome Evaluation UI plan created at `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`.
+Studio Backtest Outcome Evaluation UI plan created at `docs/plans/MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`.
 
 Studio Backtest Outcome Evaluation status: implemented as a Strategy Ranking page section for saved candidate snapshot CSVs.
 
-Candidate signal-location enrichment plan created at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
+Candidate signal-location enrichment plan created at `docs/plans/MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Candidate signal-location enrichment status: implemented in the candidate snapshot service.
 
@@ -386,7 +386,7 @@ Candidate signal-location enrichment status: implemented in the candidate snapsh
 
 ### Phase 4 - Calibration Summary
 
-Backtest Calibration Summary plan created at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`.
+Backtest Calibration Summary plan created at `docs/plans/MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`.
 
 Backtest Calibration Summary service status: implemented service-only result CSV summaries.
 

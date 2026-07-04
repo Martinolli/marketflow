@@ -12,7 +12,7 @@ Studio Campaign Aggregator can use the Walk-Forward Run Registry to deduplicate 
 
 For the current Studio milestone review, see:
 
-- `MARKETFLOW_STUDIO_DESIGN_REVIEW_CHECKPOINT_2026-05-23.md`
+- `docs/design/MARKETFLOW_STUDIO_DESIGN_REVIEW_CHECKPOINT_2026-05-23.md`
 
 ## Recommended Single Ticker Flow
 
@@ -129,17 +129,17 @@ Monte Carlo summary JSON artifacts are enriched with join metadata when run from
 
 ## Monte Carlo Backtest Refactor Plan
 
-A planning checkpoint exists at `MARKETFLOW_MONTE_CARLO_BACKTEST_REFACTOR_PLAN.md`. The planned refactor will compare Monte Carlo forecast probabilities with actual historical TP/SL/neither outcomes. This is research/calibration only and does not create trade signals.
+A planning checkpoint exists at `docs/plans/MARKETFLOW_MONTE_CARLO_BACKTEST_REFACTOR_PLAN.md`. The planned refactor will compare Monte Carlo forecast probabilities with actual historical TP/SL/neither outcomes. This is research/calibration only and does not create trade signals.
 
 Phase 1 outcome engine is implemented as a standalone tested utility. It is not wired into Studio yet.
 
 A Phase 1.1 service wrapper is available for JSON-safe outcome evaluation. It is not wired into Studio yet and does not generate artifacts.
 
-A Candidate Snapshot Collection design checkpoint exists at `MARKETFLOW_CANDIDATE_SNAPSHOT_COLLECTION_DESIGN.md`. It defines how selected Strategy Ranking candidates should become frozen backtest snapshots before implementation.
+A Candidate Snapshot Collection design checkpoint exists at `docs/design/MARKETFLOW_CANDIDATE_SNAPSHOT_COLLECTION_DESIGN.md`. It defines how selected Strategy Ranking candidates should become frozen backtest snapshots before implementation.
 
 A Phase 2.1 candidate snapshot service normalizes and validates selected Strategy Ranking candidates for future backtesting. It is not wired into Studio yet and does not generate artifacts.
 
-A Backtest Candidate CSV artifact contract exists at `MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`. It defines the future `*_backtest_candidates.csv` format before artifact writing is implemented.
+A Backtest Candidate CSV artifact contract exists at `docs/reference/MARKETFLOW_BACKTEST_CANDIDATE_ARTIFACT_CONTRACT.md`. It defines the future `*_backtest_candidates.csv` format before artifact writing is implemented.
 
 A Phase 2.2 candidate CSV writer can save validated candidate snapshots to `*_backtest_candidates.csv`.
 
@@ -147,7 +147,7 @@ Generated Artifacts classifies saved `*_backtest_candidates*.csv` files as `back
 
 Studio can save the selected Strategy Ranking candidate as a Backtest Candidate Snapshot CSV artifact. This writes `*_backtest_candidates*.csv` to the report folder and Generated Artifacts classifies it as `backtest_candidates_csv`. This is calibration/audit only and does not run a backtest.
 
-A Backtest Outcome Result CSV artifact contract exists at `MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`. It defines the `*_backtest_results.csv` format used by the service-level writer.
+A Backtest Outcome Result CSV artifact contract exists at `docs/reference/MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`. It defines the `*_backtest_results.csv` format used by the service-level writer.
 
 A Backtest Outcome Result CSV writer service exists for future `*_backtest_results.csv` artifacts. It is not wired into Studio yet and does not run outcome evaluation by itself.
 
@@ -155,13 +155,13 @@ Generated Artifacts classifies saved `*_backtest_results*.csv` files as `backtes
 
 A service-only backtest outcome evaluation path exists for saved candidate snapshot CSVs. It can produce `*_backtest_results.csv`, but it is not wired into Studio yet.
 
-A Studio Backtest Outcome Evaluation UI plan exists at `MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`.
+A Studio Backtest Outcome Evaluation UI plan exists at `docs/plans/MARKETFLOW_STUDIO_BACKTEST_OUTCOME_EVALUATION_UI_PLAN.md`.
 
 Studio includes a Backtest Outcome Evaluation section on the Strategy Ranking page. It evaluates saved `backtest_candidates_csv` artifacts and writes `backtest_results_csv` artifacts. This remains research/calibration only and does not run Monte Carlo or create trade recommendations.
 
 Backtest result rows include future-bar availability diagnostics, including `future_bars_available`, evaluation window indices, `signal_is_latest_row`, and `neither_reason`.
 
-A Monte Carlo forecast-vs-actual calibration plan exists at `MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`. It depends on future-bar availability diagnostics to avoid judging not-yet-mature rows as forecast failures.
+A Monte Carlo forecast-vs-actual calibration plan exists at `docs/plans/MARKETFLOW_MONTE_CARLO_FORECAST_CALIBRATION_PLAN.md`. It depends on future-bar availability diagnostics to avoid judging not-yet-mature rows as forecast failures.
 
 A service-only Monte Carlo forecast-vs-actual calibration join exists. It joins enriched `*_mc_summary.json` files to `backtest_results_csv` rows, applies maturity/horizon eligibility checks, and computes first calibration metrics.
 
@@ -169,9 +169,9 @@ A service-level Monte Carlo forecast-vs-actual calibration markdown writer exist
 
 Studio includes a Monte Carlo Forecast Calibration Summary section on the Strategy Ranking page. It joins enriched `*_mc_summary.json` files to `backtest_results_csv`, displays eligibility and calibration summaries, and can save previewable `monte_carlo_calibration_summary_md` markdown artifacts. This remains calibration-only and does not optimize parameters or create trade recommendations.
 
-A milestone/status document exists at `MARKETFLOW_MONTE_CARLO_CALIBRATION_MILESTONE_STATUS.md`. It records the current end-to-end Studio-visible Monte Carlo forecast calibration workflow.
+A milestone/status document exists at `docs/status/MARKETFLOW_MONTE_CARLO_CALIBRATION_MILESTONE_STATUS.md`. It records the current end-to-end Studio-visible Monte Carlo forecast calibration workflow.
 
-A Data Horizon / Parameter Sufficiency Diagnostics plan exists at `MARKETFLOW_DATA_HORIZON_PARAMETER_SUFFICIENCY_PLAN.md`. It defines how timeframe periods, Eigen windows, Monte Carlo horizons, and Backtest Outcome horizons should be checked before calibration.
+A Data Horizon / Parameter Sufficiency Diagnostics plan exists at `docs/plans/MARKETFLOW_DATA_HORIZON_PARAMETER_SUFFICIENCY_PLAN.md`. It defines how timeframe periods, Eigen windows, Monte Carlo horizons, and Backtest Outcome horizons should be checked before calibration.
 
 A service-only Data Horizon / Parameter Sufficiency Diagnostics layer exists. It assesses source CSV row counts, timeframe coverage, Eigen windows, Monte Carlo horizons, and Backtest Outcome horizons before future UI wiring.
 
@@ -179,27 +179,27 @@ A service-level Data Horizon / Parameter Sufficiency markdown writer exists. Gen
 
 Studio includes a Data Horizon / Parameter Sufficiency section on the Strategy Ranking page. It assesses canonical source CSV row counts against Eigen/PCA windows, Monte Carlo horizons, and Backtest Outcome horizons, displays warnings, and can save previewable `data_sufficiency_summary_md` markdown artifacts.
 
-A Data Horizon / Parameter Sufficiency milestone/status document exists at `MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md`. It records the current service, markdown writer, Studio section, artifact classification, verification baseline, and guardrails.
+A Data Horizon / Parameter Sufficiency milestone/status document exists at `docs/status/MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md`. It records the current service, markdown writer, Studio section, artifact classification, verification baseline, and guardrails.
 
 Studio warns when Backtest Outcome horizon and Monte Carlo horizon differ. Horizon mismatch does not block execution, but forecast-vs-actual calibration treats joined rows with mismatched horizons as not scoreable.
 
-A Parameter Profile planning document exists at `MARKETFLOW_PARAMETER_PROFILE_PLAN.md`. It defines future profile-based defaults for Eigen/PCA windows, Backtest horizons, Monte Carlo horizons, paths, block length, and low-timeframe posture.
+A Parameter Profile planning document exists at `docs/plans/MARKETFLOW_PARAMETER_PROFILE_PLAN.md`. It defines future profile-based defaults for Eigen/PCA windows, Backtest horizons, Monte Carlo horizons, paths, block length, and low-timeframe posture.
 
 A service-only Parameter Profile layer exists. It defines built-in profiles for Fast Test, Daily/Swing, Intraday Tactical, Conservative Research, and Review-Only Low-Timeframe.
 
 Studio includes a Parameter Profile Selector on the Strategy Ranking page. It can apply built-in profiles such as Fast Test, Daily/Swing, Intraday Tactical, Conservative Research, and Review-Only Low-Timeframe to current session controls for Data Sufficiency, Backtest Outcome Evaluation, and Monte Carlo.
 
-A Parameter Profile milestone/status document exists at `MARKETFLOW_PARAMETER_PROFILE_MILESTONE_STATUS.md`. It records the current service, Studio selector, session keys, verification baseline, guardrails, and known limitations.
+A Parameter Profile milestone/status document exists at `docs/status/MARKETFLOW_PARAMETER_PROFILE_MILESTONE_STATUS.md`. It records the current service, Studio selector, session keys, verification baseline, guardrails, and known limitations.
 
-A profile validation summary exists at `MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md`. It records the first validation results for AAPL, IONQ, AAAU, and LOAR, including data sufficiency, horizon alignment, Monte Carlo/backtest joining, and latest-row maturity constraints.
+A profile validation summary exists at `docs/status/MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md`. It records the first validation results for AAPL, IONQ, AAAU, and LOAR, including data sufficiency, horizon alignment, Monte Carlo/backtest joining, and latest-row maturity constraints.
 
-A Historical Walk-Forward Candidate Validation plan exists at `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md`. It defines how future service work should generate historical candidate cases with mature future bars while preventing future-data leakage.
+A Historical Walk-Forward Candidate Validation plan exists at `docs/plans/MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md`. It defines how future service work should generate historical candidate cases with mature future bars while preventing future-data leakage.
 
 A service-only Historical Walk-Forward Validation layer exists. It builds historical candidate cases from source CSVs using profile-aware lookback/future-bar rules and evaluates deterministic outcomes without Studio UI.
 
 A service-level Historical Walk-Forward Validation markdown writer exists. Generated markdown files containing `_walk_forward_validation_summary` are classified as `walk_forward_validation_summary_md` and previewable in Generated Artifacts. Studio UI is not wired yet.
 
-A Walk-Forward Validation milestone/status document exists at `MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md`. It records the current service, markdown writer, artifact classification, smoke result, test baseline, guardrails, and known limitations.
+A Walk-Forward Validation milestone/status document exists at `docs/status/MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md`. It records the current service, markdown writer, artifact classification, smoke result, test baseline, guardrails, and known limitations.
 
 Studio includes a Historical Walk-Forward Validation section on the Strategy Ranking page. It allows selecting a canonical source CSV, choosing a parameter profile, setting step/max cases/event filters, running deterministic walk-forward validation, and saving previewable `walk_forward_validation_summary_md` artifacts.
 
@@ -207,11 +207,11 @@ Walk-Forward Validation event filtering uses confirmed Wyckoff event columns whe
 
 Studio Walk-Forward Validation can save markdown and CSV artifacts. CSV artifacts include `walk_forward_cases_csv`, `walk_forward_results_csv`, and `walk_forward_summary_csv`.
 
-A candidate signal-location enrichment plan exists at `MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
+A candidate signal-location enrichment plan exists at `docs/plans/MARKETFLOW_CANDIDATE_SIGNAL_LOCATION_ENRICHMENT_PLAN.md`.
 
 Backtest Candidate Snapshots are now conservatively enriched with signal row/timestamp evidence when the source CSV supports it. This helps Backtest Outcome Evaluation produce deterministic outcomes instead of `INVALID` rows caused only by missing signal location.
 
-A Backtest Calibration Summary plan exists at `MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`. It defines how saved `backtest_results_csv` artifacts will be summarized for future ticker/timeframe parameter calibration.
+A Backtest Calibration Summary plan exists at `docs/plans/MARKETFLOW_BACKTEST_CALIBRATION_SUMMARY_PLAN.md`. It defines how saved `backtest_results_csv` artifacts will be summarized for future ticker/timeframe parameter calibration.
 
 A service-only Backtest Calibration Summary exists for saved `backtest_results_csv` artifacts. Studio UI and markdown artifact output are not wired yet.
 
@@ -219,13 +219,13 @@ A service-level Backtest Calibration Summary markdown writer exists. Generated m
 
 Studio includes a Backtest Calibration Summary section on the Strategy Ranking page. It summarizes saved `backtest_results_csv` artifacts and can save previewable `backtest_calibration_summary_md` markdown artifacts. This remains calibration-only and does not optimize parameters or create trade recommendations.
 
-A milestone/status document exists at `MARKETFLOW_BACKTEST_CALIBRATION_MILESTONE_STATUS.md`. It records the current end-to-end Studio-visible backtest calibration workflow.
+A milestone/status document exists at `docs/status/MARKETFLOW_BACKTEST_CALIBRATION_MILESTONE_STATUS.md`. It records the current end-to-end Studio-visible backtest calibration workflow.
 
 ## Repository Cleanup Plan
 
-A repository cleanup planning checkpoint exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.
+A repository cleanup planning checkpoint exists at `docs/plans/MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. Cleanup will be staged and conservative because deprecated/prototype code may still contain useful material.
 
-A test collection stabilization plan exists at `MARKETFLOW_TEST_COLLECTION_STABILIZATION_PLAN.md`. It defines how deprecated/broken tests will be handled before cleanup implementation.
+A test collection stabilization plan exists at `docs/plans/MARKETFLOW_TEST_COLLECTION_STABILIZATION_PLAN.md`. It defines how deprecated/broken tests will be handled before cleanup implementation.
 
 Phase C2.1 revalidated pytest collection and quarantined deprecated backup test-like collection blockers without deleting prototype code.
 
@@ -233,7 +233,7 @@ The LLM interface script test was reconciled with current script behavior and is
 
 Remaining active pytest failures were reconciled separately from deprecated/prototype cleanup.
 
-A testing baseline checkpoint exists at `MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md`. At that checkpoint, full pytest passed with `129 passed, 2 skipped, 26 warnings`.
+A testing baseline checkpoint exists at `docs/status/MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md`. At that checkpoint, full pytest passed with `129 passed, 2 skipped, 26 warnings`.
 
 ## GARCH
 

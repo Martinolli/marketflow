@@ -193,7 +193,7 @@ F. Pause feature work and do a repository/documentation cleanup pass.
 Recommended next step:
 B — create a Data Horizon / Parameter Sufficiency Diagnostics planning checkpoint, because timeframe periods, Eigen windows, MC horizons, and backtest horizons now directly affect calibration reliability.
 
-Data Horizon / Parameter Sufficiency Diagnostics plan created at `MARKETFLOW_DATA_HORIZON_PARAMETER_SUFFICIENCY_PLAN.md`.
+Data Horizon / Parameter Sufficiency Diagnostics plan created at `docs/plans/MARKETFLOW_DATA_HORIZON_PARAMETER_SUFFICIENCY_PLAN.md`.
 
 Post-milestone implementation status: service-only Data Horizon / Parameter Sufficiency Diagnostics implemented.
 
@@ -201,7 +201,7 @@ Post-milestone implementation status: Data Horizon / Parameter Sufficiency markd
 
 Post-milestone implementation status: Studio Data Horizon / Parameter Sufficiency section implemented.
 
-Related milestone status: `MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md` records the completed Studio-visible Data Horizon / Parameter Sufficiency workflow.
+Related milestone status: `docs/status/MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md` records the completed Studio-visible Data Horizon / Parameter Sufficiency workflow.
 
 Post-milestone implementation status: Studio horizon alignment warning implemented to make MC/backtest horizon mismatch visible before calibration.
 

@@ -12,7 +12,7 @@ Markdown artifact writer status: implemented service-level markdown generation a
 
 Studio integration status: implemented as a Strategy Ranking page section that summarizes report-folder source CSV sufficiency and can write `data_sufficiency_summary_md` markdown artifacts.
 
-Milestone status: `MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md` records the current Studio-visible Data Horizon / Parameter Sufficiency workflow checkpoint.
+Milestone status: `docs/status/MARKETFLOW_DATA_SUFFICIENCY_MILESTONE_STATUS.md` records the current Studio-visible Data Horizon / Parameter Sufficiency workflow checkpoint.
 
 Horizon alignment warning status: implemented in Studio as a non-blocking guardrail.
 

@@ -88,7 +88,7 @@ No active test failures remain at this checkpoint.
 ## 10. Recommended Next Work
 
 ```text
-Return to MarketFlow feature work: implement the Backtest Outcome Result CSV writer/service from `MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`.
+Return to MarketFlow feature work: implement the Backtest Outcome Result CSV writer/service from `docs/reference/MARKETFLOW_BACKTEST_OUTCOME_RESULT_ARTIFACT_CONTRACT.md`.
 ```
 
 ```text

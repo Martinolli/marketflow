@@ -25,7 +25,16 @@ venv.bak/
 Thumbs.db
 
 # Logs
-*.log
+.codex_logs/
+.codex_streamlit_*.log
+.codex_streamlit_*.err.log
+.codex_streamlit_*.out.log
+.streamlit_*_ui.err.log
+.streamlit_*_ui.out.log
+streamlit_marketflow_*.err.log
+streamlit_marketflow_*.out.log
+*.err.log
+*.out.log
 logs/
 .vpa/
 .vpa_memory.json

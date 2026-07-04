@@ -101,7 +101,7 @@ marketflow/
 ├── knowledgebase/             # Knowledge base files
 ├── requirements.txt           # Python dependencies
 ├── README.md                  # Project documentation
-└── DEPLOYMENT_GUIDE.md        # This guide
+└── docs/reference/DEPLOYMENT_GUIDE.md        # This guide
 ```
 
 ### Step 2: Verify Repository Integrity

@@ -274,7 +274,7 @@ Create and commit this cleanup plan.
 
 Plan exact treatment for broken tests, optional dependency tests, missing fixtures, and stale interface tests.
 
-Phase C2 status: test collection stabilization plan created at `MARKETFLOW_TEST_COLLECTION_STABILIZATION_PLAN.md`.
+Phase C2 status: test collection stabilization plan created at `docs/plans/MARKETFLOW_TEST_COLLECTION_STABILIZATION_PLAN.md`.
 
 Phase C2.1 status: pytest collection was revalidated and clearly deprecated backup collection blockers were quarantined by preserving contents under non-pytest-collectable names.
 
@@ -282,7 +282,7 @@ Phase C2.2 status: `tests/test_llm_interface.py` was revalidated and reconciled 
 
 Phase C2.3 status: remaining active pytest failures were triaged separately from deprecated/prototype cleanup.
 
-Testing baseline checkpoint recorded at `MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md` after full pytest passed with skips/warnings only.
+Testing baseline checkpoint recorded at `docs/status/MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md` after full pytest passed with skips/warnings only.
 
 ### Phase C3 - Quarantine deprecated tests
 

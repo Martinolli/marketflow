@@ -6,9 +6,9 @@ This document records the current MarketFlow milestone/status after completing t
 
 This is a documentation-only checkpoint. It records the current repository and application status as a clean reference before future features. Parameter profiles are standardization helpers for research/calibration workflows. They are not optimization, not financial advice, and not a trade signal system.
 
-Validation status: `MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md` records the first validation run across AAPL, IONQ, AAAU, and LOAR using the Studio Parameter Profile Selector.
+Validation status: `docs/status/MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md` records the first validation run across AAPL, IONQ, AAAU, and LOAR using the Studio Parameter Profile Selector.
 
-Related plan: `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md` defines the proposed historical walk-forward validation approach after the first profile validation run.
+Related plan: `docs/plans/MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md` defines the proposed historical walk-forward validation approach after the first profile validation run.
 
 ## 2. Current Commit
 
@@ -33,7 +33,7 @@ This gives MarketFlow a controlled way to standardize key windows and horizons b
 
 ### 4.1 Parameter Profile Plan
 
-- Planning document exists at `MARKETFLOW_PARAMETER_PROFILE_PLAN.md`.
+- Planning document exists at `docs/plans/MARKETFLOW_PARAMETER_PROFILE_PLAN.md`.
 - It defines the purpose, guardrails, future profile structure, future service design, and future UI direction.
 
 ### 4.2 Parameter Profile Service

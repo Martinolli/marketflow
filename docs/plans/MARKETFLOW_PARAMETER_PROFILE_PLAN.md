@@ -1,8 +1,8 @@
 # MARKETFLOW_PARAMETER_PROFILE_PLAN
 
-Milestone status: `MARKETFLOW_PARAMETER_PROFILE_MILESTONE_STATUS.md` records the current Studio-visible Parameter Profile workflow checkpoint.
+Milestone status: `docs/status/MARKETFLOW_PARAMETER_PROFILE_MILESTONE_STATUS.md` records the current Studio-visible Parameter Profile workflow checkpoint.
 
-Validation summary: `MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md` records initial profile behavior and dataset constraints before profile tuning.
+Validation summary: `docs/status/MARKETFLOW_PROFILE_VALIDATION_SUMMARY_20260602.md` records initial profile behavior and dataset constraints before profile tuning.
 
 ## 1. Purpose
 

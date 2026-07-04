@@ -16,7 +16,7 @@ b74ec16 - Fix Charts source selection consistency
 
 Full `pytest` still has unrelated collection failures. The failures are mainly from deprecated, prototype, stale, optional-integration, or local-fixture-dependent test areas rather than the active backtest workflow.
 
-A repository cleanup plan already exists at `MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. That plan identifies Phase C2 as the test collection stabilization planning phase.
+A repository cleanup plan already exists at `docs/plans/MARKETFLOW_REPOSITORY_CLEANUP_PLAN.md`. That plan identifies Phase C2 as the test collection stabilization planning phase.
 
 ## 3. Known Collection Failures
 
@@ -348,7 +348,7 @@ Changes made:
 - `tests/test_wyckoff_phases.py` now uses deterministic synthetic OHLCV bars instead of random noise. The assertions target current supported detector behavior: expected event categories, A/D phase output, and accumulation/distribution trading-range context.
 - No production code was changed.
 
-Testing baseline checkpoint recorded at `MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md`.
+Testing baseline checkpoint recorded at `docs/status/MARKETFLOW_TESTING_BASELINE_CHECKPOINT.md`.
 
 ```text
 Status: test collection stabilization planning checkpoint only.

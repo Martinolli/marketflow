@@ -14,7 +14,7 @@ Service status: service-only Historical Walk-Forward Validation service implemen
 
 Markdown artifact writer status: implemented service-level markdown generation and saving for Historical Walk-Forward Validation summaries. Studio UI and Monte Carlo forecast integration remain future work.
 
-Milestone status: `MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md` records the current service-level Historical Walk-Forward Validation workflow and markdown artifact writer checkpoint.
+Milestone status: `docs/status/MARKETFLOW_WALK_FORWARD_VALIDATION_MILESTONE_STATUS.md` records the current service-level Historical Walk-Forward Validation workflow and markdown artifact writer checkpoint.
 
 Studio integration status: implemented as a Strategy Ranking page section that runs service-level historical walk-forward validation and can save `walk_forward_validation_summary_md` artifacts.
 

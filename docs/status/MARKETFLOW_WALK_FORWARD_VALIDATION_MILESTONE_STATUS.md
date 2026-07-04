@@ -46,7 +46,7 @@ This gives MarketFlow a service-level way to build mature historical candidate c
 
 ### 4.1 Historical Walk-Forward Validation Plan
 
-- Planning document exists at `MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md`.
+- Planning document exists at `docs/plans/MARKETFLOW_HISTORICAL_WALK_FORWARD_VALIDATION_PLAN.md`.
 - It defines the no-leakage rule, relationship with current workflow, service design, future artifacts, metrics, guardrails, and non-goals.
 
 ### 4.2 Walk-Forward Validation Service
