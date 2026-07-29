@@ -142,6 +142,62 @@ def test_evaluate_valid_snapshot_row_tp_first(tmp_path):
     assert result["result_row"]["neither_reason"] == ""
 
 
+def test_evaluate_snapshot_uses_relative_source_report_dir_inside_report_root(monkeypatch, tmp_path):
+    report_root = tmp_path / "reports"
+    source_dir = report_root / "batch_20260729_010203" / "AAA"
+    source_dir.mkdir(parents=True)
+    inside = _ohlc_path(
+        source_dir,
+        [
+            {"timestamp": "2026-01-01", "open": 100, "high": 101, "low": 99, "close": 100},
+            {"timestamp": "2026-01-02", "open": 101, "high": 111, "low": 100, "close": 110},
+        ],
+        name="AAA_4h_wyckoff_annotated.csv",
+    )
+    outside = _ohlc_path(
+        tmp_path,
+        [
+            {"timestamp": "2026-01-01", "open": 100, "high": 101, "low": 99, "close": 100},
+            {"timestamp": "2026-01-02", "open": 99, "high": 101, "low": 94, "close": 96},
+        ],
+        name=inside.name,
+    )
+
+    class Config:
+        REPORT_DIR = str(report_root)
+
+    monkeypatch.setattr("marketflow.services.backtest_candidate_service.create_app_config", lambda: Config())
+    row = _snapshot_row(
+        outside,
+        ticker="AAA",
+        timeframe="4h",
+        source_report_dir="batch_20260729_010203/AAA",
+    )
+
+    result = evaluate_candidate_snapshot_row(row, horizon_bars=2)
+
+    assert result["success"] is True
+    assert result["result_row"]["outcome"] == "TP_FIRST"
+
+
+def test_evaluate_snapshot_rejects_missing_relative_source_report_dir(monkeypatch, tmp_path):
+    report_root = tmp_path / "reports"
+    report_root.mkdir()
+    outside = _tp_ohlc_path(tmp_path)
+
+    class Config:
+        REPORT_DIR = str(report_root)
+
+    monkeypatch.setattr("marketflow.services.backtest_candidate_service.create_app_config", lambda: Config())
+    row = _snapshot_row(outside, source_report_dir="batch_20260729_010203/AAA")
+
+    result = evaluate_candidate_snapshot_row(row, horizon_bars=2)
+
+    assert result["success"] is False
+    assert result["result_row"]["outcome"] == "INVALID"
+    assert "source_csv not found inside report root" in result["result_row"]["outcome_error"]
+
+
 def test_evaluate_valid_snapshot_row_sl_first(tmp_path):
     row = _snapshot_row(_sl_ohlc_path(tmp_path))
 

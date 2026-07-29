@@ -1652,7 +1652,10 @@ def _strategy_diagnostics_dataframe(diagnostics: dict[str, Any]) -> Any:
             {
                 "ticker": ticker,
                 "ticker_folder_found": check.get("ticker_folder_found", False),
-                "matching_csv_count": len(check.get("matching_timeframe_csvs") or []),
+                "matching_csv_count": 1 if check.get("source_csv_name") else 0,
+                "source_status": check.get("source_status"),
+                "source_reason": check.get("source_reason"),
+                "source_csv_name": check.get("source_csv_name"),
                 "csv_count": len(check.get("csv_candidates") or []),
                 "ticker_folder": check.get("ticker_folder"),
             }
@@ -3778,12 +3781,15 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
 
     if st.button("Use selected candidate in Monte Carlo"):
         trade_plan = _trade_plan_from_strategy_candidate(selected_candidate)
-        st.session_state.monte_carlo_prefill = trade_plan
-        st.session_state.latest_strategy_candidate = selected_candidate
-        st.session_state.selected_strategy_candidate = selected_candidate
-        st.session_state.monte_carlo_result = None
-        st.session_state.latest_monte_carlo_result = None
-        st.success("Selected candidate sent to Monte Carlo tab.")
+        if trade_plan is None:
+            st.error("Selected candidate source CSV could not be resolved inside the report root.")
+        else:
+            st.session_state.monte_carlo_prefill = trade_plan
+            st.session_state.latest_strategy_candidate = selected_candidate
+            st.session_state.selected_strategy_candidate = selected_candidate
+            st.session_state.monte_carlo_result = None
+            st.session_state.latest_monte_carlo_result = None
+            st.success("Selected candidate sent to Monte Carlo tab.")
 
 
 def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
@@ -4008,10 +4014,15 @@ def _trade_plan_from_strategy_candidate(candidate: dict[str, Any] | None) -> dic
     """
     if not isinstance(candidate, dict):
         return None
+    resolved_csv = _candidate_csv_path(candidate)
+    if not resolved_csv and candidate.get("source_report_dir"):
+        return None
+    if not resolved_csv:
+        resolved_csv = candidate.get("csv")
 
     return {
         "ticker": candidate.get("ticker"),
-        "csv": candidate.get("csv"),
+        "csv": resolved_csv,
         "tf": candidate.get("tf"),
         "entry": _safe_float(candidate.get("entry") if candidate.get("entry") is not None else candidate.get("close")),
         "stop_loss": _safe_float(
@@ -4937,7 +4948,24 @@ def _candidate_csv_path(prefill: dict[str, Any] | None) -> str | None:
     if not prefill or not prefill.get("csv"):
         return None
     path = Path(str(prefill["csv"]))
-    return str(path) if path.exists() and path.is_file() else None
+    source_report_dir = prefill.get("source_report_dir")
+    if source_report_dir:
+        report_root = Path(get_report_root()).resolve()
+        candidate = report_root / str(source_report_dir) / path.name
+        try:
+            resolved = candidate.resolve(strict=True)
+            resolved.relative_to(report_root)
+        except (OSError, ValueError):
+            return None
+        if resolved.is_file():
+            return str(resolved)
+        return None
+
+    if path.exists() and path.is_file():
+        return str(path)
+
+    candidate = Path(get_report_root()) / str(prefill["csv"])
+    return str(candidate) if candidate.exists() and candidate.is_file() else None
 
 
 def _render_monte_carlo_error(monte_carlo_result: dict[str, Any]) -> None:

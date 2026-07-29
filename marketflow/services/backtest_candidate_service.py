@@ -10,6 +10,7 @@ from typing import Any
 import pandas as pd
 
 from marketflow.backtesting.schemas import CandidateSnapshot
+from marketflow.marketflow_config_manager import create_app_config
 
 
 VALIDATION_VALID = "valid"
@@ -163,11 +164,59 @@ def _timestamp_column(dataframe: pd.DataFrame) -> str | None:
     return None
 
 
-def _read_source_csv(path: str | Path | None) -> tuple[pd.DataFrame | None, str | None]:
+def _candidate_source_path(path: str | Path | None, source_report_dir: str | Path | None = None) -> Path | None:
+    if _is_missing(path):
+        return None
+
+    raw_path = Path(str(path))
+    candidates: list[Path] = []
+    report_root: Path | None = None
+    try:
+        report_root = Path(create_app_config().REPORT_DIR)
+    except Exception:
+        report_root = None
+
+    if source_report_dir:
+        report_dir_path = Path(str(source_report_dir))
+        scoped_candidates = [report_dir_path / raw_path.name]
+        if report_root is not None:
+            scoped_candidates.append(report_root / report_dir_path / raw_path.name)
+            scoped_candidates.append(report_root / raw_path)
+        for candidate in scoped_candidates:
+            try:
+                if report_root is not None:
+                    candidate.resolve(strict=True).relative_to(report_root.resolve(strict=True))
+                if candidate.exists() and candidate.is_file():
+                    return candidate
+            except (OSError, ValueError):
+                continue
+        return None
+
+    candidates.append(raw_path)
+
+    if report_root is not None and not raw_path.is_absolute():
+        candidates.append(report_root / raw_path)
+
+    for candidate in candidates:
+        try:
+            if candidate.exists() and candidate.is_file():
+                return candidate
+        except OSError:
+            continue
+    return raw_path
+
+
+def _read_source_csv(
+    path: str | Path | None,
+    source_report_dir: str | Path | None = None,
+) -> tuple[pd.DataFrame | None, str | None]:
     if _is_missing(path):
         return None, "Missing source_csv."
+    resolved_path = _candidate_source_path(path, source_report_dir)
+    if resolved_path is None:
+        return None, "Could not read source_csv: source not found inside report root."
     try:
-        dataframe = pd.read_csv(Path(str(path)))
+        dataframe = pd.read_csv(Path(str(resolved_path)))
     except Exception as exc:  # pragma: no cover - exact pandas errors vary by platform/version.
         return None, f"Could not read source_csv: {exc}"
     return dataframe, None
@@ -396,7 +445,7 @@ def locate_candidate_in_source_csv(
 ) -> dict[str, Any]:
     """Locate a candidate snapshot row in its source CSV without mutating the snapshot."""
 
-    dataframe, read_error = _read_source_csv(snapshot.get("source_csv"))
+    dataframe, read_error = _read_source_csv(snapshot.get("source_csv"), snapshot.get("source_report_dir"))
     if read_error is not None:
         return _match_result(matched=False, errors=[read_error])
     if dataframe is None or dataframe.empty:
@@ -568,7 +617,7 @@ def build_candidate_snapshot_from_strategy_candidate(
     """Normalize and validate a selected Strategy Ranking candidate."""
 
     snapshot = normalize_candidate_snapshot(candidate)
-    if report_dir is not None:
+    if report_dir is not None and _is_missing(snapshot.get("source_report_dir")):
         snapshot["source_report_dir"] = str(report_dir)
     enrichment = enrich_candidate_snapshot_signal_location(snapshot)
     snapshot = enrichment["snapshot"]

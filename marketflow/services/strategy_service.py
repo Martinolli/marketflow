@@ -11,7 +11,7 @@ from typing import Any
 import pandas as pd
 
 from marketflow.marketflow_config_manager import create_app_config
-from marketflow.marketflow_strategy import StrategyConfig, rank_long_candidates
+from marketflow.marketflow_strategy import StrategyConfig, rank_long_candidates, resolve_strategy_source_identity
 
 
 STRATEGY_COLUMNS = [
@@ -31,6 +31,9 @@ STRATEGY_COLUMNS = [
     "mc_requested_tf",
     "mc_matched_tf",
     "csv",
+    "source_csv_name",
+    "source_report_dir",
+    "source_status",
 ]
 BATCH_RUN_PATTERN = re.compile(r"^batch_(\d{8})_(\d{6})$")
 BATCH_LIKE_PATTERN = re.compile(r"^batch_")
@@ -64,6 +67,24 @@ def normalize_tickers(tickers: str | list[str] | None) -> list[str]:
             seen.add(clean_ticker)
 
     return normalized
+
+
+def _has_surrounding_whitespace(value: str) -> bool:
+    return value != value.strip()
+
+
+def _request_whitespace_errors(tickers: str | list[str] | None, timeframe: str | None) -> list[str]:
+    errors: list[str] = []
+    if isinstance(tickers, str) and _has_surrounding_whitespace(tickers):
+        errors.append("Ticker request contains surrounding whitespace.")
+    elif isinstance(tickers, list):
+        for ticker in tickers:
+            if _has_surrounding_whitespace(str(ticker)):
+                errors.append("Ticker request contains surrounding whitespace.")
+                break
+    if timeframe is None or _has_surrounding_whitespace(str(timeframe)):
+        errors.append("Timeframe request contains surrounding whitespace.")
+    return errors
 
 
 def _results_dataframe(results: list[dict[str, Any]]) -> pd.DataFrame:
@@ -150,17 +171,13 @@ def _ticker_folder_candidates(report_root: str, ticker: str) -> list[Path]:
     return candidates
 
 
-def _matching_timeframe_csvs(csv_candidates: list[Path], timeframe: str) -> list[str]:
-    """Return CSV paths whose filenames match the requested timeframe token."""
-    tf = (timeframe or "").strip()
-    if not tf:
-        return []
-
-    return [
-        str(path)
-        for path in csv_candidates
-        if re.search(rf"(^|[_\-]){re.escape(tf)}([_\-.]|$)", path.stem)
-    ]
+def _relative_to_root(report_root: str, value: str | None) -> str | None:
+    if not value:
+        return None
+    try:
+        return Path(value).resolve(strict=True).relative_to(Path(report_root).resolve(strict=True)).as_posix()
+    except (OSError, ValueError):
+        return Path(value).name
 
 
 def inspect_strategy_inputs(
@@ -182,7 +199,7 @@ def inspect_strategy_inputs(
     ignored_batch_like_folders = _ignored_batch_like_folders(report_root)
     latest_batch_folder = find_latest_batch_folder(report_root)
     clean_tickers = normalize_tickers(tickers)
-    clean_timeframe = (timeframe or "").strip()
+    clean_timeframe = str(timeframe or "")
 
     diagnostics: dict[str, Any] = {
         "report_root": report_root,
@@ -218,7 +235,7 @@ def inspect_strategy_inputs(
             )
         notes.append(
             "No batch folder found. Strategy will still search recursively under the "
-            "report root using existing strategy fallback behavior."
+            "report root for exact ticker/timeframe source identities."
         )
 
     if use_mc:
@@ -237,25 +254,35 @@ def inspect_strategy_inputs(
         folders = _ticker_folder_candidates(report_root, ticker)
         ticker_folder = folders[-1] if folders else None
         csv_candidates = sorted(ticker_folder.glob("*.csv")) if ticker_folder else []
-        matching_csvs = _matching_timeframe_csvs(csv_candidates, clean_timeframe)
+        source_resolution = (
+            resolve_strategy_source_identity(str(ticker_folder), ticker, clean_timeframe)
+            if ticker_folder
+            else None
+        )
 
         total_ticker_folders += 1 if ticker_folder else 0
-        total_matching_csvs += len(matching_csvs)
+        total_matching_csvs += 1 if source_resolution and source_resolution.success else 0
 
         diagnostics["ticker_checks"][ticker] = {
             "ticker_folder_found": ticker_folder is not None,
-            "ticker_folder": str(ticker_folder) if ticker_folder else None,
-            "csv_candidates": [str(path) for path in csv_candidates],
-            "matching_timeframe_csvs": matching_csvs,
+            "ticker_folder": _relative_to_root(report_root, str(ticker_folder)) if ticker_folder else None,
+            "csv_candidates": [_relative_to_root(report_root, str(path)) for path in csv_candidates],
+            "source_status": source_resolution.status if source_resolution else None,
+            "source_reason": source_resolution.reason if source_resolution else None,
+            "source_csv_name": (
+                source_resolution.source.name
+                if source_resolution and source_resolution.source is not None
+                else None
+            ),
         }
 
         if not ticker_folder:
             notes.append(f"No ticker folder found for {ticker}.")
         elif not csv_candidates:
             notes.append(f"No CSV files found in the latest {ticker} report folder.")
-        elif not matching_csvs:
+        elif not (source_resolution and source_resolution.success):
             notes.append(
-                f"No CSV files matching timeframe `{clean_timeframe}` were found for {ticker}."
+                f"No exact source identity matching timeframe `{clean_timeframe}` was found for {ticker}."
             )
 
     if clean_tickers and total_ticker_folders == 0:
@@ -293,7 +320,8 @@ def rank_latest_candidates(
     )
     config = asdict(cfg)
     clean_tickers = normalize_tickers(tickers)
-    clean_timeframe = (timeframe or "").strip()
+    request_errors = _request_whitespace_errors(tickers, timeframe)
+    clean_timeframe = str(timeframe or "")
     diagnostics = inspect_strategy_inputs(
         report_root=report_root,
         tickers=clean_tickers,
@@ -305,6 +333,9 @@ def rank_latest_candidates(
     )
 
     try:
+        if request_errors:
+            raise ValueError("; ".join(request_errors))
+
         if not clean_tickers:
             raise ValueError("At least one ticker is required.")
 

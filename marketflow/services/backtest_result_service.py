@@ -11,6 +11,7 @@ from marketflow.services.backtest_result_artifact_service import (
     backtest_result_row,
     write_backtest_results_csv,
 )
+from marketflow.services.backtest_candidate_service import _candidate_source_path
 from marketflow.services.backtest_service import evaluate_backtest_candidate_from_csv
 
 
@@ -92,6 +93,22 @@ def _outcome_is_success(result_row: dict[str, Any]) -> bool:
     return result_row.get("backtest_success") is True or str(result_row.get("backtest_success")).lower() == "true"
 
 
+def _snapshot_source_csv(snapshot: dict[str, Any]) -> tuple[str | Path | None, str | None]:
+    source_csv = snapshot.get("source_csv")
+    source_report_dir = snapshot.get("source_report_dir")
+    if _is_missing(source_report_dir):
+        return source_csv, None
+
+    report_dir_path = Path(str(source_report_dir))
+    if report_dir_path.is_absolute():
+        return source_csv, None
+
+    resolved = _candidate_source_path(source_csv, source_report_dir)
+    if resolved is None:
+        return None, "source_csv not found inside report root"
+    return resolved, None
+
+
 def evaluate_candidate_snapshot_row(
     snapshot_row: dict[str, Any],
     *,
@@ -127,8 +144,30 @@ def evaluate_candidate_snapshot_row(
             "warnings": warnings,
         }
 
+    source_csv, source_error = _snapshot_source_csv(snapshot)
+    if source_error:
+        errors.append(source_error)
+        outcome_result = _invalid_outcome_result(
+            reason=source_error,
+            horizon_bars=horizon_bars,
+            tie_break_policy=tie_break_policy,
+        )
+        result_row = backtest_result_row(
+            snapshot_row=snapshot,
+            outcome_result=outcome_result,
+            candidate_snapshot_file=candidate_snapshot_file,
+        )
+        return {
+            "success": False,
+            "snapshot_row": snapshot,
+            "outcome_result": outcome_result,
+            "result_row": result_row,
+            "errors": errors,
+            "warnings": warnings,
+        }
+
     service_result = evaluate_backtest_candidate_from_csv(
-        snapshot.get("source_csv"),
+        source_csv,
         snapshot,
         horizon_bars=horizon_bars,
         tie_break_policy=tie_break_policy,

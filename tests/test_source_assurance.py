@@ -7,6 +7,7 @@ from pathlib import Path
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+SOURCE_IDENTITY_BASE_COMMIT = "f3c2ca8f841030c46657332371b155ad6bd81e68"
 MANUAL_CHECKS = {
     "scripts/manual_checks/real_market_data_check.py",
     "scripts/manual_checks/data_provider_simple_check.py",
@@ -24,11 +25,26 @@ MANUAL_CHECKS = {
     "scripts/manual_checks/multi_timeframe_analyzer_real_data_check.py",
 }
 PROTECTED_STRATEGY_FILES = {
-    "marketflow/marketflow_strategy.py",
     "marketflow/services/backtesting/outcome_engine.py",
     "marketflow/services/eigen_service.py",
     "marketflow/services/monte_carlo_service.py",
-    "marketflow/services/walk_forward_validation_service.py",
+}
+PROTECTED_STRATEGY_FORMULAS = {
+    "_atr",
+    "_rr",
+    "_phase_score",
+    "_event_score",
+    "_pnf_score_neutral",
+    "_derive_sl_tp_long",
+    "_extract_context",
+}
+PROTECTED_WALK_FORWARD_SEMANTICS = {
+    "_minimum_lookback_rows_from_profile",
+    "_profile_horizon",
+    "_row_matches_event_filters",
+    "build_walk_forward_candidate_from_row",
+    "evaluate_walk_forward_cases",
+    "summarize_walk_forward_validation",
 }
 
 
@@ -161,7 +177,7 @@ def test_packaging_metadata_directory_is_ignored_and_untracked():
 
 def test_strategy_semantic_files_unchanged_in_this_task():
     result = subprocess.run(
-        ["git", "diff", "HEAD", "--name-only"],
+        ["git", "diff", SOURCE_IDENTITY_BASE_COMMIT, "--name-only"],
         cwd=REPO_ROOT,
         check=True,
         stdout=subprocess.PIPE,
@@ -171,6 +187,91 @@ def test_strategy_semantic_files_unchanged_in_this_task():
     changed = set(result.stdout.splitlines())
 
     assert changed.isdisjoint(PROTECTED_STRATEGY_FILES)
+
+
+def _function_bodies(source: str) -> dict[str, str]:
+    tree = ast.parse(source)
+    bodies: dict[str, str] = {}
+    for node in tree.body:
+        if isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            bodies[node.name] = ast.unparse(node)
+    return bodies
+
+
+def test_marketflow_strategy_formulas_unchanged_outside_source_identity():
+    base = subprocess.run(
+        ["git", "show", f"{SOURCE_IDENTITY_BASE_COMMIT}:marketflow/marketflow_strategy.py"],
+        cwd=REPO_ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    current_source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
+    base_bodies = _function_bodies(base.stdout)
+    current_bodies = _function_bodies(current_source)
+
+    for function_name in PROTECTED_STRATEGY_FORMULAS:
+        assert current_bodies[function_name] == base_bodies[function_name]
+
+
+def test_walk_forward_semantics_unchanged_outside_source_identity():
+    base = subprocess.run(
+        ["git", "show", f"{SOURCE_IDENTITY_BASE_COMMIT}:marketflow/services/walk_forward_validation_service.py"],
+        cwd=REPO_ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    current_source = REPO_ROOT.joinpath("marketflow/services/walk_forward_validation_service.py").read_text(
+        encoding="utf-8"
+    )
+    base_bodies = _function_bodies(base.stdout)
+    current_bodies = _function_bodies(current_source)
+
+    for function_name in PROTECTED_WALK_FORWARD_SEMANTICS:
+        assert current_bodies[function_name] == base_bodies[function_name]
+
+
+def test_strategy_source_identity_forbids_timeframe_only_and_first_file_fallbacks():
+    source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
+    functions = _function_bodies(source)
+    resolver = functions["resolve_strategy_source_identity"]
+    ranker = functions["rank_long_candidates"]
+
+    assert "timeframe_canonical" not in source
+    assert "_csv_matches_timeframe_any_ticker(" not in resolver
+    assert "_newest_csv(" not in resolver
+    assert "falling back to annotated CSV matching timeframe only" not in source
+    assert "source_identity.ticker" in ranker
+    assert "source_identity.timeframe" in ranker
+    assert "{'ticker': t" not in ranker
+
+
+def test_strategy_candidate_reopen_paths_are_scoped_before_raw_path_acceptance():
+    studio_source = REPO_ROOT.joinpath("apps/marketflow_studio.py").read_text(encoding="utf-8")
+    studio_functions = _function_bodies(studio_source)
+    candidate_csv_path = studio_functions["_candidate_csv_path"]
+    trade_plan = studio_functions["_trade_plan_from_strategy_candidate"]
+    diagnostics = studio_functions["_strategy_diagnostics_dataframe"]
+
+    assert candidate_csv_path.index("source_report_dir = prefill.get('source_report_dir')") < candidate_csv_path.index("path.exists()")
+    assert "return None" in candidate_csv_path
+    assert "resolved.relative_to(report_root)" in candidate_csv_path
+    assert "_candidate_csv_path(candidate) or candidate.get(\"csv\")" not in trade_plan
+    assert "if not resolved_csv and candidate.get('source_report_dir'):" in trade_plan
+    assert "matching_timeframe_csvs" not in diagnostics
+    assert "'source_status': check.get('source_status')" in diagnostics
+
+    backtest_source = REPO_ROOT.joinpath("marketflow/services/backtest_candidate_service.py").read_text(encoding="utf-8")
+    backtest_functions = _function_bodies(backtest_source)
+    candidate_source_path = backtest_functions["_candidate_source_path"]
+    scoped_block_start = candidate_source_path.index("if source_report_dir:")
+    raw_append_start = candidate_source_path.index("candidates.append(raw_path)")
+
+    assert scoped_block_start < raw_append_start
+    assert "relative_to(report_root.resolve(strict=True))" in candidate_source_path
 
 
 def test_wyckoff_phase_annotation_uses_stable_dtype_without_semantic_changes():

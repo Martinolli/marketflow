@@ -48,6 +48,55 @@ def test_infer_ticker_and_timeframe_from_filename():
     assert infer_walk_forward_timeframe_from_csv_name("IONQ_30m_wyckoff_annotated.csv") == "30m"
 
 
+def test_source_identity_mismatch_fails_before_building_cases(tmp_path):
+    path = _csv(tmp_path, 130, name="BBB_4h_wyckoff_annotated.csv")
+
+    result = build_walk_forward_cases_from_csv(
+        path,
+        profile_name="fast_test",
+        ticker="AAA",
+        timeframe="4h",
+    )
+
+    assert result["success"] is False
+    assert result["source_status"] == "DATASET_IDENTITY_MISMATCH"
+    assert result["source_reason"] == "DATASET_IDENTITY_MISMATCH"
+    assert result["ticker"] == "BBB"
+    assert result["timeframe"] == "4h"
+    assert result["cases"] == []
+
+
+def test_source_identity_unknown_fails_when_caller_supplies_label(tmp_path):
+    path = _csv(tmp_path, 130, name="AAA_source.csv")
+
+    result = build_walk_forward_cases_from_csv(
+        path,
+        profile_name="fast_test",
+        ticker="AAA",
+        timeframe="4h",
+    )
+
+    assert result["success"] is False
+    assert result["source_status"] == "DATASET_IDENTITY_UNKNOWN"
+    assert result["source_reason"] == "DATASET_IDENTITY_UNKNOWN"
+    assert result["ticker"] == "AAA"
+    assert result["timeframe"] is None
+    assert result["cases"] == []
+
+
+def test_source_identity_unknown_fails_without_caller_labels(tmp_path):
+    path = _csv(tmp_path, 130, name="source.csv")
+
+    result = build_walk_forward_cases_from_csv(path, profile_name="fast_test")
+
+    assert result["success"] is False
+    assert result["source_status"] == "DATASET_IDENTITY_UNKNOWN"
+    assert result["source_reason"] == "DATASET_IDENTITY_UNKNOWN"
+    assert result["ticker"] == "SOURCE"
+    assert result["timeframe"] is None
+    assert result["cases"] == []
+
+
 def test_detect_timestamp_column():
     columns = ["open", "high", "low", "close", "timestamp"]
 

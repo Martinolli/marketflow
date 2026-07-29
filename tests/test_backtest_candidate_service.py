@@ -13,6 +13,7 @@ from marketflow.services.backtest_candidate_service import (
     VALIDATION_MISSING_SOURCE_CSV,
     VALIDATION_UNSUPPORTED_DIRECTION,
     VALIDATION_VALID,
+    _candidate_source_path,
     build_candidate_snapshot_from_strategy_candidate,
     candidate_snapshot_dict_to_dataclass,
     enrich_candidate_snapshot_signal_location,
@@ -99,6 +100,15 @@ def test_validate_valid_snapshot_and_build_success():
     assert result["success"] is True
     assert result["validation"]["status"] == VALIDATION_VALID
     assert result["validation"]["errors"] == []
+
+
+def test_strategy_candidate_source_report_dir_is_preserved_when_report_dir_fallback_supplied():
+    result = build_candidate_snapshot_from_strategy_candidate(
+        _strategy_candidate(source_report_dir="batch_20260729_010203/AAA"),
+        report_dir="other_report_dir",
+    )
+
+    assert result["snapshot"]["source_report_dir"] == "batch_20260729_010203/AAA"
 
 
 def test_missing_source_csv_is_invalid():
@@ -294,6 +304,38 @@ def test_missing_source_csv_leaves_missing_location_and_reports_error():
     assert enrichment["success"] is False
     assert enrichment["match"]["errors"]
     assert validation["status"] == VALIDATION_MISSING_SOURCE_CSV
+
+
+def test_strategy_candidate_source_resolution_stays_inside_report_root(monkeypatch, tmp_path):
+    report_root = tmp_path / "reports"
+    source_dir = report_root / "batch_20260729_010203" / "AAA"
+    source_dir.mkdir(parents=True)
+    source = _write_csv(source_dir, [{"timestamp": "2026-01-01", "close": 100}], filename="AAA_4h.csv")
+    outside = _write_csv(tmp_path, [{"timestamp": "2026-01-01", "close": 200}], filename="AAA_4h.csv")
+
+    class Config:
+        REPORT_DIR = str(report_root)
+
+    monkeypatch.setattr("marketflow.services.backtest_candidate_service.create_app_config", lambda: Config())
+
+    resolved = _candidate_source_path(str(outside), "batch_20260729_010203/AAA")
+
+    assert resolved == source
+
+
+def test_strategy_candidate_source_resolution_rejects_report_root_escape(monkeypatch, tmp_path):
+    report_root = tmp_path / "reports"
+    report_root.mkdir()
+    outside = _write_csv(tmp_path, [{"timestamp": "2026-01-01", "close": 200}], filename="AAA_4h.csv")
+
+    class Config:
+        REPORT_DIR = str(report_root)
+
+    monkeypatch.setattr("marketflow.services.backtest_candidate_service.create_app_config", lambda: Config())
+
+    resolved = _candidate_source_path(str(outside), "batch_20260729_010203/AAA")
+
+    assert resolved is None
 
 
 def test_timestampless_csv_enriches_row_index_only(tmp_path):

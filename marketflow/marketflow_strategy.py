@@ -10,7 +10,7 @@ Usage examples:
 
 3) for tf in 1h 4h 30m 1d 1w; do
   python marketflow_strategy_refactored.py ^
-    --report-root "C:\Users\Aspire5 15 i7 4G2050\marketflow\.marketflow\reports" --batch latest --tf(s) $tf --tickers AI ATRO DRS FLY KTOS RGR RKLB SPR TATT
+    --report-root ".marketflow/reports" --batch latest --tf(s) $tf --tickers AI ATRO DRS FLY KTOS RGR RKLB SPR TATT
 
 Notes
 - Does NOT require Monte Carlo (MC) or P&F files. When absent or disabled, it uses neutral defaults and ATR-based SL/TP.
@@ -20,6 +20,7 @@ Notes
 from __future__ import annotations
 import argparse, os, json, glob, re
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Iterable, List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
 import pandas as pd
@@ -29,6 +30,15 @@ from marketflow.marketflow_logger import get_logger
 
 logger = get_logger("MarketFlowStrategy")
 app_cfg = create_app_config(logger=logger)
+
+SUPPORTED_TIMEFRAME_TOKENS = ("1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m")
+SOURCE_STATUS_EXACT_MATCH = "EXACT_MATCH"
+SOURCE_REASON_DATASET_NOT_FOUND = "DATASET_NOT_FOUND"
+SOURCE_REASON_DATASET_IDENTITY_AMBIGUOUS = "DATASET_IDENTITY_AMBIGUOUS"
+SOURCE_REASON_INVALID_REQUEST = "INVALID_DATASET_REQUEST"
+SOURCE_REASON_INVALID_SOURCE_ROOT = "INVALID_DATASET_SOURCE_ROOT"
+_TICKER_PATTERN = re.compile(r"^[A-Z0-9._:-]+$")
+_BATCH_RUN_PATTERN = re.compile(r"^batch_\d{8}_\d{6}$")
 
 # -----------------------------
 # Config & helpers
@@ -56,6 +66,33 @@ class StrategyConfig:
         "phase": 2.0, "event": 1.0, "pnf": 1.0, "pop": 2.5, "trend": 1.0
     })
 
+
+@dataclass(frozen=True)
+class StrategyDatasetIdentity:
+    ticker: str
+    timeframe: str
+    source: Path
+    source_kind: str
+    status: str = SOURCE_STATUS_EXACT_MATCH
+
+
+@dataclass(frozen=True)
+class StrategySourceResolution:
+    requested_ticker: str | None
+    requested_timeframe: str | None
+    identity: StrategyDatasetIdentity | None
+    status: str
+    reason: str | None = None
+    errors: tuple[str, ...] = ()
+
+    @property
+    def source(self) -> Path | None:
+        return self.identity.source if self.identity else None
+
+    @property
+    def success(self) -> bool:
+        return self.identity is not None and self.status == SOURCE_STATUS_EXACT_MATCH
+
 # -----------------------------
 # Low-level utilities
 # -----------------------------
@@ -77,6 +114,36 @@ def _normalize_tf(value: object) -> str | None:
         return None
     clean = str(value).strip().lower()
     return clean or None
+
+
+def _canonical_ticker(value: object) -> tuple[str | None, str | None]:
+    """Return canonical ticker or a fixed validation reason."""
+    if value is None:
+        return None, SOURCE_REASON_INVALID_REQUEST
+    text = str(value)
+    if text != text.strip() or not text:
+        return None, SOURCE_REASON_INVALID_REQUEST
+    if any(ord(char) < 32 for char in text):
+        return None, SOURCE_REASON_INVALID_REQUEST
+    if "/" in text or "\\" in text:
+        return None, SOURCE_REASON_INVALID_REQUEST
+    canonical = text.upper()
+    if not _TICKER_PATTERN.fullmatch(canonical):
+        return None, SOURCE_REASON_INVALID_REQUEST
+    return canonical, None
+
+
+def _canonical_timeframe(value: object) -> tuple[str | None, str | None]:
+    """Return canonical timeframe or a fixed validation reason."""
+    if value is None:
+        return None, SOURCE_REASON_INVALID_REQUEST
+    text = str(value)
+    if text != text.strip() or not text:
+        return None, SOURCE_REASON_INVALID_REQUEST
+    canonical = text.lower()
+    if canonical not in SUPPORTED_TIMEFRAME_TOKENS:
+        return None, SOURCE_REASON_INVALID_REQUEST
+    return canonical, None
 
 
 def _mc_json_timeframe(data: dict, field: str) -> str | None:
@@ -114,6 +181,9 @@ def _is_generated_strategy_artifact_csv(path: str) -> bool:
         "_eigen_review_summary",
         "_candidate_decision_summary",
         "_analyst_review_notes",
+        "_walk_forward_cases_",
+        "_walk_forward_results_",
+        "_walk_forward_summary_",
     )
     return any(marker in filename for marker in generated_markers)
 
@@ -123,19 +193,52 @@ def _filename_tokens(path: str) -> list[str]:
     return [token for token in re.split(r"[_\-.]+", stem) if token]
 
 
+def _parse_strategy_csv_identity(path: Path) -> StrategyDatasetIdentity | None:
+    """Infer immutable dataset identity from a strategy source CSV filename."""
+    if path.suffix.lower() != ".csv" or _is_generated_strategy_artifact_csv(str(path)):
+        return None
+
+    stem = path.stem
+    lowered = stem.lower()
+    source_kind = "canonical" if lowered.endswith("_wyckoff_annotated") else "raw"
+    core = stem[: -len("_wyckoff_annotated")] if source_kind == "canonical" else stem
+    parts = core.split("_")
+    if len(parts) < 2:
+        return None
+
+    for index, part in enumerate(parts[1:], start=1):
+        timeframe, timeframe_error = _canonical_timeframe(part)
+        if timeframe_error is not None:
+            continue
+        ticker_text = "_".join(parts[:index])
+        ticker, ticker_error = _canonical_ticker(ticker_text)
+        if ticker_error is not None:
+            return None
+        return StrategyDatasetIdentity(
+            ticker=ticker,
+            timeframe=timeframe,
+            source=path,
+            source_kind=source_kind,
+        )
+    return None
+
+
 def _csv_matches_timeframe(path: str, ticker: str, tf: str) -> bool:
     """Return True when filename tokens match the requested ticker and timeframe."""
-    clean_ticker = str(ticker or "").strip().lower()
-    clean_tf = _normalize_tf(tf)
-    if not clean_ticker or not clean_tf:
+    clean_ticker, ticker_error = _canonical_ticker(ticker)
+    clean_tf, timeframe_error = _canonical_timeframe(tf)
+    if ticker_error is not None or timeframe_error is not None:
         return False
-    tokens = _filename_tokens(path)
-    return bool(tokens) and tokens[0] == clean_ticker and clean_tf in tokens
+    identity = _parse_strategy_csv_identity(Path(path))
+    return bool(identity and identity.ticker == clean_ticker and identity.timeframe == clean_tf)
 
 
 def _csv_matches_timeframe_any_ticker(path: str, tf: str) -> bool:
-    clean_tf = _normalize_tf(tf)
-    return bool(clean_tf) and clean_tf in _filename_tokens(path)
+    clean_tf, timeframe_error = _canonical_timeframe(tf)
+    if timeframe_error is not None:
+        return False
+    identity = _parse_strategy_csv_identity(Path(path))
+    return bool(identity and identity.timeframe == clean_tf)
 
 
 def _newest_csv(paths: list[str]) -> str:
@@ -146,57 +249,142 @@ def _newest_csv(paths: list[str]) -> str:
     )[0]
 
 
-def _select_strategy_source_csv(out_dir: str, ticker: str, tf: str) -> Optional[str]:
-    """Select the safest CSV source for Strategy Ranking."""
+def _path_within_root(path: Path, root: Path) -> bool:
+    try:
+        path.resolve(strict=True).relative_to(root.resolve(strict=True))
+        return True
+    except (OSError, ValueError):
+        return False
+
+
+def _safe_date_glob(value: str | None) -> str | None:
+    if value is None:
+        return None
+    text = str(value)
+    path = Path(text)
+    if path.is_absolute() or any(part == ".." for part in path.parts):
+        return None
+    return text
+
+
+def _report_root_dirs(report_root: str, paths: Iterable[str]) -> list[str]:
+    root = Path(report_root)
+    return [
+        str(path)
+        for raw_path in paths
+        for path in [Path(raw_path)]
+        if path.is_dir() and _path_within_root(path, root)
+    ]
+
+
+def resolve_strategy_source_identity(out_dir: str, ticker: str, tf: str) -> StrategySourceResolution:
+    """Resolve a Strategy Ranking source only when ticker and timeframe match exactly."""
+    requested_ticker, ticker_error = _canonical_ticker(ticker)
+    requested_timeframe, timeframe_error = _canonical_timeframe(tf)
+    if ticker_error is not None or timeframe_error is not None:
+        return StrategySourceResolution(
+            requested_ticker=requested_ticker,
+            requested_timeframe=requested_timeframe,
+            identity=None,
+            status=SOURCE_REASON_INVALID_REQUEST,
+            reason=SOURCE_REASON_INVALID_REQUEST,
+        )
+
+    root = Path(out_dir)
+    try:
+        root_resolved = root.resolve(strict=True)
+    except OSError:
+        return StrategySourceResolution(
+            requested_ticker=requested_ticker,
+            requested_timeframe=requested_timeframe,
+            identity=None,
+            status=SOURCE_REASON_INVALID_SOURCE_ROOT,
+            reason=SOURCE_REASON_INVALID_SOURCE_ROOT,
+        )
+    if not root_resolved.is_dir():
+        return StrategySourceResolution(
+            requested_ticker=requested_ticker,
+            requested_timeframe=requested_timeframe,
+            identity=None,
+            status=SOURCE_REASON_INVALID_SOURCE_ROOT,
+            reason=SOURCE_REASON_INVALID_SOURCE_ROOT,
+        )
+
     try:
         csv_paths = [
-            os.path.join(out_dir, filename)
-            for filename in os.listdir(out_dir)
-            if filename.lower().endswith(".csv") and os.path.isfile(os.path.join(out_dir, filename))
+            path
+            for path in root.iterdir()
+            if path.suffix.lower() == ".csv"
+            and path.is_file()
+            and _path_within_root(path, root_resolved)
         ]
     except Exception as e:
         logger.error(f"Error listing CSV files in {out_dir}: {e}")
-        return None
-
-    logger.info(f"Found CSV candidates for ticker {ticker}: {sorted(csv_paths)}")
-    canonical_csvs = [path for path in csv_paths if _is_wyckoff_annotated_csv(path)]
-
-    exact_canonical = [
-        path
-        for path in canonical_csvs
-        if _csv_matches_timeframe(path, ticker, tf)
-    ]
-    if exact_canonical:
-        return _newest_csv(exact_canonical)
-
-    timeframe_canonical = [
-        path
-        for path in canonical_csvs
-        if _csv_matches_timeframe_any_ticker(path, tf)
-    ]
-    if timeframe_canonical:
-        logger.warning(
-            f"No canonical annotated CSV found for exact ticker/timeframe {ticker} {tf}; "
-            "falling back to annotated CSV matching timeframe only."
+        return StrategySourceResolution(
+            requested_ticker=requested_ticker,
+            requested_timeframe=requested_timeframe,
+            identity=None,
+            status=SOURCE_REASON_INVALID_SOURCE_ROOT,
+            reason=SOURCE_REASON_INVALID_SOURCE_ROOT,
+            errors=(type(e).__name__,),
         )
-        return _newest_csv(timeframe_canonical)
 
-    safe_fallbacks = [
-        path
+    logger.info(f"Found CSV candidates for ticker {ticker}: {sorted(str(path) for path in csv_paths)}")
+    identities = [
+        identity
         for path in csv_paths
-        if not _is_generated_strategy_artifact_csv(path)
-        and not _is_wyckoff_annotated_csv(path)
-        and _csv_matches_timeframe(path, ticker, tf)
+        for identity in [_parse_strategy_csv_identity(path)]
+        if identity
+        and identity.ticker == requested_ticker
+        and identity.timeframe == requested_timeframe
     ]
-    if safe_fallbacks:
-        logger.warning(
-            f"No canonical annotated CSV found for {ticker} {tf}; "
-            "falling back to a non-generated CSV source."
+    if len(identities) == 1:
+        return StrategySourceResolution(
+            requested_ticker=requested_ticker,
+            requested_timeframe=requested_timeframe,
+            identity=identities[0],
+            status=SOURCE_STATUS_EXACT_MATCH,
         )
-        return _newest_csv(safe_fallbacks)
 
-    logger.warning(f"No safe Strategy Ranking CSV source found for {ticker} {tf} in {out_dir}.")
+    if len(identities) > 1:
+        logger.warning(
+            f"Ambiguous Strategy Ranking CSV identity for {requested_ticker} {requested_timeframe}; "
+            "skipping candidate instead of selecting arbitrarily."
+        )
+        return StrategySourceResolution(
+            requested_ticker=requested_ticker,
+            requested_timeframe=requested_timeframe,
+            identity=None,
+            status=SOURCE_REASON_DATASET_IDENTITY_AMBIGUOUS,
+            reason=SOURCE_REASON_DATASET_IDENTITY_AMBIGUOUS,
+        )
+
+    logger.warning(
+        f"No exact Strategy Ranking CSV source found for {requested_ticker} {requested_timeframe} in {out_dir}."
+    )
+    return StrategySourceResolution(
+        requested_ticker=requested_ticker,
+        requested_timeframe=requested_timeframe,
+        identity=None,
+        status=SOURCE_REASON_DATASET_NOT_FOUND,
+        reason=SOURCE_REASON_DATASET_NOT_FOUND,
+    )
+
+
+def _select_strategy_source_csv(out_dir: str, ticker: str, tf: str) -> Optional[str]:
+    """Select an exact ticker/timeframe CSV source for Strategy Ranking."""
+    resolution = resolve_strategy_source_identity(out_dir, ticker, tf)
+    if resolution.success and resolution.source is not None:
+        return str(resolution.source)
     return None
+
+
+def _source_reference(report_root: str, source_path: Path) -> str:
+    """Return a non-absolute source reference for normal candidate output."""
+    try:
+        return source_path.resolve(strict=True).relative_to(Path(report_root).resolve(strict=True)).as_posix()
+    except (OSError, ValueError):
+        return source_path.name
 
 
 def _mc_metadata(
@@ -395,38 +583,74 @@ def rank_long_candidates(
     """
     logger.info(f"Ranking long candidates: report_root={report_root}, date_glob={date_glob}, tickers={list(tickers)}, tf={tf}, use_batch_namespace={use_batch_namespace}")
     results: List[Dict] = []
+    safe_date_glob = _safe_date_glob(date_glob)
+    if date_glob and safe_date_glob is None:
+        logger.warning(f"Unsafe Strategy Ranking date_glob rejected: {date_glob}")
+        return results
 
     # Resolve batch folder if requested
     if use_batch_namespace == "latest":
-        batch_dirs = [d for d in glob.glob(os.path.join(report_root, "batch_*")) if os.path.isdir(d)]
+        batch_dirs = _report_root_dirs(
+            report_root,
+            [
+                str(path)
+                for path in Path(report_root).glob("batch_*")
+                if _BATCH_RUN_PATTERN.fullmatch(path.name)
+            ],
+        )
         logger.info(f"Found batch directories: {batch_dirs}")
         if batch_dirs:
-            date_glob = os.path.basename(sorted(batch_dirs)[-1])  # use latest batch_YYYYMMDD_HHMMSS
+            safe_date_glob = os.path.basename(sorted(batch_dirs)[-1])  # use latest batch_YYYYMMDD_HHMMSS
+            date_glob = safe_date_glob
             logger.info(f"Using latest batch directory: {date_glob}")
 
     for t in tickers:
         logger.info(f"Processing ticker: {t}")
+        source_ticker, ticker_error = _canonical_ticker(t)
+        source_tf, timeframe_error = _canonical_timeframe(tf)
+        if ticker_error is not None or timeframe_error is not None:
+            logger.info(f"Invalid dataset request for ticker {t} timeframe {tf}; skipping.")
+            continue
+
         # Possible layouts:
         #   report_root/date_glob/TICKER
         #   report_root/batch_YYYYMMDD_HHMMSS/TICKER
-        dirs = sorted(glob.glob(os.path.join(report_root, date_glob, t))) if date_glob else []
+        dirs = (
+            sorted(
+                _report_root_dirs(
+                    report_root,
+                    glob.glob(os.path.join(report_root, safe_date_glob, source_ticker)),
+                )
+            )
+            if safe_date_glob
+            else []
+        )
         if not dirs:
             # fallback: any folder directly under report_root matching ticker
-            dirs = sorted(glob.glob(os.path.join(report_root, "**", t), recursive=True))
-            dirs = [d for d in dirs if os.path.isdir(d)]
-        logger.info(f"Found directories for ticker {t}: {dirs}")
+            dirs = sorted(
+                _report_root_dirs(
+                    report_root,
+                    glob.glob(os.path.join(report_root, "**", source_ticker), recursive=True),
+                )
+            )
+        logger.info(f"Found directories for ticker {source_ticker}: {dirs}")
         if not dirs:
-            logger.info(f"No directories found for ticker {t}, skipping.")
+            logger.info(f"No directories found for ticker {source_ticker}, skipping.")
             continue
         out_dir = dirs[-1]
-        logger.info(f"Using output directory for ticker {t}: {out_dir}")
+        logger.info(f"Using output directory for ticker {source_ticker}: {out_dir}")
 
-        # Locate canonical source CSV for timeframe.
-        csv_path = _select_strategy_source_csv(out_dir, t, tf)
-        if not csv_path:
-            logger.info(f"No safe CSV source found for ticker {t} timeframe {tf}, skipping.")
+        # Locate canonical source CSV for exact ticker/timeframe identity.
+        source_resolution = resolve_strategy_source_identity(out_dir, source_ticker, source_tf)
+        if not source_resolution.success or source_resolution.source is None or source_resolution.identity is None:
+            logger.info(
+                f"Dataset resolution failed for ticker {source_ticker} timeframe {source_tf}: "
+                f"{source_resolution.reason or source_resolution.status}; skipping before scoring."
+            )
             continue
-        logger.info(f"Using CSV file for ticker {t}: {csv_path}")
+        source_identity = source_resolution.identity
+        csv_path = source_identity.source
+        logger.info(f"Using CSV file for ticker {source_identity.ticker}: {csv_path}")
 
         try:
             df = pd.read_csv(csv_path)
@@ -491,9 +715,12 @@ def rank_long_candidates(
         logger.info(f"Final score for ticker {t}: {score}")
 
         result = {
-            "ticker": t,
-            "tf": tf,
-            "csv": csv_path,
+            "ticker": source_identity.ticker,
+            "tf": source_identity.timeframe,
+            "csv": _source_reference(report_root, csv_path),
+            "source_csv_name": csv_path.name,
+            "source_report_dir": _source_reference(report_root, csv_path.parent),
+            "source_status": source_resolution.status,
             "close": float(df["close"].iloc[-1]),
             "sl": sl, "tp": tp, "rr": _rr(float(df["close"].iloc[-1]), sl, tp),
             "pop": pop,

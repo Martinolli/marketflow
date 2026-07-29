@@ -21,6 +21,9 @@ WALK_FORWARD_METADATA_VERSION = "walk_forward_validation_v1"
 DEFAULT_RISK_REWARD = 1.5
 DEFAULT_RISK_FRACTION = 0.02
 DEFAULT_TIE_BREAK_POLICY = "conservative"
+WALK_FORWARD_SOURCE_STATUS_EXACT_MATCH = "EXACT_MATCH"
+WALK_FORWARD_SOURCE_REASON_IDENTITY_MISMATCH = "DATASET_IDENTITY_MISMATCH"
+WALK_FORWARD_SOURCE_REASON_IDENTITY_UNKNOWN = "DATASET_IDENTITY_UNKNOWN"
 
 DEFAULT_TIMESTAMP_COLUMNS = (
     "timestamp",
@@ -217,6 +220,44 @@ def infer_walk_forward_timeframe_from_csv_name(path: str | Path | None) -> str |
     return None
 
 
+def _walk_forward_source_identity(
+    path: str | Path,
+    ticker: str | None,
+    timeframe: str | None,
+) -> dict[str, Any]:
+    source_ticker = infer_walk_forward_ticker_from_csv_name(path)
+    source_timeframe = infer_walk_forward_timeframe_from_csv_name(path)
+    requested_ticker = str(ticker).upper() if ticker is not None and str(ticker).strip() else None
+    requested_timeframe = str(timeframe).lower() if timeframe is not None and str(timeframe).strip() else None
+    errors: list[str] = []
+
+    if requested_ticker and source_ticker and requested_ticker != source_ticker:
+        errors.append(WALK_FORWARD_SOURCE_REASON_IDENTITY_MISMATCH)
+    if requested_timeframe and source_timeframe and requested_timeframe != source_timeframe:
+        errors.append(WALK_FORWARD_SOURCE_REASON_IDENTITY_MISMATCH)
+    if not source_ticker:
+        errors.append(WALK_FORWARD_SOURCE_REASON_IDENTITY_UNKNOWN)
+    if not source_timeframe:
+        errors.append(WALK_FORWARD_SOURCE_REASON_IDENTITY_UNKNOWN)
+
+    reason = errors[0] if errors else None
+    status = WALK_FORWARD_SOURCE_STATUS_EXACT_MATCH
+    if reason == WALK_FORWARD_SOURCE_REASON_IDENTITY_UNKNOWN:
+        status = WALK_FORWARD_SOURCE_REASON_IDENTITY_UNKNOWN
+    elif reason is not None:
+        status = WALK_FORWARD_SOURCE_REASON_IDENTITY_MISMATCH
+
+    return {
+        "ticker": source_ticker,
+        "timeframe": source_timeframe,
+        "source_ticker": source_ticker,
+        "source_timeframe": source_timeframe,
+        "status": status,
+        "reason": reason,
+        "errors": errors,
+    }
+
+
 def _minimum_lookback_rows_from_profile(profile_context: dict[str, Any]) -> int:
     parameter_context = profile_context.get("parameter_context") or {}
     values = [
@@ -389,12 +430,17 @@ def build_walk_forward_cases_from_csv(
     warnings: list[str] = []
     errors: list[str] = []
     filters = list(event_filters or [])
+    source_identity = _walk_forward_source_identity(path, ticker, timeframe)
     base_result: dict[str, Any] = {
         "success": False,
         "csv_path": str(path),
         "source_csv_name": path.name,
-        "ticker": ticker or infer_walk_forward_ticker_from_csv_name(path),
-        "timeframe": timeframe or infer_walk_forward_timeframe_from_csv_name(path),
+        "ticker": source_identity["ticker"],
+        "timeframe": source_identity["timeframe"],
+        "source_ticker": source_identity["source_ticker"],
+        "source_timeframe": source_identity["source_timeframe"],
+        "source_status": source_identity["status"],
+        "source_reason": source_identity["reason"],
         "profile_name": profile_name,
         "walk_forward_run_id": run_id,
         "row_count": 0,
@@ -414,6 +460,10 @@ def build_walk_forward_cases_from_csv(
         "warnings": warnings,
         "errors": errors,
     }
+
+    if source_identity["errors"]:
+        errors.extend(source_identity["errors"])
+        return _json_safe_dict(base_result)
 
     try:
         data = pd.read_csv(path)
