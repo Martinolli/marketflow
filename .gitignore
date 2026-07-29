@@ -3,6 +3,11 @@ __pycache__/
 *.pyc
 *.pyo
 *.pyd
+*.egg-info/
+*.dist-info/
+build/
+dist/
+wheelhouse/
 *.env
 .env
 env/

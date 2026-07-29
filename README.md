@@ -88,8 +88,15 @@ Depending on the workflow, a report folder can contain annotated market data, HT
 Run the full test suite:
 
 ```powershell
-python -m pytest -q
+$python = (Resolve-Path ".\env\Scripts\python.exe").Path
+& $python -m pytest -q
 ```
+
+The default pytest suite is deterministic and offline. It must not require credentials, make external network calls, or write tracked report artifacts. Pytest-generated temporary files should use pytest temporary directories or ignored runtime paths.
+
+Manual provider or LLM checks are separate from the default suite. See [Manual network checks](docs/testing/MANUAL_NETWORK_CHECKS.md) before running scripts under `scripts/manual_checks/`.
+
+Packaging metadata is generated from `setup.py` and `requirements.txt`; generated `*.egg-info/`, `*.dist-info/`, `build/`, and `dist/` directories are ignored and should not be committed.
 
 Run Studio locally:
 

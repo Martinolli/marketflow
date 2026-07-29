@@ -10,7 +10,7 @@ import time
 from datetime import datetime
 
 # Add the project root to the path
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from marketflow.marketflow_llm_query_engine import MarketflowLLMQueryEngine
 
@@ -358,4 +358,3 @@ def main():
 
 if __name__ == "__main__":
     exit(main())
-

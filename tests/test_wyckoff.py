@@ -8,18 +8,19 @@ from marketflow.enums import WyckoffEvent, WyckoffPhase, MarketContext
 @pytest.fixture
 def synthetic_market_data():
     # Create a DataFrame with synthetic price/volume patterns for Wyckoff analysis
+    rng = np.random.default_rng(42)
     index = pd.date_range(start="2024-01-01", periods=60, freq="D")
     price = pd.DataFrame(index=index)
-    price['open'] = 100 + np.random.normal(0, 2, len(index))
-    price['close'] = price['open'] + np.random.normal(0, 2, len(index))
-    price['high'] = price[['open', 'close']].max(axis=1) + np.abs(np.random.normal(0, 1, len(index)))
-    price['low']  = price[['open', 'close']].min(axis=1) - np.abs(np.random.normal(0, 1, len(index)))
+    price['open'] = 100 + rng.normal(0, 2, len(index))
+    price['close'] = price['open'] + rng.normal(0, 2, len(index))
+    price['high'] = price[['open', 'close']].max(axis=1) + np.abs(rng.normal(0, 1, len(index)))
+    price['low']  = price[['open', 'close']].min(axis=1) - np.abs(rng.normal(0, 1, len(index)))
     # Introduce a "climax" event (huge volume and range drop)
     price.iloc[10, price.columns.get_loc('low')] -= 5
     price.iloc[10, price.columns.get_loc('close')] -= 5
     price.iloc[10, price.columns.get_loc('open')] -= 5
     price.iloc[10, price.columns.get_loc('high')] -= 5
-    volume = pd.Series(1000 + np.random.normal(0, 100, len(index)), index=index)
+    volume = pd.Series(1000 + rng.normal(0, 100, len(index)), index=index)
     volume.iloc[10] = 5000  # Volume spike for Selling Climax
 
     processed_data = {
@@ -45,6 +46,8 @@ def test_wyckoff_analyzer_no_events_detected():
     assert len(events) == 0, "Events should not be detected in flat data"
     assert isinstance(phases, list)
     assert len(phases) == 0, "Phases should not be detected in flat data"
+    annotated = analyzer.annotate_chart()
+    assert annotated["wyckoff_phase"].tolist() == ["UNKNOWN"] * len(annotated)
 
 def test_wyckoff_analyzer_partial_event_detection():
     # Create data with a single volume spike but no price movement

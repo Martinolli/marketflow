@@ -526,7 +526,7 @@ class WyckoffAnalyzer:
                     annotated_df.at[idx, "wyckoff_event_details"] = str(details)
 
         # Use the more granular phase data
-        phase_series = pd.Series({p['timestamp']: p['phase_name'] for p in self.phases})
+        phase_series = pd.Series({p['timestamp']: p['phase_name'] for p in self.phases}, dtype="string")
         annotated_df['wyckoff_phase'] = phase_series.reindex(annotated_df.index).ffill().fillna("UNKNOWN")
 
         self.logger.info("Annotation of chart completed.")

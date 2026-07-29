@@ -11,7 +11,7 @@ Prerequisites:
    POLYGON_API_KEY="your_key_here"
 
 To run:
-`python tests/test_data_provider_simple.py`
+`python scripts/manual_checks/data_provider_simple_check.py`
 """
 
 import asyncio
@@ -19,13 +19,14 @@ import os
 import sys
 
 # Add project root to path to allow for module imports
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..')))
 
 from marketflow.marketflow_data_provider import MultiTimeframeProvider, PolygonIOProvider
 
 def test_sync_get_data():
     """Tests the synchronous get_data method."""
     print("--- Testing synchronous get_data() ---")
+    success = False
     try:
         provider = PolygonIOProvider()
         ticker = "AAPL"
@@ -41,6 +42,7 @@ def test_sync_get_data():
                 print(price_df.head())
                 print("\nVolume Data Head:")
                 print(volume_series.head())
+                success = True
             else:
                 print("Data fetch was successful, but no data was returned.")
         else:
@@ -48,10 +50,12 @@ def test_sync_get_data():
     except Exception as e:
         print(f"An error occurred: {e}")
     print("-" * 40 + "\n")
+    return success
 
 async def _test_async_get_data():
     """Tests the asynchronous get_data_async method."""
     print("--- Testing asynchronous get_data_async() ---")
+    success = False
     try:
         provider = PolygonIOProvider()
         ticker = "MSFT"  # Use a different ticker for variety
@@ -67,6 +71,7 @@ async def _test_async_get_data():
                 print(price_df.head())
                 print("\nVolume Data Head:")
                 print(volume_series.head())
+                success = True
             else:
                 print("Data fetch was successful, but no data was returned.")
         else:
@@ -74,14 +79,16 @@ async def _test_async_get_data():
     except Exception as e:
         print(f"An error occurred: {e}")
     print("-" * 40 + "\n")
+    return success
 
 def test_async_get_data():
     """Run the asynchronous get_data test in a pytest-compatible event loop."""
-    asyncio.run(_test_async_get_data())
+    return asyncio.run(_test_async_get_data())
 
 def test_sync_get_multi_timeframe_data():
     """Tests the synchronous get_multi_timeframe_data method."""
     print("--- Testing synchronous get_multi_timeframe_data() ---")
+    success = False
     try:
         polygon_provider = PolygonIOProvider()
         multi_provider = MultiTimeframeProvider(polygon_provider)
@@ -96,6 +103,7 @@ def test_sync_get_multi_timeframe_data():
 
         if results:
             print(f"Successfully fetched data for {len(results)} timeframes.")
+            success = True
             for tf, data in results.items():
                 print(f"\n--- Timeframe: {tf} ---")
                 if 'price_data' in data and 'volume_data' in data:
@@ -115,10 +123,12 @@ def test_sync_get_multi_timeframe_data():
     except Exception as e:
         print(f"An error occurred: {e}")
     print("-" * 40 + "\n")
+    return success
 
 async def _test_async_get_multi_timeframe_data():
     """Tests the asynchronous get_multi_timeframe_data_async method."""
     print("--- Testing asynchronous get_multi_timeframe_data_async() ---")
+    success = False
     try:
         polygon_provider = PolygonIOProvider()
         multi_provider = MultiTimeframeProvider(polygon_provider)
@@ -133,6 +143,7 @@ async def _test_async_get_multi_timeframe_data():
 
         if results:
             print(f"Successfully fetched data for {len(results)} timeframes.")
+            success = True
             for tf, data in results.items():
                 print(f"\n--- Timeframe: {tf} ---")
                 if 'price_data' in data and 'volume_data' in data:
@@ -152,29 +163,31 @@ async def _test_async_get_multi_timeframe_data():
     except Exception as e:
         print(f"An error occurred: {e}")
     print("-" * 40 + "\n")
+    return success
 
 def test_async_get_multi_timeframe_data():
     """Run the asynchronous multi-timeframe test in a pytest-compatible event loop."""
-    asyncio.run(_test_async_get_multi_timeframe_data())
+    return asyncio.run(_test_async_get_multi_timeframe_data())
 
 def run_sync_tests():
     """Runs all synchronous tests."""
     print("--- Running Synchronous Tests ---")
-    test_sync_get_data()
-    test_sync_get_multi_timeframe_data()
+    results = [test_sync_get_data(), test_sync_get_multi_timeframe_data()]
     print("--- Synchronous Tests Completed ---\n")
+    return all(results)
 
 async def run_async_tests():
     """Runs all asynchronous tests."""
     print("--- Running Asynchronous Tests ---")
-    await _test_async_get_data()
-    await _test_async_get_multi_timeframe_data()
+    results = [await _test_async_get_data(), await _test_async_get_multi_timeframe_data()]
     print("--- Asynchronous Tests Completed ---\n")
+    return all(results)
 
 if __name__ == "__main__":
     print("Starting MarketFlow Data Provider tests...")
     # Run sync tests first, outside of any event loop
-    run_sync_tests()
+    sync_ok = run_sync_tests()
     # Then, run async tests inside a new event loop
-    asyncio.run(run_async_tests())
+    async_ok = asyncio.run(run_async_tests())
     print("Tests completed.")
+    raise SystemExit(0 if sync_ok and async_ok else 1)
