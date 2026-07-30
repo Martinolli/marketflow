@@ -462,3 +462,53 @@ def test_wyckoff_phase_annotation_uses_stable_dtype_without_semantic_changes():
 
     assert 'phase_series = pd.Series({p[\'timestamp\']: p[\'phase_name\'] for p in self.phases}, dtype="string")' in source
     assert 'phase_series.reindex(annotated_df.index).ffill().fillna("UNKNOWN")' in source
+
+
+def test_swing_applicability_readiness_has_no_performance_leakage_calls():
+    source = REPO_ROOT.joinpath("marketflow/research/applicability_readiness.py").read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    forbidden_modules = {
+        "marketflow.backtesting.outcome_engine",
+        "marketflow.services.backtest_result_service",
+        "marketflow.services.walk_forward_campaign_service",
+        "marketflow.services.walk_forward_validation_service",
+        "marketflow.marketflow_strategy",
+    }
+    forbidden_calls = {
+        "evaluate_candidate_outcome",
+        "evaluate_candidate_outcome_from_csv",
+        "evaluate_candidate_snapshot_rows",
+        "build_walk_forward_cases_from_csv",
+        "build_and_evaluate_walk_forward_cases_from_csv",
+        "summarize_walk_forward_validation",
+        "build_walk_forward_campaign_grouped_summary",
+        "write_walk_forward_campaign_artifacts",
+        "rank_long_candidates",
+        "build_candidate_from_prefix",
+    }
+    imported_modules = {
+        alias.name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import)
+        for alias in node.names
+    }
+    imported_from = {
+        node.module
+        for node in ast.walk(tree)
+        if isinstance(node, ast.ImportFrom)
+    }
+    called_names = {
+        node.func.id
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Name)
+    }
+    called_attributes = {
+        node.func.attr
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)
+    }
+
+    assert forbidden_modules.isdisjoint(imported_modules)
+    assert forbidden_modules.isdisjoint(imported_from)
+    assert forbidden_calls.isdisjoint(called_names)
+    assert forbidden_calls.isdisjoint(called_attributes)

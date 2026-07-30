@@ -1,0 +1,74 @@
+schema_version = "marketflow_swing_research_protocol_v1"
+status = "PROTOCOL_PROPOSED_WITH_BLOCKERS"
+protocol_owner = "human_approval_required"
+
+[guardrails]
+no_performance_peek = true
+no_provider_network = true
+no_strategy_tuning = true
+no_broker_or_execution = true
+human_approval_required_before_freeze = true
+
+[profiles.SWING]
+decision_timeframe = "4h"
+intended_holding_period = "several trading days"
+primary_horizon_bars = 10
+secondary_horizon_bars = [5, 15]
+horizon_basis = "fixed_before_performance_review"
+minimum_rows = 360
+minimum_split_rows = 120
+required_valid_ohlcv_rows_after_split_purge = 390
+higher_timeframe_context = "future_extension_not_active"
+
+[profiles.POSITION_SWING]
+decision_timeframe = "1d"
+intended_holding_period = "several days to several weeks"
+primary_horizon_bars = 20
+secondary_horizon_bars = [10, 40]
+horizon_basis = "fixed_before_performance_review"
+minimum_rows = 500
+minimum_split_rows = 160
+required_valid_ohlcv_rows_after_split_purge = 560
+higher_timeframe_context = "future_extension_not_active"
+
+[universe]
+policy = "deterministic_sorted_modulo_3"
+development_bucket = 0
+validation_bucket = 1
+locked_holdout_bucket = 2
+performance_based_selection_allowed = false
+insufficient_data_exclusions_require_fixed_reason = true
+
+[temporal_split]
+rule = "chronological_60_20_20"
+development_fraction = 0.60
+validation_fraction = 0.20
+locked_holdout_fraction = 0.20
+purge_rule = "exclude candidates whose outcome horizon crosses a split boundary"
+embargo_rule = "max approved horizon bars"
+
+[walk_forward]
+design = "rolling_or_expanding_to_be_approved"
+minimum_candidate_count = "HUMAN_APPROVAL_REQUIRED"
+zero_candidate_folds = "recorded_not_deleted"
+incomplete_evidence_candidates = "tracked_separately_non_actionable"
+uncalibrated_score_profiles = "reported_non_actionable"
+
+[baselines]
+time_matched_unconditional_long = true
+matched_random_entry_fixed_seed = true
+declared_trend_baseline_if_existing_contract_is_used = true
+random_seeds = [1009, 2003, 3001]
+
+[costs]
+gross_price_path_research = true
+fixed_cost_sensitivity = "HUMAN_APPROVAL_REQUIRED"
+spread_slippage_sensitivity = "HUMAN_APPROVAL_REQUIRED"
+net_profitability_claim_allowed = false
+
+[acceptance_criteria]
+minimum_dataset_quality = "HUMAN_APPROVAL_REQUIRED"
+minimum_fold_coverage = "HUMAN_APPROVAL_REQUIRED"
+minimum_candidate_count = "HUMAN_APPROVAL_REQUIRED"
+maximum_single_ticker_concentration = "HUMAN_APPROVAL_REQUIRED"
+holdout_rule = "no parameter revision after holdout without new trial generation"
