@@ -8,6 +8,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_IDENTITY_BASE_COMMIT = "f3c2ca8f841030c46657332371b155ad6bd81e68"
+RISK_REWARD_BASE_COMMIT = "2ccaa223d4a193d655713285291d04267637f79a"
 MANUAL_CHECKS = {
     "scripts/manual_checks/real_market_data_check.py",
     "scripts/manual_checks/data_provider_simple_check.py",
@@ -31,18 +32,15 @@ PROTECTED_STRATEGY_FILES = {
 }
 PROTECTED_STRATEGY_FORMULAS = {
     "_atr",
-    "_rr",
     "_phase_score",
     "_event_score",
     "_pnf_score_neutral",
-    "_derive_sl_tp_long",
     "_extract_context",
 }
 PROTECTED_WALK_FORWARD_SEMANTICS = {
     "_minimum_lookback_rows_from_profile",
     "_profile_horizon",
     "_row_matches_event_filters",
-    "build_walk_forward_candidate_from_row",
     "evaluate_walk_forward_cases",
     "summarize_walk_forward_validation",
 }
@@ -234,6 +232,62 @@ def test_walk_forward_semantics_unchanged_outside_source_identity():
         assert current_bodies[function_name] == base_bodies[function_name]
 
 
+def test_risk_reward_circular_target_formula_was_present_at_task_baseline():
+    base = subprocess.run(
+        ["git", "show", f"{RISK_REWARD_BASE_COMMIT}:marketflow/marketflow_strategy.py"],
+        cwd=REPO_ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    base_bodies = _function_bodies(base.stdout)
+
+    assert "tp = close + cfg.min_rr * (close - sl)" in base_bodies["_derive_sl_tp_long"]
+
+
+def test_risk_reward_target_integrity_uses_structural_target_without_circularity():
+    source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
+    functions = _function_bodies(source)
+    resolver = functions["_resolve_long_target"]
+    levels = functions["_resolve_long_trade_levels"]
+    derive = functions["_derive_sl_tp_long"]
+    ranker = functions["rank_long_candidates"]
+
+    assert "min_rr" not in resolver
+    assert "stop" not in resolver
+    assert "risk" not in resolver
+    assert "_target_values_from_row(decision_row)" in resolver
+    assert "tr_high" in functions["_target_values_from_row"]
+    assert "TARGET_PROVENANCE_WYCKOFF_TR_HIGH" in resolver
+    assert "df.iloc[:row_index+1]" in levels.replace(" ", "")
+    assert "target = _resolve_long_target" in levels
+    assert "rr = _rr(close, sl, target.target_price)" in levels
+    assert "rr_status = RR_GATE_PASSED if rr >= min_rr else RR_BELOW_MINIMUM" in levels
+    assert "round(" not in levels
+    assert "close + cfg.min_rr" not in levels
+    assert "cfg.min_rr *" not in levels
+    assert "_resolve_long_trade_levels" in derive
+    assert "levels.eligible" in ranker
+    assert "target_provenance" in ranker
+    assert "rr_status" in ranker
+
+
+def test_walk_forward_candidate_uses_independent_target_and_prefix_frame():
+    source = REPO_ROOT.joinpath("marketflow/services/walk_forward_validation_service.py").read_text(encoding="utf-8")
+    functions = _function_bodies(source)
+    builder = functions["build_walk_forward_candidate_from_row"]
+    case_builder = functions["build_walk_forward_cases_from_csv"]
+
+    assert "take_profit = entry + risk_reward *" not in builder
+    assert "_resolve_long_target" in builder
+    assert "_rr(entry, stop_loss, take_profit)" in builder
+    assert "target_status" in builder
+    assert "target_provenance" in builder
+    assert "rr_status" in builder
+    assert "decision_frame=data.iloc[:index+1]" in case_builder.replace(" ", "")
+
+
 def test_strategy_source_identity_forbids_timeframe_only_and_first_file_fallbacks():
     source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
     functions = _function_bodies(source)
@@ -272,6 +326,28 @@ def test_strategy_candidate_reopen_paths_are_scoped_before_raw_path_acceptance()
 
     assert scoped_block_start < raw_append_start
     assert "relative_to(report_root.resolve(strict=True))" in candidate_source_path
+
+
+def test_studio_surfaces_target_and_rr_status_fields():
+    studio_source = REPO_ROOT.joinpath("apps/marketflow_studio.py").read_text(encoding="utf-8")
+    studio_functions = _function_bodies(studio_source)
+    trade_plan = studio_functions["_trade_plan_from_strategy_candidate"]
+
+    assert '"target_status"' in studio_source
+    assert '"target_provenance"' in studio_source
+    assert '"target_structural_level_kind"' in studio_source
+    assert '"rr_status"' in studio_source
+    assert "'target_status': candidate.get('target_status')" in trade_plan
+    assert "'rr_status': candidate.get('rr_status')" in trade_plan
+
+
+def test_wyckoff_adapter_confirmed_events_use_point_in_time_tr_columns():
+    source = REPO_ROOT.joinpath("marketflow/marketflow_wyckoff_confirmation_adapter.py").read_text(encoding="utf-8")
+
+    assert '"tr_low": float(row.tr_low) if pd.notna(row.tr_low) else None' in source
+    assert '"tr_high": float(row.tr_high) if pd.notna(row.tr_high) else None' in source
+    assert '"tr_low": lo' not in source
+    assert '"tr_high": hi' not in source
 
 
 def test_wyckoff_phase_annotation_uses_stable_dtype_without_semantic_changes():

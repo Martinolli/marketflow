@@ -52,6 +52,10 @@ def _minimal_result() -> dict:
                     "stop_loss": 9.5,
                     "take_profit": 10.75,
                     "risk_reward": 1.5,
+                    "target_status": "TARGET_RESOLVED",
+                    "target_provenance": "WYCKOFF_TR_HIGH",
+                    "target_structural_level_kind": "resistance",
+                    "rr_status": "RR_GATE_PASSED",
                     "strategy_score": 72.0,
                     "wyckoff_phase": "C",
                     "wyckoff_event": "SPRING_WEAK",
@@ -132,6 +136,7 @@ def _rows(count: int) -> list[dict[str, object]]:
                 "high": close + 2.0,
                 "low": close - 1.0,
                 "close": close,
+                "tr_high": close + 2.0,
                 "wyckoff_phase": "C",
                 "wyckoff_event": "SPRING_WEAK",
                 "trend": "up",
@@ -226,6 +231,8 @@ def test_markdown_includes_cases_and_result_rows():
     markdown = build_walk_forward_validation_summary_markdown(_minimal_result())
 
     assert "signal_row_index" in markdown
+    assert "target_status" in markdown
+    assert "TARGET_RESOLVED" in markdown
     assert "240" in markdown
     assert "TP_FIRST" in markdown
 
@@ -281,6 +288,9 @@ def test_write_cases_csv_creates_file_and_kind(tmp_path):
     assert result["row_count"] == 1
     assert rows.loc[0, "wyckoff_event_source"] == "wyckoff_confirmed_event"
     assert rows.loc[0, "walk_forward_case_id"] == "case-1"
+    assert rows.loc[0, "target_status"] == "TARGET_RESOLVED"
+    assert rows.loc[0, "target_provenance"] == "WYCKOFF_TR_HIGH"
+    assert rows.loc[0, "rr_status"] == "RR_GATE_PASSED"
 
 
 def test_write_results_csv_creates_file_and_kind(tmp_path):

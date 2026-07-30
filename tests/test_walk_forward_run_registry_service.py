@@ -421,6 +421,7 @@ def test_validation_artifact_save_writes_registry_and_result_run_columns(tmp_pat
                 "high": close + 2,
                 "low": close - 1,
                 "close": close,
+                "tr_high": close + 2,
                 "wyckoff_phase": "C",
                 "wyckoff_event": "SPRING_WEAK",
                 "trend": "up",

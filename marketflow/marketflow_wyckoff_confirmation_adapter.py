@@ -97,6 +97,21 @@ def _detect_tr(df: pd.DataFrame, cfg: ConfirmCfg) -> Tuple[float,float]:
     return float(lo), float(hi)
 
 
+def _detect_tr_by_decision_row(df: pd.DataFrame, cfg: ConfirmCfg) -> Tuple[List[float], List[float]]:
+    lows: List[float] = []
+    highs: List[float] = []
+    for row_index in range(len(df)):
+        prefix = df.iloc[: row_index + 1]
+        if len(prefix) < cfg.tr_min_touches:
+            lows.append(float("nan"))
+            highs.append(float("nan"))
+            continue
+        lo, hi = _detect_tr(prefix, cfg)
+        lows.append(lo)
+        highs.append(hi)
+    return lows, highs
+
+
 def _q(price: float, lo: float, hi: float) -> float:
     if hi <= lo: return 0.5
     return (price - lo) / (hi - lo)
@@ -218,8 +233,9 @@ class WyckoffConfirmationAdapter:
         _require_cols(annotated_df)
         df = _prep_df(annotated_df)
         lo, hi = _detect_tr(df, self.cfg)
+        tr_lows, tr_highs = _detect_tr_by_decision_row(df, self.cfg)
 
-        df["tr_low"], df["tr_high"] = lo, hi
+        df["tr_low"], df["tr_high"] = tr_lows, tr_highs
         df["wyckoff_confirmed_event"] = ""
         df["wyckoff_confidence"] = np.nan
         df["wyckoff_reasons"] = ""
@@ -268,8 +284,8 @@ class WyckoffConfirmationAdapter:
                         "price": float(row.close),
                         "confidence": float(best_score),
                         "reasons": best_reasons,
-                        "tr_low": lo,
-                        "tr_high": hi,
+                        "tr_low": float(row.tr_low) if pd.notna(row.tr_low) else None,
+                        "tr_high": float(row.tr_high) if pd.notna(row.tr_high) else None,
                     })
 
             # ---- higher-TF gate (optional) ----

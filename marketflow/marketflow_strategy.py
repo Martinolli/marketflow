@@ -37,6 +37,15 @@ SOURCE_REASON_DATASET_NOT_FOUND = "DATASET_NOT_FOUND"
 SOURCE_REASON_DATASET_IDENTITY_AMBIGUOUS = "DATASET_IDENTITY_AMBIGUOUS"
 SOURCE_REASON_INVALID_REQUEST = "INVALID_DATASET_REQUEST"
 SOURCE_REASON_INVALID_SOURCE_ROOT = "INVALID_DATASET_SOURCE_ROOT"
+TARGET_RESOLVED = "TARGET_RESOLVED"
+TARGET_NOT_AVAILABLE = "TARGET_NOT_AVAILABLE"
+TARGET_INVALID = "TARGET_INVALID"
+TARGET_SOURCE_AMBIGUOUS = "TARGET_SOURCE_AMBIGUOUS"
+TARGET_SOURCE_UNSAFE = "TARGET_SOURCE_UNSAFE"
+TARGET_PROVENANCE_WYCKOFF_TR_HIGH = "WYCKOFF_TR_HIGH"
+RR_GATE_PASSED = "RR_GATE_PASSED"
+RR_BELOW_MINIMUM = "RR_BELOW_MINIMUM"
+RR_INVALID_INPUT = "RR_INVALID_INPUT"
 _TICKER_PATTERN = re.compile(r"^[A-Z0-9._:-]+$")
 _BATCH_RUN_PATTERN = re.compile(r"^batch_\d{8}_\d{6}$")
 
@@ -92,6 +101,31 @@ class StrategySourceResolution:
     @property
     def success(self) -> bool:
         return self.identity is not None and self.status == SOURCE_STATUS_EXACT_MATCH
+
+
+@dataclass(frozen=True)
+class TargetResolution:
+    status: str
+    target_price: float | None = None
+    provenance: str | None = None
+    structural_level_kind: str | None = None
+    source_row_index: int | None = None
+    reason: str | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.status == TARGET_RESOLVED and self.target_price is not None
+
+
+@dataclass(frozen=True)
+class LongTradeLevelResolution:
+    entry: float | None
+    stop_loss: float | None
+    target: TargetResolution
+    rr: float | None
+    rr_status: str
+    eligible: bool
+    reason: str | None = None
 
 # -----------------------------
 # Low-level utilities
@@ -489,11 +523,37 @@ def _atr(df: pd.DataFrame, n: int = 14) -> float:
     logger.debug(f"ATR result: {result}")
     return result
 
-def _rr(close: float, sl: float, tp: float) -> float:
+def _finite_float(value: object) -> float | None:
+    try:
+        numeric = float(value)
+    except (TypeError, ValueError):
+        return None
+    if not pd.notna(numeric) or numeric in (float("inf"), float("-inf")):
+        return None
+    return numeric
+
+
+def _positive_finite_float(value: object) -> float | None:
+    numeric = _finite_float(value)
+    if numeric is None or numeric <= 0:
+        return None
+    return numeric
+
+
+def _rr(close: float, sl: float, tp: float) -> float | None:
     logger.debug(f"Calculating RR: close={close}, sl={sl}, tp={tp}")
-    risk = max(1e-9, close - sl)
-    reward = max(0.0, tp - close)
-    rr = reward / risk if risk > 0 else 0.0
+    entry = _positive_finite_float(close)
+    stop = _positive_finite_float(sl)
+    target = _positive_finite_float(tp)
+    if entry is None or stop is None or target is None:
+        logger.debug("RR input validation failed: non-finite or non-positive value")
+        return None
+    risk = entry - stop
+    reward = target - entry
+    if risk <= 0 or reward <= 0:
+        logger.debug("RR input validation failed: invalid long risk/reward geometry")
+        return None
+    rr = reward / risk
     logger.debug(f"RR result: {rr}")
     return rr
 
@@ -520,22 +580,197 @@ def _pnf_score_neutral() -> float:
     return 0.5
 
 
-def _derive_sl_tp_long(df: pd.DataFrame, cfg: StrategyConfig) -> Tuple[float, float, float]:
-    logger.debug("Deriving SL/TP/RR for long candidate")
-    close = float(df["close"].iloc[-1])
-    atr = _atr(df, n=cfg.atr_len)
+def _target_values_from_row(row: pd.Series) -> list[float | None]:
+    target_columns = [column for column in row.index if str(column) == "tr_high" or re.fullmatch(r"tr_high\.\d+", str(column))]
+    if not target_columns:
+        return []
+    values: list[float | None] = []
+    for column in target_columns:
+        value = row[column]
+        if isinstance(value, pd.Series):
+            values.extend(_finite_float(item) for item in value.tolist())
+        else:
+            values.append(_finite_float(value))
+    return values
+
+
+def _resolve_long_target(
+    df: pd.DataFrame,
+    *,
+    entry: float,
+    decision_row_index: int | None = None,
+) -> TargetResolution:
+    entry_value = _positive_finite_float(entry)
+    if entry_value is None:
+        return TargetResolution(status=TARGET_INVALID, reason=TARGET_INVALID)
+    if df.empty:
+        return TargetResolution(status=TARGET_NOT_AVAILABLE, reason=TARGET_NOT_AVAILABLE)
+
+    row_index = len(df) - 1 if decision_row_index is None else int(decision_row_index)
+    if row_index < 0 or row_index >= len(df):
+        return TargetResolution(status=TARGET_SOURCE_UNSAFE, reason=TARGET_SOURCE_UNSAFE)
+
+    decision_row = df.iloc[row_index]
+    values = _target_values_from_row(decision_row)
+    if not values:
+        return TargetResolution(status=TARGET_NOT_AVAILABLE, reason=TARGET_NOT_AVAILABLE)
+    if any(value is None for value in values):
+        return TargetResolution(status=TARGET_INVALID, reason=TARGET_INVALID)
+
+    unique_values = sorted(set(float(value) for value in values if value is not None))
+    if len(unique_values) != 1:
+        return TargetResolution(status=TARGET_SOURCE_AMBIGUOUS, reason=TARGET_SOURCE_AMBIGUOUS)
+
+    target = unique_values[0]
+    if target <= entry_value:
+        return TargetResolution(status=TARGET_INVALID, reason=TARGET_INVALID)
+
+    return TargetResolution(
+        status=TARGET_RESOLVED,
+        target_price=target,
+        provenance=TARGET_PROVENANCE_WYCKOFF_TR_HIGH,
+        structural_level_kind="resistance",
+        source_row_index=row_index,
+    )
+
+
+def _valid_minimum_rr(value: object) -> float | None:
+    numeric = _positive_finite_float(value)
+    return numeric
+
+
+def _resolve_long_trade_levels(
+    df: pd.DataFrame,
+    cfg: StrategyConfig,
+    *,
+    decision_row_index: int | None = None,
+) -> LongTradeLevelResolution:
+    logger.debug("Resolving long trade levels")
+    min_rr = _valid_minimum_rr(cfg.min_rr)
+    if min_rr is None:
+        return LongTradeLevelResolution(
+            entry=None,
+            stop_loss=None,
+            target=TargetResolution(status=TARGET_INVALID, reason=RR_INVALID_INPUT),
+            rr=None,
+            rr_status=RR_INVALID_INPUT,
+            eligible=False,
+            reason=RR_INVALID_INPUT,
+        )
+    if df.empty:
+        return LongTradeLevelResolution(
+            entry=None,
+            stop_loss=None,
+            target=TargetResolution(status=TARGET_NOT_AVAILABLE, reason=TARGET_NOT_AVAILABLE),
+            rr=None,
+            rr_status=TARGET_NOT_AVAILABLE,
+            eligible=False,
+            reason=TARGET_NOT_AVAILABLE,
+        )
+    row_index = len(df) - 1 if decision_row_index is None else int(decision_row_index)
+    if row_index < 0 or row_index >= len(df):
+        return LongTradeLevelResolution(
+            entry=None,
+            stop_loss=None,
+            target=TargetResolution(status=TARGET_SOURCE_UNSAFE, reason=TARGET_SOURCE_UNSAFE),
+            rr=None,
+            rr_status=TARGET_SOURCE_UNSAFE,
+            eligible=False,
+            reason=TARGET_SOURCE_UNSAFE,
+        )
+    decision_frame = df.iloc[: row_index + 1]
+    close = _positive_finite_float(decision_frame["close"].iloc[-1] if "close" in decision_frame.columns else None)
+    if close is None:
+        return LongTradeLevelResolution(
+            entry=None,
+            stop_loss=None,
+            target=TargetResolution(status=TARGET_INVALID, reason=RR_INVALID_INPUT),
+            rr=None,
+            rr_status=RR_INVALID_INPUT,
+            eligible=False,
+            reason=RR_INVALID_INPUT,
+        )
+    try:
+        atr = _atr(decision_frame, n=cfg.atr_len)
+    except (TypeError, ValueError, KeyError):
+        return LongTradeLevelResolution(
+            entry=close,
+            stop_loss=None,
+            target=TargetResolution(status=TARGET_INVALID, reason=RR_INVALID_INPUT),
+            rr=None,
+            rr_status=RR_INVALID_INPUT,
+            eligible=False,
+            reason=RR_INVALID_INPUT,
+        )
+    atr_value = _positive_finite_float(atr)
+    if atr_value is None:
+        return LongTradeLevelResolution(
+            entry=close,
+            stop_loss=None,
+            target=TargetResolution(status=TARGET_INVALID, reason=RR_INVALID_INPUT),
+            rr=None,
+            rr_status=RR_INVALID_INPUT,
+            eligible=False,
+            reason=RR_INVALID_INPUT,
+        )
+    atr = atr_value
     logger.debug(f"Close: {close}, ATR: {atr}")
 
     tr_low = None
-    if "tr_low" in df.columns and pd.notna(df["tr_low"].iloc[-1]):
-        tr_low = float(df["tr_low"].iloc[-1])
+    if "tr_low" in decision_frame.columns and pd.notna(decision_frame["tr_low"].iloc[-1]):
+        tr_low = _positive_finite_float(decision_frame["tr_low"].iloc[-1])
+        if tr_low is None:
+            return LongTradeLevelResolution(
+                entry=close,
+                stop_loss=None,
+                target=TargetResolution(status=TARGET_INVALID, reason=RR_INVALID_INPUT),
+                rr=None,
+                rr_status=RR_INVALID_INPUT,
+                eligible=False,
+                reason=RR_INVALID_INPUT,
+            )
         logger.debug(f"tr_low found: {tr_low}")
 
     sl = max(tr_low or -1e12, close - cfg.max_sl_atr * atr)
-    tp = close + cfg.min_rr * (close - sl)
-    rr = _rr(close, sl, tp)
-    logger.debug(f"Derived SL: {sl}, TP: {tp}, RR: {rr}")
-    return sl, tp, rr
+    target = _resolve_long_target(df, entry=close, decision_row_index=row_index)
+    if not target.success or target.target_price is None:
+        return LongTradeLevelResolution(
+            entry=close,
+            stop_loss=sl,
+            target=target,
+            rr=None,
+            rr_status=target.status,
+            eligible=False,
+            reason=target.reason or target.status,
+        )
+
+    rr = _rr(close, sl, target.target_price)
+    if rr is None:
+        return LongTradeLevelResolution(
+            entry=close,
+            stop_loss=sl,
+            target=target,
+            rr=None,
+            rr_status=RR_INVALID_INPUT,
+            eligible=False,
+            reason=RR_INVALID_INPUT,
+        )
+    rr_status = RR_GATE_PASSED if rr >= min_rr else RR_BELOW_MINIMUM
+    logger.debug(f"Resolved SL: {sl}, TP: {target.target_price}, RR: {rr}, status={rr_status}")
+    return LongTradeLevelResolution(
+        entry=close,
+        stop_loss=sl,
+        target=target,
+        rr=rr,
+        rr_status=rr_status,
+        eligible=rr_status == RR_GATE_PASSED,
+        reason=None if rr_status == RR_GATE_PASSED else rr_status,
+    )
+
+
+def _derive_sl_tp_long(df: pd.DataFrame, cfg: StrategyConfig) -> Tuple[float, float | None, float | None]:
+    levels = _resolve_long_trade_levels(df, cfg)
+    return levels.stop_loss, levels.target.target_price, levels.rr
 
 
 def _extract_context(df: pd.DataFrame) -> Dict[str, str]:
@@ -660,13 +895,22 @@ def rank_long_candidates(
         if "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(df["timestamp"])  # keep for future filters
 
-        # Derive SL/TP/ RR from ATR + tr_low (if present)
-        sl, tp, rr = _derive_sl_tp_long(df, cfg)
-        logger.info(f"Derived SL/TP/RR for ticker {t}: SL={sl}, TP={tp}, RR={rr}")
-        if rr < cfg.min_rr:
-            # skip if the natural geometry can't get us ≥ min_rr
-            logger.info(f"RR {rr} below min_rr {cfg.min_rr} for ticker {t}, skipping.")
+        # Resolve independent target before applying the RR eligibility gate.
+        levels = _resolve_long_trade_levels(df, cfg)
+        logger.info(
+            f"Resolved SL/TP/RR for ticker {t}: SL={levels.stop_loss}, "
+            f"TP={levels.target.target_price}, RR={levels.rr}, "
+            f"target_status={levels.target.status}, rr_status={levels.rr_status}"
+        )
+        if not levels.eligible:
+            logger.info(
+                f"Long level resolution failed for ticker {t}: "
+                f"{levels.reason or levels.rr_status}; skipping before scoring."
+            )
             continue
+        sl = float(levels.stop_loss)
+        tp = float(levels.target.target_price)
+        rr = float(levels.rr)
 
         # Extract Wyckoff context
         ctx = _extract_context(df)
@@ -721,8 +965,14 @@ def rank_long_candidates(
             "source_csv_name": csv_path.name,
             "source_report_dir": _source_reference(report_root, csv_path.parent),
             "source_status": source_resolution.status,
-            "close": float(df["close"].iloc[-1]),
-            "sl": sl, "tp": tp, "rr": _rr(float(df["close"].iloc[-1]), sl, tp),
+            "close": float(levels.entry),
+            "sl": sl,
+            "tp": tp,
+            "rr": rr,
+            "target_status": levels.target.status,
+            "target_provenance": levels.target.provenance,
+            "target_structural_level_kind": levels.target.structural_level_kind,
+            "rr_status": levels.rr_status,
             "pop": pop,
             "phase": ctx["phase"],
             "event": ctx["event"],

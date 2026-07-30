@@ -32,6 +32,10 @@ def _strategy_candidate(**overrides):
         "sl": 55.76,
         "tp": 72.20,
         "rr": 1.5,
+        "target_status": "TARGET_RESOLVED",
+        "target_provenance": "WYCKOFF_TR_HIGH",
+        "target_structural_level_kind": "resistance",
+        "rr_status": "RR_GATE_PASSED",
         "phase": "D",
         "event": "SPRING_WEAK",
         "trend": "Up",
@@ -58,6 +62,10 @@ def test_normalize_selected_strategy_ranking_style_candidate():
     assert snapshot["stop_loss"] == 55.76
     assert snapshot["take_profit"] == 72.20
     assert snapshot["risk_reward"] == 1.5
+    assert snapshot["target_status"] == "TARGET_RESOLVED"
+    assert snapshot["target_provenance"] == "WYCKOFF_TR_HIGH"
+    assert snapshot["target_structural_level_kind"] == "resistance"
+    assert snapshot["rr_status"] == "RR_GATE_PASSED"
     assert snapshot["strategy_score"] == 73.33
     assert snapshot["wyckoff_phase"] == "D"
     assert snapshot["wyckoff_event"] == "SPRING_WEAK"

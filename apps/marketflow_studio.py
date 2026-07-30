@@ -2335,6 +2335,10 @@ WALK_FORWARD_CASE_COLUMNS = [
     "stop_loss",
     "take_profit",
     "risk_reward",
+    "target_status",
+    "target_provenance",
+    "target_structural_level_kind",
+    "rr_status",
     "wyckoff_phase",
     "wyckoff_event",
     "trend",
@@ -3427,6 +3431,10 @@ def _render_backtest_candidate_snapshot_section(result: dict[str, Any] | None) -
         "stop_loss",
         "take_profit",
         "risk_reward",
+        "target_status",
+        "target_provenance",
+        "target_structural_level_kind",
+        "rr_status",
         "strategy_score",
         "wyckoff_phase",
         "wyckoff_event",
@@ -4031,6 +4039,10 @@ def _trade_plan_from_strategy_candidate(candidate: dict[str, Any] | None) -> dic
         "take_profit": _safe_float(
             candidate.get("take_profit") if candidate.get("take_profit") is not None else candidate.get("tp")
         ),
+        "target_status": candidate.get("target_status"),
+        "target_provenance": candidate.get("target_provenance"),
+        "target_structural_level_kind": candidate.get("target_structural_level_kind"),
+        "rr_status": candidate.get("rr_status"),
         "source": "strategy_ranking",
         "source_candidate": candidate,
     }

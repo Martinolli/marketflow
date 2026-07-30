@@ -2,6 +2,12 @@ from __future__ import annotations
 
 import pandas as pd
 
+from marketflow.marketflow_strategy import (
+    RR_GATE_PASSED,
+    TARGET_PROVENANCE_WYCKOFF_TR_HIGH,
+    TARGET_NOT_AVAILABLE,
+    TARGET_RESOLVED,
+)
 from marketflow.services.walk_forward_validation_service import (
     build_and_evaluate_walk_forward_cases_from_csv,
     build_walk_forward_cases_from_csv,
@@ -22,6 +28,7 @@ def _rows(count: int, *, include_timestamp: bool = True, include_event: bool = T
             "high": close + 2.0,
             "low": close - 1.0,
             "close": close,
+            "tr_high": close + 2.0,
             "wyckoff_phase": "C" if index % 2 == 0 else "D",
             "trend": "up",
             "strategy_score": 70.0 + (index % 10),
@@ -234,6 +241,10 @@ def test_candidate_fields_valid(tmp_path):
     assert case["entry"] is not None
     assert case["stop_loss"] < case["entry"]
     assert case["take_profit"] > case["entry"]
+    assert case["target_status"] == TARGET_RESOLVED
+    assert case["target_provenance"] == TARGET_PROVENANCE_WYCKOFF_TR_HIGH
+    assert case["target_structural_level_kind"] == "resistance"
+    assert case["rr_status"] == RR_GATE_PASSED
     assert case["signal_row_index"] == 119
     assert case["source_csv"] == str(path)
     assert case["candidate_source"] == "walk_forward_validation"
@@ -241,6 +252,26 @@ def test_candidate_fields_valid(tmp_path):
     assert case["wyckoff_event_source"] == "wyckoff_event"
     assert case["wyckoff_phase_source"] == "wyckoff_phase"
     assert case["trend_source"] == "trend"
+
+
+def test_missing_structural_target_records_target_status_as_rr_status(tmp_path):
+    rows = _rows(320)
+    for row in rows:
+        row.pop("tr_high", None)
+    path = tmp_path / "AAPL_1d_wyckoff_annotated.csv"
+    pd.DataFrame(rows).to_csv(path, index=False)
+
+    result = build_walk_forward_cases_from_csv(
+        path,
+        profile_name="fast_test",
+        max_cases=1,
+        include_invalid_cases=True,
+    )
+    case = result["cases"][0]
+
+    assert case["snapshot_success"] is False
+    assert case["target_status"] == TARGET_NOT_AVAILABLE
+    assert case["rr_status"] == TARGET_NOT_AVAILABLE
 
 
 def test_evaluate_cases_returns_result_rows(tmp_path):

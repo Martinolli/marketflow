@@ -19,10 +19,13 @@ from marketflow.marketflow_strategy import (
 
 
 def _touch(path: Path) -> Path:
-    rows = ["timestamp,open,high,low,close,wyckoff_phase,wyckoff_confirmed_event"]
+    rows = ["timestamp,open,high,low,close,tr_low,tr_high,wyckoff_phase,wyckoff_confirmed_event"]
     for index in range(25):
         close = 100 + index
-        rows.append(f"2026-01-{index + 1:02d},{close - 1},{close + 2},{close - 2},{close},D,SOS")
+        rows.append(
+            f"2026-01-{index + 1:02d},{close - 1},{close + 2},{close - 2},{close},"
+            f"{close - 5},{close + 12},D,SOS"
+        )
     path.write_text("\n".join(rows) + "\n", encoding="utf-8")
     return path
 

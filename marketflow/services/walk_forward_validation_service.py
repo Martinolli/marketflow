@@ -14,6 +14,14 @@ from marketflow.services.parameter_profile_service import (
     get_timeframe_posture,
 )
 from marketflow.services.backtest_result_service import evaluate_candidate_snapshot_rows
+from marketflow.marketflow_strategy import (
+    RR_BELOW_MINIMUM,
+    RR_GATE_PASSED,
+    RR_INVALID_INPUT,
+    TARGET_NOT_AVAILABLE,
+    _resolve_long_target,
+    _rr,
+)
 
 
 WALK_FORWARD_METADATA_VERSION = "walk_forward_validation_v1"
@@ -324,6 +332,7 @@ def build_walk_forward_candidate_from_row(
     trend_column: str | None = None,
     risk_reward: float = DEFAULT_RISK_REWARD,
     risk_fraction: float = DEFAULT_RISK_FRACTION,
+    decision_frame: pd.DataFrame | None = None,
     walk_forward_run_id: str | None = None,
 ) -> dict[str, Any]:
     ohlc = ohlc_columns or {}
@@ -351,10 +360,33 @@ def build_walk_forward_candidate_from_row(
             errors.append("stop_loss is not below entry")
 
     take_profit = None
+    calculated_rr = None
+    target_status = TARGET_NOT_AVAILABLE
+    target_provenance = None
+    target_structural_level_kind = None
+    rr_status = RR_INVALID_INPUT
     if entry is not None and stop_loss is not None:
-        take_profit = entry + risk_reward * (entry - stop_loss)
-        if take_profit <= entry:
-            errors.append("take_profit is not above entry")
+        target_frame = decision_frame if decision_frame is not None else pd.DataFrame([row_series])
+        target = _resolve_long_target(target_frame, entry=entry, decision_row_index=len(target_frame) - 1)
+        target_status = target.status
+        target_provenance = target.provenance
+        target_structural_level_kind = target.structural_level_kind
+        if not target.success or target.target_price is None:
+            rr_status = target.status
+            errors.append(target.reason or target.status)
+        else:
+            take_profit = target.target_price
+            calculated_rr = _rr(entry, stop_loss, take_profit)
+            minimum_rr = _to_float(risk_reward)
+            if minimum_rr is None or minimum_rr <= 0:
+                errors.append(RR_INVALID_INPUT)
+            elif calculated_rr is None:
+                errors.append(RR_INVALID_INPUT)
+            elif calculated_rr < minimum_rr:
+                rr_status = RR_BELOW_MINIMUM
+                errors.append(RR_BELOW_MINIMUM)
+            else:
+                rr_status = RR_GATE_PASSED
 
     timestamp = _column_value(row_series, timestamp_column)
     strategy_score = _first_present_row_value(row_series, ("strategy_score", "score"))
@@ -384,7 +416,11 @@ def build_walk_forward_candidate_from_row(
         "entry": entry,
         "stop_loss": stop_loss,
         "take_profit": take_profit,
-        "risk_reward": risk_reward,
+        "risk_reward": calculated_rr,
+        "target_status": target_status,
+        "target_provenance": target_provenance,
+        "target_structural_level_kind": target_structural_level_kind,
+        "rr_status": rr_status,
         "strategy_score": _to_float(strategy_score),
         "wyckoff_phase": _json_safe_value(wyckoff_phase),
         "wyckoff_event": _json_safe_value(wyckoff_event),
@@ -550,6 +586,7 @@ def build_walk_forward_cases_from_csv(
             trend_column=trend_column,
             risk_reward=risk_reward,
             risk_fraction=risk_fraction,
+            decision_frame=data.iloc[: index + 1],
             walk_forward_run_id=run_id,
         )
         if not candidate.get("snapshot_success"):

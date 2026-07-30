@@ -23,6 +23,10 @@ def _candidate(**overrides):
         "sl": 55.76,
         "tp": 72.20,
         "rr": 1.5,
+        "target_status": "TARGET_RESOLVED",
+        "target_provenance": "WYCKOFF_TR_HIGH",
+        "target_structural_level_kind": "resistance",
+        "rr_status": "RR_GATE_PASSED",
         "phase": "D",
         "event": "SPRING_WEAK",
         "trend": "Up",
@@ -68,6 +72,9 @@ def test_row_conversion_valid_snapshot_preserves_contract():
     assert row["entry"] == 62.34
     assert row["stop_loss"] == 55.76
     assert row["take_profit"] == 72.20
+    assert row["target_status"] == "TARGET_RESOLVED"
+    assert row["target_provenance"] == "WYCKOFF_TR_HIGH"
+    assert row["rr_status"] == "RR_GATE_PASSED"
 
 
 def test_row_conversion_invalid_snapshot_serializes_errors():
