@@ -46,6 +46,11 @@ TARGET_PROVENANCE_WYCKOFF_TR_HIGH = "WYCKOFF_TR_HIGH"
 RR_GATE_PASSED = "RR_GATE_PASSED"
 RR_BELOW_MINIMUM = "RR_BELOW_MINIMUM"
 RR_INVALID_INPUT = "RR_INVALID_INPUT"
+VOLATILITY_RESOLVED = "VOLATILITY_RESOLVED"
+VOLATILITY_NOT_AVAILABLE = "VOLATILITY_NOT_AVAILABLE"
+VOLATILITY_INVALID = "VOLATILITY_INVALID"
+VOLATILITY_SOURCE_UNSAFE = "VOLATILITY_SOURCE_UNSAFE"
+VOLATILITY_PROVENANCE_TRUE_RANGE_SIMPLE_ROLLING = "TRUE_RANGE_SIMPLE_ROLLING"
 _TICKER_PATTERN = re.compile(r"^[A-Z0-9._:-]+$")
 _BATCH_RUN_PATTERN = re.compile(r"^batch_\d{8}_\d{6}$")
 
@@ -118,6 +123,19 @@ class TargetResolution:
 
 
 @dataclass(frozen=True)
+class VolatilityResolution:
+    status: str
+    value: float | None = None
+    provenance: str | None = None
+    window: int | None = None
+    reason: str | None = None
+
+    @property
+    def success(self) -> bool:
+        return self.status == VOLATILITY_RESOLVED and self.value is not None
+
+
+@dataclass(frozen=True)
 class LongTradeLevelResolution:
     entry: float | None
     stop_loss: float | None
@@ -126,6 +144,7 @@ class LongTradeLevelResolution:
     rr_status: str
     eligible: bool
     reason: str | None = None
+    volatility: VolatilityResolution | None = None
 
 # -----------------------------
 # Low-level utilities
@@ -515,14 +534,6 @@ def _latest_mc(dir_: str, tf: str | None = None) -> Optional[dict]:
     data, _meta = _latest_mc_with_metadata(dir_, tf)
     return data
 
-def _atr(df: pd.DataFrame, n: int = 14) -> float:
-    logger.debug(f"Calculating ATR with window: {n}")
-    tr = (df["high"] - df["low"]).clip(lower=0)
-    atr = pd.Series(tr).rolling(n).mean().iloc[-1]
-    result = float(atr) if pd.notna(atr) else float(tr.iloc[-n:].mean())
-    logger.debug(f"ATR result: {result}")
-    return result
-
 def _finite_float(value: object) -> float | None:
     try:
         numeric = float(value)
@@ -538,6 +549,123 @@ def _positive_finite_float(value: object) -> float | None:
     if numeric is None or numeric <= 0:
         return None
     return numeric
+
+
+def _single_numeric_column(df: pd.DataFrame, column: str) -> pd.Series | None:
+    if column not in df.columns:
+        return None
+    if list(df.columns).count(column) != 1:
+        return None
+    series = pd.to_numeric(df[column], errors="coerce")
+    if not bool(series.notna().all()):
+        return None
+    values = [float(value) for value in series.tolist()]
+    if any(value in (float("inf"), float("-inf")) for value in values):
+        return None
+    return pd.Series(values, index=df.index, dtype="float64")
+
+
+def _timestamp_chronology_is_safe(df: pd.DataFrame) -> bool:
+    if "timestamp" not in df.columns:
+        return True
+    if list(df.columns).count("timestamp") != 1:
+        return False
+    timestamps = pd.to_datetime(df["timestamp"], errors="coerce")
+    if not bool(timestamps.notna().all()):
+        return False
+    if bool(timestamps.duplicated().any()):
+        return False
+    return bool(timestamps.is_monotonic_increasing)
+
+
+def _true_range(df: pd.DataFrame) -> pd.Series | None:
+    high = _single_numeric_column(df, "high")
+    low = _single_numeric_column(df, "low")
+    close = _single_numeric_column(df, "close")
+    if high is None or low is None or close is None:
+        return None
+    if bool((high < low).any()):
+        return None
+
+    previous_close = close.shift(1)
+    if len(previous_close) > 1 and not bool(previous_close.iloc[1:].notna().all()):
+        return None
+
+    high_low = high - low
+    high_previous_close = (high - previous_close).abs()
+    low_previous_close = (low - previous_close).abs()
+    true_range = pd.concat(
+        [high_low, high_previous_close, low_previous_close],
+        axis=1,
+    ).max(axis=1, skipna=True)
+    return pd.Series(true_range, index=df.index, dtype="float64")
+
+
+def _resolve_volatility(df: pd.DataFrame, n: int = 14) -> VolatilityResolution:
+    logger.debug(f"Resolving True Range volatility with window: {n}")
+    numeric_window = _positive_finite_float(n)
+    if numeric_window is None or numeric_window != int(numeric_window):
+        return VolatilityResolution(
+            status=VOLATILITY_INVALID,
+            reason=VOLATILITY_INVALID,
+            window=None,
+        )
+    window = int(numeric_window)
+    if df.empty:
+        return VolatilityResolution(
+            status=VOLATILITY_NOT_AVAILABLE,
+            reason=VOLATILITY_NOT_AVAILABLE,
+            window=window,
+        )
+    for column in ("high", "low", "close"):
+        if column not in df.columns:
+            return VolatilityResolution(
+                status=VOLATILITY_NOT_AVAILABLE,
+                reason=VOLATILITY_NOT_AVAILABLE,
+                window=window,
+            )
+        if list(df.columns).count(column) != 1:
+            return VolatilityResolution(
+                status=VOLATILITY_SOURCE_UNSAFE,
+                reason=VOLATILITY_SOURCE_UNSAFE,
+                window=window,
+            )
+
+    if not _timestamp_chronology_is_safe(df):
+        return VolatilityResolution(
+            status=VOLATILITY_SOURCE_UNSAFE,
+            reason=VOLATILITY_SOURCE_UNSAFE,
+            window=window,
+        )
+
+    true_range = _true_range(df)
+    if true_range is None or true_range.empty:
+        return VolatilityResolution(
+            status=VOLATILITY_INVALID,
+            reason=VOLATILITY_INVALID,
+            window=window,
+        )
+
+    atr = true_range.rolling(window).mean().iloc[-1]
+    result = float(atr) if pd.notna(atr) else float(true_range.iloc[-window:].mean())
+    if _positive_finite_float(result) is None:
+        return VolatilityResolution(
+            status=VOLATILITY_INVALID,
+            reason=VOLATILITY_INVALID,
+            window=window,
+        )
+    logger.debug(f"True Range volatility result: {result}")
+    return VolatilityResolution(
+        status=VOLATILITY_RESOLVED,
+        value=result,
+        provenance=VOLATILITY_PROVENANCE_TRUE_RANGE_SIMPLE_ROLLING,
+        window=window,
+    )
+
+
+def _atr(df: pd.DataFrame, n: int = 14) -> float | None:
+    resolution = _resolve_volatility(df, n=n)
+    return resolution.value
 
 
 def _rr(close: float, sl: float, tp: float) -> float | None:
@@ -656,6 +784,7 @@ def _resolve_long_trade_levels(
             rr_status=RR_INVALID_INPUT,
             eligible=False,
             reason=RR_INVALID_INPUT,
+            volatility=VolatilityResolution(status=VOLATILITY_NOT_AVAILABLE, reason=VOLATILITY_NOT_AVAILABLE),
         )
     if df.empty:
         return LongTradeLevelResolution(
@@ -666,6 +795,7 @@ def _resolve_long_trade_levels(
             rr_status=TARGET_NOT_AVAILABLE,
             eligible=False,
             reason=TARGET_NOT_AVAILABLE,
+            volatility=VolatilityResolution(status=VOLATILITY_NOT_AVAILABLE, reason=VOLATILITY_NOT_AVAILABLE),
         )
     row_index = len(df) - 1 if decision_row_index is None else int(decision_row_index)
     if row_index < 0 or row_index >= len(df):
@@ -677,8 +807,21 @@ def _resolve_long_trade_levels(
             rr_status=TARGET_SOURCE_UNSAFE,
             eligible=False,
             reason=TARGET_SOURCE_UNSAFE,
+            volatility=VolatilityResolution(status=VOLATILITY_SOURCE_UNSAFE, reason=VOLATILITY_SOURCE_UNSAFE),
         )
     decision_frame = df.iloc[: row_index + 1]
+    volatility = _resolve_volatility(decision_frame, n=cfg.atr_len)
+    if not volatility.success:
+        return LongTradeLevelResolution(
+            entry=None,
+            stop_loss=None,
+            target=TargetResolution(status=TARGET_INVALID, reason=RR_INVALID_INPUT),
+            rr=None,
+            rr_status=volatility.status,
+            eligible=False,
+            reason=volatility.reason or volatility.status,
+            volatility=volatility,
+        )
     close = _positive_finite_float(decision_frame["close"].iloc[-1] if "close" in decision_frame.columns else None)
     if close is None:
         return LongTradeLevelResolution(
@@ -689,31 +832,9 @@ def _resolve_long_trade_levels(
             rr_status=RR_INVALID_INPUT,
             eligible=False,
             reason=RR_INVALID_INPUT,
+            volatility=volatility,
         )
-    try:
-        atr = _atr(decision_frame, n=cfg.atr_len)
-    except (TypeError, ValueError, KeyError):
-        return LongTradeLevelResolution(
-            entry=close,
-            stop_loss=None,
-            target=TargetResolution(status=TARGET_INVALID, reason=RR_INVALID_INPUT),
-            rr=None,
-            rr_status=RR_INVALID_INPUT,
-            eligible=False,
-            reason=RR_INVALID_INPUT,
-        )
-    atr_value = _positive_finite_float(atr)
-    if atr_value is None:
-        return LongTradeLevelResolution(
-            entry=close,
-            stop_loss=None,
-            target=TargetResolution(status=TARGET_INVALID, reason=RR_INVALID_INPUT),
-            rr=None,
-            rr_status=RR_INVALID_INPUT,
-            eligible=False,
-            reason=RR_INVALID_INPUT,
-        )
-    atr = atr_value
+    atr = float(volatility.value)
     logger.debug(f"Close: {close}, ATR: {atr}")
 
     tr_low = None
@@ -728,6 +849,7 @@ def _resolve_long_trade_levels(
                 rr_status=RR_INVALID_INPUT,
                 eligible=False,
                 reason=RR_INVALID_INPUT,
+                volatility=volatility,
             )
         logger.debug(f"tr_low found: {tr_low}")
 
@@ -742,6 +864,7 @@ def _resolve_long_trade_levels(
             rr_status=target.status,
             eligible=False,
             reason=target.reason or target.status,
+            volatility=volatility,
         )
 
     rr = _rr(close, sl, target.target_price)
@@ -754,6 +877,7 @@ def _resolve_long_trade_levels(
             rr_status=RR_INVALID_INPUT,
             eligible=False,
             reason=RR_INVALID_INPUT,
+            volatility=volatility,
         )
     rr_status = RR_GATE_PASSED if rr >= min_rr else RR_BELOW_MINIMUM
     logger.debug(f"Resolved SL: {sl}, TP: {target.target_price}, RR: {rr}, status={rr_status}")
@@ -765,6 +889,7 @@ def _resolve_long_trade_levels(
         rr_status=rr_status,
         eligible=rr_status == RR_GATE_PASSED,
         reason=None if rr_status == RR_GATE_PASSED else rr_status,
+        volatility=volatility,
     )
 
 
@@ -900,7 +1025,8 @@ def rank_long_candidates(
         logger.info(
             f"Resolved SL/TP/RR for ticker {t}: SL={levels.stop_loss}, "
             f"TP={levels.target.target_price}, RR={levels.rr}, "
-            f"target_status={levels.target.status}, rr_status={levels.rr_status}"
+            f"target_status={levels.target.status}, rr_status={levels.rr_status}, "
+            f"volatility_status={levels.volatility.status if levels.volatility else None}"
         )
         if not levels.eligible:
             logger.info(
@@ -973,6 +1099,10 @@ def rank_long_candidates(
             "target_provenance": levels.target.provenance,
             "target_structural_level_kind": levels.target.structural_level_kind,
             "rr_status": levels.rr_status,
+            "volatility_status": levels.volatility.status if levels.volatility else None,
+            "volatility_provenance": levels.volatility.provenance if levels.volatility else None,
+            "volatility_window": levels.volatility.window if levels.volatility else None,
+            "volatility_value": levels.volatility.value if levels.volatility else None,
             "pop": pop,
             "phase": ctx["phase"],
             "event": ctx["event"],

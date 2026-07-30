@@ -9,6 +9,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 SOURCE_IDENTITY_BASE_COMMIT = "f3c2ca8f841030c46657332371b155ad6bd81e68"
 RISK_REWARD_BASE_COMMIT = "2ccaa223d4a193d655713285291d04267637f79a"
+TRUE_RANGE_BASE_COMMIT = "105e288ab324741ec3a78ff2f70b7b3ef950dd91"
 MANUAL_CHECKS = {
     "scripts/manual_checks/real_market_data_check.py",
     "scripts/manual_checks/data_provider_simple_check.py",
@@ -31,7 +32,6 @@ PROTECTED_STRATEGY_FILES = {
     "marketflow/services/monte_carlo_service.py",
 }
 PROTECTED_STRATEGY_FORMULAS = {
-    "_atr",
     "_phase_score",
     "_event_score",
     "_pnf_score_neutral",
@@ -288,6 +288,39 @@ def test_walk_forward_candidate_uses_independent_target_and_prefix_frame():
     assert "decision_frame=data.iloc[:index+1]" in case_builder.replace(" ", "")
 
 
+def test_true_range_volatility_replaces_high_low_only_baseline():
+    base = subprocess.run(
+        ["git", "show", f"{TRUE_RANGE_BASE_COMMIT}:marketflow/marketflow_strategy.py"],
+        cwd=REPO_ROOT,
+        check=True,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+    )
+    base_functions = _function_bodies(base.stdout)
+    source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
+    current_functions = _function_bodies(source)
+    chronology = current_functions["_timestamp_chronology_is_safe"]
+    true_range = current_functions["_true_range"]
+    volatility = current_functions["_resolve_volatility"]
+    atr = current_functions["_atr"]
+
+    assert "df['high'] - df['low']" in base_functions["_atr"] or 'df["high"] - df["low"]' in base_functions["_atr"]
+    assert "previous_close = close.shift(1)" in true_range
+    assert "(high - previous_close).abs()" in true_range
+    assert "(low - previous_close).abs()" in true_range
+    assert "high < low" in true_range
+    assert "timestamps.is_monotonic_increasing" in chronology
+    assert "timestamps.duplicated().any()" in chronology
+    assert "_timestamp_chronology_is_safe(df)" in volatility
+    assert "rolling(window).mean().iloc[-1]" in volatility
+    assert "true_range.iloc[-window:].mean()" in volatility
+    assert "VOLATILITY_RESOLVED" in source
+    assert "VOLATILITY_INVALID" in source
+    assert "TRUE_RANGE_SIMPLE_ROLLING" in source
+    assert "_resolve_volatility(df, n=n)" in atr
+
+
 def test_strategy_source_identity_forbids_timeframe_only_and_first_file_fallbacks():
     source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
     functions = _function_bodies(source)
@@ -337,8 +370,11 @@ def test_studio_surfaces_target_and_rr_status_fields():
     assert '"target_provenance"' in studio_source
     assert '"target_structural_level_kind"' in studio_source
     assert '"rr_status"' in studio_source
+    assert '"volatility_status"' in studio_source
+    assert '"volatility_provenance"' in studio_source
     assert "'target_status': candidate.get('target_status')" in trade_plan
     assert "'rr_status': candidate.get('rr_status')" in trade_plan
+    assert "'volatility_status': candidate.get('volatility_status')" in trade_plan
 
 
 def test_wyckoff_adapter_confirmed_events_use_point_in_time_tr_columns():
