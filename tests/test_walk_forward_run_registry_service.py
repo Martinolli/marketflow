@@ -416,11 +416,14 @@ def test_validation_artifact_save_writes_registry_and_result_run_columns(tmp_pat
         close = 100 + index * 0.1
         rows.append(
             {
-                "timestamp": f"2026-01-{index % 28 + 1:02d} 10:{index % 60:02d}:00",
+                "timestamp": (
+                    pd.Timestamp("2026-01-01 10:00:00") + pd.Timedelta(minutes=index)
+                ).isoformat(sep=" "),
                 "open": close - 0.2,
                 "high": close + 2,
                 "low": close - 1,
                 "close": close,
+                "tr_low": close - 1,
                 "tr_high": close + 2,
                 "wyckoff_phase": "C",
                 "wyckoff_event": "SPRING_WEAK",

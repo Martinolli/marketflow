@@ -18,6 +18,8 @@ from marketflow.marketflow_strategy import (
     COMPONENT_PNF,
     COMPONENT_POP,
     COMPONENT_TREND,
+    CandidateBuildRequest,
+    CandidateEvidenceInputs,
     EVIDENCE_AVAILABLE,
     EVIDENCE_DISABLED_BY_CONFIGURATION,
     EVIDENCE_NOT_AVAILABLE,
@@ -28,6 +30,9 @@ from marketflow.marketflow_strategy import (
     SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED,
     SCORE_PROFILE_UNSAFE,
     SOURCE_STATUS_EXACT_MATCH,
+    StrategyConfig,
+    StrategyDatasetIdentity,
+    build_candidate_from_prefix,
     _resolve_wyckoff_event,
 )
 
@@ -799,6 +804,17 @@ def _resolve_snapshot_event_diagnostics(
     signal_row_index = _to_int(enriched.get("signal_row_index"))
     if source_path is None or signal_row_index is None:
         return _with_event_failure(EVENT_NOT_AVAILABLE)
+    source_ticker = _infer_ticker_from_csv(source_path)
+    source_timeframe = _infer_timeframe_from_text(str(source_path))
+    if (
+        (source_ticker is not None and not _is_missing(enriched.get("ticker")) and source_ticker != str(enriched.get("ticker")).upper())
+        or (
+            source_timeframe is not None
+            and not _is_missing(enriched.get("timeframe"))
+            and source_timeframe != str(enriched.get("timeframe")).lower()
+        )
+    ):
+        return _with_event_failure(EVENT_SOURCE_UNSAFE)
     try:
         dataframe = pd.read_csv(source_path)
     except Exception:
@@ -830,6 +846,82 @@ def _resolve_snapshot_event_diagnostics(
     if _is_missing(enriched.get("wyckoff_event")) and resolution.event:
         enriched["wyckoff_event"] = resolution.event
     return {field: _json_safe_value(enriched.get(field)) for field in SNAPSHOT_FIELDS}
+
+
+def _canonical_snapshot_from_source_prefix(
+    snapshot: dict[str, Any],
+    *,
+    strategy_config: StrategyConfig,
+    evidence_inputs: CandidateEvidenceInputs,
+) -> dict[str, Any] | None:
+    if snapshot.get("source_status") != SOURCE_STATUS_EXACT_MATCH:
+        return None
+
+    def _failed_snapshot(reason: str) -> dict[str, Any]:
+        failed = dict(snapshot)
+        failed.update(
+            {
+                "entry": None,
+                "stop_loss": None,
+                "take_profit": None,
+                "risk_reward": None,
+                "target_status": reason,
+                "target_provenance": None,
+                "target_structural_level_kind": None,
+                "rr_status": reason,
+                "strategy_score": None,
+                "composite_score": None,
+                "score_status": SCORE_INCOMPLETE,
+                "rank_eligible": False,
+            }
+        )
+        return {field: _json_safe_value(failed.get(field)) for field in SNAPSHOT_FIELDS}
+
+    source_path = _candidate_source_path(snapshot.get("source_csv"), snapshot.get("source_report_dir"))
+    signal_row_index = _to_int(snapshot.get("signal_row_index"))
+    if source_path is None or signal_row_index is None or signal_row_index < 0:
+        return _failed_snapshot("CANONICAL_SOURCE_PREFIX_NOT_AVAILABLE")
+    try:
+        dataframe = pd.read_csv(source_path)
+    except Exception:
+        return _failed_snapshot("CANONICAL_SOURCE_PREFIX_NOT_AVAILABLE")
+    if signal_row_index >= len(dataframe):
+        return _failed_snapshot("CANONICAL_SOURCE_PREFIX_NOT_AVAILABLE")
+    ticker = snapshot.get("ticker")
+    timeframe = snapshot.get("timeframe")
+    if _is_missing(ticker) or _is_missing(timeframe):
+        return _failed_snapshot("CANONICAL_SOURCE_IDENTITY_NOT_AVAILABLE")
+    source_ticker = _infer_ticker_from_csv(source_path)
+    source_timeframe = _infer_timeframe_from_text(str(source_path))
+    if (
+        (source_ticker is not None and source_ticker != str(ticker).upper())
+        or (source_timeframe is not None and source_timeframe != str(timeframe).lower())
+    ):
+        return _failed_snapshot("CANONICAL_SOURCE_IDENTITY_MISMATCH")
+    identity = StrategyDatasetIdentity(
+        ticker=str(ticker).upper(),
+        timeframe=str(timeframe).lower(),
+        source=source_path,
+        source_kind="backtest_source",
+        status=SOURCE_STATUS_EXACT_MATCH,
+    )
+    core = build_candidate_from_prefix(
+        CandidateBuildRequest(
+            source_identity=identity,
+            data_prefix=dataframe.iloc[: signal_row_index + 1],
+            config=strategy_config,
+            evidence=evidence_inputs,
+            source_status=SOURCE_STATUS_EXACT_MATCH,
+            candidate_source="backtest_candidate_generation",
+        )
+    )
+    if not core.get("candidate_build_success"):
+        return _failed_snapshot(str(core.get("candidate_build_reason") or core.get("candidate_build_status") or "invalid"))
+    rebuilt = normalize_candidate_snapshot(core)
+    rebuilt["candidate_source"] = snapshot.get("candidate_source") or "backtest_candidate_generation"
+    if not _is_missing(snapshot.get("source_report_dir")):
+        rebuilt["source_report_dir"] = snapshot.get("source_report_dir")
+    return rebuilt
 
 
 def normalize_candidate_snapshot(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -965,6 +1057,8 @@ def build_candidate_snapshot_from_strategy_candidate(
     *,
     report_dir: str | Path | None = None,
     max_event_age_bars: int | None = None,
+    strategy_config: StrategyConfig | None = None,
+    evidence_inputs: CandidateEvidenceInputs | None = None,
 ) -> dict[str, Any]:
     """Normalize and validate a selected Strategy Ranking candidate."""
 
@@ -972,8 +1066,17 @@ def build_candidate_snapshot_from_strategy_candidate(
     if report_dir is not None and _is_missing(snapshot.get("source_report_dir")):
         snapshot["source_report_dir"] = str(report_dir)
     enrichment = enrich_candidate_snapshot_signal_location(snapshot)
+    snapshot = enrichment["snapshot"]
+    rebuilt_snapshot = _canonical_snapshot_from_source_prefix(
+        snapshot,
+        strategy_config=strategy_config or StrategyConfig(max_event_age_bars=max_event_age_bars),
+        evidence_inputs=evidence_inputs
+        or CandidateEvidenceInputs(pop=_to_float(candidate.get("pop") or candidate.get("pop_evidence_score"))),
+    )
+    if rebuilt_snapshot is not None:
+        snapshot = rebuilt_snapshot
     snapshot = _resolve_snapshot_event_diagnostics(
-        enrichment["snapshot"],
+        snapshot,
         max_event_age_bars=max_event_age_bars,
     )
     validation = validate_candidate_snapshot(snapshot)

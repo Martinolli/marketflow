@@ -6,6 +6,7 @@ from pathlib import Path
 from typing import Any
 from uuid import uuid4
 import math
+import numbers
 
 import pandas as pd
 
@@ -20,20 +21,19 @@ from marketflow.marketflow_strategy import (
     COMPONENT_PNF,
     COMPONENT_POP,
     COMPONENT_TREND,
+    CandidateBuildRequest,
+    CandidateEvidenceInputs,
     EVIDENCE_AVAILABLE,
     EVIDENCE_DISABLED_BY_CONFIGURATION,
     EVIDENCE_NOT_AVAILABLE,
-    RR_BELOW_MINIMUM,
-    RR_GATE_PASSED,
-    RR_INVALID_INPUT,
     SCORE_INCOMPLETE,
     SCORE_INVALID,
     SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED,
     SCORE_PROFILE_UNSAFE,
-    TARGET_NOT_AVAILABLE,
-    _resolve_wyckoff_event,
-    _resolve_long_target,
-    _rr,
+    SOURCE_STATUS_EXACT_MATCH,
+    StrategyConfig,
+    StrategyDatasetIdentity,
+    build_candidate_from_prefix,
 )
 
 
@@ -46,6 +46,9 @@ WALK_FORWARD_SOURCE_STATUS_EXACT_MATCH = "EXACT_MATCH"
 WALK_FORWARD_SOURCE_REASON_IDENTITY_MISMATCH = "DATASET_IDENTITY_MISMATCH"
 WALK_FORWARD_SOURCE_REASON_IDENTITY_UNKNOWN = "DATASET_IDENTITY_UNKNOWN"
 LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE = "LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE"
+INVALID_SIGNAL_ROW_INDEX = "INVALID_SIGNAL_ROW_INDEX"
+SIGNAL_TIMESTAMP_MISMATCH = "SIGNAL_TIMESTAMP_MISMATCH"
+ALIAS_CONFLICT = "ALIAS_CONFLICT"
 
 DEFAULT_TIMESTAMP_COLUMNS = (
     "timestamp",
@@ -540,6 +543,117 @@ def _first_present_row_value(row: pd.Series | dict[str, Any], columns: tuple[str
     return row.get(column)
 
 
+def _strict_signal_row_index(value: Any, *, total_rows: int, decision_frame: pd.DataFrame | None) -> int | None:
+    if isinstance(value, bool) or not isinstance(value, numbers.Integral):
+        return None
+    index = int(value)
+    if index < 0 or index >= total_rows:
+        return None
+    if decision_frame is not None and index >= len(decision_frame):
+        return None
+    if decision_frame is None and index != 0:
+        return None
+    return index
+
+
+def _series_values_match(left: pd.Series, right: pd.Series) -> bool:
+    left_series = left.reset_index(drop=True)
+    right_series = right.reset_index(drop=True)
+    if left_series.equals(right_series):
+        return True
+    left_numeric = pd.to_numeric(left_series, errors="coerce")
+    right_numeric = pd.to_numeric(right_series, errors="coerce")
+    if bool(left_numeric.notna().all()) and bool(right_numeric.notna().all()):
+        return bool(left_numeric.equals(right_numeric))
+    left_text = left_series.astype("string").fillna("<NA>")
+    right_text = right_series.astype("string").fillna("<NA>")
+    return bool(left_text.equals(right_text))
+
+
+def _copy_alias_or_conflict(
+    dataframe: pd.DataFrame,
+    *,
+    canonical_column: str,
+    source_column: str | None,
+) -> str | None:
+    if not source_column or source_column not in dataframe.columns:
+        return None
+    if canonical_column in dataframe.columns:
+        if source_column != canonical_column and not _series_values_match(dataframe[canonical_column], dataframe[source_column]):
+            return ALIAS_CONFLICT
+        return None
+    dataframe[canonical_column] = dataframe[source_column]
+    return None
+
+
+def _invalid_walk_forward_candidate(
+    *,
+    reason: str,
+    csv_path: str | Path,
+    signal_row_index: Any,
+    total_rows: int,
+    profile_name: str,
+    walk_forward_run_id: str,
+    ticker: str | None,
+    timeframe: str | None,
+) -> dict[str, Any]:
+    signal_index = int(signal_row_index) if isinstance(signal_row_index, numbers.Integral) and not isinstance(signal_row_index, bool) else None
+    future_start = signal_index + 1 if signal_index is not None and signal_index >= 0 else None
+    return _json_safe_dict(
+        {
+            "snapshot_success": False,
+            "candidate_validation_status": "invalid",
+            "candidate_validation_errors": [reason],
+            "validation_status": "invalid",
+            "ticker": ticker or infer_walk_forward_ticker_from_csv_name(csv_path),
+            "timeframe": timeframe or infer_walk_forward_timeframe_from_csv_name(csv_path),
+            "source_csv": str(csv_path),
+            "signal_row_index": signal_index,
+            "signal_timestamp": None,
+            "signal_timestamp_source": None,
+            "entry": None,
+            "stop_loss": None,
+            "take_profit": None,
+            "risk_reward": None,
+            "target_status": reason,
+            "target_provenance": None,
+            "target_structural_level_kind": None,
+            "rr_status": reason,
+            "strategy_score": None,
+            "composite_score": None,
+            "score_status": SCORE_INCOMPLETE,
+            "score_reason": reason,
+            "rank_eligible": False,
+            "wyckoff_phase": None,
+            "wyckoff_event": None,
+            "event_status": None,
+            "event_provenance": None,
+            "event_age_bars": None,
+            "event_max_age_bars": None,
+            "event_scoring_eligible": False,
+            "event_occurrence_row_index": None,
+            "event_occurrence_timestamp": None,
+            "event_decision_row_index": signal_index,
+            "event_superseded_count": 0,
+            "event_reason": reason,
+            "event_resolution_source": "canonical_candidate_builder",
+            "trend": None,
+            "direction": "long",
+            "candidate_source": "walk_forward_validation",
+            "profile_name": profile_name,
+            "walk_forward_run_id": walk_forward_run_id,
+            "walk_forward_case_id": str(uuid4()),
+            "walk_forward_metadata_version": WALK_FORWARD_METADATA_VERSION,
+            "lookback_rows_available": signal_index + 1 if signal_index is not None and signal_index >= 0 else None,
+            "future_bars_available": total_rows - signal_index - 1 if signal_index is not None and signal_index >= 0 else None,
+            "lookback_start_index": 0,
+            "lookback_end_index": signal_index,
+            "future_window_start_index": future_start,
+            "future_window_end_index": None,
+        }
+    )
+
+
 def build_walk_forward_candidate_from_row(
     row: pd.Series | dict[str, Any],
     *,
@@ -560,124 +674,196 @@ def build_walk_forward_candidate_from_row(
     max_event_age_bars: int | None = None,
     decision_frame: pd.DataFrame | None = None,
     walk_forward_run_id: str | None = None,
+    strategy_config: StrategyConfig | None = None,
+    evidence_inputs: CandidateEvidenceInputs | None = None,
 ) -> dict[str, Any]:
-    ohlc = ohlc_columns or {}
     row_series = row if isinstance(row, pd.Series) else pd.Series(row)
-    errors: list[str] = []
     run_id = walk_forward_run_id or str(uuid4())
     horizon = _profile_horizon(profile_context)
-
-    close = _to_float(_column_value(row_series, ohlc.get("close")))
-    open_price = _to_float(_column_value(row_series, ohlc.get("open")))
-    low = _to_float(_column_value(row_series, ohlc.get("low")))
-    entry = close if close is not None else open_price
-    if entry is None:
-        errors.append("missing entry price")
-
-    stop_loss = None
-    if entry is not None:
-        if low is not None and low < entry:
-            stop_loss = low
-        else:
-            stop_loss = entry * (1 - risk_fraction)
-        if stop_loss >= entry:
-            stop_loss = entry * (1 - risk_fraction)
-        if stop_loss >= entry:
-            errors.append("stop_loss is not below entry")
-
-    take_profit = None
-    calculated_rr = None
-    target_status = TARGET_NOT_AVAILABLE
-    target_provenance = None
-    target_structural_level_kind = None
-    rr_status = RR_INVALID_INPUT
-    if entry is not None and stop_loss is not None:
-        target_frame = decision_frame if decision_frame is not None else pd.DataFrame([row_series])
-        target = _resolve_long_target(target_frame, entry=entry, decision_row_index=len(target_frame) - 1)
-        target_status = target.status
-        target_provenance = target.provenance
-        target_structural_level_kind = target.structural_level_kind
-        if not target.success or target.target_price is None:
-            rr_status = target.status
-            errors.append(target.reason or target.status)
-        else:
-            take_profit = target.target_price
-            calculated_rr = _rr(entry, stop_loss, take_profit)
-            minimum_rr = _to_float(risk_reward)
-            if minimum_rr is None or minimum_rr <= 0:
-                errors.append(RR_INVALID_INPUT)
-            elif calculated_rr is None:
-                errors.append(RR_INVALID_INPUT)
-            elif calculated_rr < minimum_rr:
-                rr_status = RR_BELOW_MINIMUM
-                errors.append(RR_BELOW_MINIMUM)
-            else:
-                rr_status = RR_GATE_PASSED
-
-    timestamp = _column_value(row_series, timestamp_column)
-    strategy_score = _first_present_row_value(row_series, ("strategy_score", "score"))
-    wyckoff_phase = _column_value(row_series, phase_column)
-    if _is_missing(wyckoff_phase):
-        wyckoff_phase = _first_present_row_value(row_series, DEFAULT_PHASE_COLUMNS)
-    wyckoff_event = _column_value(row_series, event_column)
-    if _is_missing(wyckoff_event):
-        wyckoff_event = _first_present_row_value(row_series, DEFAULT_EVENT_COLUMNS)
-    event_frame = decision_frame if decision_frame is not None else pd.DataFrame([row_series])
-    event_frame_columns = [str(column) for column in event_frame.columns] if not event_frame.empty else []
-    resolved_event_column = (
-        event_column
-        if event_column in DEFAULT_CONFIRMED_EVENT_COLUMNS
-        else _first_existing_column(event_frame_columns, DEFAULT_CONFIRMED_EVENT_COLUMNS)
+    try:
+        total_row_count = int(total_rows)
+    except (TypeError, ValueError):
+        total_row_count = -1
+    signal_index = _strict_signal_row_index(
+        signal_row_index,
+        total_rows=total_row_count,
+        decision_frame=decision_frame,
     )
-    event_resolution = _resolve_wyckoff_event(
-        event_frame,
-        max_event_age_bars,
-        decision_row_index=len(event_frame) - 1,
-        event_column=resolved_event_column or "wyckoff_confirmed_event",
+    if signal_index is None:
+        return _invalid_walk_forward_candidate(
+            reason=INVALID_SIGNAL_ROW_INDEX,
+            csv_path=csv_path,
+            signal_row_index=signal_row_index,
+            total_rows=max(total_row_count, 0),
+            profile_name=profile_name,
+            walk_forward_run_id=run_id,
+            ticker=ticker,
+            timeframe=timeframe,
+        )
+
+    builder_config = strategy_config or StrategyConfig(
+        min_rr=risk_reward,
+        max_event_age_bars=max_event_age_bars,
     )
-    resolved_wyckoff_event = event_resolution.event if event_resolution.event is not None else wyckoff_event
-    trend = _column_value(row_series, trend_column)
-    if _is_missing(trend):
-        trend = _first_present_row_value(row_series, DEFAULT_TREND_COLUMNS)
-    future_start = signal_row_index + 1
-    future_end = min(signal_row_index + horizon, total_rows - 1) if horizon is not None else total_rows - 1
+    if decision_frame is not None:
+        builder_frame = decision_frame.iloc[: signal_index + 1].copy()
+    else:
+        builder_frame = pd.DataFrame([row_series])
+    resolved_ohlc = ohlc_columns or _extract_ohlc_columns(builder_frame)
+    for canonical_column in ("open", "high", "low", "close"):
+        alias_error = _copy_alias_or_conflict(
+            builder_frame,
+            canonical_column=canonical_column,
+            source_column=resolved_ohlc.get(canonical_column),
+        )
+        if alias_error is not None:
+            return _invalid_walk_forward_candidate(
+                reason=alias_error,
+                csv_path=csv_path,
+                signal_row_index=signal_index,
+                total_rows=total_row_count,
+                profile_name=profile_name,
+                walk_forward_run_id=run_id,
+                ticker=ticker,
+                timeframe=timeframe,
+            )
+    resolved_phase_column = phase_column or _first_existing_column(
+        [str(column) for column in builder_frame.columns],
+        DEFAULT_PHASE_COLUMNS,
+    )
+    alias_error = _copy_alias_or_conflict(
+        builder_frame,
+        canonical_column="wyckoff_phase",
+        source_column=resolved_phase_column,
+    )
+    if alias_error is not None:
+        return _invalid_walk_forward_candidate(
+            reason=alias_error,
+            csv_path=csv_path,
+            signal_row_index=signal_index,
+            total_rows=total_row_count,
+            profile_name=profile_name,
+            walk_forward_run_id=run_id,
+            ticker=ticker,
+            timeframe=timeframe,
+        )
+    resolved_event_column = event_column or _first_existing_column(
+        [str(column) for column in builder_frame.columns],
+        DEFAULT_EVENT_COLUMNS,
+    )
+    if resolved_event_column in DEFAULT_CONFIRMED_EVENT_COLUMNS:
+        alias_error = _copy_alias_or_conflict(
+            builder_frame,
+            canonical_column="wyckoff_confirmed_event",
+            source_column=resolved_event_column,
+        )
+        if alias_error is not None:
+            return _invalid_walk_forward_candidate(
+                reason=alias_error,
+                csv_path=csv_path,
+                signal_row_index=signal_index,
+                total_rows=total_row_count,
+                profile_name=profile_name,
+                walk_forward_run_id=run_id,
+                ticker=ticker,
+                timeframe=timeframe,
+            )
+    alias_error = _copy_alias_or_conflict(
+        builder_frame,
+        canonical_column="timestamp",
+        source_column=timestamp_column,
+    )
+    if alias_error is not None:
+        return _invalid_walk_forward_candidate(
+            reason=alias_error,
+            csv_path=csv_path,
+            signal_row_index=signal_index,
+            total_rows=total_row_count,
+            profile_name=profile_name,
+            walk_forward_run_id=run_id,
+            ticker=ticker,
+            timeframe=timeframe,
+        )
+    if timestamp_column and timestamp_column in row_series.index and timestamp_column in builder_frame.columns:
+        row_timestamp = _json_safe_value(row_series.get(timestamp_column))
+        prefix_timestamp = _json_safe_value(builder_frame.iloc[-1].get(timestamp_column))
+        if row_timestamp != prefix_timestamp:
+            return _invalid_walk_forward_candidate(
+                reason=SIGNAL_TIMESTAMP_MISMATCH,
+                csv_path=csv_path,
+                signal_row_index=signal_index,
+                total_rows=total_row_count,
+                profile_name=profile_name,
+                walk_forward_run_id=run_id,
+                ticker=ticker,
+                timeframe=timeframe,
+            )
+    inferred_ticker = ticker or infer_walk_forward_ticker_from_csv_name(csv_path) or ""
+    inferred_timeframe = timeframe or infer_walk_forward_timeframe_from_csv_name(csv_path) or ""
+    identity = StrategyDatasetIdentity(
+        ticker=str(inferred_ticker).upper(),
+        timeframe=str(inferred_timeframe).lower(),
+        source=Path(csv_path),
+        source_kind="walk_forward_source",
+        status=SOURCE_STATUS_EXACT_MATCH,
+    )
+    core = build_candidate_from_prefix(
+        CandidateBuildRequest(
+            source_identity=identity,
+            data_prefix=builder_frame,
+            config=builder_config,
+            evidence=evidence_inputs or CandidateEvidenceInputs(),
+            source_status=SOURCE_STATUS_EXACT_MATCH,
+            candidate_source="walk_forward_validation",
+        )
+    )
+    errors: list[str] = []
+    if not core.get("candidate_build_success"):
+        errors.append(str(core.get("candidate_build_reason") or core.get("candidate_build_status") or "invalid"))
+
+    future_start = signal_index + 1
+    future_end = min(signal_index + horizon, total_row_count - 1) if horizon is not None else total_row_count - 1
 
     base = {
         "snapshot_success": not errors,
         "candidate_validation_status": "valid" if not errors else "invalid",
         "candidate_validation_errors": errors,
         "validation_status": "valid" if not errors else "invalid",
-        "ticker": ticker or infer_walk_forward_ticker_from_csv_name(csv_path),
-        "timeframe": timeframe or infer_walk_forward_timeframe_from_csv_name(csv_path),
+        "ticker": core.get("ticker"),
+        "timeframe": core.get("timeframe"),
         "source_csv": str(csv_path),
-        "signal_row_index": int(signal_row_index),
-        "signal_timestamp": _json_safe_value(timestamp),
-        "signal_timestamp_source": timestamp_column,
-        "entry": entry,
-        "stop_loss": stop_loss,
-        "take_profit": take_profit,
-        "risk_reward": calculated_rr,
-        "target_status": target_status,
-        "target_provenance": target_provenance,
-        "target_structural_level_kind": target_structural_level_kind,
-        "rr_status": rr_status,
-        "strategy_score": _to_float(strategy_score),
-        "composite_score": _to_float(_first_present_row_value(row_series, ("composite_score",))),
-        "wyckoff_phase": _json_safe_value(wyckoff_phase),
-        "wyckoff_event": _json_safe_value(resolved_wyckoff_event),
-        "event_status": event_resolution.status,
-        "event_provenance": event_resolution.provenance,
-        "event_age_bars": event_resolution.event_age_bars,
-        "event_max_age_bars": event_resolution.max_event_age_bars,
-        "event_scoring_eligible": event_resolution.scoring_eligible,
-        "event_occurrence_row_index": event_resolution.occurrence_row_index,
-        "event_occurrence_timestamp": event_resolution.occurrence_timestamp,
-        "event_decision_row_index": event_resolution.decision_row_index,
-        "event_superseded_count": event_resolution.superseded_event_count,
-        "event_reason": event_resolution.reason,
-        "trend": _json_safe_value(trend),
+        "signal_row_index": signal_index,
+        "signal_timestamp": core.get("signal_timestamp"),
+        "signal_timestamp_source": timestamp_column or core.get("signal_timestamp_source"),
+        "entry": core.get("entry"),
+        "stop_loss": core.get("stop_loss"),
+        "take_profit": core.get("take_profit"),
+        "risk_reward": core.get("risk_reward"),
+        "target_status": core.get("target_status"),
+        "target_provenance": core.get("target_provenance"),
+        "target_structural_level_kind": core.get("target_structural_level_kind"),
+        "rr_status": core.get("rr_status"),
+        "volatility_status": core.get("volatility_status"),
+        "volatility_provenance": core.get("volatility_provenance"),
+        "volatility_window": core.get("volatility_window"),
+        "volatility_value": core.get("volatility_value"),
+        "strategy_score": core.get("strategy_score"),
+        "composite_score": core.get("composite_score"),
+        "wyckoff_phase": core.get("wyckoff_phase"),
+        "wyckoff_event": core.get("wyckoff_event"),
+        "event_status": core.get("event_status"),
+        "event_provenance": core.get("event_provenance"),
+        "event_age_bars": core.get("event_age_bars"),
+        "event_max_age_bars": core.get("event_max_age_bars"),
+        "event_scoring_eligible": core.get("event_scoring_eligible"),
+        "event_occurrence_row_index": core.get("event_occurrence_row_index"),
+        "event_occurrence_timestamp": core.get("event_occurrence_timestamp"),
+        "event_decision_row_index": core.get("event_decision_row_index"),
+        "event_superseded_count": core.get("event_superseded_count"),
+        "event_reason": core.get("event_reason"),
+        "trend": core.get("trend"),
         "wyckoff_event_source": event_column,
-        "event_resolution_source": resolved_event_column,
+        "event_resolution_source": "canonical_candidate_builder",
         "wyckoff_phase_source": phase_column,
         "trend_source": trend_column,
         "direction": "long",
@@ -686,16 +872,19 @@ def build_walk_forward_candidate_from_row(
         "walk_forward_run_id": run_id,
         "walk_forward_case_id": str(uuid4()),
         "walk_forward_metadata_version": WALK_FORWARD_METADATA_VERSION,
-        "lookback_rows_available": signal_row_index + 1,
-        "future_bars_available": total_rows - signal_row_index - 1,
+        "lookback_rows_available": signal_index + 1,
+        "future_bars_available": total_row_count - signal_index - 1,
         "lookback_start_index": 0,
-        "lookback_end_index": signal_row_index,
+        "lookback_end_index": signal_index,
         "future_window_start_index": future_start,
         "future_window_end_index": future_end,
     }
+    for key, value in core.items():
+        if key not in base:
+            base[key] = value
     for column in SCORE_DIAGNOSTIC_COLUMNS:
         if column not in base:
-            base[column] = _json_safe_value(_first_present_row_value(row_series, (column,)))
+            base[column] = core.get(column)
     _mark_legacy_score_incomplete(row_series, base)
     return _json_safe_dict(base)
 
@@ -716,6 +905,7 @@ def build_walk_forward_cases_from_csv(
     risk_reward: float = DEFAULT_RISK_REWARD,
     risk_fraction: float = DEFAULT_RISK_FRACTION,
     max_event_age_bars: int | None = None,
+    strategy_config: StrategyConfig | None = None,
     walk_forward_run_id: str | None = None,
 ) -> dict[str, Any]:
     path = Path(csv_path)
@@ -823,6 +1013,10 @@ def build_walk_forward_cases_from_csv(
     cases: list[dict[str, Any]] = []
     invalid_count = 0
     skipped_count = 0
+    effective_strategy_config = strategy_config or StrategyConfig(
+        min_rr=risk_reward,
+        max_event_age_bars=max_event_age_bars,
+    )
     for index in range(start, end + 1, step):
         row = data.iloc[index]
         if not _row_matches_event_filters(row, event_column, filters):
@@ -847,6 +1041,7 @@ def build_walk_forward_cases_from_csv(
             max_event_age_bars=max_event_age_bars,
             decision_frame=data.iloc[: index + 1],
             walk_forward_run_id=run_id,
+            strategy_config=effective_strategy_config,
         )
         if not candidate.get("snapshot_success"):
             invalid_count += 1
@@ -1048,6 +1243,7 @@ def build_and_evaluate_walk_forward_cases_from_csv(
     risk_reward: float = DEFAULT_RISK_REWARD,
     risk_fraction: float = DEFAULT_RISK_FRACTION,
     max_event_age_bars: int | None = None,
+    strategy_config: StrategyConfig | None = None,
     tie_break_policy: str = DEFAULT_TIE_BREAK_POLICY,
 ) -> dict[str, Any]:
     build_result = build_walk_forward_cases_from_csv(
@@ -1064,6 +1260,7 @@ def build_and_evaluate_walk_forward_cases_from_csv(
         risk_reward=risk_reward,
         risk_fraction=risk_fraction,
         max_event_age_bars=max_event_age_bars,
+        strategy_config=strategy_config,
     )
     if not build_result.get("success"):
         summary = summarize_walk_forward_validation([])

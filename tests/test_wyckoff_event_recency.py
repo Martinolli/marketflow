@@ -290,7 +290,7 @@ def test_backtest_candidate_build_resolves_missing_event_diagnostics_from_source
     assert snapshot["event_status"] == EVENT_STALE
     assert snapshot["event_age_bars"] == 9
     assert snapshot["event_max_age_bars"] == 3
-    assert snapshot["event_resolution_source"] == "wyckoff_confirmed_event"
+    assert snapshot["event_resolution_source"] == "canonical_candidate_builder"
     assert snapshot["wyckoff_event"] == "SPRING_WEAK"
 
 
@@ -371,7 +371,7 @@ def test_backtest_candidate_enrichment_without_confirmed_source_fails_closed(tmp
     assert snapshot["event_status"] == EVENT_NOT_AVAILABLE
     assert snapshot["event_provenance"] is None
     assert snapshot["event_scoring_eligible"] is False
-    assert snapshot["event_resolution_source"] is None
+    assert snapshot["event_resolution_source"] == "canonical_candidate_builder"
 
 
 def test_backtest_candidate_enrichment_requires_exact_source_identity(tmp_path: Path):
@@ -440,7 +440,7 @@ def test_walk_forward_case_builder_passes_configured_event_recency_policy(tmp_pa
     assert result["max_event_age_bars"] == 3
     case = result["cases"][0]
     assert case["wyckoff_event"] == "SPRING_WEAK"
-    assert case["event_resolution_source"] == "wyckoff_confirmed_event"
+    assert case["event_resolution_source"] == "canonical_candidate_builder"
     assert case["event_age_bars"] == 125
     assert case["event_max_age_bars"] == 3
     assert case["event_status"] == EVENT_STALE
@@ -466,6 +466,6 @@ def test_walk_forward_raw_event_fallback_does_not_claim_confirmed_provenance():
 
     assert candidate["wyckoff_event"] is None
     assert candidate["wyckoff_event_source"] == "wyckoff_event"
-    assert candidate["event_resolution_source"] is None
+    assert candidate["event_resolution_source"] == "canonical_candidate_builder"
     assert candidate["event_status"] == EVENT_NOT_AVAILABLE
     assert candidate["event_provenance"] is None

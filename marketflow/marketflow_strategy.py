@@ -136,6 +136,24 @@ class StrategyDatasetIdentity:
 
 
 @dataclass(frozen=True)
+class CandidateEvidenceInputs:
+    pop: float | None = None
+    mc_metadata: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(frozen=True)
+class CandidateBuildRequest:
+    source_identity: StrategyDatasetIdentity
+    data_prefix: pd.DataFrame
+    config: StrategyConfig
+    evidence: CandidateEvidenceInputs = field(default_factory=CandidateEvidenceInputs)
+    report_root: str | Path | None = None
+    source_report_dir: str | Path | None = None
+    source_status: str = SOURCE_STATUS_EXACT_MATCH
+    candidate_source: str = "strategy_ranking"
+
+
+@dataclass(frozen=True)
 class StrategySourceResolution:
     requested_ticker: str | None
     requested_timeframe: str | None
@@ -1655,10 +1673,179 @@ def _extract_context(
     logger.debug(f"Extracted event: {ev}; status={event_resolution.status}; age={event_resolution.event_age_bars}")
 
     # Simple direction/trend placeholder (can be replaced with your trend module)
-    trend = "up" if context_frame["close"].iloc[-1] >= context_frame["close"].rolling(20).mean().iloc[-1] else "flat"
+    if context_frame.empty or "close" not in context_frame.columns:
+        trend = None
+    else:
+        trend = "up" if context_frame["close"].iloc[-1] >= context_frame["close"].rolling(20).mean().iloc[-1] else "flat"
     ctx["trend"] = trend
     logger.debug(f"Extracted trend: {trend}")
     return ctx
+
+
+def _candidate_value(value: Any) -> Any:
+    if value is None:
+        return None
+    if hasattr(value, "item") and not isinstance(value, (str, bytes, bytearray)):
+        try:
+            value = value.item()
+        except (AttributeError, TypeError, ValueError):
+            pass
+    if value is None:
+        return None
+    try:
+        missing = pd.isna(value)
+    except (TypeError, ValueError):
+        missing = False
+    if isinstance(missing, bool) and missing:
+        return None
+    if hasattr(value, "isoformat") and not isinstance(value, (str, bytes, bytearray)):
+        try:
+            return value.isoformat()
+        except (AttributeError, TypeError, ValueError):
+            pass
+    if isinstance(value, Path):
+        return str(value)
+    return value
+
+
+def _candidate_source_reference(report_root: str | Path | None, source_path: Path) -> str:
+    if report_root is None:
+        return str(source_path)
+    return _source_reference(str(report_root), source_path)
+
+
+def _pop_gate_rejection(pop: Any, cfg: StrategyConfig) -> bool:
+    gate_pop = _finite_float(pop)
+    return (
+        gate_pop is not None
+        and 0.0 <= gate_pop <= 1.0
+        and gate_pop < cfg.min_pop
+        and gate_pop < cfg.min_pop_backup
+    )
+
+
+def build_candidate_from_prefix(request: CandidateBuildRequest) -> dict[str, Any]:
+    """Build the canonical point-in-time long-candidate core from a data prefix."""
+
+    source_identity = request.source_identity
+    cfg = request.config
+    source_path = Path(source_identity.source)
+    source_report_dir = (
+        request.source_report_dir
+        if request.source_report_dir is not None
+        else source_path.parent
+    )
+    df = request.data_prefix.copy()
+    if "timestamp" in df.columns:
+        try:
+            df["timestamp"] = pd.to_datetime(df["timestamp"])
+        except Exception:
+            pass
+
+    decision_row_index = len(df) - 1
+    decision_timestamp = _timestamp_at_row(df, decision_row_index)
+    levels = _resolve_long_trade_levels(df, cfg, decision_row_index=decision_row_index)
+    ctx = _extract_context(df, cfg, decision_row_index=decision_row_index) if not df.empty else {
+        "phase": "UNKNOWN",
+        "event": "",
+        "event_status": EVENT_NOT_AVAILABLE,
+        "event_provenance": None,
+        "event_age_bars": None,
+        "event_max_age_bars": cfg.max_event_age_bars,
+        "event_scoring_eligible": False,
+        "event_occurrence_row_index": None,
+        "event_occurrence_timestamp": None,
+        "event_decision_row_index": decision_row_index,
+        "event_superseded_count": 0,
+        "event_reason": EVENT_NOT_AVAILABLE,
+        "trend": None,
+    }
+
+    pop = request.evidence.pop
+    candidate_success = bool(levels.eligible)
+    candidate_reason = levels.reason or levels.rr_status
+    if candidate_success and ctx["phase"] not in cfg.prefer_phases and ctx["phase"] != "UNKNOWN":
+        candidate_success = False
+        candidate_reason = "PHASE_NOT_PREFERRED"
+    if candidate_success and cfg.use_mc and _pop_gate_rejection(pop, cfg):
+        candidate_success = False
+        candidate_reason = "POP_BELOW_MINIMUM"
+
+    evidence_components = _resolve_evidence_components(
+        df,
+        cfg,
+        pop=pop,
+        context=ctx,
+        decision_row_index=decision_row_index,
+    )
+    score_resolution = _score_from_evidence(evidence_components)
+    pnf_component = _evidence_component_by_name(evidence_components, COMPONENT_PNF)
+    pop_component = _evidence_component_by_name(evidence_components, COMPONENT_POP)
+    score = score_resolution.composite_score
+    event_value = ctx["event"] or None
+
+    result: dict[str, Any] = {
+        "candidate_build_success": candidate_success,
+        "candidate_build_status": "valid" if candidate_success else "invalid",
+        "candidate_build_reason": None if candidate_success else candidate_reason,
+        "candidate_source": request.candidate_source,
+        "ticker": source_identity.ticker,
+        "tf": source_identity.timeframe,
+        "timeframe": source_identity.timeframe,
+        "csv": _candidate_source_reference(request.report_root, source_path),
+        "source_csv": _candidate_source_reference(request.report_root, source_path),
+        "source_csv_name": source_path.name,
+        "source_report_dir": _candidate_source_reference(request.report_root, Path(source_report_dir)),
+        "source_status": request.source_status,
+        "source_kind": source_identity.source_kind,
+        "signal_row_index": decision_row_index if decision_row_index >= 0 else None,
+        "signal_timestamp": decision_timestamp,
+        "signal_timestamp_source": "timestamp" if decision_timestamp is not None else None,
+        "close": levels.entry,
+        "entry": levels.entry,
+        "sl": levels.stop_loss,
+        "stop_loss": levels.stop_loss,
+        "tp": levels.target.target_price,
+        "take_profit": levels.target.target_price,
+        "rr": levels.rr,
+        "risk_reward": levels.rr,
+        "target_status": levels.target.status,
+        "target_provenance": levels.target.provenance,
+        "target_structural_level_kind": levels.target.structural_level_kind,
+        "target_source_row_index": levels.target.source_row_index,
+        "rr_status": levels.rr_status,
+        "volatility_status": levels.volatility.status if levels.volatility else None,
+        "volatility_provenance": levels.volatility.provenance if levels.volatility else None,
+        "volatility_window": levels.volatility.window if levels.volatility else None,
+        "volatility_value": levels.volatility.value if levels.volatility else None,
+        "pop": pop_component.score,
+        "pnf_score": pnf_component.score,
+        "phase": ctx["phase"],
+        "wyckoff_phase": ctx["phase"],
+        "event": event_value,
+        "wyckoff_event": event_value,
+        "event_status": ctx["event_status"],
+        "event_provenance": ctx["event_provenance"],
+        "event_age_bars": ctx["event_age_bars"],
+        "event_max_age_bars": ctx["event_max_age_bars"],
+        "event_scoring_eligible": ctx["event_scoring_eligible"],
+        "event_occurrence_row_index": ctx["event_occurrence_row_index"],
+        "event_occurrence_timestamp": ctx["event_occurrence_timestamp"],
+        "event_decision_row_index": ctx["event_decision_row_index"],
+        "event_superseded_count": ctx["event_superseded_count"],
+        "event_reason": ctx["event_reason"],
+        "event_resolution_source": "canonical_candidate_builder",
+        "trend": ctx["trend"],
+        "score": score,
+        "strategy_score": score,
+        "composite_score": score,
+        "direction": "long",
+    }
+    result.update(_evidence_public_fields(evidence_components, score_resolution))
+    result["rank_eligible"] = bool(candidate_success and result.get("rank_eligible"))
+    if request.evidence.mc_metadata:
+        result.update(request.evidence.mc_metadata)
+    return {key: _candidate_value(value) for key, value in result.items()}
 
 # -----------------------------
 # Core ranking logic
@@ -1759,33 +1946,6 @@ def rank_long_candidates(
         if "timestamp" in df.columns:
             df["timestamp"] = pd.to_datetime(df["timestamp"])  # keep for future filters
 
-        # Resolve independent target before applying the RR eligibility gate.
-        levels = _resolve_long_trade_levels(df, cfg)
-        logger.info(
-            f"Resolved SL/TP/RR for ticker {t}: SL={levels.stop_loss}, "
-            f"TP={levels.target.target_price}, RR={levels.rr}, "
-            f"target_status={levels.target.status}, rr_status={levels.rr_status}, "
-            f"volatility_status={levels.volatility.status if levels.volatility else None}"
-        )
-        if not levels.eligible:
-            logger.info(
-                f"Long level resolution failed for ticker {t}: "
-                f"{levels.reason or levels.rr_status}; skipping before scoring."
-            )
-            continue
-        sl = float(levels.stop_loss)
-        tp = float(levels.target.target_price)
-        rr = float(levels.rr)
-
-        # Extract Wyckoff context
-        ctx = _extract_context(df, cfg, decision_row_index=len(df) - 1)
-        logger.info(f"Extracted context for ticker {t}: {ctx}")
-        if ctx["phase"] not in cfg.prefer_phases and ctx["phase"] != "UNKNOWN":
-            # prefer phases C/D/E; allow UNKNOWN to pass (will be penalized by score)
-            logger.info(f"Phase {ctx['phase']} not in preferred phases {cfg.prefer_phases} for ticker {t}, skipping.")
-            continue
-
-        # Optional: Monte Carlo POP
         pop: Any | None = None
         mc_meta: dict = {}
         if cfg.use_mc:
@@ -1796,61 +1956,24 @@ def rank_long_candidates(
                 metrics = mc.get("metrics_from_now", {})
                 if isinstance(metrics, dict):
                     pop = metrics.get("pop_tp_first")
-            # Apply gates only if we found a valid POP figure
-            gate_pop = _finite_float(pop)
-            if gate_pop is not None and 0.0 <= gate_pop <= 1.0 and (gate_pop < cfg.min_pop and gate_pop < cfg.min_pop_backup):
-                logger.info(f"POP {gate_pop} below min_pop {cfg.min_pop} and min_pop_backup {cfg.min_pop_backup} for ticker {t}, skipping.")
-                continue
 
-        evidence_components = _resolve_evidence_components(df, cfg, pop=pop, context=ctx, decision_row_index=len(df) - 1)
-        score_resolution = _score_from_evidence(evidence_components)
-        phase_component = _evidence_component_by_name(evidence_components, COMPONENT_PHASE)
-        event_component = _evidence_component_by_name(evidence_components, COMPONENT_EVENT)
-        pnf_component = _evidence_component_by_name(evidence_components, COMPONENT_PNF)
-        pop_component = _evidence_component_by_name(evidence_components, COMPONENT_POP)
-        trend_component = _evidence_component_by_name(evidence_components, COMPONENT_TREND)
-        score = score_resolution.composite_score
-
-        logger.info(f"Final score for ticker {t}: {score}")
-
-        result = {
-            "ticker": source_identity.ticker,
-            "tf": source_identity.timeframe,
-            "csv": _source_reference(report_root, csv_path),
-            "source_csv_name": csv_path.name,
-            "source_report_dir": _source_reference(report_root, csv_path.parent),
-            "source_status": source_resolution.status,
-            "close": float(levels.entry),
-            "sl": sl,
-            "tp": tp,
-            "rr": rr,
-            "target_status": levels.target.status,
-            "target_provenance": levels.target.provenance,
-            "target_structural_level_kind": levels.target.structural_level_kind,
-            "rr_status": levels.rr_status,
-            "volatility_status": levels.volatility.status if levels.volatility else None,
-            "volatility_provenance": levels.volatility.provenance if levels.volatility else None,
-            "volatility_window": levels.volatility.window if levels.volatility else None,
-            "volatility_value": levels.volatility.value if levels.volatility else None,
-            "pop": pop_component.score,
-            "pnf_score": pnf_component.score,
-            "phase": ctx["phase"],
-            "event": ctx["event"],
-            "event_status": ctx["event_status"],
-            "event_provenance": ctx["event_provenance"],
-            "event_age_bars": ctx["event_age_bars"],
-            "event_max_age_bars": ctx["event_max_age_bars"],
-            "event_scoring_eligible": ctx["event_scoring_eligible"],
-            "event_occurrence_row_index": ctx["event_occurrence_row_index"],
-            "event_occurrence_timestamp": ctx["event_occurrence_timestamp"],
-            "event_decision_row_index": ctx["event_decision_row_index"],
-            "event_superseded_count": ctx["event_superseded_count"],
-            "event_reason": ctx["event_reason"],
-            "trend": ctx["trend"],
-            "score": score,
-            "composite_score": score,
-        }
-        result.update(_evidence_public_fields(evidence_components, score_resolution))
+        result = build_candidate_from_prefix(
+            CandidateBuildRequest(
+                source_identity=source_identity,
+                data_prefix=df,
+                config=cfg,
+                evidence=CandidateEvidenceInputs(pop=pop),
+                report_root=report_root,
+                source_status=source_resolution.status,
+                candidate_source="strategy_ranking",
+            )
+        )
+        if not result.get("candidate_build_success"):
+            logger.info(
+                f"Candidate builder rejected ticker {t}: "
+                f"{result.get('candidate_build_reason') or result.get('candidate_build_status')}"
+            )
+            continue
         if cfg.use_mc:
             result.update({
                 "mc_summary_path": mc_meta.get("path"),

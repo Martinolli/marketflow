@@ -131,11 +131,14 @@ def _rows(count: int) -> list[dict[str, object]]:
         close = 100.0 + index * 0.1
         rows.append(
             {
-                "timestamp": f"2026-01-{(index % 28) + 1:02d} 10:{index % 60:02d}:00",
+                "timestamp": (
+                    pd.Timestamp("2026-01-01 10:00:00") + pd.Timedelta(minutes=index)
+                ).isoformat(sep=" "),
                 "open": close - 0.2,
                 "high": close + 2.0,
                 "low": close - 1.0,
                 "close": close,
+                "tr_low": close - 1.0,
                 "tr_high": close + 2.0,
                 "wyckoff_phase": "C",
                 "wyckoff_event": "SPRING_WEAK",

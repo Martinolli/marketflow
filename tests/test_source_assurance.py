@@ -218,6 +218,7 @@ def test_wyckoff_event_recency_has_no_arbitrary_default_or_score_weight_change()
     resolver = functions["_resolve_wyckoff_event"]
     context = functions["_extract_context"]
     ranker = functions["rank_long_candidates"]
+    candidate_builder = functions["build_candidate_from_prefix"]
 
     assert "max_event_age_bars: int | None = None" in source
     assert "max_event_age_bars: int | None=None" in resolver
@@ -229,8 +230,9 @@ def test_wyckoff_event_recency_has_no_arbitrary_default_or_score_weight_change()
     assert "age == 0" in resolver
     assert "age <= policy" in resolver
     assert "timeframe" not in resolver.lower()
-    assert "_resolve_evidence_components" in ranker
-    assert "_score_from_evidence" in ranker
+    assert "build_candidate_from_prefix" in ranker
+    assert "_resolve_evidence_components" in candidate_builder
+    assert "_score_from_evidence" in candidate_builder
     assert "_event_score_for_resolution" in source
     assert "_event_score(ctx[\"event\"])" not in ranker
     assert "_pnf_score_neutral()" not in ranker
@@ -243,6 +245,7 @@ def test_evidence_availability_contract_has_no_neutral_missing_score_path():
     source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
     functions = _function_bodies(source)
     ranker = functions["rank_long_candidates"]
+    candidate_builder = functions["build_candidate_from_prefix"]
     pnf_component = functions["_resolve_pnf_component"]
     pop_component = functions["_resolve_pop_component"]
     event_component = functions["_resolve_event_component"]
@@ -254,7 +257,8 @@ def test_evidence_availability_contract_has_no_neutral_missing_score_path():
     assert "pop if pop is not None else 0.5" not in ranker
     assert "_pnf_score_neutral()" not in ranker
     assert "neutral when absent or disabled" not in ranker
-    assert "_score_from_evidence" in ranker
+    assert "build_candidate_from_prefix" in ranker
+    assert "_score_from_evidence" in candidate_builder
     assert "EVIDENCE_DISABLED_BY_CONFIGURATION" in pnf_component
     assert "EVIDENCE_DISABLED_BY_CONFIGURATION" in pop_component
     assert "EVIDENCE_NOT_AVAILABLE" in pnf_component
@@ -314,6 +318,7 @@ def test_risk_reward_target_integrity_uses_structural_target_without_circularity
     levels = functions["_resolve_long_trade_levels"]
     derive = functions["_derive_sl_tp_long"]
     ranker = functions["rank_long_candidates"]
+    candidate_builder = functions["build_candidate_from_prefix"]
 
     assert "min_rr" not in resolver
     assert "stop" not in resolver
@@ -329,9 +334,10 @@ def test_risk_reward_target_integrity_uses_structural_target_without_circularity
     assert "close + cfg.min_rr" not in levels
     assert "cfg.min_rr *" not in levels
     assert "_resolve_long_trade_levels" in derive
-    assert "levels.eligible" in ranker
-    assert "target_provenance" in ranker
-    assert "rr_status" in ranker
+    assert "build_candidate_from_prefix" in ranker
+    assert "levels.eligible" in candidate_builder
+    assert "target_provenance" in candidate_builder
+    assert "rr_status" in candidate_builder
 
 
 def test_walk_forward_candidate_uses_independent_target_and_prefix_frame():
@@ -341,8 +347,10 @@ def test_walk_forward_candidate_uses_independent_target_and_prefix_frame():
     case_builder = functions["build_walk_forward_cases_from_csv"]
 
     assert "take_profit = entry + risk_reward *" not in builder
-    assert "_resolve_long_target" in builder
-    assert "_rr(entry, stop_loss, take_profit)" in builder
+    assert "_resolve_long_target" not in builder
+    assert "_rr(" not in builder
+    assert "build_candidate_from_prefix" in builder
+    assert "CandidateBuildRequest" in builder
     assert "target_status" in builder
     assert "target_provenance" in builder
     assert "rr_status" in builder
@@ -387,13 +395,15 @@ def test_strategy_source_identity_forbids_timeframe_only_and_first_file_fallback
     functions = _function_bodies(source)
     resolver = functions["resolve_strategy_source_identity"]
     ranker = functions["rank_long_candidates"]
+    candidate_builder = functions["build_candidate_from_prefix"]
 
     assert "timeframe_canonical" not in source
     assert "_csv_matches_timeframe_any_ticker(" not in resolver
     assert "_newest_csv(" not in resolver
     assert "falling back to annotated CSV matching timeframe only" not in source
-    assert "source_identity.ticker" in ranker
-    assert "source_identity.timeframe" in ranker
+    assert "source_identity.ticker" in candidate_builder
+    assert "source_identity.timeframe" in candidate_builder
+    assert "build_candidate_from_prefix" in ranker
     assert "{'ticker': t" not in ranker
 
 

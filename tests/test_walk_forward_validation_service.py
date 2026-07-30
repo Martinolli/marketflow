@@ -29,13 +29,16 @@ def _rows(count: int, *, include_timestamp: bool = True, include_event: bool = T
             "high": close + 2.0,
             "low": close - 1.0,
             "close": close,
+            "tr_low": close - 1.0,
             "tr_high": close + 2.0,
             "wyckoff_phase": "C" if index % 2 == 0 else "D",
             "trend": "up",
             "strategy_score": 70.0 + (index % 10),
         }
         if include_timestamp:
-            row["timestamp"] = f"2026-01-{(index % 28) + 1:02d} 10:{index % 60:02d}:00"
+            row["timestamp"] = (
+                pd.Timestamp("2026-01-01 10:00:00") + pd.Timedelta(minutes=index)
+            ).isoformat(sep=" ")
         if include_event:
             row["wyckoff_event"] = "SPRING_WEAK" if index % 2 == 0 else "UT_WEAK"
         rows.append(row)
@@ -160,17 +163,19 @@ def test_legacy_walk_forward_score_without_status_fails_closed(tmp_path):
         decision_frame=frame.iloc[:3],
     )
 
-    assert case["strategy_score"] == 72.0
+    assert case["strategy_score"] is None
     assert case["score_status"] == "SCORE_INCOMPLETE"
     assert case["composite_score"] is None
     assert case["rank_eligible"] is False
-    assert case["pop_evidence_status"] == "EVIDENCE_NOT_AVAILABLE"
+    assert case["pop_evidence_status"] == "EVIDENCE_DISABLED_BY_CONFIGURATION"
     assert case["lookback_rows_available"] == case["signal_row_index"] + 1
 
 
 def test_walk_forward_disabled_profile_diagnostics_are_not_marked_legacy_incomplete(tmp_path):
     path = _csv(tmp_path, 4)
     frame = pd.DataFrame(_rows(4))
+    frame["wyckoff_confirmed_event"] = [pd.NA, pd.NA, "SOS", pd.NA]
+    frame["wyckoff_confirmed_event_occurrence"] = [False, False, True, False]
     row = frame.iloc[2].copy()
     row["composite_score"] = 91.66666666666666
     row["score_status"] = "SCORE_COMPLETE"
@@ -204,7 +209,7 @@ def test_walk_forward_disabled_profile_diagnostics_are_not_marked_legacy_incompl
     )
 
     assert case["score_status"] == "SCORE_COMPLETE"
-    assert case["composite_score"] == 91.66666666666666
+    assert case["composite_score"] == 77.5
     assert case["score_profile_calibration"] == "SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED"
     assert case["rank_eligible"] is False
     assert case["pop_evidence_status"] == "EVIDENCE_DISABLED_BY_CONFIGURATION"
@@ -249,7 +254,8 @@ def test_event_filter_selects_only_matching_rows(tmp_path):
     )
 
     assert result["case_count"] == 5
-    assert {case["wyckoff_event"] for case in result["cases"]} == {"SPRING_WEAK"}
+    assert {case["wyckoff_event"] for case in result["cases"]} == {None}
+    assert all(case["signal_row_index"] % 2 == 0 for case in result["cases"])
 
 
 def test_build_cases_uses_wyckoff_confirmed_event_for_filter(tmp_path):
@@ -291,7 +297,8 @@ def test_build_cases_falls_back_to_raw_wyckoff_event_when_confirmed_missing(tmp_
     assert result["success"] is True
     assert result["case_count"] > 0
     assert result["event_column"] == "wyckoff_event"
-    assert all(case["wyckoff_event"] == "SPRING_WEAK" for case in result["cases"])
+    assert all(case["wyckoff_event"] is None for case in result["cases"])
+    assert all(case["event_status"] == "EVENT_NOT_AVAILABLE" for case in result["cases"])
     assert all(case["wyckoff_event_source"] == "wyckoff_event" for case in result["cases"])
 
 

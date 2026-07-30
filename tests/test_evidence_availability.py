@@ -714,7 +714,7 @@ def test_future_event_after_legacy_decision_row_does_not_create_complete_evidenc
     assert snapshot["rank_eligible"] is False
 
 
-def test_walk_forward_case_preserves_score_diagnostics_from_source_row(tmp_path: Path):
+def test_walk_forward_case_rebuilds_score_diagnostics_from_candidate_builder(tmp_path: Path):
     csv_path = tmp_path / "AAA_1d_wyckoff_annotated.csv"
     pd.DataFrame(_rows()).to_csv(csv_path, index=False)
     row = pd.Series(
@@ -744,8 +744,9 @@ def test_walk_forward_case_preserves_score_diagnostics_from_source_row(tmp_path:
         decision_frame=pd.DataFrame(_rows()),
     )
 
-    assert case["score_status"] == SCORE_INCOMPLETE
-    assert case["missing_components"] == [COMPONENT_POP]
+    assert case["score_status"] == SCORE_COMPLETE
+    assert case["missing_components"] == []
+    assert case["active_evidence_profile"] == "phase,event,trend"
     assert "score_status" in CASE_COLUMNS
 
 
