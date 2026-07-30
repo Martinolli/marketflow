@@ -45,6 +45,16 @@ CASE_COLUMNS = [
     "strategy_score",
     "wyckoff_phase",
     "wyckoff_event",
+    "event_status",
+    "event_provenance",
+    "event_age_bars",
+    "event_max_age_bars",
+    "event_scoring_eligible",
+    "event_occurrence_row_index",
+    "event_occurrence_timestamp",
+    "event_decision_row_index",
+    "event_superseded_count",
+    "event_reason",
     "trend",
     "direction",
     "lookback_rows_available",
@@ -54,6 +64,7 @@ CASE_COLUMNS = [
     "future_window_end_index",
     "snapshot_success",
     "wyckoff_event_source",
+    "event_resolution_source",
     "wyckoff_phase_source",
     "trend_source",
     "event_filters",
@@ -82,6 +93,7 @@ RESULT_COLUMNS = [
     "wyckoff_event",
     "trend",
     "wyckoff_event_source",
+    "event_resolution_source",
     "walk_forward_run_id",
     "walk_forward_case_id",
     "candidate_source",
@@ -857,6 +869,7 @@ def summarize_csv_to_walk_forward_validation_markdown(
     event_filters: list[str] | None = None,
     max_cases: int | None = None,
     require_mature_future: bool = True,
+    max_event_age_bars: int | None = None,
     timestamp: str | None = None,
 ) -> dict[str, Any]:
     walk_forward_result = build_and_evaluate_walk_forward_cases_from_csv(
@@ -870,6 +883,7 @@ def summarize_csv_to_walk_forward_validation_markdown(
         event_filters=event_filters,
         max_cases=max_cases,
         require_mature_future=require_mature_future,
+        max_event_age_bars=max_event_age_bars,
     )
     directory = Path(output_dir) if output_dir is not None else Path(csv_path).parent
     build_result = walk_forward_result.get("build_result") if isinstance(walk_forward_result, dict) else {}
@@ -945,6 +959,7 @@ def summarize_csv_to_walk_forward_validation_artifacts(
     event_filters: list[str] | None = None,
     max_cases: int | None = None,
     require_mature_future: bool = True,
+    max_event_age_bars: int | None = None,
     timestamp: str | None = None,
     save_markdown: bool = True,
     save_cases_csv: bool = True,
@@ -962,6 +977,7 @@ def summarize_csv_to_walk_forward_validation_artifacts(
         event_filters=event_filters,
         max_cases=max_cases,
         require_mature_future=require_mature_future,
+        max_event_age_bars=max_event_age_bars,
     )
     directory = Path(output_dir) if output_dir is not None else Path(csv_path).parent
     build_result = walk_forward_result.get("build_result") if isinstance(walk_forward_result, dict) else {}

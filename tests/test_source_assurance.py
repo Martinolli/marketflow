@@ -35,7 +35,6 @@ PROTECTED_STRATEGY_FORMULAS = {
     "_phase_score",
     "_event_score",
     "_pnf_score_neutral",
-    "_extract_context",
 }
 PROTECTED_WALK_FORWARD_SEMANTICS = {
     "_minimum_lookback_rows_from_profile",
@@ -211,6 +210,29 @@ def test_marketflow_strategy_formulas_unchanged_outside_source_identity():
 
     for function_name in PROTECTED_STRATEGY_FORMULAS:
         assert current_bodies[function_name] == base_bodies[function_name]
+
+
+def test_wyckoff_event_recency_has_no_arbitrary_default_or_score_weight_change():
+    source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
+    functions = _function_bodies(source)
+    resolver = functions["_resolve_wyckoff_event"]
+    context = functions["_extract_context"]
+    ranker = functions["rank_long_candidates"]
+
+    assert "max_event_age_bars: int | None = None" in source
+    assert "max_event_age_bars: int | None=None" in resolver
+    assert "EVENT_RECENCY_POLICY_NOT_CONFIGURED" in resolver
+    assert "EVENT_CURRENT" in resolver
+    assert "EVENT_STALE" in resolver
+    assert "EVENT_SOURCE_UNSAFE" in resolver
+    assert "EVENT_INVALID" in resolver
+    assert "age == 0" in resolver
+    assert "age <= policy" in resolver
+    assert "timeframe" not in resolver.lower()
+    assert "_event_score_for_resolution" in ranker
+    assert "_event_score(ctx[\"event\"])" not in ranker
+    assert "event_status" in context
+    assert '"event": 1.0' in source
 
 
 def test_walk_forward_semantics_unchanged_outside_source_identity():

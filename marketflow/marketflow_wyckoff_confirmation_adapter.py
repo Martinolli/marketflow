@@ -10,6 +10,7 @@ from the Facade right after you call `WyckoffAnalyzer().annotate_chart()`.
 Output:
 - Enriched annotated DataFrame with columns:
   * wyckoff_confirmed_event (str; pipe-separated labels added or re-tagged)
+  * wyckoff_confirmed_event_occurrence (bool; True only on explicit confirmed-event rows)
   * wyckoff_confidence (float; 0..1 per bar for the most material event)
   * wyckoff_reasons (str; semicolon-joined rationale)
   * tr_low, tr_high (floats; detected TR for the timeframe)
@@ -237,6 +238,7 @@ class WyckoffConfirmationAdapter:
 
         df["tr_low"], df["tr_high"] = tr_lows, tr_highs
         df["wyckoff_confirmed_event"] = ""
+        df["wyckoff_confirmed_event_occurrence"] = False
         df["wyckoff_confidence"] = np.nan
         df["wyckoff_reasons"] = ""
 
@@ -275,6 +277,7 @@ class WyckoffConfirmationAdapter:
 
             if best_label:
                 df.at[row.name, "wyckoff_confirmed_event"] = best_label
+                df.at[row.name, "wyckoff_confirmed_event_occurrence"] = True
                 df.at[row.name, "wyckoff_confidence"] = round(float(best_score), 3)
                 df.at[row.name, "wyckoff_reasons"] = "; ".join(best_reasons)
                 if best_score >= self.cfg.pass_threshold:

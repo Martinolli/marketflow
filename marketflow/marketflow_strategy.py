@@ -19,9 +19,10 @@ Notes
 
 from __future__ import annotations
 import argparse, os, json, glob, re
+import numbers
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Iterable, List, Dict, Optional, Tuple
+from typing import Any, Iterable, List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
 import pandas as pd
 
@@ -51,6 +52,16 @@ VOLATILITY_NOT_AVAILABLE = "VOLATILITY_NOT_AVAILABLE"
 VOLATILITY_INVALID = "VOLATILITY_INVALID"
 VOLATILITY_SOURCE_UNSAFE = "VOLATILITY_SOURCE_UNSAFE"
 VOLATILITY_PROVENANCE_TRUE_RANGE_SIMPLE_ROLLING = "TRUE_RANGE_SIMPLE_ROLLING"
+EVENT_CURRENT = "EVENT_CURRENT"
+EVENT_STALE = "EVENT_STALE"
+EVENT_NOT_AVAILABLE = "EVENT_NOT_AVAILABLE"
+EVENT_RECENCY_POLICY_NOT_CONFIGURED = "EVENT_RECENCY_POLICY_NOT_CONFIGURED"
+EVENT_SUPERSEDED = "EVENT_SUPERSEDED"
+EVENT_SOURCE_UNSAFE = "EVENT_SOURCE_UNSAFE"
+EVENT_INVALID = "EVENT_INVALID"
+EVENT_PROVENANCE_WYCKOFF_CONFIRMED_EVENT = "WYCKOFF_CONFIRMED_EVENT"
+WYCKOFF_CONFIRMED_EVENT_COLUMN = "wyckoff_confirmed_event"
+WYCKOFF_CONFIRMED_EVENT_OCCURRENCE_COLUMN = "wyckoff_confirmed_event_occurrence"
 _TICKER_PATTERN = re.compile(r"^[A-Z0-9._:-]+$")
 _BATCH_RUN_PATTERN = re.compile(r"^batch_\d{8}_\d{6}$")
 
@@ -66,6 +77,7 @@ class StrategyConfig:
 
     # Wyckoff preferences
     prefer_phases: Tuple[str, ...] = ("C", "D", "E")
+    max_event_age_bars: int | None = None
 
     # Feature toggles
     use_mc: bool = False                # <—— MC optional
@@ -133,6 +145,21 @@ class VolatilityResolution:
     @property
     def success(self) -> bool:
         return self.status == VOLATILITY_RESOLVED and self.value is not None
+
+
+@dataclass(frozen=True)
+class EventResolution:
+    status: str
+    event: str | None = None
+    provenance: str | None = None
+    occurrence_row_index: int | None = None
+    occurrence_timestamp: str | None = None
+    decision_row_index: int | None = None
+    event_age_bars: int | None = None
+    max_event_age_bars: int | None = None
+    scoring_eligible: bool = False
+    reason: str | None = None
+    superseded_event_count: int = 0
 
 
 @dataclass(frozen=True)
@@ -702,6 +729,231 @@ def _event_score(ev: str) -> float:
     return score
 
 
+def _event_text(value: Any) -> str | None:
+    if value is None:
+        return None
+    try:
+        missing = pd.isna(value)
+    except (TypeError, ValueError):
+        missing = False
+    if isinstance(missing, bool) and missing:
+        return None
+    text = str(value).strip()
+    return text or None
+
+
+def _valid_event_age_policy(value: object) -> tuple[int | None, str | None]:
+    if value is None:
+        return None, None
+    if isinstance(value, bool):
+        return None, EVENT_INVALID
+    if isinstance(value, numbers.Integral):
+        age = int(value)
+        if age >= 0:
+            return age, None
+    return None, EVENT_INVALID
+
+
+def _explicit_occurrence_marker(value: Any) -> bool | None:
+    if value is None:
+        return False
+    try:
+        missing = pd.isna(value)
+    except (TypeError, ValueError):
+        missing = False
+    if isinstance(missing, bool) and missing:
+        return False
+    if isinstance(value, bool) or (
+        value.__class__.__module__ == "numpy" and value.__class__.__name__ == "bool"
+    ):
+        return bool(value)
+    if isinstance(value, numbers.Integral) and not isinstance(value, bool):
+        if int(value) in (0, 1):
+            return bool(int(value))
+        return None
+    if isinstance(value, str):
+        text = value.strip().lower()
+        if not text:
+            return False
+        if text in {"true", "1"}:
+            return True
+        if text in {"false", "0"}:
+            return False
+    return None
+
+
+def _timestamp_at_row(df: pd.DataFrame, row_index: int) -> str | None:
+    if "timestamp" not in df.columns or list(df.columns).count("timestamp") != 1:
+        return None
+    if row_index < 0 or row_index >= len(df):
+        return None
+    value = df.iloc[row_index].get("timestamp")
+    text = _event_text(value)
+    return text
+
+
+def _resolve_wyckoff_event(
+    df: pd.DataFrame,
+    max_event_age_bars: int | None = None,
+    *,
+    decision_row_index: int | None = None,
+    event_column: str = WYCKOFF_CONFIRMED_EVENT_COLUMN,
+    occurrence_column: str | None = None,
+    provenance: str = EVENT_PROVENANCE_WYCKOFF_CONFIRMED_EVENT,
+) -> EventResolution:
+    logger.debug(
+        f"Resolving Wyckoff event recency: column={event_column}, "
+        f"max_event_age_bars={max_event_age_bars}, decision_row_index={decision_row_index}"
+    )
+    policy, policy_error = _valid_event_age_policy(max_event_age_bars)
+    try:
+        row_index = len(df) - 1 if decision_row_index is None else int(decision_row_index)
+    except (TypeError, ValueError):
+        return EventResolution(status=EVENT_INVALID, reason=EVENT_INVALID)
+    if df.empty:
+        return EventResolution(status=EVENT_NOT_AVAILABLE, reason=EVENT_NOT_AVAILABLE, max_event_age_bars=policy)
+    if row_index < 0 or row_index >= len(df):
+        return EventResolution(
+            status=EVENT_SOURCE_UNSAFE,
+            reason=EVENT_SOURCE_UNSAFE,
+            decision_row_index=row_index,
+            max_event_age_bars=policy,
+        )
+    if not _timestamp_chronology_is_safe(df.iloc[: row_index + 1]):
+        return EventResolution(
+            status=EVENT_SOURCE_UNSAFE,
+            reason=EVENT_SOURCE_UNSAFE,
+            decision_row_index=row_index,
+            max_event_age_bars=policy,
+        )
+    if event_column not in df.columns:
+        return EventResolution(
+            status=EVENT_NOT_AVAILABLE,
+            reason=EVENT_NOT_AVAILABLE,
+            decision_row_index=row_index,
+            max_event_age_bars=policy,
+        )
+    if list(df.columns).count(event_column) != 1:
+        return EventResolution(
+            status=EVENT_SOURCE_UNSAFE,
+            reason=EVENT_SOURCE_UNSAFE,
+            decision_row_index=row_index,
+            max_event_age_bars=policy,
+        )
+
+    marker_column = occurrence_column
+    if marker_column is None and WYCKOFF_CONFIRMED_EVENT_OCCURRENCE_COLUMN in df.columns:
+        marker_column = WYCKOFF_CONFIRMED_EVENT_OCCURRENCE_COLUMN
+    if marker_column is not None:
+        if marker_column not in df.columns or list(df.columns).count(marker_column) != 1:
+            return EventResolution(
+                status=EVENT_SOURCE_UNSAFE,
+                reason=EVENT_SOURCE_UNSAFE,
+                decision_row_index=row_index,
+                max_event_age_bars=policy,
+            )
+
+    occurrences: list[tuple[int, str]] = []
+    series = df[event_column]
+    previous_event: str | None = None
+    for position in range(row_index + 1):
+        event = _event_text(series.iloc[position])
+        if marker_column is not None:
+            marker = _explicit_occurrence_marker(df[marker_column].iloc[position])
+            if marker is None:
+                return EventResolution(
+                    status=EVENT_SOURCE_UNSAFE,
+                    reason=EVENT_SOURCE_UNSAFE,
+                    decision_row_index=row_index,
+                    max_event_age_bars=policy,
+                )
+            if marker and event is None:
+                return EventResolution(
+                    status=EVENT_SOURCE_UNSAFE,
+                    reason=EVENT_SOURCE_UNSAFE,
+                    decision_row_index=row_index,
+                    max_event_age_bars=policy,
+                )
+            if marker and event is not None:
+                occurrences.append((position, event))
+            continue
+        if event is not None:
+            if previous_event == event:
+                return EventResolution(
+                    status=EVENT_SOURCE_UNSAFE,
+                    reason=EVENT_SOURCE_UNSAFE,
+                    decision_row_index=row_index,
+                    max_event_age_bars=policy,
+                )
+            occurrences.append((position, event))
+        previous_event = event
+
+    if not occurrences:
+        return EventResolution(
+            status=EVENT_NOT_AVAILABLE,
+            reason=EVENT_NOT_AVAILABLE,
+            decision_row_index=row_index,
+            max_event_age_bars=policy,
+        )
+
+    occurrence_row_index, event = occurrences[-1]
+    age = row_index - occurrence_row_index
+    if age < 0:
+        return EventResolution(
+            status=EVENT_SOURCE_UNSAFE,
+            event=event,
+            provenance=provenance,
+            occurrence_row_index=occurrence_row_index,
+            occurrence_timestamp=_timestamp_at_row(df, occurrence_row_index),
+            decision_row_index=row_index,
+            event_age_bars=age,
+            max_event_age_bars=policy,
+            reason=EVENT_SOURCE_UNSAFE,
+            superseded_event_count=max(0, len(occurrences) - 1),
+        )
+    if policy_error is not None:
+        return EventResolution(
+            status=EVENT_INVALID,
+            event=event,
+            provenance=provenance,
+            occurrence_row_index=occurrence_row_index,
+            occurrence_timestamp=_timestamp_at_row(df, occurrence_row_index),
+            decision_row_index=row_index,
+            event_age_bars=age,
+            max_event_age_bars=policy,
+            reason=EVENT_INVALID,
+            superseded_event_count=max(0, len(occurrences) - 1),
+        )
+    if age == 0:
+        status = EVENT_CURRENT
+    elif policy is None:
+        status = EVENT_RECENCY_POLICY_NOT_CONFIGURED
+    elif age <= policy:
+        status = EVENT_CURRENT
+    else:
+        status = EVENT_STALE
+
+    return EventResolution(
+        status=status,
+        event=event,
+        provenance=provenance,
+        occurrence_row_index=occurrence_row_index,
+        occurrence_timestamp=_timestamp_at_row(df, occurrence_row_index),
+        decision_row_index=row_index,
+        event_age_bars=age,
+        max_event_age_bars=policy,
+        scoring_eligible=status == EVENT_CURRENT,
+        reason=None if status == EVENT_CURRENT else status,
+        superseded_event_count=max(0, len(occurrences) - 1),
+    )
+
+
+def _event_score_for_resolution(resolution: EventResolution) -> float:
+    if resolution.status != EVENT_CURRENT or not resolution.scoring_eligible:
+        return 0.0
+    return _event_score(resolution.event or "")
+
+
 def _pnf_score_neutral() -> float:
     logger.debug("Returning neutral P&F score (0.5)")
     # Neutral when P&F meta is not used yet
@@ -898,26 +1150,50 @@ def _derive_sl_tp_long(df: pd.DataFrame, cfg: StrategyConfig) -> Tuple[float, fl
     return levels.stop_loss, levels.target.target_price, levels.rr
 
 
-def _extract_context(df: pd.DataFrame) -> Dict[str, str]:
+def _extract_context(
+    df: pd.DataFrame,
+    cfg: StrategyConfig | None = None,
+    *,
+    decision_row_index: int | None = None,
+) -> Dict[str, Any]:
     logger.debug("Extracting Wyckoff context")
-    ctx: Dict[str, str] = {}
+    ctx: Dict[str, Any] = {}
+    try:
+        row_index = len(df) - 1 if decision_row_index is None else int(decision_row_index)
+    except (TypeError, ValueError):
+        row_index = len(df) - 1
+    context_frame = df.iloc[: row_index + 1] if 0 <= row_index < len(df) else df
     phase = "UNKNOWN"
-    if "wyckoff_phase" in df.columns:
-        nz = df["wyckoff_phase"].dropna()
+    if "wyckoff_phase" in context_frame.columns:
+        nz = context_frame["wyckoff_phase"].dropna()
         if len(nz):
             phase = str(nz.iloc[-1])
     ctx["phase"] = phase
     logger.debug(f"Extracted phase: {phase}")
 
-    ev = ""
-    if "wyckoff_confirmed_event" in df.columns:
-        nz = df["wyckoff_confirmed_event"].dropna()
-        ev = str(nz.iloc[-1]) if len(nz) else ""
+    cfg = cfg or StrategyConfig()
+    event_resolution = _resolve_wyckoff_event(
+        df,
+        cfg.max_event_age_bars,
+        decision_row_index=row_index,
+    )
+    ev = event_resolution.event or ""
     ctx["event"] = ev
-    logger.debug(f"Extracted event: {ev}")
+    ctx["event_status"] = event_resolution.status
+    ctx["event_provenance"] = event_resolution.provenance
+    ctx["event_age_bars"] = event_resolution.event_age_bars
+    ctx["event_max_age_bars"] = event_resolution.max_event_age_bars
+    ctx["event_scoring_eligible"] = event_resolution.scoring_eligible
+    ctx["event_occurrence_row_index"] = event_resolution.occurrence_row_index
+    ctx["event_occurrence_timestamp"] = event_resolution.occurrence_timestamp
+    ctx["event_decision_row_index"] = event_resolution.decision_row_index
+    ctx["event_superseded_count"] = event_resolution.superseded_event_count
+    ctx["event_reason"] = event_resolution.reason
+    ctx["event_resolution"] = event_resolution
+    logger.debug(f"Extracted event: {ev}; status={event_resolution.status}; age={event_resolution.event_age_bars}")
 
     # Simple direction/trend placeholder (can be replaced with your trend module)
-    trend = "up" if df["close"].iloc[-1] >= df["close"].rolling(20).mean().iloc[-1] else "flat"
+    trend = "up" if context_frame["close"].iloc[-1] >= context_frame["close"].rolling(20).mean().iloc[-1] else "flat"
     ctx["trend"] = trend
     logger.debug(f"Extracted trend: {trend}")
     return ctx
@@ -1039,7 +1315,7 @@ def rank_long_candidates(
         rr = float(levels.rr)
 
         # Extract Wyckoff context
-        ctx = _extract_context(df)
+        ctx = _extract_context(df, cfg, decision_row_index=len(df) - 1)
         logger.info(f"Extracted context for ticker {t}: {ctx}")
         if ctx["phase"] not in cfg.prefer_phases and ctx["phase"] != "UNKNOWN":
             # prefer phases C/D/E; allow UNKNOWN to pass (will be penalized by score)
@@ -1069,7 +1345,7 @@ def rank_long_candidates(
         norm = {k: (v / wsum) for k, v in w.items()}
 
         phase_s = _phase_score(ctx["phase"])               # 0…1
-        event_s = _event_score(ctx["event"])               # 0 or 1
+        event_s = _event_score_for_resolution(ctx["event_resolution"])  # 0 or 1
         pnf_s   = _pnf_score_neutral()                       # neutral 0.5 until we wire P&F
         pop_s   = (pop if pop is not None else 0.5)          # neutral 0.5 when MC off/missing
         trend_s = 0.75 if ctx.get("trend") == "up" else 0.5 # simple placeholder
@@ -1106,6 +1382,16 @@ def rank_long_candidates(
             "pop": pop,
             "phase": ctx["phase"],
             "event": ctx["event"],
+            "event_status": ctx["event_status"],
+            "event_provenance": ctx["event_provenance"],
+            "event_age_bars": ctx["event_age_bars"],
+            "event_max_age_bars": ctx["event_max_age_bars"],
+            "event_scoring_eligible": ctx["event_scoring_eligible"],
+            "event_occurrence_row_index": ctx["event_occurrence_row_index"],
+            "event_occurrence_timestamp": ctx["event_occurrence_timestamp"],
+            "event_decision_row_index": ctx["event_decision_row_index"],
+            "event_superseded_count": ctx["event_superseded_count"],
+            "event_reason": ctx["event_reason"],
             "trend": ctx["trend"],
             "score": round(score, 2),
         }

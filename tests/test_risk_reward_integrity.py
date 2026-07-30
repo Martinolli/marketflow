@@ -40,6 +40,7 @@ def _rows(
             "close": close,
             "wyckoff_phase": "D",
             "wyckoff_confirmed_event": "SOS",
+            "wyckoff_confirmed_event_occurrence": index == 0,
         }
         if tr_low is not None:
             row["tr_low"] = tr_low
@@ -299,8 +300,9 @@ def test_rank_long_candidates_skips_missing_invalid_and_ambiguous_targets(tmp_pa
         date_glob="batch_20260729_010203",
         tickers=["VALID", "MISS", "BAD", "AMB"],
         tf="4h",
-        cfg=StrategyConfig(min_rr=2.0),
+        cfg=StrategyConfig(min_rr=2.0, max_event_age_bars=24),
     )
 
     assert [result["ticker"] for result in results] == ["VALID"]
     assert results[0]["score"] == pytest.approx(73.33)
+    assert results[0]["event_status"] == "EVENT_CURRENT"

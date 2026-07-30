@@ -11,6 +11,12 @@ import pandas as pd
 
 from marketflow.backtesting.schemas import CandidateSnapshot
 from marketflow.marketflow_config_manager import create_app_config
+from marketflow.marketflow_strategy import (
+    EVENT_NOT_AVAILABLE,
+    EVENT_SOURCE_UNSAFE,
+    SOURCE_STATUS_EXACT_MATCH,
+    _resolve_wyckoff_event,
+)
 
 
 VALIDATION_VALID = "valid"
@@ -30,6 +36,12 @@ TIMESTAMP_COLUMN_CANDIDATES = (
     "Datetime",
     "Timestamp",
     "time",
+)
+CONFIRMED_EVENT_COLUMN_CANDIDATES = (
+    "wyckoff_confirmed_event",
+    "confirmed_wyckoff_event",
+    "confirmed_event",
+    "wyckoff_event_confirmed",
 )
 
 SNAPSHOT_FIELDS = [
@@ -54,11 +66,23 @@ SNAPSHOT_FIELDS = [
     "strategy_score",
     "wyckoff_phase",
     "wyckoff_event",
+    "event_status",
+    "event_provenance",
+    "event_age_bars",
+    "event_max_age_bars",
+    "event_scoring_eligible",
+    "event_occurrence_row_index",
+    "event_occurrence_timestamp",
+    "event_decision_row_index",
+    "event_superseded_count",
+    "event_reason",
+    "event_resolution_source",
     "trend",
     "candidate_source",
     "report_date",
     "direction",
     "source_report_dir",
+    "source_status",
     "source_strategy_rank",
 ]
 
@@ -513,6 +537,76 @@ def enrich_candidate_snapshot_signal_location(
     }
 
 
+def _snapshot_has_event_diagnostics(snapshot: dict[str, Any]) -> bool:
+    return not _is_missing(snapshot.get("event_status"))
+
+
+def _resolve_snapshot_event_diagnostics(
+    snapshot: dict[str, Any],
+    *,
+    max_event_age_bars: int | None = None,
+) -> dict[str, Any]:
+    enriched = dict(snapshot)
+    if _snapshot_has_event_diagnostics(enriched):
+        return enriched
+
+    def _with_event_failure(status: str, resolution_source: str | None = None) -> dict[str, Any]:
+        enriched.update(
+            {
+                "event_status": status,
+                "event_provenance": None,
+                "event_age_bars": None,
+                "event_max_age_bars": max_event_age_bars,
+                "event_scoring_eligible": False,
+                "event_occurrence_row_index": None,
+                "event_occurrence_timestamp": None,
+                "event_decision_row_index": _to_int(enriched.get("signal_row_index")),
+                "event_superseded_count": 0,
+                "event_reason": status,
+                "event_resolution_source": resolution_source,
+            }
+        )
+        return {field: _json_safe_value(enriched.get(field)) for field in SNAPSHOT_FIELDS}
+
+    if enriched.get("source_status") != SOURCE_STATUS_EXACT_MATCH:
+        return _with_event_failure(EVENT_SOURCE_UNSAFE)
+    source_path = _candidate_source_path(enriched.get("source_csv"), enriched.get("source_report_dir"))
+    signal_row_index = _to_int(enriched.get("signal_row_index"))
+    if source_path is None or signal_row_index is None:
+        return _with_event_failure(EVENT_NOT_AVAILABLE)
+    try:
+        dataframe = pd.read_csv(source_path)
+    except Exception:
+        return _with_event_failure(EVENT_SOURCE_UNSAFE)
+    event_column = _first_existing_column(dataframe, *CONFIRMED_EVENT_COLUMN_CANDIDATES)
+    if event_column is None:
+        return _with_event_failure(EVENT_NOT_AVAILABLE)
+    resolution = _resolve_wyckoff_event(
+        dataframe,
+        max_event_age_bars,
+        decision_row_index=signal_row_index,
+        event_column=event_column,
+    )
+    enriched.update(
+        {
+            "event_status": resolution.status,
+            "event_provenance": resolution.provenance,
+            "event_age_bars": resolution.event_age_bars,
+            "event_max_age_bars": resolution.max_event_age_bars,
+            "event_scoring_eligible": resolution.scoring_eligible,
+            "event_occurrence_row_index": resolution.occurrence_row_index,
+            "event_occurrence_timestamp": resolution.occurrence_timestamp,
+            "event_decision_row_index": resolution.decision_row_index,
+            "event_superseded_count": resolution.superseded_event_count,
+            "event_reason": resolution.reason,
+            "event_resolution_source": event_column,
+        }
+    )
+    if _is_missing(enriched.get("wyckoff_event")) and resolution.event:
+        enriched["wyckoff_event"] = resolution.event
+    return {field: _json_safe_value(enriched.get(field)) for field in SNAPSHOT_FIELDS}
+
+
 def normalize_candidate_snapshot(candidate: dict[str, Any]) -> dict[str, Any]:
     """Normalize a Strategy Ranking style candidate into a frozen snapshot dict."""
 
@@ -558,11 +652,23 @@ def normalize_candidate_snapshot(candidate: dict[str, Any]) -> dict[str, Any]:
         "strategy_score": _to_float(_first_present(candidate, "strategy_score", "score")[0]),
         "wyckoff_phase": _first_present(candidate, "wyckoff_phase", "phase")[0],
         "wyckoff_event": _first_present(candidate, "wyckoff_event", "event")[0],
+        "event_status": _first_present(candidate, "event_status")[0],
+        "event_provenance": _first_present(candidate, "event_provenance")[0],
+        "event_age_bars": _to_int(_first_present(candidate, "event_age_bars")[0]),
+        "event_max_age_bars": _to_int(_first_present(candidate, "event_max_age_bars")[0]),
+        "event_scoring_eligible": _first_present(candidate, "event_scoring_eligible")[0],
+        "event_occurrence_row_index": _to_int(_first_present(candidate, "event_occurrence_row_index")[0]),
+        "event_occurrence_timestamp": _first_present(candidate, "event_occurrence_timestamp")[0],
+        "event_decision_row_index": _to_int(_first_present(candidate, "event_decision_row_index")[0]),
+        "event_superseded_count": _to_int(_first_present(candidate, "event_superseded_count")[0]),
+        "event_reason": _first_present(candidate, "event_reason")[0],
+        "event_resolution_source": _first_present(candidate, "event_resolution_source")[0],
         "trend": _first_present(candidate, "trend")[0],
         "candidate_source": _first_present(candidate, "candidate_source", "source")[0] or "strategy_ranking",
         "report_date": _first_present(candidate, "report_date")[0],
         "direction": _first_present(candidate, "direction")[0] or "long",
         "source_report_dir": _first_present(candidate, "source_report_dir")[0],
+        "source_status": _first_present(candidate, "source_status")[0],
         "source_strategy_rank": _to_int(_first_present(candidate, "source_strategy_rank", "rank")[0]),
     }
     return {field: _json_safe_value(snapshot.get(field)) for field in SNAPSHOT_FIELDS}
@@ -629,6 +735,7 @@ def build_candidate_snapshot_from_strategy_candidate(
     candidate: dict[str, Any],
     *,
     report_dir: str | Path | None = None,
+    max_event_age_bars: int | None = None,
 ) -> dict[str, Any]:
     """Normalize and validate a selected Strategy Ranking candidate."""
 
@@ -636,7 +743,10 @@ def build_candidate_snapshot_from_strategy_candidate(
     if report_dir is not None and _is_missing(snapshot.get("source_report_dir")):
         snapshot["source_report_dir"] = str(report_dir)
     enrichment = enrich_candidate_snapshot_signal_location(snapshot)
-    snapshot = enrichment["snapshot"]
+    snapshot = _resolve_snapshot_event_diagnostics(
+        enrichment["snapshot"],
+        max_event_age_bars=max_event_age_bars,
+    )
     validation = validate_candidate_snapshot(snapshot)
     validation["warnings"].extend(enrichment.get("match", {}).get("warnings", []))
     return {
@@ -663,6 +773,17 @@ def candidate_snapshot_dict_to_dataclass(snapshot: dict[str, Any]) -> CandidateS
         strategy_score=_to_float(snapshot.get("strategy_score")),
         wyckoff_phase=snapshot.get("wyckoff_phase"),
         wyckoff_event=snapshot.get("wyckoff_event"),
+        event_status=snapshot.get("event_status"),
+        event_provenance=snapshot.get("event_provenance"),
+        event_age_bars=_to_int(snapshot.get("event_age_bars")),
+        event_max_age_bars=_to_int(snapshot.get("event_max_age_bars")),
+        event_scoring_eligible=snapshot.get("event_scoring_eligible"),
+        event_occurrence_row_index=_to_int(snapshot.get("event_occurrence_row_index")),
+        event_occurrence_timestamp=snapshot.get("event_occurrence_timestamp"),
+        event_decision_row_index=_to_int(snapshot.get("event_decision_row_index")),
+        event_superseded_count=_to_int(snapshot.get("event_superseded_count")),
+        event_reason=snapshot.get("event_reason"),
+        event_resolution_source=snapshot.get("event_resolution_source"),
         trend=snapshot.get("trend"),
         candidate_source=snapshot.get("candidate_source"),
         report_date=snapshot.get("report_date"),

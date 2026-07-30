@@ -19,6 +19,7 @@ from marketflow.marketflow_strategy import (
     RR_GATE_PASSED,
     RR_INVALID_INPUT,
     TARGET_NOT_AVAILABLE,
+    _resolve_wyckoff_event,
     _resolve_long_target,
     _rr,
 )
@@ -50,6 +51,13 @@ DEFAULT_EVENT_COLUMNS = (
     "wyckoff_event",
     "event",
     "phase_event",
+)
+
+DEFAULT_CONFIRMED_EVENT_COLUMNS = (
+    "wyckoff_confirmed_event",
+    "confirmed_wyckoff_event",
+    "confirmed_event",
+    "wyckoff_event_confirmed",
 )
 
 DEFAULT_PHASE_COLUMNS = (
@@ -332,6 +340,7 @@ def build_walk_forward_candidate_from_row(
     trend_column: str | None = None,
     risk_reward: float = DEFAULT_RISK_REWARD,
     risk_fraction: float = DEFAULT_RISK_FRACTION,
+    max_event_age_bars: int | None = None,
     decision_frame: pd.DataFrame | None = None,
     walk_forward_run_id: str | None = None,
 ) -> dict[str, Any]:
@@ -396,6 +405,20 @@ def build_walk_forward_candidate_from_row(
     wyckoff_event = _column_value(row_series, event_column)
     if _is_missing(wyckoff_event):
         wyckoff_event = _first_present_row_value(row_series, DEFAULT_EVENT_COLUMNS)
+    event_frame = decision_frame if decision_frame is not None else pd.DataFrame([row_series])
+    event_frame_columns = [str(column) for column in event_frame.columns] if not event_frame.empty else []
+    resolved_event_column = (
+        event_column
+        if event_column in DEFAULT_CONFIRMED_EVENT_COLUMNS
+        else _first_existing_column(event_frame_columns, DEFAULT_CONFIRMED_EVENT_COLUMNS)
+    )
+    event_resolution = _resolve_wyckoff_event(
+        event_frame,
+        max_event_age_bars,
+        decision_row_index=len(event_frame) - 1,
+        event_column=resolved_event_column or "wyckoff_confirmed_event",
+    )
+    resolved_wyckoff_event = event_resolution.event if event_resolution.event is not None else wyckoff_event
     trend = _column_value(row_series, trend_column)
     if _is_missing(trend):
         trend = _first_present_row_value(row_series, DEFAULT_TREND_COLUMNS)
@@ -423,9 +446,20 @@ def build_walk_forward_candidate_from_row(
         "rr_status": rr_status,
         "strategy_score": _to_float(strategy_score),
         "wyckoff_phase": _json_safe_value(wyckoff_phase),
-        "wyckoff_event": _json_safe_value(wyckoff_event),
+        "wyckoff_event": _json_safe_value(resolved_wyckoff_event),
+        "event_status": event_resolution.status,
+        "event_provenance": event_resolution.provenance,
+        "event_age_bars": event_resolution.event_age_bars,
+        "event_max_age_bars": event_resolution.max_event_age_bars,
+        "event_scoring_eligible": event_resolution.scoring_eligible,
+        "event_occurrence_row_index": event_resolution.occurrence_row_index,
+        "event_occurrence_timestamp": event_resolution.occurrence_timestamp,
+        "event_decision_row_index": event_resolution.decision_row_index,
+        "event_superseded_count": event_resolution.superseded_event_count,
+        "event_reason": event_resolution.reason,
         "trend": _json_safe_value(trend),
         "wyckoff_event_source": event_column,
+        "event_resolution_source": resolved_event_column,
         "wyckoff_phase_source": phase_column,
         "trend_source": trend_column,
         "direction": "long",
@@ -459,6 +493,7 @@ def build_walk_forward_cases_from_csv(
     include_invalid_cases: bool = False,
     risk_reward: float = DEFAULT_RISK_REWARD,
     risk_fraction: float = DEFAULT_RISK_FRACTION,
+    max_event_age_bars: int | None = None,
     walk_forward_run_id: str | None = None,
 ) -> dict[str, Any]:
     path = Path(csv_path)
@@ -490,6 +525,7 @@ def build_walk_forward_cases_from_csv(
         "event_filters": filters,
         "timestamp_column": None,
         "event_column": None,
+        "max_event_age_bars": max_event_age_bars,
         "phase_column": None,
         "trend_column": None,
         "ohlc_columns": {"open": None, "high": None, "low": None, "close": None},
@@ -586,6 +622,7 @@ def build_walk_forward_cases_from_csv(
             trend_column=trend_column,
             risk_reward=risk_reward,
             risk_fraction=risk_fraction,
+            max_event_age_bars=max_event_age_bars,
             decision_frame=data.iloc[: index + 1],
             walk_forward_run_id=run_id,
         )
@@ -788,6 +825,7 @@ def build_and_evaluate_walk_forward_cases_from_csv(
     require_mature_future: bool = True,
     risk_reward: float = DEFAULT_RISK_REWARD,
     risk_fraction: float = DEFAULT_RISK_FRACTION,
+    max_event_age_bars: int | None = None,
     tie_break_policy: str = DEFAULT_TIE_BREAK_POLICY,
 ) -> dict[str, Any]:
     build_result = build_walk_forward_cases_from_csv(
@@ -803,6 +841,7 @@ def build_and_evaluate_walk_forward_cases_from_csv(
         require_mature_future=require_mature_future,
         risk_reward=risk_reward,
         risk_fraction=risk_fraction,
+        max_event_age_bars=max_event_age_bars,
     )
     if not build_result.get("success"):
         summary = summarize_walk_forward_validation([])

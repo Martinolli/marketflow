@@ -24,6 +24,17 @@ class CandidateSnapshot:
     strategy_score: float | None = None
     wyckoff_phase: str | None = None
     wyckoff_event: str | None = None
+    event_status: str | None = None
+    event_provenance: str | None = None
+    event_age_bars: int | None = None
+    event_max_age_bars: int | None = None
+    event_scoring_eligible: bool | None = None
+    event_occurrence_row_index: int | None = None
+    event_occurrence_timestamp: str | None = None
+    event_decision_row_index: int | None = None
+    event_superseded_count: int | None = None
+    event_reason: str | None = None
+    event_resolution_source: str | None = None
     trend: str | None = None
     candidate_source: str | None = None
     report_date: str | None = None
