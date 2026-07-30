@@ -115,6 +115,59 @@ def test_dict_aliases_normalize_candidate_fields():
     assert normalized["strategy_score"] == 72
     assert normalized["wyckoff_phase"] == "D"
     assert normalized["wyckoff_event"] == "SOS"
+    assert normalized["score_status"] == "SCORE_INCOMPLETE"
+    assert normalized["composite_score"] is None
+    assert normalized["rank_eligible"] is False
+
+
+def test_legacy_composite_candidate_snapshot_to_dict_fails_closed():
+    normalized = candidate_snapshot_to_dict(
+        _candidate(
+            score=73.33333333333333,
+            composite_score=73.33333333333333,
+        )
+    )
+
+    assert normalized["strategy_score"] == 73.33333333333333
+    assert normalized["score_status"] == "SCORE_INCOMPLETE"
+    assert normalized["composite_score"] is None
+    assert normalized["rank_eligible"] is False
+
+
+def test_candidate_snapshot_to_dict_preserves_score_diagnostics():
+    candidate = _candidate(
+        score=None,
+        score_status="SCORE_INCOMPLETE",
+        active_evidence_profile="phase,event,pop,trend",
+        missing_components=["pop"],
+        disabled_components=["pnf"],
+        pop_evidence_status="EVIDENCE_NOT_AVAILABLE",
+    )
+
+    normalized = candidate_snapshot_to_dict(candidate)
+
+    assert normalized["strategy_score"] is None
+    assert normalized["score_status"] == "SCORE_INCOMPLETE"
+    assert normalized["active_evidence_profile"] == "phase,event,pop,trend"
+    assert normalized["missing_components"] == ["pop"]
+    assert normalized["disabled_components"] == ["pnf"]
+    assert normalized["pop_evidence_status"] == "EVIDENCE_NOT_AVAILABLE"
+
+
+def test_backtest_service_response_preserves_score_diagnostics():
+    result = evaluate_backtest_candidate(
+        _frame(),
+        _candidate(
+            score_status="SCORE_INCOMPLETE",
+            missing_components=["pop"],
+            pop_evidence_status="EVIDENCE_NOT_AVAILABLE",
+        ),
+        horizon_bars=2,
+    )
+
+    assert result["candidate"]["score_status"] == "SCORE_INCOMPLETE"
+    assert result["candidate"]["missing_components"] == ["pop"]
+    assert result["candidate"]["pop_evidence_status"] == "EVIDENCE_NOT_AVAILABLE"
 
 
 def test_outcome_result_to_dict_converts_nan_to_none():

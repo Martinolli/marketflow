@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from dataclasses import asdict, fields
 from pathlib import Path
 from typing import Any
 
@@ -40,45 +41,33 @@ def _to_int(value: Any) -> int | None:
 
 def _candidate_from_mapping(candidate: dict[str, Any]) -> CandidateSnapshot:
     """Normalize dict-like candidate fields into a CandidateSnapshot."""
-    return CandidateSnapshot(
-        ticker=candidate.get("ticker"),
-        timeframe=candidate.get("timeframe") or candidate.get("tf"),
-        source_csv=candidate.get("source_csv") or candidate.get("csv"),
-        signal_timestamp=candidate.get("signal_timestamp"),
-        signal_row_index=_to_int(candidate.get("signal_row_index")),
-        entry=_to_float(candidate.get("entry")),
-        stop_loss=_to_float(candidate.get("stop_loss") if "stop_loss" in candidate else candidate.get("sl")),
-        take_profit=_to_float(candidate.get("take_profit") if "take_profit" in candidate else candidate.get("tp")),
-        risk_reward=_to_float(candidate.get("risk_reward") if "risk_reward" in candidate else candidate.get("rr")),
-        strategy_score=_to_float(candidate.get("strategy_score") if "strategy_score" in candidate else candidate.get("score")),
-        wyckoff_phase=candidate.get("wyckoff_phase") or candidate.get("phase"),
-        wyckoff_event=candidate.get("wyckoff_event") or candidate.get("event"),
-        trend=candidate.get("trend"),
-        candidate_source=candidate.get("candidate_source"),
-        report_date=candidate.get("report_date"),
+    source = {field.name: candidate.get(field.name) for field in fields(CandidateSnapshot)}
+    source.update(
+        {
+            "ticker": candidate.get("ticker"),
+            "timeframe": candidate.get("timeframe") or candidate.get("tf"),
+            "source_csv": candidate.get("source_csv") or candidate.get("csv"),
+            "signal_timestamp": candidate.get("signal_timestamp"),
+            "signal_row_index": _to_int(candidate.get("signal_row_index")),
+            "entry": _to_float(candidate.get("entry")),
+            "stop_loss": _to_float(candidate.get("stop_loss") if "stop_loss" in candidate else candidate.get("sl")),
+            "take_profit": _to_float(candidate.get("take_profit") if "take_profit" in candidate else candidate.get("tp")),
+            "risk_reward": _to_float(candidate.get("risk_reward") if "risk_reward" in candidate else candidate.get("rr")),
+            "strategy_score": _to_float(candidate.get("strategy_score") if "strategy_score" in candidate else candidate.get("score")),
+            "wyckoff_phase": candidate.get("wyckoff_phase") or candidate.get("phase"),
+            "wyckoff_event": candidate.get("wyckoff_event") or candidate.get("event"),
+            "trend": candidate.get("trend"),
+            "candidate_source": candidate.get("candidate_source"),
+            "report_date": candidate.get("report_date"),
+        }
     )
+    return CandidateSnapshot(**source)
 
 
 def _normalize_candidate(candidate: CandidateSnapshot | dict[str, Any]) -> CandidateSnapshot:
     """Return a CandidateSnapshot from supported candidate inputs."""
     if isinstance(candidate, CandidateSnapshot):
-        return CandidateSnapshot(
-            ticker=candidate.ticker,
-            timeframe=candidate.timeframe,
-            source_csv=candidate.source_csv,
-            signal_timestamp=candidate.signal_timestamp,
-            signal_row_index=_to_int(candidate.signal_row_index),
-            entry=_to_float(candidate.entry),
-            stop_loss=_to_float(candidate.stop_loss),
-            take_profit=_to_float(candidate.take_profit),
-            risk_reward=_to_float(candidate.risk_reward),
-            strategy_score=_to_float(candidate.strategy_score),
-            wyckoff_phase=candidate.wyckoff_phase,
-            wyckoff_event=candidate.wyckoff_event,
-            trend=candidate.trend,
-            candidate_source=candidate.candidate_source,
-            report_date=candidate.report_date,
-        )
+        return _candidate_from_mapping(asdict(candidate))
     if isinstance(candidate, dict):
         return _candidate_from_mapping(candidate)
     return CandidateSnapshot()

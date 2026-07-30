@@ -2339,6 +2339,12 @@ WALK_FORWARD_CASE_COLUMNS = [
     "target_provenance",
     "target_structural_level_kind",
     "rr_status",
+    "strategy_score",
+    "score_status",
+    "active_evidence_profile",
+    "missing_components",
+    "disabled_components",
+    "invalid_components",
     "wyckoff_phase",
     "wyckoff_event",
     "event_status",
@@ -2367,6 +2373,12 @@ WALK_FORWARD_RESULT_COLUMNS = [
     "bars_to_hit",
     "realized_R",
     "backtest_success",
+    "strategy_score",
+    "score_status",
+    "active_evidence_profile",
+    "missing_components",
+    "disabled_components",
+    "invalid_components",
     "wyckoff_phase",
     "wyckoff_event",
     "event_status",
@@ -3793,7 +3805,7 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
     results = strategy_result.get("results") or []
     labels = [
         f"{candidate.get('ticker', 'UNKNOWN')} | {candidate.get('tf', '')} | "
-        f"score {candidate.get('score', 'NA')}"
+        f"{candidate.get('score_status') or 'SCORE_UNKNOWN'} | score {candidate.get('score', 'NA')}"
         for candidate in results
     ]
     selected_index = st.selectbox(
@@ -3809,6 +3821,11 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
             "This candidate used a fallback Monte Carlo summary that may not match "
             "the selected timeframe."
         )
+    score_status = selected_candidate.get("score_status")
+    if score_status != "SCORE_COMPLETE":
+        st.warning("Selected candidate has incomplete evidence and no complete composite score.")
+    if selected_candidate.get("score_profile_calibration"):
+        st.warning("Selected candidate uses an uncalibrated disabled-component score profile.")
     st.json(selected_candidate)
     _render_parameter_profile_selector(result)
     _render_data_sufficiency_section(result)
@@ -3819,7 +3836,13 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
     _render_backtest_calibration_summary_section(result)
     _render_monte_carlo_forecast_calibration_summary_section(result)
 
-    if st.button("Use selected candidate in Monte Carlo"):
+    if st.button(
+        "Use selected candidate in Monte Carlo",
+        disabled=(
+            score_status != "SCORE_COMPLETE"
+            or bool(selected_candidate.get("score_profile_calibration"))
+        ),
+    ):
         trade_plan = _trade_plan_from_strategy_candidate(selected_candidate)
         if trade_plan is None:
             st.error("Selected candidate source CSV could not be resolved inside the report root.")

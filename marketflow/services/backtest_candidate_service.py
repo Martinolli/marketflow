@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import math
 import re
+from dataclasses import fields
 from pathlib import Path
 from typing import Any
 
@@ -12,8 +13,20 @@ import pandas as pd
 from marketflow.backtesting.schemas import CandidateSnapshot
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_strategy import (
+    COMPONENT_EVENT,
+    COMPONENT_PHASE,
+    COMPONENT_PNF,
+    COMPONENT_POP,
+    COMPONENT_TREND,
+    EVIDENCE_AVAILABLE,
+    EVIDENCE_DISABLED_BY_CONFIGURATION,
+    EVIDENCE_NOT_AVAILABLE,
     EVENT_NOT_AVAILABLE,
     EVENT_SOURCE_UNSAFE,
+    SCORE_INCOMPLETE,
+    SCORE_INVALID,
+    SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED,
+    SCORE_PROFILE_UNSAFE,
     SOURCE_STATUS_EXACT_MATCH,
     _resolve_wyckoff_event,
 )
@@ -25,6 +38,7 @@ VALIDATION_MISSING_SOURCE_CSV = "missing_source_csv"
 VALIDATION_MISSING_SIGNAL_LOCATION = "missing_signal_location"
 VALIDATION_INVALID_LEVELS = "invalid_levels"
 VALIDATION_UNSUPPORTED_DIRECTION = "unsupported_direction"
+LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE = "LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE"
 
 SUPPORTED_DIRECTIONS = {"long"}
 TIMEFRAME_TOKENS = ("15m", "30m", "1m", "5m", "1h", "4h", "1d", "1w")
@@ -64,6 +78,60 @@ SNAPSHOT_FIELDS = [
     "volatility_window",
     "volatility_value",
     "strategy_score",
+    "composite_score",
+    "score_status",
+    "score_reason",
+    "active_evidence_profile",
+    "configured_weight_total",
+    "active_weight_total",
+    "available_weight_total",
+    "evidence_coverage",
+    "missing_components",
+    "disabled_components",
+    "invalid_components",
+    "rank_eligible",
+    "score_profile_calibration",
+    "phase_evidence_status",
+    "phase_evidence_score",
+    "phase_evidence_configured_weight",
+    "phase_evidence_active_weight",
+    "phase_evidence_provenance",
+    "phase_evidence_reason",
+    "phase_evidence_expected_by_profile",
+    "phase_evidence_scoring_eligible",
+    "event_evidence_status",
+    "event_evidence_score",
+    "event_evidence_configured_weight",
+    "event_evidence_active_weight",
+    "event_evidence_provenance",
+    "event_evidence_reason",
+    "event_evidence_expected_by_profile",
+    "event_evidence_scoring_eligible",
+    "pnf_score",
+    "pnf_evidence_status",
+    "pnf_evidence_score",
+    "pnf_evidence_configured_weight",
+    "pnf_evidence_active_weight",
+    "pnf_evidence_provenance",
+    "pnf_evidence_reason",
+    "pnf_evidence_expected_by_profile",
+    "pnf_evidence_scoring_eligible",
+    "pop_evidence_status",
+    "pop_evidence_score",
+    "pop_evidence_configured_weight",
+    "pop_evidence_active_weight",
+    "pop_evidence_provenance",
+    "pop_evidence_reason",
+    "pop_evidence_expected_by_profile",
+    "pop_evidence_scoring_eligible",
+    "trend_evidence_status",
+    "trend_evidence_score",
+    "trend_evidence_configured_weight",
+    "trend_evidence_active_weight",
+    "trend_evidence_provenance",
+    "trend_evidence_reason",
+    "trend_evidence_expected_by_profile",
+    "trend_evidence_scoring_eligible",
     "wyckoff_phase",
     "wyckoff_event",
     "event_status",
@@ -86,6 +154,41 @@ SNAPSHOT_FIELDS = [
     "source_strategy_rank",
 ]
 
+LEGACY_SCORE_FIELDS = (
+    "score",
+    "strategy_score",
+    "composite_score",
+    "pnf_score",
+    "pop",
+    "pop_evidence_score",
+)
+EVIDENCE_STATUS_FIELDS = (
+    "score_status",
+    "phase_evidence_status",
+    "event_evidence_status",
+    "pnf_evidence_status",
+    "pop_evidence_status",
+    "trend_evidence_status",
+)
+LEGACY_COMPONENTS = (
+    COMPONENT_PHASE,
+    COMPONENT_EVENT,
+    COMPONENT_PNF,
+    COMPONENT_POP,
+    COMPONENT_TREND,
+)
+REQUIRED_LEGACY_COMPONENTS = (
+    COMPONENT_PHASE,
+    COMPONENT_EVENT,
+    COMPONENT_TREND,
+)
+NON_COMPLETE_SCORE_STATUSES = (
+    SCORE_INCOMPLETE,
+    SCORE_INVALID,
+    SCORE_PROFILE_UNSAFE,
+    SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED,
+)
+
 
 def _json_safe_value(value: Any) -> Any:
     """Return a scalar value suitable for JSON serialization."""
@@ -103,6 +206,10 @@ def _json_safe_value(value: Any) -> Any:
         return None
     if isinstance(value, Path):
         return str(value)
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe_value(item) for item in value]
     try:
         is_missing = pd.isna(value)
     except (TypeError, ValueError):
@@ -144,6 +251,124 @@ def _numbers_close(left: Any, right: Any, *, tolerance: float = 1e-6) -> bool:
     if left_float is None or right_float is None:
         return False
     return abs(left_float - right_float) <= tolerance
+
+
+def _has_evidence_status(snapshot: dict[str, Any]) -> bool:
+    return any(not _is_missing(snapshot.get(field)) for field in EVIDENCE_STATUS_FIELDS)
+
+
+def _is_truthy(value: Any) -> bool:
+    value = _json_safe_value(value)
+    if value is True:
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "1", "yes"}
+    return False
+
+
+def _component_names(value: Any) -> set[str]:
+    value = _json_safe_value(value)
+    if isinstance(value, list):
+        return {str(item).strip() for item in value if str(item).strip()}
+    if isinstance(value, str):
+        return {item.strip() for item in value.split(",") if item.strip()}
+    return set()
+
+
+def _has_safe_complete_evidence_diagnostics(snapshot: dict[str, Any]) -> bool:
+    if snapshot.get("score_status") != "SCORE_COMPLETE":
+        return False
+    if _to_float(snapshot.get("composite_score")) is None:
+        return False
+    active_weight_total = _to_float(snapshot.get("active_weight_total"))
+    if active_weight_total is None or active_weight_total <= 0:
+        return False
+    active_components = _component_names(snapshot.get("active_evidence_profile"))
+    if not active_components or not set(REQUIRED_LEGACY_COMPONENTS).issubset(active_components):
+        return False
+
+    disabled_components: list[str] = []
+    for component in LEGACY_COMPONENTS:
+        status = snapshot.get(f"{component}_evidence_status")
+        score = _to_float(snapshot.get(f"{component}_evidence_score"))
+        scoring_eligible = _is_truthy(snapshot.get(f"{component}_evidence_scoring_eligible"))
+        if component in active_components:
+            if status != EVIDENCE_AVAILABLE:
+                return False
+            if score is None:
+                return False
+            if _is_missing(snapshot.get(f"{component}_evidence_provenance")):
+                return False
+            if not scoring_eligible:
+                return False
+            active_weight = _to_float(snapshot.get(f"{component}_evidence_active_weight"))
+            if active_weight is None or active_weight <= 0:
+                return False
+            continue
+
+        disabled_components.append(component)
+        if status != EVIDENCE_DISABLED_BY_CONFIGURATION:
+            return False
+        if score is not None or scoring_eligible:
+            return False
+
+    if disabled_components:
+        if snapshot.get("score_profile_calibration") != SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED:
+            return False
+        if _is_truthy(snapshot.get("rank_eligible")):
+            return False
+    return True
+
+
+def _has_legacy_score_value(candidate: dict[str, Any], snapshot: dict[str, Any]) -> bool:
+    for field in LEGACY_SCORE_FIELDS:
+        if _to_float(candidate.get(field)) is not None or _to_float(snapshot.get(field)) is not None:
+            return True
+    return False
+
+
+def _clear_non_available_component_scores(snapshot: dict[str, Any]) -> None:
+    for component in LEGACY_COMPONENTS:
+        if snapshot.get(f"{component}_evidence_status") != EVIDENCE_AVAILABLE:
+            snapshot[f"{component}_evidence_score"] = None
+            snapshot[f"{component}_evidence_scoring_eligible"] = False
+
+
+def _mark_non_complete_non_actionable(snapshot: dict[str, Any]) -> None:
+    snapshot["rank_eligible"] = False
+    snapshot["composite_score"] = None
+    _clear_non_available_component_scores(snapshot)
+
+
+def _mark_missing_legacy_score_incomplete(snapshot: dict[str, Any]) -> None:
+    snapshot["score_status"] = SCORE_INCOMPLETE
+    snapshot["score_reason"] = LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE
+    snapshot["composite_score"] = None
+    snapshot["rank_eligible"] = False
+    snapshot["missing_components"] = list(LEGACY_COMPONENTS)
+
+    for component in LEGACY_COMPONENTS:
+        prefix = f"{component}_evidence"
+        snapshot[f"{prefix}_status"] = EVIDENCE_NOT_AVAILABLE
+        snapshot[f"{prefix}_score"] = None
+        snapshot[f"{prefix}_reason"] = LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE
+        snapshot[f"{prefix}_scoring_eligible"] = False
+
+    snapshot["pnf_score"] = None
+
+
+def _mark_legacy_score_incomplete(candidate: dict[str, Any], snapshot: dict[str, Any]) -> None:
+    if snapshot.get("score_status") == "SCORE_COMPLETE":
+        if _has_safe_complete_evidence_diagnostics(snapshot):
+            return
+        _mark_missing_legacy_score_incomplete(snapshot)
+        return
+    if snapshot.get("score_status") in NON_COMPLETE_SCORE_STATUSES:
+        _mark_non_complete_non_actionable(snapshot)
+        return
+    if not _has_legacy_score_value(candidate, snapshot):
+        return
+    _mark_missing_legacy_score_incomplete(snapshot)
 
 
 def _to_int(value: Any) -> int | None:
@@ -671,6 +896,10 @@ def normalize_candidate_snapshot(candidate: dict[str, Any]) -> dict[str, Any]:
         "source_status": _first_present(candidate, "source_status")[0],
         "source_strategy_rank": _to_int(_first_present(candidate, "source_strategy_rank", "rank")[0]),
     }
+    for field in SNAPSHOT_FIELDS:
+        if field not in snapshot:
+            snapshot[field] = _first_present(candidate, field)[0]
+    _mark_legacy_score_incomplete(candidate, snapshot)
     return {field: _json_safe_value(snapshot.get(field)) for field in SNAPSHOT_FIELDS}
 
 
@@ -760,31 +989,54 @@ def build_candidate_snapshot_from_strategy_candidate(
 def candidate_snapshot_dict_to_dataclass(snapshot: dict[str, Any]) -> CandidateSnapshot:
     """Convert a normalized snapshot dict to the lightweight dataclass schema."""
 
-    return CandidateSnapshot(
-        ticker=snapshot.get("ticker"),
-        timeframe=snapshot.get("timeframe"),
-        source_csv=snapshot.get("source_csv"),
-        signal_timestamp=snapshot.get("signal_timestamp"),
-        signal_row_index=_to_int(snapshot.get("signal_row_index")),
-        entry=_to_float(snapshot.get("entry")),
-        stop_loss=_to_float(snapshot.get("stop_loss")),
-        take_profit=_to_float(snapshot.get("take_profit")),
-        risk_reward=_to_float(snapshot.get("risk_reward")),
-        strategy_score=_to_float(snapshot.get("strategy_score")),
-        wyckoff_phase=snapshot.get("wyckoff_phase"),
-        wyckoff_event=snapshot.get("wyckoff_event"),
-        event_status=snapshot.get("event_status"),
-        event_provenance=snapshot.get("event_provenance"),
-        event_age_bars=_to_int(snapshot.get("event_age_bars")),
-        event_max_age_bars=_to_int(snapshot.get("event_max_age_bars")),
-        event_scoring_eligible=snapshot.get("event_scoring_eligible"),
-        event_occurrence_row_index=_to_int(snapshot.get("event_occurrence_row_index")),
-        event_occurrence_timestamp=snapshot.get("event_occurrence_timestamp"),
-        event_decision_row_index=_to_int(snapshot.get("event_decision_row_index")),
-        event_superseded_count=_to_int(snapshot.get("event_superseded_count")),
-        event_reason=snapshot.get("event_reason"),
-        event_resolution_source=snapshot.get("event_resolution_source"),
-        trend=snapshot.get("trend"),
-        candidate_source=snapshot.get("candidate_source"),
-        report_date=snapshot.get("report_date"),
-    )
+    normalized = normalize_candidate_snapshot(snapshot)
+    numeric_fields = {
+        "signal_row_index",
+        "entry",
+        "stop_loss",
+        "take_profit",
+        "risk_reward",
+        "strategy_score",
+        "composite_score",
+        "configured_weight_total",
+        "active_weight_total",
+        "available_weight_total",
+        "evidence_coverage",
+        "phase_evidence_score",
+        "phase_evidence_configured_weight",
+        "phase_evidence_active_weight",
+        "event_evidence_score",
+        "event_evidence_configured_weight",
+        "event_evidence_active_weight",
+        "pnf_score",
+        "pnf_evidence_score",
+        "pnf_evidence_configured_weight",
+        "pnf_evidence_active_weight",
+        "pop_evidence_score",
+        "pop_evidence_configured_weight",
+        "pop_evidence_active_weight",
+        "trend_evidence_score",
+        "trend_evidence_configured_weight",
+        "trend_evidence_active_weight",
+        "event_age_bars",
+        "event_max_age_bars",
+        "event_occurrence_row_index",
+        "event_decision_row_index",
+        "event_superseded_count",
+        "source_strategy_rank",
+    }
+    values: dict[str, Any] = {}
+    for field in fields(CandidateSnapshot):
+        value = normalized.get(field.name)
+        values[field.name] = _to_float(value) if field.name in numeric_fields else value
+    for field in (
+        "signal_row_index",
+        "event_age_bars",
+        "event_max_age_bars",
+        "event_occurrence_row_index",
+        "event_decision_row_index",
+        "event_superseded_count",
+    ):
+        if field in values:
+            values[field] = _to_int(normalized.get(field))
+    return CandidateSnapshot(**values)

@@ -15,9 +15,21 @@ from marketflow.services.parameter_profile_service import (
 )
 from marketflow.services.backtest_result_service import evaluate_candidate_snapshot_rows
 from marketflow.marketflow_strategy import (
+    COMPONENT_EVENT,
+    COMPONENT_PHASE,
+    COMPONENT_PNF,
+    COMPONENT_POP,
+    COMPONENT_TREND,
+    EVIDENCE_AVAILABLE,
+    EVIDENCE_DISABLED_BY_CONFIGURATION,
+    EVIDENCE_NOT_AVAILABLE,
     RR_BELOW_MINIMUM,
     RR_GATE_PASSED,
     RR_INVALID_INPUT,
+    SCORE_INCOMPLETE,
+    SCORE_INVALID,
+    SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED,
+    SCORE_PROFILE_UNSAFE,
     TARGET_NOT_AVAILABLE,
     _resolve_wyckoff_event,
     _resolve_long_target,
@@ -33,6 +45,7 @@ DEFAULT_TIE_BREAK_POLICY = "conservative"
 WALK_FORWARD_SOURCE_STATUS_EXACT_MATCH = "EXACT_MATCH"
 WALK_FORWARD_SOURCE_REASON_IDENTITY_MISMATCH = "DATASET_IDENTITY_MISMATCH"
 WALK_FORWARD_SOURCE_REASON_IDENTITY_UNKNOWN = "DATASET_IDENTITY_UNKNOWN"
+LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE = "LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE"
 
 DEFAULT_TIMESTAMP_COLUMNS = (
     "timestamp",
@@ -68,6 +81,96 @@ DEFAULT_PHASE_COLUMNS = (
 DEFAULT_TREND_COLUMNS = (
     "trend",
     "trend_label",
+)
+
+SCORE_DIAGNOSTIC_COLUMNS = (
+    "score_status",
+    "score_reason",
+    "active_evidence_profile",
+    "configured_weight_total",
+    "active_weight_total",
+    "available_weight_total",
+    "evidence_coverage",
+    "missing_components",
+    "disabled_components",
+    "invalid_components",
+    "rank_eligible",
+    "score_profile_calibration",
+    "phase_evidence_status",
+    "phase_evidence_score",
+    "phase_evidence_configured_weight",
+    "phase_evidence_active_weight",
+    "phase_evidence_provenance",
+    "phase_evidence_reason",
+    "phase_evidence_expected_by_profile",
+    "phase_evidence_scoring_eligible",
+    "event_evidence_status",
+    "event_evidence_score",
+    "event_evidence_configured_weight",
+    "event_evidence_active_weight",
+    "event_evidence_provenance",
+    "event_evidence_reason",
+    "event_evidence_expected_by_profile",
+    "event_evidence_scoring_eligible",
+    "pnf_score",
+    "pnf_evidence_status",
+    "pnf_evidence_score",
+    "pnf_evidence_configured_weight",
+    "pnf_evidence_active_weight",
+    "pnf_evidence_provenance",
+    "pnf_evidence_reason",
+    "pnf_evidence_expected_by_profile",
+    "pnf_evidence_scoring_eligible",
+    "pop_evidence_status",
+    "pop_evidence_score",
+    "pop_evidence_configured_weight",
+    "pop_evidence_active_weight",
+    "pop_evidence_provenance",
+    "pop_evidence_reason",
+    "pop_evidence_expected_by_profile",
+    "pop_evidence_scoring_eligible",
+    "trend_evidence_status",
+    "trend_evidence_score",
+    "trend_evidence_configured_weight",
+    "trend_evidence_active_weight",
+    "trend_evidence_provenance",
+    "trend_evidence_reason",
+    "trend_evidence_expected_by_profile",
+    "trend_evidence_scoring_eligible",
+)
+LEGACY_SCORE_COLUMNS = (
+    "score",
+    "strategy_score",
+    "composite_score",
+    "pnf_score",
+    "pop",
+    "pop_evidence_score",
+)
+LEGACY_EVIDENCE_STATUS_COLUMNS = (
+    "score_status",
+    "phase_evidence_status",
+    "event_evidence_status",
+    "pnf_evidence_status",
+    "pop_evidence_status",
+    "trend_evidence_status",
+)
+LEGACY_COMPONENTS = (
+    COMPONENT_PHASE,
+    COMPONENT_EVENT,
+    COMPONENT_PNF,
+    COMPONENT_POP,
+    COMPONENT_TREND,
+)
+REQUIRED_LEGACY_COMPONENTS = (
+    COMPONENT_PHASE,
+    COMPONENT_EVENT,
+    COMPONENT_TREND,
+)
+NON_COMPLETE_SCORE_STATUSES = (
+    SCORE_INCOMPLETE,
+    SCORE_INVALID,
+    SCORE_PROFILE_UNSAFE,
+    SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED,
 )
 
 TIMEFRAME_TOKENS = ("1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m")
@@ -107,6 +210,120 @@ def _to_float(value: Any) -> float | None:
     if math.isnan(parsed) or math.isinf(parsed):
         return None
     return parsed
+
+
+def _has_legacy_score_value(row: pd.Series, case: dict[str, Any]) -> bool:
+    for column in LEGACY_SCORE_COLUMNS:
+        if _to_float(row.get(column)) is not None or _to_float(case.get(column)) is not None:
+            return True
+    return False
+
+
+def _clear_non_available_component_scores(case: dict[str, Any]) -> None:
+    for component in LEGACY_COMPONENTS:
+        if case.get(f"{component}_evidence_status") != EVIDENCE_AVAILABLE:
+            case[f"{component}_evidence_score"] = None
+            case[f"{component}_evidence_scoring_eligible"] = False
+
+
+def _is_truthy(value: Any) -> bool:
+    value = _json_safe_value(value)
+    if value is True:
+        return True
+    if isinstance(value, str):
+        return value.strip().lower() in {"true", "1", "yes"}
+    return False
+
+
+def _component_names(value: Any) -> set[str]:
+    value = _json_safe_value(value)
+    if isinstance(value, list):
+        return {str(item).strip() for item in value if str(item).strip()}
+    if isinstance(value, str):
+        return {item.strip() for item in value.split(",") if item.strip()}
+    return set()
+
+
+def _has_safe_complete_evidence_diagnostics(case: dict[str, Any]) -> bool:
+    if case.get("score_status") != "SCORE_COMPLETE":
+        return False
+    if _to_float(case.get("composite_score")) is None:
+        return False
+    active_weight_total = _to_float(case.get("active_weight_total"))
+    if active_weight_total is None or active_weight_total <= 0:
+        return False
+    active_components = _component_names(case.get("active_evidence_profile"))
+    if not active_components or not set(REQUIRED_LEGACY_COMPONENTS).issubset(active_components):
+        return False
+
+    disabled_components: list[str] = []
+    for component in LEGACY_COMPONENTS:
+        status = case.get(f"{component}_evidence_status")
+        score = _to_float(case.get(f"{component}_evidence_score"))
+        scoring_eligible = _is_truthy(case.get(f"{component}_evidence_scoring_eligible"))
+        if component in active_components:
+            if status != EVIDENCE_AVAILABLE:
+                return False
+            if score is None:
+                return False
+            if _is_missing(case.get(f"{component}_evidence_provenance")):
+                return False
+            if not scoring_eligible:
+                return False
+            active_weight = _to_float(case.get(f"{component}_evidence_active_weight"))
+            if active_weight is None or active_weight <= 0:
+                return False
+            continue
+
+        disabled_components.append(component)
+        if status != EVIDENCE_DISABLED_BY_CONFIGURATION:
+            return False
+        if score is not None or scoring_eligible:
+            return False
+
+    if disabled_components:
+        if case.get("score_profile_calibration") != SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED:
+            return False
+        if _is_truthy(case.get("rank_eligible")):
+            return False
+    return True
+
+
+def _mark_non_complete_non_actionable(case: dict[str, Any]) -> None:
+    case["rank_eligible"] = False
+    case["composite_score"] = None
+    _clear_non_available_component_scores(case)
+
+
+def _mark_missing_legacy_score_incomplete(case: dict[str, Any]) -> None:
+    case["score_status"] = SCORE_INCOMPLETE
+    case["score_reason"] = LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE
+    case["composite_score"] = None
+    case["rank_eligible"] = False
+    case["missing_components"] = list(LEGACY_COMPONENTS)
+
+    for component in LEGACY_COMPONENTS:
+        prefix = f"{component}_evidence"
+        case[f"{prefix}_status"] = EVIDENCE_NOT_AVAILABLE
+        case[f"{prefix}_score"] = None
+        case[f"{prefix}_reason"] = LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE
+        case[f"{prefix}_scoring_eligible"] = False
+
+    case["pnf_score"] = None
+
+
+def _mark_legacy_score_incomplete(row: pd.Series, case: dict[str, Any]) -> None:
+    if case.get("score_status") == "SCORE_COMPLETE":
+        if _has_safe_complete_evidence_diagnostics(case):
+            return
+        _mark_missing_legacy_score_incomplete(case)
+        return
+    if case.get("score_status") in NON_COMPLETE_SCORE_STATUSES:
+        _mark_non_complete_non_actionable(case)
+        return
+    if not _has_legacy_score_value(row, case):
+        return
+    _mark_missing_legacy_score_incomplete(case)
 
 
 def _json_safe_value(value: Any) -> Any:
@@ -445,6 +662,7 @@ def build_walk_forward_candidate_from_row(
         "target_structural_level_kind": target_structural_level_kind,
         "rr_status": rr_status,
         "strategy_score": _to_float(strategy_score),
+        "composite_score": _to_float(_first_present_row_value(row_series, ("composite_score",))),
         "wyckoff_phase": _json_safe_value(wyckoff_phase),
         "wyckoff_event": _json_safe_value(resolved_wyckoff_event),
         "event_status": event_resolution.status,
@@ -475,6 +693,10 @@ def build_walk_forward_candidate_from_row(
         "future_window_start_index": future_start,
         "future_window_end_index": future_end,
     }
+    for column in SCORE_DIAGNOSTIC_COLUMNS:
+        if column not in base:
+            base[column] = _json_safe_value(_first_present_row_value(row_series, (column,)))
+    _mark_legacy_score_incomplete(row_series, base)
     return _json_safe_dict(base)
 
 

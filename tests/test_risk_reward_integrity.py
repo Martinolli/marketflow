@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 import pandas as pd
@@ -287,7 +288,14 @@ def test_rank_long_candidates_skips_missing_invalid_and_ambiguous_targets(tmp_pa
     for directory in (valid, missing, invalid, ambiguous):
         directory.mkdir(parents=True)
 
-    _write_csv(valid / "VALID_4h_wyckoff_annotated.csv", _rows(close=100.0, tr_high=112.0))
+    valid_rows = _rows(close=100.0, tr_high=112.0)
+    for row in valid_rows:
+        row["pnf_score"] = 0.5
+    _write_csv(valid / "VALID_4h_wyckoff_annotated.csv", valid_rows)
+    (valid / "VALID_4h_mc_summary.json").write_text(
+        json.dumps({"tf": "4h", "metrics_from_now": {"pop_tp_first": 0.5}}),
+        encoding="utf-8",
+    )
     _write_csv(missing / "MISS_4h_wyckoff_annotated.csv", _rows(close=100.0, tr_high=None))
     _write_csv(invalid / "BAD_4h_wyckoff_annotated.csv", _rows(close=100.0, tr_high=99.0))
     ambiguous_frame = _frame(close=100.0, tr_high=None)
@@ -300,9 +308,10 @@ def test_rank_long_candidates_skips_missing_invalid_and_ambiguous_targets(tmp_pa
         date_glob="batch_20260729_010203",
         tickers=["VALID", "MISS", "BAD", "AMB"],
         tf="4h",
-        cfg=StrategyConfig(min_rr=2.0, max_event_age_bars=24),
+            cfg=StrategyConfig(min_rr=2.0, max_event_age_bars=24, use_mc=True, use_pnf=True),
     )
 
     assert [result["ticker"] for result in results] == ["VALID"]
-    assert results[0]["score"] == pytest.approx(73.33)
+    assert results[0]["score"] == pytest.approx(73.33333333333333)
+    assert results[0]["score_status"] == "SCORE_COMPLETE"
     assert results[0]["event_status"] == "EVENT_CURRENT"

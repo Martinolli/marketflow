@@ -62,6 +62,39 @@ EVENT_INVALID = "EVENT_INVALID"
 EVENT_PROVENANCE_WYCKOFF_CONFIRMED_EVENT = "WYCKOFF_CONFIRMED_EVENT"
 WYCKOFF_CONFIRMED_EVENT_COLUMN = "wyckoff_confirmed_event"
 WYCKOFF_CONFIRMED_EVENT_OCCURRENCE_COLUMN = "wyckoff_confirmed_event_occurrence"
+COMPONENT_PHASE = "phase"
+COMPONENT_EVENT = "event"
+COMPONENT_PNF = "pnf"
+COMPONENT_POP = "pop"
+COMPONENT_TREND = "trend"
+EVIDENCE_AVAILABLE = "EVIDENCE_AVAILABLE"
+EVIDENCE_DISABLED_BY_CONFIGURATION = "EVIDENCE_DISABLED_BY_CONFIGURATION"
+EVIDENCE_NOT_AVAILABLE = "EVIDENCE_NOT_AVAILABLE"
+EVIDENCE_INVALID = "EVIDENCE_INVALID"
+EVIDENCE_SOURCE_UNSAFE = "EVIDENCE_SOURCE_UNSAFE"
+EVIDENCE_NOT_APPLICABLE = "EVIDENCE_NOT_APPLICABLE"
+SCORE_COMPLETE = "SCORE_COMPLETE"
+SCORE_INCOMPLETE = "SCORE_INCOMPLETE"
+SCORE_INVALID = "SCORE_INVALID"
+SCORE_PROFILE_UNSAFE = "SCORE_PROFILE_UNSAFE"
+SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED = "SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED"
+EVIDENCE_COMPONENT_ORDER = (
+    COMPONENT_PHASE,
+    COMPONENT_EVENT,
+    COMPONENT_PNF,
+    COMPONENT_POP,
+    COMPONENT_TREND,
+)
+REQUIRED_EVIDENCE_COMPONENTS = (
+    COMPONENT_PHASE,
+    COMPONENT_EVENT,
+    COMPONENT_TREND,
+)
+COMPONENT_PROVENANCE_PHASE = "WYCKOFF_PHASE"
+COMPONENT_PROVENANCE_EVENT_RESOLUTION = "WYCKOFF_EVENT_RESOLUTION"
+COMPONENT_PROVENANCE_PNF_SCORE_COLUMN = "PNF_SCORE_COLUMN"
+COMPONENT_PROVENANCE_MONTE_CARLO_POP = "MONTE_CARLO_POP"
+COMPONENT_PROVENANCE_TREND_ROLLING_MEAN = "TREND_CLOSE_ROLLING_MEAN"
 _TICKER_PATTERN = re.compile(r"^[A-Z0-9._:-]+$")
 _BATCH_RUN_PATTERN = re.compile(r"^batch_\d{8}_\d{6}$")
 
@@ -160,6 +193,34 @@ class EventResolution:
     scoring_eligible: bool = False
     reason: str | None = None
     superseded_event_count: int = 0
+
+
+@dataclass(frozen=True)
+class EvidenceComponent:
+    component: str
+    status: str
+    score: float | None
+    configured_weight: float
+    active_weight: float
+    provenance: str | None
+    reason: str | None = None
+    expected_by_profile: bool = True
+    scoring_eligible: bool = False
+
+
+@dataclass(frozen=True)
+class CompositeScoreResolution:
+    status: str
+    composite_score: float | None
+    configured_weight_total: float
+    active_weight_total: float
+    available_weight_total: float
+    evidence_coverage: float | None
+    active_evidence_profile: str
+    missing_components: tuple[str, ...] = ()
+    disabled_components: tuple[str, ...] = ()
+    invalid_components: tuple[str, ...] = ()
+    reason: str | None = None
 
 
 @dataclass(frozen=True)
@@ -960,6 +1021,407 @@ def _pnf_score_neutral() -> float:
     return 0.5
 
 
+def _component_weight(cfg: StrategyConfig, component: str) -> float | None:
+    weight = _finite_float((cfg.weights or {}).get(component))
+    if weight is None or weight < 0:
+        return None
+    return float(weight)
+
+
+def _active_profile_components(cfg: StrategyConfig) -> tuple[str, ...]:
+    components: list[str] = list(REQUIRED_EVIDENCE_COMPONENTS)
+    if cfg.use_pnf:
+        components.append(COMPONENT_PNF)
+    if cfg.use_mc:
+        components.append(COMPONENT_POP)
+    return tuple(component for component in EVIDENCE_COMPONENT_ORDER if component in components)
+
+
+def _component_result(
+    *,
+    component: str,
+    status: str,
+    score: float | None,
+    configured_weight: float | None,
+    active: bool,
+    provenance: str | None,
+    reason: str | None = None,
+) -> EvidenceComponent:
+    configured = 0.0 if configured_weight is None else float(configured_weight)
+    active_weight = configured if active and configured_weight is not None else 0.0
+    if configured_weight is None:
+        return EvidenceComponent(
+            component=component,
+            status=EVIDENCE_INVALID,
+            score=None,
+            configured_weight=0.0,
+            active_weight=0.0,
+            provenance=None,
+            reason=EVIDENCE_INVALID,
+            expected_by_profile=active,
+            scoring_eligible=False,
+        )
+    if status == EVIDENCE_AVAILABLE:
+        parsed_score = _finite_float(score)
+        if parsed_score is None or parsed_score < 0.0 or parsed_score > 1.0 or not provenance:
+            return EvidenceComponent(
+                component=component,
+                status=EVIDENCE_INVALID,
+                score=None,
+                configured_weight=configured,
+                active_weight=active_weight,
+                provenance=None,
+                reason=EVIDENCE_INVALID,
+                expected_by_profile=active,
+                scoring_eligible=False,
+            )
+        return EvidenceComponent(
+            component=component,
+            status=EVIDENCE_AVAILABLE,
+            score=float(parsed_score),
+            configured_weight=configured,
+            active_weight=active_weight,
+            provenance=provenance,
+            reason=reason,
+            expected_by_profile=active,
+            scoring_eligible=active,
+        )
+    return EvidenceComponent(
+        component=component,
+        status=status,
+        score=None,
+        configured_weight=configured,
+        active_weight=active_weight,
+        provenance=None,
+        reason=reason or status,
+        expected_by_profile=active,
+        scoring_eligible=False,
+    )
+
+
+def _score_column_value(df: pd.DataFrame, columns: tuple[str, ...]) -> tuple[Any, str | None, str | None]:
+    if df.empty:
+        return None, None, EVIDENCE_NOT_AVAILABLE
+    existing = [column for column in columns if column in df.columns]
+    if not existing:
+        return None, None, EVIDENCE_NOT_AVAILABLE
+    if len(existing) > 1:
+        return None, None, EVIDENCE_SOURCE_UNSAFE
+    column = existing[0]
+    if list(df.columns).count(column) != 1:
+        return None, None, EVIDENCE_SOURCE_UNSAFE
+    value = df.iloc[-1].get(column)
+    try:
+        missing = pd.isna(value)
+    except (TypeError, ValueError):
+        missing = False
+    if isinstance(missing, bool) and missing:
+        return None, column, EVIDENCE_NOT_AVAILABLE
+    return value, column, None
+
+
+def _resolve_phase_component(ctx: dict[str, Any], cfg: StrategyConfig) -> EvidenceComponent:
+    return _component_result(
+        component=COMPONENT_PHASE,
+        status=EVIDENCE_AVAILABLE,
+        score=_phase_score(str(ctx.get("phase") or "UNKNOWN")),
+        configured_weight=_component_weight(cfg, COMPONENT_PHASE),
+        active=True,
+        provenance=COMPONENT_PROVENANCE_PHASE,
+    )
+
+
+def _resolve_event_component(ctx: dict[str, Any], cfg: StrategyConfig) -> EvidenceComponent:
+    resolution = ctx.get("event_resolution")
+    if isinstance(resolution, EventResolution) and resolution.status == EVENT_INVALID:
+        return _component_result(
+            component=COMPONENT_EVENT,
+            status=EVIDENCE_INVALID,
+            score=None,
+            configured_weight=_component_weight(cfg, COMPONENT_EVENT),
+            active=True,
+            provenance=None,
+            reason=EVENT_INVALID,
+        )
+    if isinstance(resolution, EventResolution) and resolution.status == EVENT_SOURCE_UNSAFE:
+        return _component_result(
+            component=COMPONENT_EVENT,
+            status=EVIDENCE_SOURCE_UNSAFE,
+            score=None,
+            configured_weight=_component_weight(cfg, COMPONENT_EVENT),
+            active=True,
+            provenance=None,
+            reason=EVENT_SOURCE_UNSAFE,
+        )
+    if isinstance(resolution, EventResolution) and resolution.status != EVENT_CURRENT:
+        return _component_result(
+            component=COMPONENT_EVENT,
+            status=EVIDENCE_NOT_AVAILABLE,
+            score=None,
+            configured_weight=_component_weight(cfg, COMPONENT_EVENT),
+            active=True,
+            provenance=None,
+            reason=resolution.status,
+        )
+    return _component_result(
+        component=COMPONENT_EVENT,
+        status=EVIDENCE_AVAILABLE,
+        score=_event_score_for_resolution(resolution) if isinstance(resolution, EventResolution) else 0.0,
+        configured_weight=_component_weight(cfg, COMPONENT_EVENT),
+        active=True,
+        provenance=COMPONENT_PROVENANCE_EVENT_RESOLUTION,
+        reason=getattr(resolution, "status", None),
+    )
+
+
+def _resolve_pnf_component(df: pd.DataFrame, cfg: StrategyConfig) -> EvidenceComponent:
+    active = bool(cfg.use_pnf)
+    if not active:
+        return _component_result(
+            component=COMPONENT_PNF,
+            status=EVIDENCE_DISABLED_BY_CONFIGURATION,
+            score=None,
+            configured_weight=_component_weight(cfg, COMPONENT_PNF),
+            active=False,
+            provenance=None,
+        )
+    value, column, failure = _score_column_value(
+        df,
+        ("pnf_score", "point_and_figure_score"),
+    )
+    if failure == EVIDENCE_SOURCE_UNSAFE:
+        return _component_result(
+            component=COMPONENT_PNF,
+            status=EVIDENCE_SOURCE_UNSAFE,
+            score=None,
+            configured_weight=_component_weight(cfg, COMPONENT_PNF),
+            active=True,
+            provenance=None,
+        )
+    if failure == EVIDENCE_NOT_AVAILABLE:
+        return _component_result(
+            component=COMPONENT_PNF,
+            status=EVIDENCE_NOT_AVAILABLE,
+            score=None,
+            configured_weight=_component_weight(cfg, COMPONENT_PNF),
+            active=True,
+            provenance=None,
+            reason=column or EVIDENCE_NOT_AVAILABLE,
+        )
+    return _component_result(
+        component=COMPONENT_PNF,
+        status=EVIDENCE_AVAILABLE,
+        score=value,
+        configured_weight=_component_weight(cfg, COMPONENT_PNF),
+        active=True,
+        provenance=COMPONENT_PROVENANCE_PNF_SCORE_COLUMN,
+        reason=column,
+    )
+
+
+def _resolve_pop_component(pop: Any | None, cfg: StrategyConfig) -> EvidenceComponent:
+    active = bool(cfg.use_mc)
+    if not active:
+        return _component_result(
+            component=COMPONENT_POP,
+            status=EVIDENCE_DISABLED_BY_CONFIGURATION,
+            score=None,
+            configured_weight=_component_weight(cfg, COMPONENT_POP),
+            active=False,
+            provenance=None,
+        )
+    if pop is None:
+        return _component_result(
+            component=COMPONENT_POP,
+            status=EVIDENCE_NOT_AVAILABLE,
+            score=None,
+            configured_weight=_component_weight(cfg, COMPONENT_POP),
+            active=True,
+            provenance=None,
+        )
+    return _component_result(
+        component=COMPONENT_POP,
+        status=EVIDENCE_AVAILABLE,
+        score=pop,
+        configured_weight=_component_weight(cfg, COMPONENT_POP),
+        active=True,
+        provenance=COMPONENT_PROVENANCE_MONTE_CARLO_POP,
+    )
+
+
+def _trend_score(trend: str) -> float:
+    return 0.75 if trend == "up" else 0.5
+
+
+def _resolve_trend_component(ctx: dict[str, Any], cfg: StrategyConfig) -> EvidenceComponent:
+    return _component_result(
+        component=COMPONENT_TREND,
+        status=EVIDENCE_AVAILABLE,
+        score=_trend_score(str(ctx.get("trend") or "flat")),
+        configured_weight=_component_weight(cfg, COMPONENT_TREND),
+        active=True,
+        provenance=COMPONENT_PROVENANCE_TREND_ROLLING_MEAN,
+    )
+
+
+def _resolve_evidence_components(
+    df: pd.DataFrame,
+    cfg: StrategyConfig,
+    *,
+    pop: float | None,
+    context: dict[str, Any] | None = None,
+    decision_row_index: int | None = None,
+) -> tuple[EvidenceComponent, ...]:
+    ctx = context if context is not None else _extract_context(df, cfg, decision_row_index=decision_row_index)
+    components = {
+        COMPONENT_PHASE: _resolve_phase_component(ctx, cfg),
+        COMPONENT_EVENT: _resolve_event_component(ctx, cfg),
+        COMPONENT_PNF: _resolve_pnf_component(df, cfg),
+        COMPONENT_POP: _resolve_pop_component(pop, cfg),
+        COMPONENT_TREND: _resolve_trend_component(ctx, cfg),
+    }
+    return tuple(components[component] for component in EVIDENCE_COMPONENT_ORDER)
+
+
+def _score_from_evidence(components: Iterable[EvidenceComponent]) -> CompositeScoreResolution:
+    component_list = list(components)
+    configured_weight_total = sum(component.configured_weight for component in component_list)
+    active_components = [
+        component
+        for component in component_list
+        if component.expected_by_profile
+    ]
+    disabled_components = tuple(
+        component.component
+        for component in component_list
+        if component.status == EVIDENCE_DISABLED_BY_CONFIGURATION
+    )
+    missing_components = tuple(
+        component.component
+        for component in active_components
+        if component.status == EVIDENCE_NOT_AVAILABLE
+    )
+    invalid_components = tuple(
+        component.component
+        for component in active_components
+        if component.status in {EVIDENCE_INVALID, EVIDENCE_SOURCE_UNSAFE}
+    )
+    active_weight_total = sum(component.active_weight for component in active_components)
+    available_components = [
+        component for component in active_components if component.status == EVIDENCE_AVAILABLE
+    ]
+    available_weight_total = sum(component.active_weight for component in available_components)
+    evidence_coverage = (
+        available_weight_total / active_weight_total
+        if active_weight_total > 0.0
+        else None
+    )
+    active_evidence_profile = ",".join(component.component for component in active_components)
+    if active_weight_total <= 0.0:
+        return CompositeScoreResolution(
+            status=SCORE_INVALID,
+            composite_score=None,
+            configured_weight_total=configured_weight_total,
+            active_weight_total=active_weight_total,
+            available_weight_total=available_weight_total,
+            evidence_coverage=evidence_coverage,
+            active_evidence_profile=active_evidence_profile,
+            missing_components=missing_components,
+            disabled_components=disabled_components,
+            invalid_components=invalid_components,
+            reason=SCORE_INVALID,
+        )
+    if missing_components or invalid_components:
+        return CompositeScoreResolution(
+            status=SCORE_INCOMPLETE,
+            composite_score=None,
+            configured_weight_total=configured_weight_total,
+            active_weight_total=active_weight_total,
+            available_weight_total=available_weight_total,
+            evidence_coverage=evidence_coverage,
+            active_evidence_profile=active_evidence_profile,
+            missing_components=missing_components,
+            disabled_components=disabled_components,
+            invalid_components=invalid_components,
+            reason=SCORE_INCOMPLETE,
+        )
+    numerator = sum(
+        component.active_weight * float(component.score)
+        for component in available_components
+        if component.score is not None
+    )
+    return CompositeScoreResolution(
+        status=SCORE_COMPLETE,
+        composite_score=numerator / active_weight_total * 100.0,
+        configured_weight_total=configured_weight_total,
+        active_weight_total=active_weight_total,
+        available_weight_total=available_weight_total,
+        evidence_coverage=evidence_coverage,
+        active_evidence_profile=active_evidence_profile,
+        missing_components=missing_components,
+        disabled_components=disabled_components,
+        invalid_components=invalid_components,
+    )
+
+
+def _evidence_component_by_name(
+    components: Iterable[EvidenceComponent],
+    component_name: str,
+) -> EvidenceComponent:
+    for component in components:
+        if component.component == component_name:
+            return component
+    return EvidenceComponent(
+        component=component_name,
+        status=EVIDENCE_INVALID,
+        score=None,
+        configured_weight=0.0,
+        active_weight=0.0,
+        provenance=None,
+        reason=EVIDENCE_INVALID,
+        expected_by_profile=False,
+    )
+
+
+def _evidence_public_fields(
+    components: Iterable[EvidenceComponent],
+    score_resolution: CompositeScoreResolution,
+) -> dict[str, Any]:
+    component_list = list(components)
+    fields: dict[str, Any] = {
+        "score_status": score_resolution.status,
+        "score_reason": score_resolution.reason,
+        "active_evidence_profile": score_resolution.active_evidence_profile,
+        "configured_weight_total": score_resolution.configured_weight_total,
+        "active_weight_total": score_resolution.active_weight_total,
+        "available_weight_total": score_resolution.available_weight_total,
+        "evidence_coverage": score_resolution.evidence_coverage,
+        "missing_components": list(score_resolution.missing_components),
+        "disabled_components": list(score_resolution.disabled_components),
+        "invalid_components": list(score_resolution.invalid_components),
+        "rank_eligible": (
+            score_resolution.status == SCORE_COMPLETE
+            and not score_resolution.disabled_components
+        ),
+        "score_profile_calibration": (
+            SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED
+            if score_resolution.disabled_components
+            else None
+        ),
+    }
+    for component in component_list:
+        prefix = f"{component.component}_evidence"
+        fields[f"{prefix}_status"] = component.status
+        fields[f"{prefix}_score"] = component.score
+        fields[f"{prefix}_configured_weight"] = component.configured_weight
+        fields[f"{prefix}_active_weight"] = component.active_weight
+        fields[f"{prefix}_provenance"] = component.provenance
+        fields[f"{prefix}_reason"] = component.reason
+        fields[f"{prefix}_expected_by_profile"] = component.expected_by_profile
+        fields[f"{prefix}_scoring_eligible"] = component.scoring_eligible
+    return fields
+
+
 def _target_values_from_row(row: pd.Series) -> list[float | None]:
     target_columns = [column for column in row.index if str(column) == "tr_high" or re.fullmatch(r"tr_high\.\d+", str(column))]
     if not target_columns:
@@ -1215,7 +1677,8 @@ def rank_long_candidates(
 
     - If use_batch_namespace == "latest", will pick the most recent "batch_*" folder under report_root.
     - If date_glob provided (e.g., "2025-09-*"), it filters under that pattern.
-    - MC/P&F are optional and neutral when absent or disabled by cfg.
+    - MC/P&F are optional by cfg; missing active evidence is incomplete, while
+      explicitly disabled components are diagnostic and uncalibrated.
     """
     logger.info(f"Ranking long candidates: report_root={report_root}, date_glob={date_glob}, tickers={list(tickers)}, tf={tf}, use_batch_namespace={use_batch_namespace}")
     results: List[Dict] = []
@@ -1323,40 +1786,30 @@ def rank_long_candidates(
             continue
 
         # Optional: Monte Carlo POP
-        pop: Optional[float] = None
+        pop: Any | None = None
         mc_meta: dict = {}
         if cfg.use_mc:
             mc, mc_meta = _latest_mc_with_metadata(out_dir, tf)
             logger.info(f"Monte Carlo summary for ticker {t}: {mc}")
             logger.info(f"Monte Carlo summary match metadata for ticker {t}: {mc_meta}")
             if mc and isinstance(mc, dict):
-                try:
-                    pop = float(mc.get("metrics_from_now", {}).get("pop_tp_first", None))
-                except Exception:
-                    pop = None
-            # Apply gates only if we found a POP figure
-            if pop is not None and (pop < cfg.min_pop and pop < cfg.min_pop_backup):
-                logger.info(f"POP {pop} below min_pop {cfg.min_pop} and min_pop_backup {cfg.min_pop_backup} for ticker {t}, skipping.")
+                metrics = mc.get("metrics_from_now", {})
+                if isinstance(metrics, dict):
+                    pop = metrics.get("pop_tp_first")
+            # Apply gates only if we found a valid POP figure
+            gate_pop = _finite_float(pop)
+            if gate_pop is not None and 0.0 <= gate_pop <= 1.0 and (gate_pop < cfg.min_pop and gate_pop < cfg.min_pop_backup):
+                logger.info(f"POP {gate_pop} below min_pop {cfg.min_pop} and min_pop_backup {cfg.min_pop_backup} for ticker {t}, skipping.")
                 continue
 
-        # Composite score (normalize weights)
-        w = cfg.weights
-        wsum = sum(w.values()) if w else 1.0
-        norm = {k: (v / wsum) for k, v in w.items()}
-
-        phase_s = _phase_score(ctx["phase"])               # 0…1
-        event_s = _event_score_for_resolution(ctx["event_resolution"])  # 0 or 1
-        pnf_s   = _pnf_score_neutral()                       # neutral 0.5 until we wire P&F
-        pop_s   = (pop if pop is not None else 0.5)          # neutral 0.5 when MC off/missing
-        trend_s = 0.75 if ctx.get("trend") == "up" else 0.5 # simple placeholder
-
-        score = (
-            norm["phase"]*phase_s +
-            norm["event"]*event_s +
-            norm["pnf"]*pnf_s +
-            norm["pop"]*pop_s +
-            norm["trend"]*trend_s
-        ) * 100.0
+        evidence_components = _resolve_evidence_components(df, cfg, pop=pop, context=ctx, decision_row_index=len(df) - 1)
+        score_resolution = _score_from_evidence(evidence_components)
+        phase_component = _evidence_component_by_name(evidence_components, COMPONENT_PHASE)
+        event_component = _evidence_component_by_name(evidence_components, COMPONENT_EVENT)
+        pnf_component = _evidence_component_by_name(evidence_components, COMPONENT_PNF)
+        pop_component = _evidence_component_by_name(evidence_components, COMPONENT_POP)
+        trend_component = _evidence_component_by_name(evidence_components, COMPONENT_TREND)
+        score = score_resolution.composite_score
 
         logger.info(f"Final score for ticker {t}: {score}")
 
@@ -1379,7 +1832,8 @@ def rank_long_candidates(
             "volatility_provenance": levels.volatility.provenance if levels.volatility else None,
             "volatility_window": levels.volatility.window if levels.volatility else None,
             "volatility_value": levels.volatility.value if levels.volatility else None,
-            "pop": pop,
+            "pop": pop_component.score,
+            "pnf_score": pnf_component.score,
             "phase": ctx["phase"],
             "event": ctx["event"],
             "event_status": ctx["event_status"],
@@ -1393,8 +1847,10 @@ def rank_long_candidates(
             "event_superseded_count": ctx["event_superseded_count"],
             "event_reason": ctx["event_reason"],
             "trend": ctx["trend"],
-            "score": round(score, 2),
+            "score": score,
+            "composite_score": score,
         }
+        result.update(_evidence_public_fields(evidence_components, score_resolution))
         if cfg.use_mc:
             result.update({
                 "mc_summary_path": mc_meta.get("path"),
@@ -1404,7 +1860,13 @@ def rank_long_candidates(
             })
         results.append(result)
 
-    results.sort(key=lambda r: r["score"], reverse=True)
+    results.sort(
+        key=lambda r: (
+            0 if r.get("score_status") == SCORE_COMPLETE else 1,
+            -(float(r["score"]) if r.get("score") is not None else -1.0),
+            str(r.get("ticker") or ""),
+        )
+    )
     logger.info(f"Total candidates ranked: {len(results)}")
     return results
 

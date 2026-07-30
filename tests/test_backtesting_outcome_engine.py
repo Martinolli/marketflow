@@ -49,6 +49,33 @@ def test_tp_first_outcome():
     assert result.neither_reason is None
 
 
+def test_candidate_snapshot_diagnostics_do_not_affect_outcome_evaluation():
+    data = _frame(
+        [
+            {"timestamp": "2026-01-01", "open": 100, "high": 101, "low": 99, "close": 100},
+            {"timestamp": "2026-01-02", "open": 101, "high": 111, "low": 100, "close": 110},
+        ]
+    )
+
+    result = evaluate_candidate_outcome(
+        data,
+        {
+            "ticker": "TEST",
+            "timeframe": "1d",
+            "entry": 100.0,
+            "stop_loss": 95.0,
+            "take_profit": 110.0,
+            "score_status": "SCORE_INCOMPLETE",
+            "missing_components": ["pop"],
+            "pop_evidence_status": "EVIDENCE_NOT_AVAILABLE",
+        },
+        horizon_bars=2,
+    )
+
+    assert result.outcome == "TP_FIRST"
+    assert result.realized_R == pytest.approx(2.0)
+
+
 def test_sl_first_outcome():
     data = _frame(
         [

@@ -15,6 +15,7 @@ from marketflow.backtesting import (
     evaluate_candidate_outcome_from_csv,
 )
 from marketflow.backtesting.schemas import TieBreakPolicy
+from marketflow.services.backtest_candidate_service import normalize_candidate_snapshot
 
 
 CANDIDATE_FIELDS = (
@@ -28,6 +29,60 @@ CANDIDATE_FIELDS = (
     "take_profit",
     "risk_reward",
     "strategy_score",
+    "composite_score",
+    "score_status",
+    "score_reason",
+    "active_evidence_profile",
+    "configured_weight_total",
+    "active_weight_total",
+    "available_weight_total",
+    "evidence_coverage",
+    "missing_components",
+    "disabled_components",
+    "invalid_components",
+    "rank_eligible",
+    "score_profile_calibration",
+    "phase_evidence_status",
+    "phase_evidence_score",
+    "phase_evidence_configured_weight",
+    "phase_evidence_active_weight",
+    "phase_evidence_provenance",
+    "phase_evidence_reason",
+    "phase_evidence_expected_by_profile",
+    "phase_evidence_scoring_eligible",
+    "event_evidence_status",
+    "event_evidence_score",
+    "event_evidence_configured_weight",
+    "event_evidence_active_weight",
+    "event_evidence_provenance",
+    "event_evidence_reason",
+    "event_evidence_expected_by_profile",
+    "event_evidence_scoring_eligible",
+    "pnf_score",
+    "pnf_evidence_status",
+    "pnf_evidence_score",
+    "pnf_evidence_configured_weight",
+    "pnf_evidence_active_weight",
+    "pnf_evidence_provenance",
+    "pnf_evidence_reason",
+    "pnf_evidence_expected_by_profile",
+    "pnf_evidence_scoring_eligible",
+    "pop_evidence_status",
+    "pop_evidence_score",
+    "pop_evidence_configured_weight",
+    "pop_evidence_active_weight",
+    "pop_evidence_provenance",
+    "pop_evidence_reason",
+    "pop_evidence_expected_by_profile",
+    "pop_evidence_scoring_eligible",
+    "trend_evidence_status",
+    "trend_evidence_score",
+    "trend_evidence_configured_weight",
+    "trend_evidence_active_weight",
+    "trend_evidence_provenance",
+    "trend_evidence_reason",
+    "trend_evidence_expected_by_profile",
+    "trend_evidence_scoring_eligible",
     "wyckoff_phase",
     "wyckoff_event",
     "trend",
@@ -40,6 +95,10 @@ def _json_safe_value(value: Any) -> Any:
     """Convert scalar values to JSON-safe Python primitives."""
     if value is None:
         return None
+    if isinstance(value, dict):
+        return {str(key): _json_safe_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple, set)):
+        return [_json_safe_value(item) for item in value]
     if hasattr(value, "item"):
         try:
             value = value.item()
@@ -70,25 +129,9 @@ def outcome_result_to_dict(result: OutcomeResult) -> dict[str, Any]:
 def candidate_snapshot_to_dict(candidate: CandidateSnapshot | dict[str, Any]) -> dict[str, Any]:
     """Normalize a candidate snapshot into JSON-safe service fields."""
     if isinstance(candidate, CandidateSnapshot) or is_dataclass(candidate):
-        source = asdict(candidate)
+        source = normalize_candidate_snapshot(asdict(candidate))
     elif isinstance(candidate, dict):
-        source = {
-            "ticker": candidate.get("ticker"),
-            "timeframe": candidate.get("timeframe") or candidate.get("tf"),
-            "source_csv": candidate.get("source_csv") or candidate.get("csv"),
-            "signal_timestamp": candidate.get("signal_timestamp"),
-            "signal_row_index": candidate.get("signal_row_index"),
-            "entry": candidate.get("entry"),
-            "stop_loss": candidate.get("stop_loss") if "stop_loss" in candidate else candidate.get("sl"),
-            "take_profit": candidate.get("take_profit") if "take_profit" in candidate else candidate.get("tp"),
-            "risk_reward": candidate.get("risk_reward") if "risk_reward" in candidate else candidate.get("rr"),
-            "strategy_score": candidate.get("strategy_score") if "strategy_score" in candidate else candidate.get("score"),
-            "wyckoff_phase": candidate.get("wyckoff_phase") or candidate.get("phase"),
-            "wyckoff_event": candidate.get("wyckoff_event") or candidate.get("event"),
-            "trend": candidate.get("trend"),
-            "candidate_source": candidate.get("candidate_source"),
-            "report_date": candidate.get("report_date"),
-        }
+        source = normalize_candidate_snapshot(candidate)
     else:
         source = {}
     return _json_safe_dict({field: source.get(field) for field in CANDIDATE_FIELDS})

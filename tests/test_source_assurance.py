@@ -229,10 +229,49 @@ def test_wyckoff_event_recency_has_no_arbitrary_default_or_score_weight_change()
     assert "age == 0" in resolver
     assert "age <= policy" in resolver
     assert "timeframe" not in resolver.lower()
-    assert "_event_score_for_resolution" in ranker
+    assert "_resolve_evidence_components" in ranker
+    assert "_score_from_evidence" in ranker
+    assert "_event_score_for_resolution" in source
     assert "_event_score(ctx[\"event\"])" not in ranker
+    assert "_pnf_score_neutral()" not in ranker
+    assert "pop if pop is not None else 0.5" not in ranker
     assert "event_status" in context
     assert '"event": 1.0' in source
+
+
+def test_evidence_availability_contract_has_no_neutral_missing_score_path():
+    source = REPO_ROOT.joinpath("marketflow/marketflow_strategy.py").read_text(encoding="utf-8")
+    functions = _function_bodies(source)
+    ranker = functions["rank_long_candidates"]
+    pnf_component = functions["_resolve_pnf_component"]
+    pop_component = functions["_resolve_pop_component"]
+    event_component = functions["_resolve_event_component"]
+    scorer = functions["_score_from_evidence"]
+    public_fields = functions["_evidence_public_fields"]
+    legacy_helper = REPO_ROOT.joinpath("marketflow/services/backtest_candidate_service.py").read_text(encoding="utf-8")
+    studio_source = REPO_ROOT.joinpath("apps/marketflow_studio.py").read_text(encoding="utf-8")
+
+    assert "pop if pop is not None else 0.5" not in ranker
+    assert "_pnf_score_neutral()" not in ranker
+    assert "neutral when absent or disabled" not in ranker
+    assert "_score_from_evidence" in ranker
+    assert "EVIDENCE_DISABLED_BY_CONFIGURATION" in pnf_component
+    assert "EVIDENCE_DISABLED_BY_CONFIGURATION" in pop_component
+    assert "EVIDENCE_NOT_AVAILABLE" in pnf_component
+    assert "EVIDENCE_NOT_AVAILABLE" in pop_component
+    assert "EVIDENCE_NOT_AVAILABLE" in event_component
+    assert "EVIDENCE_INVALID" in source
+    assert "component.expected_by_profile" in scorer
+    assert "component.active_weight > 0.0" not in scorer
+    assert "SCORE_INCOMPLETE" in scorer
+    assert "composite_score=None" in scorer
+    assert "score_resolution.status == SCORE_COMPLETE" in public_fields
+    assert "not score_resolution.disabled_components" in public_fields
+    assert "LEGACY_EVIDENCE_STATUS_NOT_AVAILABLE" in legacy_helper
+    assert 'snapshot["score_status"] = SCORE_INCOMPLETE' in legacy_helper
+    assert 'score_status != "SCORE_COMPLETE"' in studio_source
+    assert 'selected_candidate.get("score_status") not in (None, "SCORE_COMPLETE")' not in studio_source
+    assert '"phase": 2.0, "event": 1.0, "pnf": 1.0, "pop": 2.5, "trend": 1.0' in source
 
 
 def test_walk_forward_semantics_unchanged_outside_source_identity():

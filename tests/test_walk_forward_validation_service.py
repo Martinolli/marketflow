@@ -9,6 +9,7 @@ from marketflow.marketflow_strategy import (
     TARGET_RESOLVED,
 )
 from marketflow.services.walk_forward_validation_service import (
+    build_walk_forward_candidate_from_row,
     build_and_evaluate_walk_forward_cases_from_csv,
     build_walk_forward_cases_from_csv,
     detect_walk_forward_timestamp_column,
@@ -140,7 +141,101 @@ def test_no_future_leakage_metadata(tmp_path):
     assert case["lookback_end_index"] == case["signal_row_index"]
     assert case["future_window_start_index"] == case["signal_row_index"] + 1
     assert case["future_window_end_index"] >= case["future_window_start_index"]
+
+
+def test_legacy_walk_forward_score_without_status_fails_closed(tmp_path):
+    path = _csv(tmp_path, 4)
+    frame = pd.DataFrame(_rows(4))
+    row = frame.iloc[2].copy()
+    row["score"] = 73.33333333333333
+    row["composite_score"] = 73.33333333333333
+
+    case = build_walk_forward_candidate_from_row(
+        row,
+        csv_path=path,
+        signal_row_index=2,
+        total_rows=len(frame),
+        profile_name="fast_test",
+        profile_context={},
+        decision_frame=frame.iloc[:3],
+    )
+
+    assert case["strategy_score"] == 72.0
+    assert case["score_status"] == "SCORE_INCOMPLETE"
+    assert case["composite_score"] is None
+    assert case["rank_eligible"] is False
+    assert case["pop_evidence_status"] == "EVIDENCE_NOT_AVAILABLE"
     assert case["lookback_rows_available"] == case["signal_row_index"] + 1
+
+
+def test_walk_forward_disabled_profile_diagnostics_are_not_marked_legacy_incomplete(tmp_path):
+    path = _csv(tmp_path, 4)
+    frame = pd.DataFrame(_rows(4))
+    row = frame.iloc[2].copy()
+    row["composite_score"] = 91.66666666666666
+    row["score_status"] = "SCORE_COMPLETE"
+    row["active_evidence_profile"] = "phase,event,trend"
+    row["active_weight_total"] = 4.0
+    row["rank_eligible"] = False
+    row["score_profile_calibration"] = "SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED"
+    for component, score, weight, provenance in (
+        ("phase", 1.0, 2.0, "WYCKOFF_PHASE"),
+        ("event", 1.0, 1.0, "WYCKOFF_EVENT_RESOLUTION"),
+        ("trend", 0.75, 1.0, "TREND_CLOSE_ROLLING_MEAN"),
+    ):
+        row[f"{component}_evidence_status"] = "EVIDENCE_AVAILABLE"
+        row[f"{component}_evidence_score"] = score
+        row[f"{component}_evidence_active_weight"] = weight
+        row[f"{component}_evidence_provenance"] = provenance
+        row[f"{component}_evidence_scoring_eligible"] = True
+    row["pnf_evidence_status"] = "EVIDENCE_DISABLED_BY_CONFIGURATION"
+    row["pnf_evidence_scoring_eligible"] = False
+    row["pop_evidence_status"] = "EVIDENCE_DISABLED_BY_CONFIGURATION"
+    row["pop_evidence_scoring_eligible"] = False
+
+    case = build_walk_forward_candidate_from_row(
+        row,
+        csv_path=path,
+        signal_row_index=2,
+        total_rows=len(frame),
+        profile_name="fast_test",
+        profile_context={},
+        decision_frame=frame.iloc[:3],
+    )
+
+    assert case["score_status"] == "SCORE_COMPLETE"
+    assert case["composite_score"] == 91.66666666666666
+    assert case["score_profile_calibration"] == "SCORE_PROFILE_CALIBRATION_NOT_ESTABLISHED"
+    assert case["rank_eligible"] is False
+    assert case["pop_evidence_status"] == "EVIDENCE_DISABLED_BY_CONFIGURATION"
+
+
+def test_walk_forward_non_complete_diagnostics_are_not_rank_eligible(tmp_path):
+    path = _csv(tmp_path, 4)
+    frame = pd.DataFrame(_rows(4))
+    row = frame.iloc[2].copy()
+    row["score_status"] = "SCORE_INCOMPLETE"
+    row["rank_eligible"] = True
+    row["composite_score"] = 73.33333333333333
+    row["pop_evidence_status"] = "EVIDENCE_DISABLED_BY_CONFIGURATION"
+    row["pop_evidence_score"] = 0.5
+    row["pop_evidence_scoring_eligible"] = True
+
+    case = build_walk_forward_candidate_from_row(
+        row,
+        csv_path=path,
+        signal_row_index=2,
+        total_rows=len(frame),
+        profile_name="fast_test",
+        profile_context={},
+        decision_frame=frame.iloc[:3],
+    )
+
+    assert case["score_status"] == "SCORE_INCOMPLETE"
+    assert case["rank_eligible"] is False
+    assert case["composite_score"] is None
+    assert case["pop_evidence_score"] is None
+    assert case["pop_evidence_scoring_eligible"] is False
 
 
 def test_event_filter_selects_only_matching_rows(tmp_path):

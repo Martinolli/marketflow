@@ -182,6 +182,26 @@ def test_dataclass_conversion_uses_schema_fields_only():
     assert candidate.take_profit == 72.20
 
 
+def test_dataclass_conversion_preserves_score_diagnostics():
+    snapshot = normalize_candidate_snapshot(
+        _strategy_candidate(
+            score_status="SCORE_INCOMPLETE",
+            missing_components=["pop"],
+            pop_evidence_status="EVIDENCE_NOT_AVAILABLE",
+            pop_evidence_reason="EVIDENCE_NOT_AVAILABLE",
+            rank_eligible=False,
+        )
+    )
+
+    candidate = candidate_snapshot_dict_to_dataclass(snapshot)
+
+    assert candidate.score_status == "SCORE_INCOMPLETE"
+    assert candidate.missing_components == ["pop"]
+    assert candidate.pop_evidence_status == "EVIDENCE_NOT_AVAILABLE"
+    assert candidate.pop_evidence_reason == "EVIDENCE_NOT_AVAILABLE"
+    assert candidate.rank_eligible is False
+
+
 def test_json_safety_converts_nan_and_path_values():
     snapshot = normalize_candidate_snapshot(
         {
