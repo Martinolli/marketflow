@@ -20,7 +20,7 @@ Notes
 from __future__ import annotations
 import argparse, os, json, glob, re
 import numbers
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field
 from pathlib import Path
 from typing import Any, Iterable, List, Dict, Optional, Tuple
 from datetime import datetime, timedelta
@@ -28,12 +28,21 @@ import pandas as pd
 
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
+from marketflow.operational_artifacts import (
+    ArtifactContractError,
+    DEFAULT_RUN_ROOT,
+    WORKFLOW_CANONICAL_STRATEGY_DECISION_SUPPORT,
+    commit_candidate_core_artifact,
+    load_manifest,
+    stable_digest,
+)
 
 logger = get_logger("MarketFlowStrategy")
 app_cfg = create_app_config(logger=logger)
 
 SUPPORTED_TIMEFRAME_TOKENS = ("1mo", "1w", "1d", "4h", "2h", "1h", "30m", "15m", "5m", "1m")
 SOURCE_STATUS_EXACT_MATCH = "EXACT_MATCH"
+SOURCE_KIND_CANONICAL_ANNOTATED = "canonical"
 SOURCE_REASON_DATASET_NOT_FOUND = "DATASET_NOT_FOUND"
 SOURCE_REASON_DATASET_IDENTITY_AMBIGUOUS = "DATASET_IDENTITY_AMBIGUOUS"
 SOURCE_REASON_INVALID_REQUEST = "INVALID_DATASET_REQUEST"
@@ -1863,6 +1872,54 @@ def build_candidate_from_prefix(request: CandidateBuildRequest) -> dict[str, Any
         result.update(request.evidence.mc_metadata)
     return {key: _candidate_value(value) for key, value in result.items()}
 
+
+def strategy_config_digest(cfg: StrategyConfig) -> str:
+    """Return the canonical digest for candidate-semantic StrategyConfig fields."""
+    return stable_digest(asdict(cfg))
+
+
+def build_lineage_candidate_artifact(
+    *,
+    analysis_manifest_path: str | Path,
+    run_root: str | Path = DEFAULT_RUN_ROOT,
+    cfg: StrategyConfig,
+    pop: float | None = None,
+) -> dict[str, Any]:
+    """Build and commit one candidate-core artifact from an exact dataset manifest."""
+    analysis_manifest = load_manifest(analysis_manifest_path, run_root=run_root)
+    if analysis_manifest.get("artifact_type") != "ANNOTATED_DATASET":
+        raise ArtifactContractError("Strategy lineage mode requires an ANNOTATED_DATASET manifest.")
+    if analysis_manifest.get("workflow_type") != WORKFLOW_CANONICAL_STRATEGY_DECISION_SUPPORT:
+        raise ArtifactContractError("Strategy lineage mode requires canonical workflow input.")
+    source_path = Path(run_root) / str(analysis_manifest["payload_ref"])
+    source_identity = StrategyDatasetIdentity(
+        ticker=str(analysis_manifest["ticker"]),
+        timeframe=str(analysis_manifest["timeframe"]),
+        source=source_path,
+        source_kind=SOURCE_KIND_CANONICAL_ANNOTATED,
+    )
+    frame = pd.read_csv(source_path)
+    if "timestamp" in frame.columns:
+        frame["timestamp"] = pd.to_datetime(frame["timestamp"])
+    candidate = build_candidate_from_prefix(
+        CandidateBuildRequest(
+            source_identity=source_identity,
+            data_prefix=frame,
+            config=cfg,
+            evidence=CandidateEvidenceInputs(pop=pop),
+            report_root=run_root,
+            source_status=SOURCE_STATUS_EXACT_MATCH,
+            candidate_source="artifact_lineage_v1",
+        )
+    )
+    digest = strategy_config_digest(cfg)
+    return commit_candidate_core_artifact(
+        analysis_manifest=analysis_manifest,
+        candidate=candidate,
+        strategy_config_digest=digest,
+        run_root=run_root,
+    )
+
 # -----------------------------
 # Core ranking logic
 # -----------------------------
@@ -2019,7 +2076,7 @@ def rank_long_candidates(
 
 def _parse_args() -> argparse.Namespace:
     p = argparse.ArgumentParser(description="Rank long candidates from Wyckoff CSV reports (MC/P&F optional)")
-    p.add_argument("--report-root", required=True, help="Base reports directory")
+    p.add_argument("--report-root", required=False, help="Base reports directory")
     g = p.add_mutually_exclusive_group(required=False)
     g.add_argument("--date-glob", default="*", help="Date folder glob under report-root (e.g., 2025-09-*)")
     g.add_argument("--batch", choices=["latest"], help="Use the latest batch_* folder under report-root")
@@ -2030,7 +2087,12 @@ def _parse_args() -> argparse.Namespace:
     p.add_argument("--use-pnf", action="store_true", help="(Reserved) Enable P&F scoring when wired")
     p.add_argument("--min-rr", type=float, default=1.5)
     p.add_argument("--max-sl-atr", type=float, default=2.0)
+    p.add_argument("--max-event-age-bars", type=int, default=None)
     p.add_argument("--prefer-phases", default="C,D,E", help="Comma list (default C,D,E)")
+    p.add_argument("--lineage-mode", choices=["legacy", "canonical"], default="legacy")
+    p.add_argument("--lineage-run-root", default=str(DEFAULT_RUN_ROOT))
+    p.add_argument("--lineage-analysis-manifest", default=None)
+    p.add_argument("--lineage-pop", type=float, default=None)
     return p.parse_args()
 
 
@@ -2039,10 +2101,24 @@ def main():
     cfg = StrategyConfig(
         min_rr=args.min_rr,
         max_sl_atr=args.max_sl_atr,
+        max_event_age_bars=args.max_event_age_bars,
         prefer_phases=tuple([p.strip() for p in args.prefer_phases.split(',') if p.strip()]),
         use_mc=bool(args.use_mc),
         use_pnf=bool(args.use_pnf),
     )
+    if args.lineage_mode == "canonical":
+        if not args.lineage_analysis_manifest:
+            raise SystemExit("--lineage-analysis-manifest is required in canonical lineage mode.")
+        artifact = build_lineage_candidate_artifact(
+            analysis_manifest_path=args.lineage_analysis_manifest,
+            run_root=args.lineage_run_root,
+            cfg=cfg,
+            pop=args.lineage_pop,
+        )
+        print(json.dumps(artifact["receipt"], indent=2, sort_keys=True))
+        return
+    if not args.report_root:
+        raise SystemExit("--report-root is required in legacy mode.")
 
     # Build the list of timeframes to process: prefer --tfs, else --tf (supports comma-separated)
     tfs: List[str] = []

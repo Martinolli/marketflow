@@ -120,6 +120,7 @@ import argparse
 import json
 import os
 import datetime
+from pathlib import Path
 import numpy as np
 import pandas as pd
 import plotly.graph_objects as go
@@ -154,6 +155,15 @@ from utils.create_features import create_features
 from utils.barrier_stats import barrier_stats
 from utils.fan_charts import fan_chart
 from utils.hits_histogram import hits_histogram
+from marketflow.operational_artifacts import (
+    DEFAULT_RUN_ROOT,
+    WORKFLOW_CANONICAL_STRATEGY_DECISION_SUPPORT,
+    WORKFLOW_MANUAL_SCENARIO_ANALYSIS,
+    assert_monte_carlo_geometry_matches_candidate,
+    commit_manual_scenario_artifact,
+    commit_monte_carlo_summary_artifact,
+    load_manifest,
+)
 
 
 class MonteCarloTradeSimulator:
@@ -752,7 +762,7 @@ class MonteCarloTradeSimulator:
 def main():
     p = argparse.ArgumentParser(description="Monte Carlo trade simulator for OHLCV CSVs")
     # Core single-trade simulation
-    p.add_argument("csv", type=str, help="Path to OHLCV CSV (same format as your annotated files)")
+    p.add_argument("csv", nargs="?", type=str, help="Path to OHLCV CSV (same format as your annotated files)")
     p.add_argument("--tp", type=float, help="Take-profit price (single-run mode)")
     p.add_argument("--sl", type=float, help="Stop-loss price (single-run mode)")
     p.add_argument("--entry", type=float, default=None, help="Entry price (optional; defaults to last close)")
@@ -766,6 +776,10 @@ def main():
     p.add_argument("--no-plots", action="store_true", help="Do not write HTML plots")
     p.add_argument("--ml-model", type=str, default=None, help="Path to a pre-trained LightGBM volatility model (.pkl)")
     p.add_argument("--mu-shift", type=float, default=0.0, help="Additive drift per bar applied to GBM/ML-GBM.")
+    p.add_argument("--lineage-mode", choices=["legacy", "manual", "canonical"], default="legacy")
+    p.add_argument("--lineage-run-root", default=str(DEFAULT_RUN_ROOT))
+    p.add_argument("--lineage-analysis-manifest", default=None)
+    p.add_argument("--lineage-candidate-manifest", default=None)
 
 
     # Rolling backtest
@@ -800,6 +814,94 @@ def main():
         else:
             simulator.logger.warning(f"ML model not found at {args.ml_model}; will train on the fly.")
 
+    if args.lineage_mode == "manual":
+        if not args.lineage_analysis_manifest:
+            p.error("--lineage-analysis-manifest is required in manual lineage mode.")
+        if args.entry is None or args.tp is None or args.sl is None:
+            p.error("manual lineage mode requires explicit --entry, --tp, and --sl.")
+    elif args.lineage_mode == "canonical":
+        if not args.lineage_candidate_manifest:
+            p.error("--lineage-candidate-manifest is required in canonical lineage mode.")
+        if args.entry is not None or args.tp is not None or args.sl is not None:
+            p.error("canonical lineage mode accepts no geometry overrides.")
+
+    if args.lineage_mode in {"manual", "canonical"}:
+        if args.simulate_backtest:
+            p.error("lineage modes do not support rolling backtest.")
+        parent_manifest = None
+        csv_path = None
+        entry = None
+        stop_loss = None
+        take_profit = None
+        workflow_type = None
+        if args.lineage_mode == "manual":
+            analysis_manifest = load_manifest(args.lineage_analysis_manifest, run_root=args.lineage_run_root)
+            manual_result = commit_manual_scenario_artifact(
+                analysis_manifest=analysis_manifest,
+                entry=args.entry,
+                stop_loss=args.sl,
+                take_profit=args.tp,
+                horizon_bars=args.horizon,
+                run_root=args.lineage_run_root,
+            )
+            parent_manifest = manual_result["manifest"]
+            csv_path = str(Path(args.lineage_run_root) / str(analysis_manifest["payload_ref"]))
+            entry = args.entry
+            stop_loss = args.sl
+            take_profit = args.tp
+            workflow_type = WORKFLOW_MANUAL_SCENARIO_ANALYSIS
+        else:
+            parent_manifest = load_manifest(args.lineage_candidate_manifest, run_root=args.lineage_run_root)
+            if parent_manifest.get("artifact_type") != "CANDIDATE_CORE":
+                p.error("canonical lineage mode requires a CANDIDATE_CORE manifest.")
+            candidate_payload_path = Path(args.lineage_run_root) / str(parent_manifest["payload_ref"])
+            candidate_payload = json.loads(candidate_payload_path.read_text(encoding="utf-8"))
+            candidate = candidate_payload.get("candidate_core")
+            if not isinstance(candidate, dict):
+                p.error("candidate artifact payload is missing candidate_core.")
+            entry = candidate.get("entry")
+            stop_loss = candidate.get("stop_loss") if candidate.get("stop_loss") is not None else candidate.get("sl")
+            take_profit = candidate.get("take_profit") if candidate.get("take_profit") is not None else candidate.get("tp")
+            source_ref = parent_manifest.get("source_ref")
+            if not source_ref:
+                p.error("candidate artifact is missing source_ref.")
+            csv_path = str(Path(args.lineage_run_root) / str(source_ref))
+            request = {
+                "ticker": parent_manifest["ticker"],
+                "timeframe": parent_manifest["timeframe"],
+                "entry": entry,
+                "sl": stop_loss,
+                "tp": take_profit,
+                "artifact_identity": {"candidate_core_digest": parent_manifest.get("candidate_core_digest")},
+            }
+            assert_monte_carlo_geometry_matches_candidate(candidate, request)
+            workflow_type = WORKFLOW_CANONICAL_STRATEGY_DECISION_SUPPORT
+        res = simulator.simulate_trade_for_csv(
+            csv_path=csv_path,
+            tp=float(take_profit),
+            sl=float(stop_loss),
+            entry=float(entry),
+            tf=args.tf or parent_manifest.get("timeframe"),
+            horizon_bars=args.horizon,
+            model=args.model,
+            n_paths=args.paths,
+            block_len=args.block,
+            seed=args.seed,
+            nrows=args.nrows,
+            save_plots=False,
+            save_json=False,
+            ml_model=args.ml_model,
+            mu_shift=args.mu_shift,
+        )
+        artifact = commit_monte_carlo_summary_artifact(
+            parent_manifest=parent_manifest,
+            summary=res,
+            workflow_type=workflow_type,
+            run_root=args.lineage_run_root,
+        )
+        print(json.dumps(artifact["receipt"], indent=2, sort_keys=True))
+        return
+
     if args.simulate_backtest:
         if args.bt_tp_pips is None or args.bt_sl_pips is None:
             p.error("--bt-tp-pips and --bt-sl-pips are required when --simulate-backtest is set.")
@@ -824,6 +926,8 @@ def main():
         if s:
             print(f"\nBacktest ran {s.get('n_tests', 0)} tests; accuracy: {s.get('accuracy', 0.0):.2%}; median POP: {s.get('predicted_pop_median', 0.0):.2%}")
         return
+    if args.csv is None:
+        p.error("csv is required in legacy mode.")
     if args.tp is None or args.sl is None:
         p.error("In single-run mode you must provide --tp and --sl.")
 

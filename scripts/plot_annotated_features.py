@@ -29,6 +29,7 @@ Usage:
 
 from html import parser
 from pathlib import Path
+import json
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -36,7 +37,7 @@ import plotly.express as px
 import argparse
 from plotly.subplots import make_subplots
 import plotly.graph_objs as go
-import os, json, re, sys
+import os, re, sys
 import datetime
 
 PROJECT_ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -47,6 +48,13 @@ if PROJECT_ROOT not in sys.path:
 from marketflow.marketflow_config_manager import create_app_config
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_data_parameters import MarketFlowDataParameters
+from marketflow.operational_artifacts import (
+    DEFAULT_RUN_ROOT,
+    WORKFLOW_CANONICAL_STRATEGY_DECISION_SUPPORT,
+    WORKFLOW_MANUAL_SCENARIO_ANALYSIS,
+    commit_plot_artifact,
+    load_manifest,
+)
 
 logger = get_logger("plot_annotated_features")
 config_manager = create_app_config(logger=logger)
@@ -870,7 +878,7 @@ def generate_feature_plot_artifacts(
 
 def main():
     parser = argparse.ArgumentParser(description="Plot features from MarketFlow annotated CSV.")
-    parser.add_argument("csv", type=str, help="Path to annotated CSV file")
+    parser.add_argument("csv", nargs="?", type=str, help="Path to annotated CSV file")
     parser.add_argument("--features", type=str, nargs="*", default=None,
                         help="Features/columns to plot (e.g., close spread volume_class)")
     parser.add_argument("--nrows", type=int, default=4000,
@@ -884,7 +892,53 @@ def main():
     parser.add_argument("--pnf-scale-value", type=float, default=None)
     parser.add_argument("--mc-summary", type=str, default=None,
                         help="Explicit Monte Carlo summary JSON to overlay; must match the CSV identity.")
+    parser.add_argument("--lineage-mode", choices=["legacy", "canonical"], default="legacy")
+    parser.add_argument("--lineage-run-root", default=str(DEFAULT_RUN_ROOT))
+    parser.add_argument("--lineage-analysis-manifest", default=None)
+    parser.add_argument("--lineage-mc-manifest", default=None)
+    parser.add_argument(
+        "--lineage-workflow",
+        choices=[WORKFLOW_MANUAL_SCENARIO_ANALYSIS, WORKFLOW_CANONICAL_STRATEGY_DECISION_SUPPORT],
+        default=WORKFLOW_CANONICAL_STRATEGY_DECISION_SUPPORT,
+    )
     args = parser.parse_args()
+    if args.lineage_mode == "canonical":
+        if not args.lineage_analysis_manifest or not args.lineage_mc_manifest:
+            raise SystemExit("--lineage-analysis-manifest and --lineage-mc-manifest are required in canonical lineage mode.")
+        analysis_manifest = load_manifest(args.lineage_analysis_manifest, run_root=args.lineage_run_root)
+        mc_manifest = load_manifest(args.lineage_mc_manifest, run_root=args.lineage_run_root)
+        csv_path = Path(args.lineage_run_root) / str(analysis_manifest["payload_ref"])
+        mc_payload_path = Path(args.lineage_run_root) / str(mc_manifest["payload_ref"])
+        frame = pd.read_csv(csv_path)
+        mc_payload = json.loads(mc_payload_path.read_text(encoding="utf-8"))
+        mc_metrics = mc_payload.get("metrics_from_now") if isinstance(mc_payload, dict) else {}
+        mc_params = mc_payload.get("params") if isinstance(mc_payload, dict) else {}
+        title = f"{analysis_manifest['ticker']} {analysis_manifest['timeframe']} annotated plot"
+        fig = px.line(frame, x=frame.columns[0], y="close", title=title) if "close" in frame.columns else px.line(frame, title=title)
+        fig.add_annotation(
+            text=(
+                "MC input "
+                f"entry={mc_params.get('entry')} sl={mc_params.get('sl')} tp={mc_params.get('tp')} "
+                f"pop={mc_metrics.get('pop_tp_first') if isinstance(mc_metrics, dict) else None}"
+            ),
+            xref="paper",
+            yref="paper",
+            x=0.01,
+            y=0.99,
+            showarrow=False,
+            align="left",
+        )
+        artifact = commit_plot_artifact(
+            analysis_manifest=analysis_manifest,
+            monte_carlo_manifest=mc_manifest,
+            html_payload=fig.to_html(include_plotlyjs="cdn"),
+            workflow_type=args.lineage_workflow,
+            run_root=args.lineage_run_root,
+        )
+        print(json.dumps(artifact["receipt"], indent=2, sort_keys=True))
+        return
+    if args.csv is None:
+        raise SystemExit("csv is required in legacy mode.")
     plot_features(
         args.csv,
         args.features,
