@@ -1,0 +1,33 @@
+schema_version = "marketflow.canonical_dataset_registry.v1"
+
+[[records]]
+registry_schema_version = "marketflow.canonical_dataset_registry.v1"
+canonical_ticker = "FICT"
+canonical_timeframe = "4h"
+status = "UNRESOLVED"
+approved_safe_relative_source_reference = ""
+approved_file_sha256 = ""
+approved_semantic_ohlcv_digest = ""
+provenance_status = "PENDING_REVIEW"
+adjustment_status = "CORPORATE_ACTION_ADJUSTMENT_STATUS_UNKNOWN"
+approval_evidence_category = "HUMAN_APPROVAL_REQUIRED"
+decision_id = "DECISION-FICTIONAL-001"
+decision_timestamp = "HUMAN_APPROVAL_REQUIRED"
+superseded_source_references = []
+notes_category = "NONE"
+
+[[records]]
+registry_schema_version = "marketflow.canonical_dataset_registry.v1"
+canonical_ticker = "MOCK"
+canonical_timeframe = "1d"
+status = "REACQUISITION_REQUIRED"
+approved_safe_relative_source_reference = ""
+approved_file_sha256 = ""
+approved_semantic_ohlcv_digest = ""
+provenance_status = "PENDING_REVIEW"
+adjustment_status = "CORPORATE_ACTION_ADJUSTMENT_STATUS_UNKNOWN"
+approval_evidence_category = "HUMAN_APPROVAL_REQUIRED"
+decision_id = "DECISION-FICTIONAL-002"
+decision_timestamp = "HUMAN_APPROVAL_REQUIRED"
+superseded_source_references = []
+notes_category = "INSUFFICIENT_HISTORY"
