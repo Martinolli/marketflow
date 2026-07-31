@@ -1,14 +1,127 @@
-"""
-Marketflow Data Parameters Module Configuration Module
+"""Configuration parameters and fixed normal analysis profiles for MarketFlow."""
+from __future__ import annotations
 
-This module provides the configuration parameters for the Marketflow Data Parameters,
-
-This module provides configuration management for the Marketflow algorithm.
-"""
+from dataclasses import dataclass
 import json
 from pathlib import Path
 from marketflow.marketflow_logger import get_logger
 from marketflow.marketflow_config_manager import create_app_config
+from marketflow.operational_artifacts import PROFILE_POSITION_SWING, PROFILE_SWING, stable_digest
+
+
+FIXED_PROFILE_VERSION = "marketflow.fixed_analysis_profile.v1"
+INTENDED_SEVERAL_TRADING_DAYS = "SEVERAL_TRADING_DAYS"
+INTENDED_SEVERAL_DAYS_TO_WEEKS = "SEVERAL_DAYS_TO_WEEKS"
+HIGHER_TIMEFRAME_NOT_IMPLEMENTED = "NOT_IMPLEMENTED"
+
+_PROFILE_CONSTRUCTOR_TOKEN = object()
+
+
+@dataclass(frozen=True, slots=True, init=False)
+class FixedAnalysisProfile:
+    """Immutable source-defined normal analysis profile."""
+
+    profile_version: str
+    profile_id: str
+    candidate_timeframe: str
+    minimum_valid_rows: int
+    intended_holding_concept: str
+    higher_timeframe_context: str
+    automatic_monte_carlo: bool
+    automatic_outcome_evaluation: bool
+
+    def __init__(
+        self,
+        *,
+        _token: object,
+        profile_version: str,
+        profile_id: str,
+        candidate_timeframe: str,
+        minimum_valid_rows: int,
+        intended_holding_concept: str,
+        higher_timeframe_context: str,
+        automatic_monte_carlo: bool,
+        automatic_outcome_evaluation: bool,
+    ) -> None:
+        if _token is not _PROFILE_CONSTRUCTOR_TOKEN:
+            raise TypeError("FixedAnalysisProfile instances are source-defined only.")
+        object.__setattr__(self, "profile_version", profile_version)
+        object.__setattr__(self, "profile_id", profile_id)
+        object.__setattr__(self, "candidate_timeframe", candidate_timeframe)
+        object.__setattr__(self, "minimum_valid_rows", int(minimum_valid_rows))
+        object.__setattr__(self, "intended_holding_concept", intended_holding_concept)
+        object.__setattr__(self, "higher_timeframe_context", higher_timeframe_context)
+        object.__setattr__(self, "automatic_monte_carlo", bool(automatic_monte_carlo))
+        object.__setattr__(self, "automatic_outcome_evaluation", bool(automatic_outcome_evaluation))
+
+
+def _fixed_profile(
+    *,
+    profile_id: str,
+    candidate_timeframe: str,
+    minimum_valid_rows: int,
+    intended_holding_concept: str,
+) -> FixedAnalysisProfile:
+    return FixedAnalysisProfile(
+        _token=_PROFILE_CONSTRUCTOR_TOKEN,
+        profile_version=FIXED_PROFILE_VERSION,
+        profile_id=profile_id,
+        candidate_timeframe=candidate_timeframe,
+        minimum_valid_rows=minimum_valid_rows,
+        intended_holding_concept=intended_holding_concept,
+        higher_timeframe_context=HIGHER_TIMEFRAME_NOT_IMPLEMENTED,
+        automatic_monte_carlo=False,
+        automatic_outcome_evaluation=False,
+    )
+
+
+FIXED_ANALYSIS_PROFILES: tuple[FixedAnalysisProfile, ...] = (
+    _fixed_profile(
+        profile_id=PROFILE_SWING,
+        candidate_timeframe="4h",
+        minimum_valid_rows=390,
+        intended_holding_concept=INTENDED_SEVERAL_TRADING_DAYS,
+    ),
+    _fixed_profile(
+        profile_id=PROFILE_POSITION_SWING,
+        candidate_timeframe="1d",
+        minimum_valid_rows=560,
+        intended_holding_concept=INTENDED_SEVERAL_DAYS_TO_WEEKS,
+    ),
+)
+_FIXED_ANALYSIS_PROFILE_BY_ID = {profile.profile_id: profile for profile in FIXED_ANALYSIS_PROFILES}
+
+
+def fixed_profile_contract_payload(profile: FixedAnalysisProfile) -> dict[str, object]:
+    """Return the deterministic digest payload for a fixed profile."""
+    return {
+        "profile_version": profile.profile_version,
+        "profile_id": profile.profile_id,
+        "candidate_timeframe": profile.candidate_timeframe,
+        "minimum_valid_rows": profile.minimum_valid_rows,
+        "intended_holding_concept": profile.intended_holding_concept,
+        "higher_timeframe_context": profile.higher_timeframe_context,
+        "automatic_monte_carlo": profile.automatic_monte_carlo,
+        "automatic_outcome_evaluation": profile.automatic_outcome_evaluation,
+    }
+
+
+def fixed_profile_digest(profile: FixedAnalysisProfile) -> str:
+    """Return the deterministic profile-contract digest."""
+    return stable_digest(fixed_profile_contract_payload(profile))
+
+
+def fixed_analysis_profiles() -> tuple[FixedAnalysisProfile, ...]:
+    """Return source-defined normal analysis profiles."""
+    return FIXED_ANALYSIS_PROFILES
+
+
+def get_fixed_analysis_profile(profile_id: str) -> FixedAnalysisProfile:
+    """Return one source-defined profile by ID or fail closed."""
+    try:
+        return _FIXED_ANALYSIS_PROFILE_BY_ID[str(profile_id)]
+    except KeyError:
+        raise ValueError(f"Unsupported fixed analysis profile: {profile_id}") from None
 
 class MarketFlowDataParameters:
     """Configuration Parameters for Marketflow analysis"""
@@ -144,14 +257,18 @@ class MarketFlowDataParameters:
         return self.config["risk"]
     
     def get_timeframes(self):
-        """Get default timeframes for analysis"""
+        """Get legacy acquisition timeframes for analysis/provider calls."""
         return self.config["timeframes"]
     
     def get_primary_timeframe(self):
-        """Get primary timeframe for analysis"""
+        """Get the legacy primary timeframe from the acquisition list."""
         if "timeframes" in self.config and self.config["timeframes"]:
             return self.config["timeframes"][0]["interval"]
         return "1d"  # Default to daily timeframe if none specified
+
+    def get_fixed_analysis_profiles(self) -> tuple[FixedAnalysisProfile, ...]:
+        """Return normal-mode fixed profiles without using legacy list order."""
+        return fixed_analysis_profiles()
     
     def get_all(self):
         """Get all configuration parameters"""
@@ -304,6 +421,8 @@ default_config = {
     # --- Point & Figure defaults ---
     "pnf_scale": "percent",     # fixed | percent | atr
     "pnf_scale_value": 0.005,   # 0.5% default when using percent
+    # Legacy acquisition/provider timeframe list. Normal fixed-profile mode does
+    # not derive its semantics from this ordering.
     "timeframes": [
         {"interval": "1mo", "period": "5y"},
         {"interval": "1w", "period": "2y"},

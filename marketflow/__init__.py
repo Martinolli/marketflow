@@ -1,21 +1,23 @@
-"""
-Marketflow package initialization.
-
-Exposes main user-facing APIs and hides internal modules from direct import.
-"""
-
-from .marketflow_facade import MarketflowFacade
-from .marketflow_data_parameters import MarketFlowDataParameters
-from .marketflow_results_extractor import MarketflowResultExtractor
-
-# Optionally expose other top-level utilities/classes below:
-# from .marketflow_processor import DataProcessor
-# from .marketflow_wyckoff import WyckoffAnalyzer
+"""MarketFlow package initialization with lazy public API exports."""
 
 __all__ = [
     "MarketflowFacade",
     "MarketFlowDataParameters",
     "MarketflowResultExtractor",
-    # "DataProcessor",
-    # "WyckoffAnalyzer",
 ]
+
+
+def __getattr__(name: str):
+    if name == "MarketflowFacade":
+        from .marketflow_facade import MarketflowFacade
+
+        return MarketflowFacade
+    if name == "MarketFlowDataParameters":
+        from .marketflow_data_parameters import MarketFlowDataParameters
+
+        return MarketFlowDataParameters
+    if name == "MarketflowResultExtractor":
+        from .marketflow_results_extractor import MarketflowResultExtractor
+
+        return MarketflowResultExtractor
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
