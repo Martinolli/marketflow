@@ -76,6 +76,12 @@ Example:
 Bash
 
 python plot_annotated_features.py ".marketflow/reports/2025-09-23/AAPL/AAPL_1d_wyckoff_annotated.csv"
+
+Optional explicit Monte Carlo overlay:
+
+Bash
+
+python plot_annotated_features.py ".marketflow/reports/2025-09-23/AAPL/AAPL_1d_wyckoff_annotated.csv" --mc-summary ".marketflow/reports/2025-09-23/AAPL/20250923_120000_mc_summary.json"
 Output: This script will generate and display several interactive plots, including:
 
 An annotated Wyckoff Candlestick chart.

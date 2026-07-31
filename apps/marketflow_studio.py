@@ -3816,10 +3816,10 @@ def _render_strategy_results(strategy_result: dict[str, Any] | None, result: dic
     selected_candidate = results[selected_index]
     st.session_state.latest_strategy_candidate = selected_candidate
     st.session_state.selected_strategy_candidate = selected_candidate
-    if selected_candidate.get("mc_matched_by") == "fallback_latest":
+    if selected_candidate.get("mc_matched_by") == "ambiguous_timeframe":
         st.warning(
-            "This candidate used a fallback Monte Carlo summary that may not match "
-            "the selected timeframe."
+            "Multiple Monte Carlo summaries matched the selected timeframe, so POP "
+            "evidence was not used."
         )
     score_status = selected_candidate.get("score_status")
     if score_status != "SCORE_COMPLETE":
@@ -3900,7 +3900,7 @@ def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
     use_mc = st.checkbox(
         "Use Monte Carlo POP if available",
         value=False,
-        help="Optional. If no MC files exist, strategy logic should use neutral defaults.",
+        help="Optional. Uses POP only when exactly one matching-timeframe MC summary exists.",
     )
     st.caption(
         "Monte Carlo is optional. For safer workflow, rank candidates first, then run Monte Carlo "
@@ -3908,8 +3908,7 @@ def _render_strategy_ranking(result: dict[str, Any] | None) -> None:
     )
     st.caption(
         "When enabled, Strategy Ranking prefers Monte Carlo summaries matching the selected "
-        "timeframe. If none are found, it may fall back to the latest MC summary and marks "
-        "that in the results."
+        "timeframe. If none or multiple are found, POP evidence is left unavailable."
     )
 
     if st.button("Rank Candidates"):

@@ -312,11 +312,11 @@ def inspect_strategy_inputs(
 
     if use_mc:
         notes.append(
-            "Timeframe-aware Monte Carlo matching is enabled for Strategy Ranking."
+            "Exact Monte Carlo metadata matching is enabled for Strategy Ranking."
         )
         notes.append(
-            "If no MC summary matches the selected timeframe, results may fall back "
-            "to the latest available MC summary and mark `mc_matched_by` as `fallback_latest`."
+            "POP is used only from one same-ticker, same-timeframe, canonical-workflow "
+            "summary; missing or ambiguous summaries leave POP evidence unavailable."
         )
 
     total_matching_csvs = 0

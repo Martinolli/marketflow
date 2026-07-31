@@ -256,17 +256,6 @@ class LongTradeLevelResolution:
 # Low-level utilities
 # -----------------------------
 
-def _latest_file(dir_: str, suffix: str) -> Optional[str]:
-    logger.debug(f"Searching for latest file in {dir_} with suffix '{suffix}'")
-    files = [f for f in os.listdir(dir_) if f.endswith(suffix)]
-    if not files:
-        logger.debug("No matching files found.")
-        return None
-    files.sort(key=lambda f: os.path.getmtime(os.path.join(dir_, f)), reverse=True)
-    latest = os.path.join(dir_, files[0])
-    logger.debug(f"Latest file found: {latest}")
-    return latest
-
 def _normalize_tf(value: object) -> str | None:
     """Normalize a timeframe-like value for matching."""
     if value is None:
@@ -390,22 +379,6 @@ def _csv_matches_timeframe(path: str, ticker: str, tf: str) -> bool:
         return False
     identity = _parse_strategy_csv_identity(Path(path))
     return bool(identity and identity.ticker == clean_ticker and identity.timeframe == clean_tf)
-
-
-def _csv_matches_timeframe_any_ticker(path: str, tf: str) -> bool:
-    clean_tf, timeframe_error = _canonical_timeframe(tf)
-    if timeframe_error is not None:
-        return False
-    identity = _parse_strategy_csv_identity(Path(path))
-    return bool(identity and identity.timeframe == clean_tf)
-
-
-def _newest_csv(paths: list[str]) -> str:
-    return sorted(
-        paths,
-        key=lambda path: (os.path.getmtime(path), os.path.basename(path).lower()),
-        reverse=True,
-    )[0]
 
 
 def _path_within_root(path: Path, root: Path) -> bool:
@@ -565,18 +538,62 @@ def _mc_metadata(
     }
 
 
-def _latest_mc_with_metadata(dir_: str, tf: str | None = None) -> tuple[Optional[dict], dict]:
-    """
-    Load the newest Monte Carlo summary for the requested timeframe when possible.
+def _mc_summary_matches_request(
+    data: dict,
+    *,
+    ticker: str | None,
+    source_csv_name: str | None,
+    workflow_type: str | None = None,
+) -> bool:
+    """Return False unless MC metadata exactly identifies the selected source."""
+    if ticker:
+        requested_ticker, ticker_error = _canonical_ticker(ticker)
+        summary_ticker = data.get("ticker")
+        if summary_ticker is None:
+            return False
+        actual_ticker, actual_error = _canonical_ticker(summary_ticker)
+        if ticker_error is not None or actual_error is not None or actual_ticker != requested_ticker:
+            return False
+    if source_csv_name:
+        expected_source = _parse_strategy_csv_identity(Path(source_csv_name))
+        matched_source_identity = False
+        for key in ("csv", "source_csv", "source_csv_name", "source_csv_path"):
+            value = data.get(key)
+            if value is None:
+                continue
+            actual_source = _parse_strategy_csv_identity(Path(str(value)))
+            if actual_source and expected_source:
+                if actual_source.ticker != expected_source.ticker or actual_source.timeframe != expected_source.timeframe:
+                    return False
+                matched_source_identity = True
+            elif os.path.basename(str(value)).lower() != os.path.basename(str(source_csv_name)).lower():
+                return False
+            else:
+                matched_source_identity = True
+        if not matched_source_identity:
+            return False
+    if workflow_type is not None and data.get("workflow_type") != workflow_type:
+        return False
+    return True
 
-    Prefer:
-    1. MC summary whose JSON field `tf` matches requested tf
-    2. MC summary whose JSON field `timeframe` matches requested tf
-    3. MC summary whose filename contains requested tf as a token
-    4. newest MC summary as fallback, but mark as fallback
+
+def _select_unique_mc_with_metadata(
+    dir_: str,
+    tf: str | None = None,
+    *,
+    ticker: str | None = None,
+    source_csv_name: str | None = None,
+    workflow_type: str | None = None,
+) -> tuple[Optional[dict], dict]:
+    """
+    Load Monte Carlo evidence only when exactly one requested-timeframe summary exists.
+
+    This is intentionally fail-closed. It does not select the newest file, first
+    file, or a fallback summary when the requested identity is absent or
+    ambiguous.
     """
     requested_tf = _normalize_tf(tf)
-    logger.debug(f"Loading timeframe-aware Monte Carlo summary from {dir_} for tf={requested_tf}")
+    logger.debug(f"Loading exact Monte Carlo summary from {dir_} for tf={requested_tf}")
     try:
         files = [
             os.path.join(dir_, filename)
@@ -588,8 +605,7 @@ def _latest_mc_with_metadata(dir_: str, tf: str | None = None) -> tuple[Optional
         meta = _mc_metadata(tf, "none", 0, [])
         return None, meta
 
-    files.sort(key=lambda path: os.path.getmtime(path), reverse=True)
-    candidate_paths = list(files)
+    candidate_paths = sorted(files)
     available_count = len(files)
     if not files:
         logger.debug("No MC summary file found.")
@@ -612,33 +628,33 @@ def _latest_mc_with_metadata(dir_: str, tf: str | None = None) -> tuple[Optional
         meta = _mc_metadata(tf, "none", available_count, candidate_paths)
         return None, meta
 
-    if requested_tf:
-        for path, data in loaded:
-            matched_tf = _mc_json_timeframe(data, "tf")
-            if matched_tf == requested_tf:
-                meta = _mc_metadata(tf, "json_tf", available_count, candidate_paths, path, matched_tf)
-                return data, meta
+    if not requested_tf:
+        meta = _mc_metadata(tf, "none", available_count, candidate_paths)
+        return None, meta
 
-        for path, data in loaded:
-            matched_tf = _mc_json_timeframe(data, "timeframe")
-            if matched_tf == requested_tf:
-                meta = _mc_metadata(tf, "json_timeframe", available_count, candidate_paths, path, matched_tf)
-                return data, meta
+    exact_matches: list[tuple[str, dict, str]] = []
+    for path, data in loaded:
+        if not _mc_summary_matches_request(
+            data,
+            ticker=ticker,
+            source_csv_name=source_csv_name,
+            workflow_type=workflow_type,
+        ):
+            continue
+        matched_tf = _mc_json_timeframe(data, "tf") or _mc_json_timeframe(data, "timeframe")
+        if matched_tf == requested_tf:
+            exact_matches.append((path, data, matched_tf))
 
-        for path, data in loaded:
-            if _filename_matches_tf(path, requested_tf):
-                meta = _mc_metadata(tf, "filename", available_count, candidate_paths, path, requested_tf)
-                return data, meta
+    if len(exact_matches) == 1:
+        path, data, matched_tf = exact_matches[0]
+        meta = _mc_metadata(tf, "exact_timeframe_unique", available_count, candidate_paths, path, matched_tf)
+        return data, meta
+    if len(exact_matches) > 1:
+        meta = _mc_metadata(tf, "ambiguous_timeframe", available_count, candidate_paths)
+        return None, meta
 
-    path, data = loaded[0]
-    matched_tf = _mc_json_timeframe(data, "tf") or _mc_json_timeframe(data, "timeframe")
-    meta = _mc_metadata(tf, "fallback_latest", available_count, candidate_paths, path, matched_tf)
-    return data, meta
-
-
-def _latest_mc(dir_: str, tf: str | None = None) -> Optional[dict]:
-    data, _meta = _latest_mc_with_metadata(dir_, tf)
-    return data
+    meta = _mc_metadata(tf, "none", available_count, candidate_paths)
+    return None, meta
 
 def _finite_float(value: object) -> float | None:
     try:
@@ -1862,7 +1878,7 @@ def rank_long_candidates(
     """
     Scan per-ticker report folders and rank long candidates.
 
-    - If use_batch_namespace == "latest", will pick the most recent "batch_*" folder under report_root.
+    - If use_batch_namespace == "latest", uses the newest valid batch_* folder requested by the caller.
     - If date_glob provided (e.g., "2025-09-*"), it filters under that pattern.
     - MC/P&F are optional by cfg; missing active evidence is incomplete, while
       explicitly disabled components are diagnostic and uncalibrated.
@@ -1911,19 +1927,17 @@ def rank_long_candidates(
             if safe_date_glob
             else []
         )
-        if not dirs:
-            # fallback: any folder directly under report_root matching ticker
-            dirs = sorted(
-                _report_root_dirs(
-                    report_root,
-                    glob.glob(os.path.join(report_root, "**", source_ticker), recursive=True),
-                )
-            )
         logger.info(f"Found directories for ticker {source_ticker}: {dirs}")
         if not dirs:
             logger.info(f"No directories found for ticker {source_ticker}, skipping.")
             continue
-        out_dir = dirs[-1]
+        if len(dirs) > 1:
+            logger.info(
+                f"Ambiguous directories for ticker {source_ticker}; "
+                "skipping instead of selecting a first or last folder."
+            )
+            continue
+        out_dir = dirs[0]
         logger.info(f"Using output directory for ticker {source_ticker}: {out_dir}")
 
         # Locate canonical source CSV for exact ticker/timeframe identity.
@@ -1949,7 +1963,13 @@ def rank_long_candidates(
         pop: Any | None = None
         mc_meta: dict = {}
         if cfg.use_mc:
-            mc, mc_meta = _latest_mc_with_metadata(out_dir, tf)
+            mc, mc_meta = _select_unique_mc_with_metadata(
+                out_dir,
+                tf,
+                ticker=source_identity.ticker,
+                source_csv_name=source_identity.source.name,
+                workflow_type="CANONICAL_STRATEGY_DECISION_SUPPORT",
+            )
             logger.info(f"Monte Carlo summary for ticker {t}: {mc}")
             logger.info(f"Monte Carlo summary match metadata for ticker {t}: {mc_meta}")
             if mc and isinstance(mc, dict):

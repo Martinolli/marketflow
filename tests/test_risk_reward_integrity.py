@@ -293,7 +293,15 @@ def test_rank_long_candidates_skips_missing_invalid_and_ambiguous_targets(tmp_pa
         row["pnf_score"] = 0.5
     _write_csv(valid / "VALID_4h_wyckoff_annotated.csv", valid_rows)
     (valid / "VALID_4h_mc_summary.json").write_text(
-        json.dumps({"tf": "4h", "metrics_from_now": {"pop_tp_first": 0.5}}),
+        json.dumps(
+            {
+                "tf": "4h",
+                "ticker": "VALID",
+                "csv": "VALID_4h_wyckoff_annotated.csv",
+                "workflow_type": "CANONICAL_STRATEGY_DECISION_SUPPORT",
+                "metrics_from_now": {"pop_tp_first": 0.5},
+            }
+        ),
         encoding="utf-8",
     )
     _write_csv(missing / "MISS_4h_wyckoff_annotated.csv", _rows(close=100.0, tr_high=None))

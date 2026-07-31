@@ -97,7 +97,15 @@ def _write_strategy_report(tmp_path: Path, frame: pd.DataFrame) -> Path:
     frame.to_csv(csv_path, index=False)
     mc_path = ticker_dir / "AAA_1d_wyckoff_annotated_1d_mc_summary.json"
     mc_path.write_text(
-        json.dumps({"tf": "1d", "metrics_from_now": {"pop_tp_first": 0.7}}),
+        json.dumps(
+            {
+                "tf": "1d",
+                "ticker": "AAA",
+                "csv": "AAA_1d_wyckoff_annotated.csv",
+                "workflow_type": "CANONICAL_STRATEGY_DECISION_SUPPORT",
+                "metrics_from_now": {"pop_tp_first": 0.7},
+            }
+        ),
         encoding="utf-8",
     )
     return csv_path

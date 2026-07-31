@@ -78,7 +78,19 @@ def _write_strategy_csv(
 def _write_mc_summary(source_csv: Path, *, pop: object | None, tf: str = "1d") -> Path:
     path = source_csv.parent / f"{source_csv.stem}_{tf}_mc_summary.json"
     metrics = {} if pop is None else {"pop_tp_first": pop}
-    path.write_text(json.dumps({"tf": tf, "metrics_from_now": metrics}), encoding="utf-8")
+    ticker = source_csv.name.split("_", 1)[0]
+    path.write_text(
+        json.dumps(
+            {
+                "tf": tf,
+                "ticker": ticker,
+                "csv": source_csv.name,
+                "workflow_type": "CANONICAL_STRATEGY_DECISION_SUPPORT",
+                "metrics_from_now": metrics,
+            }
+        ),
+        encoding="utf-8",
+    )
     return path
 
 

@@ -101,7 +101,7 @@ If unchecked, ranking uses CSV/Wyckoff/ATR logic.
 
 If checked, the strategy tries to use available Monte Carlo summary files.
 
-If no matching Monte Carlo data is available, ranking should still work with neutral or missing POP.
+If no matching Monte Carlo data is available, ranking continues with missing POP evidence.
 
 For now, the safer workflow is:
 
@@ -110,7 +110,7 @@ For now, the safer workflow is:
 3. Run Monte Carlo for selected candidates.
 4. Build Analyst Packet for final validation.
 
-Strategy Ranking now prefers MC summaries matching the selected timeframe. If no matching summary is found, it may fall back to the latest available summary and mark the match mode in the results.
+Strategy Ranking now uses MC POP only when exactly one MC summary matches the selected timeframe. If no matching summary is found, or if multiple matching summaries are found, POP evidence remains unavailable.
 
 Strategy Ranking now prefers canonical `*_wyckoff_annotated.csv` files as source CSVs and avoids generated derivative CSV artifacts such as `*_pv_eigen.csv`, `*_backtest_candidates*.csv`, and `*_backtest_results*.csv`.
 

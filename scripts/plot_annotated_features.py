@@ -28,6 +28,7 @@ Usage:
 """
 
 from html import parser
+from pathlib import Path
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -260,45 +261,51 @@ def _last_congestion_count(columns: list[dict], box: float, reversal: float, dir
 
 # --- MC POP gauge helpers ----------------------------------------------------
 
-def _load_latest_mc_for(csv_path: str, directory: str) -> dict | None:
-    """Return the newest MC summary whose 'csv' matches the given CSV (robust name normalization).
-    
-    Matches case-insensitively and ignores suffixes like '_wyckoff_annotated' or '_annotated'.
-    Examples matched as equal:
-      - 'PANW_1d_wyckoff_annotated.csv'  <->  'PANW_1d.csv' (or 'PANW_1D.csv')
-    """
-    def _norm(name: str) -> str:
-        b = os.path.basename(name).lower()
-        if b.endswith(".csv"):
-            b = b[:-4]
-        # strip common suffixes added by pipelines
-        for suf in ("_wyckoff_annotated", "_annotated", "_wyckoff"):
-            if b.endswith(suf):
-                b = b[: -len(suf)]
-        # collapse double underscores, keep symbol_tf shape
-        while "__" in b:
-            b = b.replace("__", "_")
-        return b  # without .csv
+def _normalized_csv_identity(name: str) -> str:
+    """Return a stable CSV identity token for strict MC/plot linkage."""
+    b = os.path.basename(name).lower()
+    if b.endswith(".csv"):
+        b = b[:-4]
+    for suf in ("_wyckoff_annotated", "_annotated", "_wyckoff"):
+        if b.endswith(suf):
+            b = b[: -len(suf)]
+    while "__" in b:
+        b = b.replace("__", "_")
+    return b
 
-    try:
-        files = [f for f in os.listdir(directory) if f.endswith("_mc_summary.json")]
-        files.sort(key=lambda f: os.path.getmtime(os.path.join(directory, f)), reverse=True)
-        want_norm = _norm(csv_path)
-        for fn in files:
-            try:
-                fp = os.path.join(directory, fn)
-                with open(fp, "r") as fh:
-                    data = json.load(fh)
-                mc_csv = data.get("csv")
-                if not mc_csv:
-                    continue
-                if _norm(mc_csv) == want_norm:
-                    return data
-            except Exception:
-                continue
-    except Exception:
-        pass
-    return None
+
+def _load_explicit_mc_for(csv_path: str, mc_summary_path: str | None) -> dict | None:
+    """Return an explicitly supplied MC summary only when it matches the plotted CSV."""
+    if not mc_summary_path:
+        return None
+    if not str(mc_summary_path).endswith("_mc_summary.json"):
+        raise ValueError("MC summary path must end with _mc_summary.json.")
+    if not os.path.exists(mc_summary_path):
+        raise FileNotFoundError(f"MC summary does not exist: {mc_summary_path}")
+    if not os.path.isfile(mc_summary_path):
+        raise ValueError("MC summary path must be a regular file.")
+    csv_path_obj = Path(csv_path)
+    summary_path_obj = Path(mc_summary_path)
+    if csv_path_obj.parent != Path("."):
+        try:
+            same_directory = summary_path_obj.resolve(strict=True).parent == csv_path_obj.resolve(strict=False).parent
+        except OSError:
+            same_directory = False
+        if not same_directory:
+            raise ValueError("MC summary must be in the same report directory as the plotted CSV.")
+
+    with open(mc_summary_path, "r", encoding="utf-8") as fh:
+        data = json.load(fh)
+    if not isinstance(data, dict):
+        raise ValueError("MC summary must be a JSON object.")
+
+    mc_csv = data.get("csv")
+    if not mc_csv:
+        raise ValueError("MC summary is missing csv identity.")
+    if _normalized_csv_identity(mc_csv) != _normalized_csv_identity(csv_path):
+        raise ValueError("MC summary csv identity does not match plotted CSV.")
+    return data
+
 
 def add_pop_gauge(fig: go.Figure, mc_data: dict | None, corner: str = "br") -> None:
     """Overlay a small POP gauge (TP-first %) and median bars-to-TP on the figure."""
@@ -368,6 +375,7 @@ def plot_point_and_figure(
     source_csv_path=None,
     generated_by=None,
     nrows=None,
+    mc_summary_path=None,
 ) -> dict:
     """
     P&F with symbol-aware auto box sizing, correct column indexing, breakouts and counts.
@@ -486,10 +494,8 @@ def plot_point_and_figure(
     generated_at = datetime.datetime.now(datetime.timezone.utc).isoformat()
     file_stamp = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
     pnf_path = os.path.join(output_dir, f"{file_stamp}_point_and_figure_plot.html")
-    # ... after you finish fig.update_layout(...)
-    # Look for latest MC summary saved in the same output dir
-    csv_basename = os.path.basename(csv_file_name)
-    mc_data = _load_latest_mc_for(csv_basename, directory=output_dir)
+    csv_reference = str(source_csv_path or csv_file_name)
+    mc_data = _load_explicit_mc_for(csv_reference, mc_summary_path)
     add_pop_gauge(fig, mc_data, corner="br")  # move to "tr"/"tl"/"bl" if it overlaps
 
     fig.write_html(pnf_path)
@@ -505,6 +511,7 @@ def plot_point_and_figure(
         "source_csv_path": str(source_csv_path) if source_csv_path else None,
         "inferred_timeframe": _infer_timeframe_from_name(str(source_csv_path or csv_file_name)),
         "generated_by": generated_by,
+        "mc_summary_path": str(mc_summary_path) if mc_summary_path else None,
         "box_mode": box_mode,
         "box_value": box_value,
         "box_size": params.box,
@@ -635,6 +642,7 @@ def plot_features(
     include_volume_profile: bool = True,
     include_volume_distribution: bool = True,
     include_spread: bool = True,
+    mc_summary_path: str | None = None,
 ) -> dict:
     """Plot features from a MarketFlow annotated CSV file.
     Args:
@@ -684,6 +692,8 @@ def plot_features(
             wyckoff_overlay=True,
             pnf_scale=pnf_scale,
             pnf_scale_value=pnf_scale_value,
+            source_csv_path=csv_file,
+            mc_summary_path=mc_summary_path,
         )
         if isinstance(pnf_result, dict) and pnf_result.get("path"):
             generated_paths.append(pnf_result["path"])
@@ -838,6 +848,7 @@ def generate_feature_plot_artifacts(
     include_volume_profile: bool = True,
     include_volume_distribution: bool = True,
     include_spread: bool = True,
+    mc_summary_path: str | None = None,
 ) -> dict:
     """Generate legacy plot artifacts without changing terminal CLI defaults."""
     return plot_features(
@@ -854,6 +865,7 @@ def generate_feature_plot_artifacts(
         include_volume_profile=include_volume_profile,
         include_volume_distribution=include_volume_distribution,
         include_spread=include_spread,
+        mc_summary_path=mc_summary_path,
     )
 
 def main():
@@ -870,6 +882,8 @@ def main():
                         help="Reversal amount in boxes for the P&F chart (default 3)")
     parser.add_argument("--pnf-scale", choices=["fixed", "percent", "atr"], default=None)
     parser.add_argument("--pnf-scale-value", type=float, default=None)
+    parser.add_argument("--mc-summary", type=str, default=None,
+                        help="Explicit Monte Carlo summary JSON to overlay; must match the CSV identity.")
     args = parser.parse_args()
     plot_features(
         args.csv,
@@ -879,6 +893,7 @@ def main():
         args.reversal,
         pnf_scale=args.pnf_scale,
         pnf_scale_value=args.pnf_scale_value,
+        mc_summary_path=args.mc_summary,
     )
 
 if __name__ == "__main__":
