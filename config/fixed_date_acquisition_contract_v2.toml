@@ -1,0 +1,362 @@
+contract_schema_version = "marketflow.acquisition_contract.v2"
+decision_set_version = "marketflow.acquisition_decisions.v2"
+contract_status = "ACQUISITION_CONTRACT_V2_READY_FOR_IMPLEMENTATION"
+human_decisions_status = "COMPLETE"
+acquisition_enabled = false
+provider_execution_enabled = false
+calendar_generation_enabled = false
+normalization_enabled = false
+registry_authority_enabled = false
+runtime_profile_migration_status = "LEGACY_FIXED_PROFILE_RUNTIME_PENDING_V2_MIGRATION"
+
+[technical_constants]
+registry_mutex_wait_seconds = 10
+mutex_wait_policy = "ONE_BOUNDED_WAIT"
+monotonic_timing_required = true
+no_cli_override = true
+no_environment_override = true
+timeout_status = "FAIL_CLOSED"
+provider_maximum_attempts = 3
+retry_backoff_seconds = [2, 5]
+retry_jitter = false
+retryable_categories = [
+  "TRANSPORT_TIMEOUT",
+  "CONNECTION_RESET",
+  "HTTP_408",
+  "HTTP_429",
+  "HTTP_500",
+  "HTTP_502",
+  "HTTP_503",
+  "HTTP_504",
+]
+non_retryable_categories = [
+  "AUTHENTICATION_FAILURE",
+  "AUTHORIZATION_FAILURE",
+  "INVALID_REQUEST",
+  "UNSUPPORTED_TICKER",
+  "SCHEMA_FAILURE",
+  "SEMANTIC_MISMATCH",
+  "ADJUSTMENT_MISMATCH",
+  "INVALID_TIMESTAMPS_OR_OHLCV",
+  "PROVIDER_RESPONSE_VARIANCE",
+]
+retry_after_policy = "STRICT_INTEGER_SECONDS_HTTP_429_503_ONLY"
+retry_after_min_seconds = 0
+retry_after_max_seconds = 60
+retry_after_effective_wait_policy = "MAX_CONFIGURED_BACKOFF_AND_RETRY_AFTER"
+retry_after_violation_status = "RETRY_AFTER_POLICY_VIOLATION"
+
+[provider_policy]
+business_provider = "MASSIVE.COM"
+provider_business_identity = "MASSIVE_COM"
+former_brand = "POLYGON.IO"
+installed_adapter_family = "polygon-api-client"
+installed_adapter_version = "1.14.6"
+subscription_plan = "STOCKS_STARTER"
+entitlement_evidence = "OPERATOR_ATTESTED"
+provider_entitlement_status = "OPERATOR_ATTESTED_CONFIRMED"
+historical_access = "FIVE_YEARS"
+market_data_recency = "FIFTEEN_MINUTE_DELAYED"
+aggregate_access = "INTRADAY_AND_DAILY_AVAILABLE"
+entitlement_api_verified = false
+provider_execution_enabled = false
+sdk_migration_status = "NOT_PERFORMED"
+
+[fixed_range_policy]
+start_date = "2022-01-01"
+end_date = "2025-12-31"
+range_inclusive = true
+common_range_for_all_profiles = true
+rolling_window_allowed = false
+relative_period_allowed = false
+current_date_dependency_allowed = false
+ticker_specific_extension_allowed = false
+profile_specific_dates_allowed = false
+row_gate_auto_extension_allowed = false
+date_change_requires_new_generation = true
+
+[source_bar_policy]
+provider_source_interval = "15m"
+provider_timespan = "minute"
+provider_multiplier = 15
+adjusted = true
+sort = "asc"
+limit = 50000
+source_timezone = "America/New_York"
+canonical_storage_timezone = "UTC"
+extended_hours_in_derived_datasets = "EXCLUDED"
+provider_native_4h_canonical = false
+provider_native_1d_canonical = false
+
+[[profiles]]
+profile_id = "SWING"
+profile_contract_version = "SWING_RTH_HALF_SESSION_V1"
+canonical_bar_type = "RTH_HALF_SESSION_195M"
+minimum_valid_rows = 390
+source_interval = "15m"
+source_bars_per_canonical_bar = 13
+timestamp_semantic = "BAR_CLOSE_TIMESTAMP"
+session_policy = "REGULAR_TRADING_HOURS_ONLY"
+early_close_policy = "EXCLUDE_ENTIRE_SESSION"
+ex_dividend_cross_boundary_policy = "PROHIBITED"
+higher_timeframe_context = "NOT_IMPLEMENTED"
+window_segments = [
+  { label = "MORNING_4H", start_inclusive = "09:30", end_exclusive = "12:45", source_bars_required = 13, timezone = "America/New_York" },
+  { label = "AFTERNOON_4H", start_inclusive = "12:45", end_exclusive = "16:00", source_bars_required = 13, timezone = "America/New_York" },
+]
+
+[[profiles]]
+profile_id = "POSITION_SWING"
+profile_contract_version = "POSITION_SWING_RTH_FULL_SESSION_V1"
+canonical_bar_type = "RTH_FULL_SESSION_1D"
+minimum_valid_rows = 560
+source_interval = "15m"
+source_bars_per_canonical_bar = 26
+timestamp_semantic = "SESSION_CLOSE_TIMESTAMP"
+session_policy = "REGULAR_TRADING_HOURS_ONLY"
+early_close_policy = "EXCLUDE_ENTIRE_SESSION"
+ex_dividend_cross_boundary_policy = "PROHIBITED"
+higher_timeframe_context = "NOT_IMPLEMENTED"
+window_segments = [
+  { label = "FULL_RTH_DAY", start_inclusive = "09:30", end_exclusive = "16:00", source_bars_required = 26, timezone = "America/New_York" },
+]
+
+[aggregation_policy]
+open_rule = "FIRST_SOURCE_OPEN"
+high_rule = "MAX_SOURCE_HIGH"
+low_rule = "MIN_SOURCE_LOW"
+close_rule = "LAST_SOURCE_CLOSE"
+volume_rule = "SUM_SOURCE_VOLUME"
+expected_source_slots_required = true
+missing_source_slot_repair = "PROHIBITED"
+partial_bar_acceptance = false
+synthetic_bar_creation = "PROHIBITED"
+provider_native_higher_timeframe_acceptance = "PROHIBITED"
+
+[calendar_policy]
+calendar_architecture = "EXCHANGE_AWARE_FROZEN_CALENDAR_ARTIFACT"
+calendar_package = "exchange_calendars"
+calendar_package_version = "4.13.2"
+calendar_name = "XNYS"
+timezone = "America/New_York"
+requested_listing_mic_retention = "RETAIN_SEPARATELY_FROM_RESOLVED_CALENDAR"
+timezone_aware_utc_schedule_evidence = "REQUIRED"
+full_regular_sessions_only = "INCLUDED"
+early_close_sessions = "EXCLUDED"
+ad_hoc_closures = "INCLUDED"
+closure_inference_from_missing_provider_bars = "PROHIBITED"
+dynamic_unfrozen_calendar_use = "PROHIBITED"
+calendar_artifact_not_package_version = true
+future_artifact_evidence = [
+  "calendar_package",
+  "calendar_package_version",
+  "tzdata_version",
+  "calendar_implementation_digest",
+  "official_exchange_evidence_digest",
+  "schedule_digest",
+]
+required_artifact_fields = [
+  "calendar_artifact_id",
+  "calendar_package",
+  "calendar_package_version",
+  "calendar_name",
+  "session_date",
+  "market_open",
+  "market_close",
+  "session_classification",
+  "artifact_digest",
+]
+
+[instrument_identity_policy]
+identity_source = "MASSIVE_POINT_IN_TIME_TICKER_OVERVIEW"
+endpoint_family = "TICKER_OVERVIEW_V3"
+identity_continuity = "BOUNDARY_SNAPSHOTS_PLUS_STABLE_IDENTIFIER_EVENT_AUDIT"
+start_identity_snapshot_required = true
+end_identity_snapshot_required = true
+identity_change_segment_policy = "IMMUTABLE_IDENTITY_SEGMENTS"
+required_evidence = [
+  "requested_ticker",
+  "primary_exchange_mic",
+  "composite_figi",
+  "share_class_figi",
+  "cik",
+  "ticker_active_status",
+  "name",
+  "market",
+  "locale",
+  "primary_exchange",
+  "query_date",
+  "raw_identity_response_digest",
+]
+ticker_event_evidence_role = "SUPPORTING_EVIDENCE_NOT_SOLE_AUTHORITY"
+automatic_stitching = "PROHIBITED"
+ambiguous_identity_status = "IDENTITY_AMBIGUOUS_FAIL_CLOSED"
+
+[corporate_action_policy]
+split_provider_bars = "SPLIT_ADJUSTED"
+adjusted_request = true
+adjusted_response = "MUST_MATCH_TRUE"
+independent_split_event_audit = "REQUIRED"
+local_second_split_adjustment = "PROHIBITED"
+dividend_price_adjustment = "PROHIBITED"
+dividend_event_audit = "REQUIRED"
+ex_dividend_policy = "RESET_ANALYTICAL_CONTINUITY_AT_EX_DIVIDEND_DATE"
+cross_boundary_true_range = "PROHIBITED"
+cross_boundary_wyckoff_structure = "PROHIBITED"
+post_boundary_readiness = "COMPONENT_BASED_READINESS"
+fixed_global_warmup_allowed = false
+manual_operator_unlock_allowed = false
+excluded_early_close_ex_dividend_segment_start = "NEXT_ELIGIBLE_FULL_SESSION_CANONICAL_BAR"
+
+[chunking_policy]
+partition = "FIXED_CALENDAR_MONTH"
+baseline_month_count = 48
+chunk_count_before_identity_clipping = 48
+identity_clipping_order = "AFTER_FIXED_MONTH_CHUNKING"
+segment_clipped_first_last_months_permitted = true
+mandatory_pagination_exhaustion = true
+no_partial_month_success = true
+continuation_repetition_policy = "REJECT_DUPLICATE_PAGE_OR_REPEATED_CONTINUATION"
+first_page_only_acceptance = "PROHIBITED"
+one_raw_page_record_per_provider_page = true
+exact_provider_bytes_required = true
+month_completeness_manifest = "REQUIRED"
+reformatted_json_as_raw = "PROHIBITED"
+credential_bearing_continuation_retention = "PROHIBITED"
+every_attempt_preserved = true
+failed_attempts_retained = true
+accepted_attempt_policy = "ONE_EXPLICITLY_ACCEPTED_ATTEMPT_PER_LOGICAL_PAGE"
+multiple_valid_attempts_allowed = true
+equivalent_retry_selection = "LOWEST_VALID_ATTEMPT_ORDINAL"
+differing_projection_status = "PROVIDER_RESPONSE_VARIANCE"
+latest_response_preference = "PROHIBITED"
+overlap_policy = "DETECT_AND_REJECT_EXCEPT_IDENTICAL_RETRY_ATTEMPTS"
+completeness_acceptance = "ALL_EXPECTED_SOURCE_SLOTS_PRESENT_AFTER_CALENDAR_JOIN"
+
+[semantic_equivalence_policy]
+semantic_retry_projection = "OHLCV_PLUS_CONTRACTED_AUDIT_FIELDS_V1"
+numeric_equivalence = "STRICT_CANONICAL_DECIMAL_VALUE_EQUALITY"
+provider_json_numbers = "PARSE_WITHOUT_BINARY_FLOAT"
+canonical_numeric_type = "Decimal"
+tolerance_allowed = false
+negative_zero_canonicalized = true
+nan_infinity = "REJECTED"
+required_row_fields = ["timestamp_utc", "open", "high", "low", "close", "volume"]
+exact_integer_fields = ["volume", "transaction_count"]
+optional_presence_sensitive_fields = ["vwap", "transaction_count"]
+missing_supplemental_value_policy = "NEVER_FABRICATE_ZERO_FILL_OR_FORWARD_FILL"
+optional_audit_fields = ["vwap", "transaction_count"]
+presence_sensitive = true
+excluded_from_equivalence = [
+  "retrieved_at",
+  "attempt_started_at",
+  "attempt_finished_at",
+  "operator",
+]
+
+[normalization_policy]
+monthly_normalized_ohlcv_artifact = "MONTHLY_NORMALIZED_OHLCV"
+monthly_normalized_audit_artifact = "MONTHLY_NORMALIZED_AGGREGATE_AUDIT_FIELDS"
+core_artifact_columns = ["timestamp_utc", "open", "high", "low", "close", "volume"]
+audit_artifact_columns = [
+  "provider_timestamp",
+  "provider_adjusted",
+  "calendar_session_id",
+  "bar_window_label",
+  "raw_page_digest",
+  "corporate_action_boundary_id",
+]
+same_timestamps_order_and_count_required = true
+missing_audit_values_status_null = true
+supplemental_fields_prohibited_from_strategy_input = true
+monthly_normalization_first = true
+identity_segment_consolidation = "EXPLICIT_ORDERED_IDENTITY_SEGMENT_CONSOLIDATION"
+mixed_adjustment_evidence_generations = "PROHIBITED"
+coherent_generation_per_identity_segment = true
+segment_artifacts = ["RAW_PROVIDER_PAGE", "SOURCE_15M_DATASET", "CANONICAL_PROFILE_DATASET"]
+dynamic_strategy_month_scan = "PROHIBITED"
+
+[generation_policy]
+generation_scope = "ONE_COHERENT_GENERATION"
+generation_statuses = ["OPEN", "INCOMPLETE", "BLOCKED", "READY_FOR_FREEZE", "PREPARED", "FROZEN"]
+lifecycle = [
+  "CREATE_GENERATION",
+  "ACQUIRE_RAW",
+  "NORMALIZE_SOURCE_15M",
+  "BUILD_CANONICAL_PROFILE_DATASETS",
+  "VALIDATE_COMPLETENESS",
+  "WRITE_RECEIPT",
+  "AWAIT_HUMAN_FREEZE",
+]
+digest_bound_human_freeze_required = true
+two_phase_freeze_required = true
+explicit_recovery_required = true
+provisional_strategy_use = "PROHIBITED"
+automatic_freeze_allowed = false
+automatic_canonical_approval_allowed = false
+generation_replacement_policy = "MAKE_BEFORE_BREAK"
+
+[registry_policy]
+approval_granularity = "PROFILE_IDENTITY_SEGMENT_GENERATION"
+registry_key_fields = [
+  "canonical_ticker",
+  "profile_id",
+  "generation_id",
+  "contract_digest",
+  "dataset_digest",
+]
+human_approval_required_for_active_use = true
+digest_bound_approval_required = true
+two_phase_approval_required = true
+maximum_active_approval_per_key = 1
+newest_generation_promotion = "PROHIBITED"
+manual_file_edit_as_approval = "PROHIBITED"
+ambiguous_duplicate_status = "REGISTRY_IDENTITY_AMBIGUOUS_FAIL_CLOSED"
+supersession_policy = "MAKE_BEFORE_BREAK"
+partial_generation_registration_allowed = false
+
+[quarantine_policy]
+quarantine_status = "QUARANTINED_UNTIL_EXPLICIT_HUMAN_APPROVAL"
+immediate_fail_closed_per_key = true
+persistent_pre_gate_latches = ["PENDING", "ACTIVE"]
+immutable_evidence_required = true
+abort_unfinished_runs = true
+validation_epochs_required = true
+per_key_named_mutex_required = true
+clearance_suspension_reviewed = true
+reinstatement_policy = "NEW_APPROVAL_RECORD_ONLY"
+old_run_revival = "PROHIBITED"
+blocks_candidate_generation = true
+blocks_monte_carlo = true
+blocks_performance_reporting = true
+quarantine_reasons_required = true
+
+[authority_storage_policy]
+registry_mutex_wait_seconds = 10
+immutable_event_file_per_event = true
+immutable_head_snapshot_per_generation = true
+atomic_current_head_ref = true
+journal_head_pointer_ordering = "JOURNAL_THEN_HEAD_THEN_POINTER"
+explicit_head_pointer_recovery = true
+external_two_phase_recovery_records = true
+recovery_sentinels_required = true
+startup_auto_repair = "PROHIBITED"
+authority_event_storage_model = "ONE_EVENT_RECORD_PER_AUTHORITY_CHANGE"
+append_only_authority_journal = "REQUIRED"
+digest_chained_head_record = "REQUIRED"
+pointer_update_policy = "ATOMIC_REPLACE_AFTER_JOURNAL_APPEND"
+recovery_policy = "RECONCILE_POINTER_WITH_DIGEST_CHAIN"
+handle_inheritance_allowed = false
+current_user_acl_only = true
+
+[authority_audit_policy]
+requested_key_validation = "FULL_KEY_VALIDATION_BEFORE_DECISION"
+explicit_full_audit_command_required = true
+one_key_mutex_at_a_time = true
+immutable_audit_evidence_required = true
+authority_changing_effect = "PROHIBITED"
+deterministic_ordering = true
+single_mutex_for_batch = true
+non_atomic_multi_key_classification = "BATCH_NOT_ATOMIC"
+start_end_reconciliation_required = true
+authority_change_reason_required = true
