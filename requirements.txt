@@ -14,6 +14,7 @@ cycler==0.12.1
 distro==1.9.0
 docx==0.2.4
 etils==1.12.2
+exchange_calendars==4.13.2
 filelock==3.18.0
 Flask==3.0.3
 flatbuffers==25.2.10
