@@ -7,6 +7,7 @@ import json
 import tempfile
 
 from marketflow.historical_data.frozen_calendar import default_calendar_request, generate_frozen_calendar
+from marketflow.historical_data.massive_smoke import massive_smoke_plan, massive_smoke_self_check, run_massive_smoke_live
 from marketflow.historical_data.massive_transport import massive_transport_self_check
 from marketflow.historical_data.monthly_acquisition import monthly_acquisition_self_check
 from marketflow.historical_data.pipeline import run_offline_historical_pipeline, synthetic_self_check_fixture
@@ -31,15 +32,39 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Run the Massive REST transport mock-HTTP self-check without provider network access.",
     )
+    parser.add_argument(
+        "--massive-smoke-plan",
+        action="store_true",
+        help="Print the offline fixed Massive one-month smoke-test plan without network or credential access.",
+    )
+    parser.add_argument(
+        "--massive-smoke-run",
+        action="store_true",
+        help="Run the interactive, operator-authorized Massive one-month smoke test.",
+    )
+    parser.add_argument(
+        "--massive-smoke-self-check",
+        action="store_true",
+        help="Run the Massive one-month smoke-runner self-check with mock HTTP and fictional credentials.",
+    )
     args = parser.parse_args(argv)
     v2 = contract_v2.default_contract()
     v21 = contract_v21.default_contract()
     contract_v21.verify_base_contract_digest(v21)
-    selected_self_checks = sum(
-        1 for selected in (args.pipeline_self_check, args.monthly_acquisition_self_check, args.massive_transport_self_check) if selected
+    selected_commands = sum(
+        1
+        for selected in (
+            args.pipeline_self_check,
+            args.monthly_acquisition_self_check,
+            args.massive_transport_self_check,
+            args.massive_smoke_plan,
+            args.massive_smoke_run,
+            args.massive_smoke_self_check,
+        )
+        if selected
     )
-    if selected_self_checks > 1:
-        parser.error("choose exactly one self-check")
+    if selected_commands > 1:
+        parser.error("choose exactly one historical-data command")
     if args.pipeline_self_check:
         calendar, source_bars, dividend_events = synthetic_self_check_fixture()
         with tempfile.TemporaryDirectory(prefix="marketflow-historical-self-check-") as run_root:
@@ -76,6 +101,18 @@ def main(argv: list[str] | None = None) -> int:
         receipt = massive_transport_self_check()
         print(json.dumps(receipt, sort_keys=True, indent=2))
         return 0
+    if args.massive_smoke_plan:
+        receipt = massive_smoke_plan()
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0
+    if args.massive_smoke_self_check:
+        receipt = massive_smoke_self_check()
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0
+    if args.massive_smoke_run:
+        receipt = run_massive_smoke_live()
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0 if receipt["smoke_status"] == "SMOKE_COMPLETED_NONCANONICAL" else 2
     calendar = generate_frozen_calendar(default_calendar_request())
     receipt = {
         "status": "HISTORICAL_DATA_ENGINE_READY_FOR_OFFLINE_SYNTHETIC_USE",

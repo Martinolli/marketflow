@@ -264,6 +264,7 @@ def validate_saved_monthly_manifest(
         "processing_engine_version",
         "provider_business_identity",
         "legacy_adapter_family",
+        "provenance",
         "month_request_digest",
         "month_key",
         "canonical_ticker",
@@ -320,6 +321,7 @@ def _commit_monthly_artifact(
     attempt_ordinal: int | None = None,
     primary_parent_manifest: dict[str, Any] | None = None,
     input_manifests: tuple[dict[str, Any], ...] = (),
+    provenance: str = FAKE_FIXTURE_PROVENANCE,
 ) -> dict[str, Any]:
     root = Path(run_root)
     run_dir = root / _opaque_id(run_id, "run_id")
@@ -360,6 +362,7 @@ def _commit_monthly_artifact(
         "processing_engine_version": MONTHLY_ACQUISITION_ENGINE_VERSION,
         "provider_business_identity": "Massive.com",
         "legacy_adapter_family": "polygon-api-client",
+        "provenance": provenance,
         "month_request_digest": month_request.request_semantic_digest,
         "month_key": month_request.month_key,
         "canonical_ticker": month_request.canonical_ticker,
@@ -450,12 +453,17 @@ def build_month_chunk_request(
     return MonthChunkRequest(request_semantic_digest=digest, **base)
 
 
-def _request_payload(month_request: MonthChunkRequest) -> dict[str, Any]:
+def _request_payload(
+    month_request: MonthChunkRequest,
+    *,
+    provenance: str = FAKE_FIXTURE_PROVENANCE,
+    provider_execution_enabled: bool = False,
+) -> dict[str, Any]:
     return {
         "request": asdict(month_request),
         "acquisition_enabled": False,
-        "provider_execution_enabled": False,
-        "provenance": FAKE_FIXTURE_PROVENANCE,
+        "provider_execution_enabled": provider_execution_enabled,
+        "provenance": provenance,
     }
 
 
@@ -577,6 +585,7 @@ def _write_attempts(
     clock: DeterministicClock,
     request_manifest: dict[str, Any],
     raw_manifests_by_id: dict[str, dict[str, Any]],
+    provenance: str = FAKE_FIXTURE_PROVENANCE,
 ) -> list[dict[str, Any]]:
     manifests: list[dict[str, Any]] = []
     for attempt in attempts:
@@ -597,6 +606,7 @@ def _write_attempts(
                 attempt_ordinal=int(attempt["attempt_ordinal"]),
                 primary_parent_manifest=request_manifest,
                 input_manifests=inputs,
+                provenance=provenance,
             )
         )
     return manifests
@@ -613,6 +623,7 @@ def _write_raw_page(
     request_manifest: dict[str, Any],
     logical_page: LogicalPageRequest,
     attempt_ordinal: int,
+    provenance: str = FAKE_FIXTURE_PROVENANCE,
 ) -> RawPageRecord:
     manifest = _commit_monthly_artifact(
         payload=body,
@@ -625,6 +636,7 @@ def _write_raw_page(
         page_ordinal=logical_page.page_ordinal,
         attempt_ordinal=attempt_ordinal,
         primary_parent_manifest=request_manifest,
+        provenance=provenance,
     )
     return RawPageRecord(
         artifact=manifest,
@@ -637,12 +649,12 @@ def _write_raw_page(
 def _parse_body(
     *,
     body: bytes,
-    raw_page: RawPageRecord,
+    body_sha256: str,
     month_request: MonthChunkRequest,
 ) -> ParsedProviderResponse:
     return parse_provider_response(
         body,
-        body_sha256=raw_page.body_sha256,
+        body_sha256=body_sha256,
         context=ResponseRequestContext(
             canonical_ticker=month_request.canonical_ticker,
             month_key=month_request.month_key,
@@ -683,6 +695,7 @@ def _acquire_page(
     clock: DeterministicClock,
     sleeper: RecordingSleeper,
     raw_continuation_evidence: str | None = None,
+    provenance: str = FAKE_FIXTURE_PROVENANCE,
 ) -> tuple[AttemptCandidate | None, list[dict[str, Any]], dict[str, dict[str, Any]], str | None]:
     attempts: list[dict[str, Any]] = []
     raw_manifests_by_id: dict[str, dict[str, Any]] = {}
@@ -709,34 +722,52 @@ def _acquire_page(
             if outcome.outcome_type in {OUTCOME_HTTP_RESPONSE, OUTCOME_CRASH_AFTER_BODY} and body is not None:
                 attempt["response_body_available"] = True
                 attempt["response_body_complete"] = True
-                raw_page = _write_raw_page(
-                    body=body,
-                    run_root=run_root,
-                    run_id=run_id,
-                    month_request=month_request,
-                    artifact_id_factory=artifact_id_factory,
-                    clock=clock,
-                    request_manifest=request_manifest,
-                    logical_page=logical_page,
-                    attempt_ordinal=attempt_ordinal,
-                )
-                raw_manifests_by_id[raw_page.artifact["artifact_id"]] = raw_page.artifact
-                attempt["raw_page_artifact_id"] = raw_page.artifact["artifact_id"]
-                attempt["raw_page_manifest_ref"] = raw_page.manifest_ref
                 if outcome.http_status == 200:
+                    body_sha256 = artifacts.sha256_bytes(body)
                     try:
-                        parsed = _parse_body(body=body, raw_page=raw_page, month_request=month_request)
+                        parsed = _parse_body(body=body, body_sha256=body_sha256, month_request=month_request)
                     except ProviderResponseError:
                         attempt["failure_category"] = "SCHEMA_FAILURE"
                         attempt["attempt_status"] = ATTEMPT_REJECTED_NON_RETRYABLE
                         attempt["sanitized_error_code"] = "PROVIDER_RESPONSE_SCHEMA_FAILURE"
                         terminal_status = MONTH_ACQUISITION_INVALID
                         break
+                    raw_page = _write_raw_page(
+                        body=body,
+                        run_root=run_root,
+                        run_id=run_id,
+                        month_request=month_request,
+                        artifact_id_factory=artifact_id_factory,
+                        clock=clock,
+                        request_manifest=request_manifest,
+                        logical_page=logical_page,
+                        attempt_ordinal=attempt_ordinal,
+                        provenance=provenance,
+                    )
+                    raw_manifests_by_id[raw_page.artifact["artifact_id"]] = raw_page.artifact
+                    attempt["raw_page_artifact_id"] = raw_page.artifact["artifact_id"]
+                    attempt["raw_page_manifest_ref"] = raw_page.manifest_ref
                     attempt["semantic_projection_digest"] = parsed.semantic_projection_digest
                     candidates.append(AttemptCandidate(attempt, parsed, raw_page))
                     if outcome.outcome_type == OUTCOME_HTTP_RESPONSE:
                         break
                     attempt["failure_category"] = "CONNECTION_RESET"
+                else:
+                    raw_page = _write_raw_page(
+                        body=body,
+                        run_root=run_root,
+                        run_id=run_id,
+                        month_request=month_request,
+                        artifact_id_factory=artifact_id_factory,
+                        clock=clock,
+                        request_manifest=request_manifest,
+                        logical_page=logical_page,
+                        attempt_ordinal=attempt_ordinal,
+                        provenance=provenance,
+                    )
+                    raw_manifests_by_id[raw_page.artifact["artifact_id"]] = raw_page.artifact
+                    attempt["raw_page_artifact_id"] = raw_page.artifact["artifact_id"]
+                    attempt["raw_page_manifest_ref"] = raw_page.manifest_ref
             transport_category = _transport_failure_category(outcome)
             if transport_category is not None:
                 failure_category = transport_category
@@ -846,6 +877,8 @@ def _receipt(
     attempt_records: list[dict[str, Any]],
     semantic_retry_status: str,
     retry_delays: list[int],
+    provenance: str = FAKE_FIXTURE_PROVENANCE,
+    provider_execution_enabled: bool = False,
 ) -> dict[str, Any]:
     artifact_receipts = []
     for manifest in [request_manifest, *attempt_manifests, *extra_manifests]:
@@ -870,10 +903,10 @@ def _receipt(
         "provider_business_identity": "Massive.com",
         "legacy_adapter_family": "polygon-api-client",
         "provider_entitlement_status": month_request.provider_entitlement_status,
-        "provider_execution_enabled": False,
+        "provider_execution_enabled": provider_execution_enabled,
         "acquisition_enabled": False,
         "runtime_migration_performed": False,
-        "provenance": FAKE_FIXTURE_PROVENANCE,
+        "provenance": provenance,
         "pagination_status": PAGINATION_CHAIN_VALID if status == MONTH_ACQUISITION_COMPLETED else PAGINATION_CHAIN_INVALID,
         "semantic_retry_status": semantic_retry_status,
         "maximum_attempts": MAXIMUM_ATTEMPTS,
@@ -886,6 +919,7 @@ def _receipt(
         "failed_or_rejected_attempt_count": sum(1 for attempt in attempt_records if not attempt.get("accepted_attempt")),
         "completeness_status": "COMPLETE" if status == MONTH_ACQUISITION_COMPLETED else "INCOMPLETE",
         "page_count": page_count,
+        "raw_page_count": sum(1 for attempt in attempt_records if attempt.get("raw_page_artifact_id")),
         "row_count": row_count,
         "artifact_count": len(artifact_receipts),
         "artifact_receipts": artifact_receipts,
@@ -902,6 +936,8 @@ def execute_fake_monthly_acquisition(
     run_id: str | None = None,
     clock: DeterministicClock | None = None,
     sleeper: RecordingSleeper | None = None,
+    provenance: str = FAKE_FIXTURE_PROVENANCE,
+    provider_execution_enabled: bool = False,
 ) -> dict[str, Any]:
     clock = clock or DeterministicClock()
     sleeper = sleeper or RecordingSleeper([])
@@ -909,13 +945,18 @@ def execute_fake_monthly_acquisition(
     actual_run_id = _opaque_id(run_id or f"monthly-{month_request.request_semantic_digest[:20]}", "run_id")
     artifacts.create_historical_run(run_root=run_root, run_id=actual_run_id, created_at_utc=clock.now())
     request_manifest = _commit_monthly_artifact(
-        payload=_request_payload(month_request),
+        payload=_request_payload(
+            month_request,
+            provenance=provenance,
+            provider_execution_enabled=provider_execution_enabled,
+        ),
         run_root=run_root,
         run_id=actual_run_id,
         artifact_type=ARTIFACT_MONTH_CHUNK_REQUEST_CONTRACT,
         artifact_id_factory=artifact_id_factory,
         created_at_utc=clock.now(),
         month_request=month_request,
+        provenance=provenance,
     )
 
     all_attempt_manifests: list[dict[str, Any]] = []
@@ -951,6 +992,7 @@ def execute_fake_monthly_acquisition(
             clock=clock,
             sleeper=sleeper,
             raw_continuation_evidence=raw_continuation_evidence,
+            provenance=provenance,
         )
         raw_manifests_by_id.update(page_raw_manifests)
         all_attempt_records.extend(attempts)
@@ -964,6 +1006,7 @@ def execute_fake_monthly_acquisition(
                 clock=clock,
                 request_manifest=request_manifest,
                 raw_manifests_by_id=raw_manifests_by_id,
+                provenance=provenance,
             )
         )
         if accepted is None:
@@ -1044,12 +1087,13 @@ def execute_fake_monthly_acquisition(
             month_request=month_request,
             primary_parent_manifest=request_manifest,
             input_manifests=raw_page_manifests,
+            provenance=provenance,
         )
         normalized_manifest = _commit_monthly_artifact(
             payload={
                 "schema_version": "marketflow.month_normalized_15m_ohlcv.v1",
                 "month_request_digest": month_request.request_semantic_digest,
-                "provenance": FAKE_FIXTURE_PROVENANCE,
+                "provenance": provenance,
                 "rth_filtering_applied": False,
                 "rows": _normalized_rows(all_rows),
             },
@@ -1061,12 +1105,13 @@ def execute_fake_monthly_acquisition(
             month_request=month_request,
             primary_parent_manifest=completeness_manifest,
             input_manifests=(completeness_manifest,),
+            provenance=provenance,
         )
         audit_manifest = _commit_monthly_artifact(
             payload={
                 "schema_version": "marketflow.month_normalized_aggregate_audit_fields.v1",
                 "month_request_digest": month_request.request_semantic_digest,
-                "provenance": FAKE_FIXTURE_PROVENANCE,
+                "provenance": provenance,
                 "rows": _audit_rows(all_rows, month_request=month_request),
             },
             run_root=run_root,
@@ -1077,6 +1122,7 @@ def execute_fake_monthly_acquisition(
             month_request=month_request,
             primary_parent_manifest=completeness_manifest,
             input_manifests=(completeness_manifest,),
+            provenance=provenance,
         )
         extra_manifests.extend([completeness_manifest, normalized_manifest, audit_manifest])
     valid_attempt_count = sum(1 for attempt in all_attempt_records if attempt.get("semantic_projection_digest"))
@@ -1101,6 +1147,8 @@ def execute_fake_monthly_acquisition(
         attempt_records=all_attempt_records,
         semantic_retry_status=semantic_retry_status,
         retry_delays=sleeper.delays,
+        provenance=provenance,
+        provider_execution_enabled=provider_execution_enabled,
     )
     _commit_monthly_artifact(
         payload=receipt_payload,
@@ -1112,6 +1160,7 @@ def execute_fake_monthly_acquisition(
         month_request=month_request,
         primary_parent_manifest=extra_manifests[0] if extra_manifests else request_manifest,
         input_manifests=tuple(all_attempt_manifests + extra_manifests),
+        provenance=provenance,
     )
     return receipt_payload
 

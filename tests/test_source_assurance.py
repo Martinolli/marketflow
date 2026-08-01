@@ -150,6 +150,30 @@ def test_default_tests_do_not_instantiate_real_provider_without_mock_boundary():
     assert offenders == []
 
 
+def test_default_tests_do_not_instantiate_massive_transport_without_mock_boundary():
+    offenders: list[str] = []
+    for path in _test_modules():
+        relative = path.relative_to(REPO_ROOT).as_posix()
+        tree = ast.parse(path.read_text(encoding="utf-8"))
+        for node in ast.walk(tree):
+            if not isinstance(node, ast.Call):
+                continue
+            is_massive_transport = (
+                isinstance(node.func, ast.Name)
+                and node.func.id == "MassiveRestTransport"
+            ) or (
+                isinstance(node.func, ast.Attribute)
+                and node.func.attr == "MassiveRestTransport"
+            )
+            if not is_massive_transport:
+                continue
+            http_transport = next((keyword.value for keyword in node.keywords if keyword.arg == "http_transport"), None)
+            if http_transport is None or "MockTransport" not in ast.unparse(http_transport):
+                offenders.append(f"{relative}:{node.lineno}")
+
+    assert offenders == []
+
+
 def test_packaging_metadata_directory_is_ignored_and_untracked():
     ignored = subprocess.run(
         ["git", "check-ignore", "marketflow.egg-info"],
