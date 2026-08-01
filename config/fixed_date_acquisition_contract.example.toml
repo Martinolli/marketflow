@@ -1,0 +1,109 @@
+contract_version = "marketflow.fixed_date_acquisition_contract.v1"
+readiness_status = "ACQUISITION_CONTRACT_PROPOSED_WITH_BLOCKERS"
+acquisition_enabled = false
+blockers = [
+  "FIXED_DATES_NOT_APPROVED",
+  "BAR_CONSTRUCTION_NOT_APPROVED",
+  "SESSION_POLICY_NOT_APPROVED",
+  "ADJUSTMENT_POLICY_NOT_APPROVED",
+  "PAGINATION_POLICY_NOT_APPROVED",
+]
+
+[provider_entitlement]
+confirmation_status = "OPERATOR_ATTESTED_CONFIRMED"
+provider_current_brand = "MASSIVE.COM"
+provider_former_brand = "POLYGON.IO"
+provider_plan_category = "STOCKS_STARTER"
+entitlement_evidence = "OPERATOR_ATTESTED"
+historical_years_available = "FIVE_YEARS"
+intraday_aggregate_access = "INTRADAY_AND_DAILY_AVAILABLE"
+daily_aggregate_access = "INTRADAY_AND_DAILY_AVAILABLE"
+delayed_or_realtime_classification = "FIFTEEN_MINUTE_DELAYED"
+confirmation_date = "HUMAN_APPROVAL_REQUIRED"
+
+[provider_request]
+provider_identity = "MASSIVE_POLYGON_STOCKS_CUSTOM_BARS"
+endpoint_family = "STOCKS_AGGREGATES_CUSTOM_BARS"
+endpoint_contract_version = "v2_aggs_ticker_range"
+asset_class = "US_EQUITY"
+ticker = "HUMAN_APPROVAL_REQUIRED"
+multiplier = 4
+timespan = "hour"
+start_date = "HUMAN_APPROVAL_REQUIRED"
+end_date = "HUMAN_APPROVAL_REQUIRED"
+start_date_status = "HUMAN_APPROVAL_REQUIRED"
+end_date_status = "HUMAN_APPROVAL_REQUIRED"
+adjusted = true
+sort = "asc"
+base_aggregate_limit = 50000
+maximum_supported_limit = 50000
+pagination_policy_status = "NOT_APPROVED"
+requested_session_policy = "SESSION_POLICY_NOT_CONFIRMED"
+source_aggregation_timezone = "AMERICA_NEW_YORK"
+canonical_storage_timezone = "UTC"
+expected_response_schema = "POLYGON_AGGS_V2_RESULTS_WITH_REQUEST_METADATA"
+provider_entitlement_status = "OPERATOR_ATTESTED_CONFIRMED"
+
+[[profiles]]
+profile_id = "SWING"
+canonical_timeframe = "4h"
+minimum_valid_ohlcv_rows = 390
+acquisition_date_range_status = "NOT_SET"
+bar_construction_policy = "BAR_CONSTRUCTION_NOT_CONFIRMED"
+bar_construction_status = "NOT_APPROVED"
+session_policy = "SESSION_POLICY_NOT_CONFIRMED"
+session_policy_status = "NOT_APPROVED"
+multiplier = 4
+timespan = "hour"
+
+[[profiles]]
+profile_id = "POSITION_SWING"
+canonical_timeframe = "1d"
+minimum_valid_ohlcv_rows = 560
+acquisition_date_range_status = "NOT_SET"
+bar_construction_policy = "PROVIDER_NATIVE_1D_PENDING_SESSION_REVIEW"
+bar_construction_status = "NOT_APPROVED"
+session_policy = "SESSION_POLICY_NOT_CONFIRMED"
+session_policy_status = "NOT_APPROVED"
+multiplier = 1
+timespan = "day"
+
+[adjustment_policy]
+split_adjusted_requested = true
+provider_adjusted_response = "MUST_MATCH_REQUEST"
+dividend_adjusted = false
+corporate_action_metadata_status = "NOT_CONFIRMED"
+adjustment_provenance_status = "CONTRACT_PROPOSED"
+adjustment_policy_status = "NOT_APPROVED"
+
+[timezone_policy]
+source_aggregation_timezone = "AMERICA_NEW_YORK"
+canonical_storage_timezone = "UTC"
+original_provider_timestamps = "PRESERVE_PROVIDER_EPOCH_TIMESTAMPS"
+source_local_timezone_metadata = "RECORD_FOR_DIAGNOSTICS"
+dst_conversion_policy = "EPOCH_TO_UTC_FIRST_THEN_SOURCE_LOCAL_DIAGNOSTICS"
+naive_canonical_timestamps_allowed = false
+timezone_policy_status = "NOT_APPROVED"
+
+[pagination_policy]
+base_aggregate_limit = 50000
+maximum_supported_limit = 50000
+request_chunk_boundaries = "HUMAN_APPROVAL_REQUIRED"
+iterator_exhaustion_required = true
+duplicate_boundary_handling = "REJECT_DUPLICATE_BOUNDARY_ROWS"
+response_count_validation = "VALIDATE_WHERE_MEANINGFUL"
+partial_result_acceptance = false
+pagination_policy_status = "NOT_APPROVED"
+
+[artifact_provenance]
+lineage_design_status = "CONTRACT_PROPOSED"
+artifact_chain = [
+  "ACQUISITION_REQUEST_CONTRACT",
+  "RAW_PROVIDER_RESPONSE",
+  "NORMALIZED_OHLCV_DATASET",
+  "ANNOTATED_DATASET",
+]
+raw_response_retention = "PRESERVE_EXACT_PROVIDER_RESPONSE_BYTES_WHERE_PERMITTED"
+normalized_dataset_timezone = "UTC"
+credential_storage_allowed = false
+absolute_path_storage_allowed = false
