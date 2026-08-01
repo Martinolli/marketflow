@@ -60,6 +60,7 @@ class ParsedProviderResponse:
     results_count: int
     rows: tuple[AggregateRow, ...]
     continuation_present: bool
+    raw_next_url: str | None
     sanitized_continuation_identity: str | None
     semantic_projection: dict[str, Any]
     semantic_projection_digest: str
@@ -332,6 +333,7 @@ def parse_provider_response(
         results_count=results_count,
         rows=tuple(rows),
         continuation_present=continuation is not None,
+        raw_next_url=payload.get("next_url") if continuation is not None else None,
         sanitized_continuation_identity=continuation,
         semantic_projection=projection,
         semantic_projection_digest=semantic_digest(projection),

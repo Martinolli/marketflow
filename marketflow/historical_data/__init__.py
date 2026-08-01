@@ -25,6 +25,12 @@ from marketflow.historical_data.monthly_acquisition import (
     build_month_chunk_request,
     execute_fake_monthly_acquisition,
 )
+from marketflow.historical_data.massive_transport import (
+    MASSIVE_REST_HOST,
+    MassiveRestTransport,
+    MassiveTransportError,
+    ProviderApiKey,
+)
 from marketflow.historical_data.artifacts import (
     HISTORICAL_MANIFEST_SCHEMA_VERSION,
     HistoricalArtifactError,
@@ -36,6 +42,7 @@ __all__ = [
     "AnalyticalSegment",
     "HISTORICAL_MANIFEST_SCHEMA_VERSION",
     "MONTHLY_ACQUISITION_MANIFEST_SCHEMA_VERSION",
+    "MASSIVE_REST_HOST",
     "FAKE_FIXTURE_PROVENANCE",
     "CalendarGenerationError",
     "DerivedBar",
@@ -45,6 +52,9 @@ __all__ = [
     "HistoricalArtifactError",
     "MonthChunkRequest",
     "MonthlyAcquisitionError",
+    "MassiveRestTransport",
+    "MassiveTransportError",
+    "ProviderApiKey",
     "SourceBar",
     "assign_analytical_segments",
     "build_month_chunk_request",

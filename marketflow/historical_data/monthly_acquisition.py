@@ -507,6 +507,15 @@ def _failure_from_outcome(outcome_type: str, http_status: int | None) -> str:
     return "HTTP_STATUS_NON_SUCCESS"
 
 
+def _transport_failure_category(outcome: object) -> str | None:
+    headers = getattr(outcome, "headers", None)
+    if isinstance(headers, dict):
+        category = headers.get("failure_category")
+        if isinstance(category, str) and category:
+            return category
+    return None
+
+
 def _retry_after_delay(headers: Any, http_status: int | None, configured_backoff: int) -> tuple[int | None, str | None]:
     if http_status not in {429, 503}:
         return configured_backoff, None
@@ -673,6 +682,7 @@ def _acquire_page(
     artifact_id_factory: _ArtifactIdFactory,
     clock: DeterministicClock,
     sleeper: RecordingSleeper,
+    raw_continuation_evidence: str | None = None,
 ) -> tuple[AttemptCandidate | None, list[dict[str, Any]], dict[str, dict[str, Any]], str | None]:
     attempts: list[dict[str, Any]] = []
     raw_manifests_by_id: dict[str, dict[str, Any]] = {}
@@ -684,7 +694,14 @@ def _acquire_page(
         attempt = _attempt_base(logical_page, attempt_ordinal, started_at)
         attempts.append(attempt)
         try:
-            outcome = transport.send(fake_transport_request(month_request, logical_page))
+            protocol_request = fake_transport_request(month_request, logical_page)
+            if raw_continuation_evidence is None:
+                outcome = transport.send(protocol_request)
+            else:
+                try:
+                    outcome = transport.send(protocol_request, raw_next_url=raw_continuation_evidence)
+                except TypeError:
+                    outcome = transport.send(protocol_request)
             attempt["observed_transport_outcome"] = outcome.outcome_type
             attempt["http_status"] = outcome.http_status
             attempt["http_category"] = f"HTTP_{outcome.http_status}" if outcome.http_status is not None else None
@@ -720,7 +737,10 @@ def _acquire_page(
                     if outcome.outcome_type == OUTCOME_HTTP_RESPONSE:
                         break
                     attempt["failure_category"] = "CONNECTION_RESET"
-            if candidates and outcome.outcome_type == OUTCOME_CRASH_AFTER_BODY:
+            transport_category = _transport_failure_category(outcome)
+            if transport_category is not None:
+                failure_category = transport_category
+            elif candidates and outcome.outcome_type == OUTCOME_CRASH_AFTER_BODY:
                 failure_category = "CONNECTION_RESET"
             else:
                 failure_category = _failure_from_outcome(outcome.outcome_type, outcome.http_status)
@@ -910,6 +930,7 @@ def execute_fake_monthly_acquisition(
     page_ordinal = 1
     predecessor: str | None = None
     continuation: str | None = None
+    raw_continuation_evidence: str | None = None
     block_status: str | None = None
 
     while True:
@@ -929,6 +950,7 @@ def execute_fake_monthly_acquisition(
             artifact_id_factory=artifact_id_factory,
             clock=clock,
             sleeper=sleeper,
+            raw_continuation_evidence=raw_continuation_evidence,
         )
         raw_manifests_by_id.update(page_raw_manifests)
         all_attempt_records.extend(attempts)
@@ -959,6 +981,7 @@ def execute_fake_monthly_acquisition(
         if block_status:
             break
         next_continuation = accepted.parsed.sanitized_continuation_identity
+        next_raw_continuation_evidence = accepted.parsed.raw_next_url
         predecessor = accepted.attempt_record["logical_page_request_id"]
         if not next_continuation:
             break
@@ -968,6 +991,7 @@ def execute_fake_monthly_acquisition(
             break
         seen_continuations.add(next_continuation)
         continuation = next_continuation
+        raw_continuation_evidence = next_raw_continuation_evidence
         page_ordinal += 1
 
     if not block_status and _range_coverage_status(all_rows, month_request=month_request) != RANGE_COVERAGE_COMPLETE:

@@ -7,6 +7,7 @@ import json
 import tempfile
 
 from marketflow.historical_data.frozen_calendar import default_calendar_request, generate_frozen_calendar
+from marketflow.historical_data.massive_transport import massive_transport_self_check
 from marketflow.historical_data.monthly_acquisition import monthly_acquisition_self_check
 from marketflow.historical_data.pipeline import run_offline_historical_pipeline, synthetic_self_check_fixture
 from marketflow.research import acquisition_contract_v2 as contract_v2
@@ -25,11 +26,19 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Run the scripted fake-transport monthly acquisition self-check in an automatically removed temporary directory.",
     )
+    parser.add_argument(
+        "--massive-transport-self-check",
+        action="store_true",
+        help="Run the Massive REST transport mock-HTTP self-check without provider network access.",
+    )
     args = parser.parse_args(argv)
     v2 = contract_v2.default_contract()
     v21 = contract_v21.default_contract()
     contract_v21.verify_base_contract_digest(v21)
-    if args.pipeline_self_check and args.monthly_acquisition_self_check:
+    selected_self_checks = sum(
+        1 for selected in (args.pipeline_self_check, args.monthly_acquisition_self_check, args.massive_transport_self_check) if selected
+    )
+    if selected_self_checks > 1:
         parser.error("choose exactly one self-check")
     if args.pipeline_self_check:
         calendar, source_bars, dividend_events = synthetic_self_check_fixture()
@@ -61,6 +70,10 @@ def main(argv: list[str] | None = None) -> int:
     if args.monthly_acquisition_self_check:
         with tempfile.TemporaryDirectory(prefix="marketflow-monthly-acquisition-self-check-") as run_root:
             receipt = monthly_acquisition_self_check(run_root)
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0
+    if args.massive_transport_self_check:
+        receipt = massive_transport_self_check()
         print(json.dumps(receipt, sort_keys=True, indent=2))
         return 0
     calendar = generate_frozen_calendar(default_calendar_request())
