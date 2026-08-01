@@ -1,0 +1,59 @@
+contract_schema_version = "marketflow.acquisition_contract.v2.1"
+decision_set_version = "marketflow.acquisition_decisions.v2.1"
+contract_status = "ACQUISITION_CONTRACT_V2_1_READY_FOR_IMPLEMENTATION"
+base_contract_schema = "marketflow.acquisition_contract.v2"
+base_contract_digest = "59958593a6667b74f90c55d0f40debb63a9c5ac10fe4f2aa7255345a5996c2c0"
+acquisition_enabled = false
+provider_execution_enabled = false
+calendar_generation_enabled = false
+normalization_enabled = false
+registry_authority_enabled = false
+runtime_profile_migration_status = "LEGACY_FIXED_PROFILE_RUNTIME_PENDING_V2_MIGRATION"
+
+[source_timestamp_policy]
+provider_endpoint_family = "STOCKS_CUSTOM_BARS_V2"
+provider_timestamp_field = "t"
+provider_timestamp_unit = "UNIX_EPOCH_MILLISECONDS"
+provider_timestamp_semantic = "START_OF_AGGREGATE_WINDOW"
+source_interval_minutes = 15
+source_interval_duration = "PT15M"
+interval_boundary = "LEFT_CLOSED_RIGHT_OPEN"
+canonical_start_field = "window_start_utc"
+canonical_end_field = "window_end_utc"
+canonical_storage_timezone = "UTC"
+session_mapping_timezone = "America/New_York"
+derived_bar_timestamp_semantic = "WINDOW_END"
+exact_slot_alignment_required = true
+timestamp_snapping_enabled = false
+timestamp_tolerance_enabled = false
+
+[normalized_source_bar_contract]
+identity_fields = [
+  "window_start_utc",
+  "window_end_utc",
+  "open",
+  "high",
+  "low",
+  "close",
+  "volume",
+]
+window_start_source = "PROVIDER_FIELD_T"
+window_end_rule = "WINDOW_START_PLUS_PT15M"
+timezone_requirement = "TIMEZONE_AWARE_UTC"
+timestamp_utc_compatibility_field = "timestamp_utc"
+timestamp_utc_compatibility_semantic = "WINDOW_START"
+caller_selected_timestamp_semantic = "PROHIBITED"
+local_machine_timezone_dependency = false
+timestamp_snapping_enabled = false
+timestamp_tolerance_enabled = false
+
+[derived_timestamp_contract]
+derived_bar_timestamp_semantic = "WINDOW_END"
+swing_morning_timestamp_local = "12:45"
+swing_afternoon_timestamp_local = "16:00"
+position_swing_timestamp_local = "16:00"
+timezone = "America/New_York"
+canonical_timezone = "UTC"
+source_bar_timestamp_semantic = "START_OF_AGGREGATE_WINDOW"
+provider_native_4h_canonical = false
+provider_native_1d_canonical = false
