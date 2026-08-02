@@ -10,8 +10,11 @@ from marketflow.historical_data.frozen_calendar import default_calendar_request,
 from marketflow.historical_data.massive_date_diagnostic import (
     DATE_DIAGNOSTIC_SCHEMA_ACCEPTED,
     DATE_DIAGNOSTIC_SCHEMA_REJECTED,
+    massive_date_diagnostic_2025_plan,
+    massive_date_diagnostic_2025_self_check,
     massive_date_diagnostic_2026_plan,
     massive_date_diagnostic_2026_self_check,
+    run_massive_date_diagnostic_2025_live,
     run_massive_date_diagnostic_2026_live,
 )
 from marketflow.historical_data.massive_smoke import massive_smoke_plan, massive_smoke_self_check, run_massive_smoke_live
@@ -60,14 +63,29 @@ def main(argv: list[str] | None = None) -> int:
         help="Print the fixed noncanonical January 2026 Massive.com date-diagnostic plan without network or credential access.",
     )
     parser.add_argument(
+        "--massive-date-diagnostic-2025-plan",
+        action="store_true",
+        help="Print the fixed noncanonical January 2025 Massive.com date-diagnostic plan without network or credential access.",
+    )
+    parser.add_argument(
         "--massive-date-diagnostic-2026-self-check",
         action="store_true",
         help="Run the January 2026 Massive.com date-diagnostic self-check with mock HTTP and fictional credentials.",
     )
     parser.add_argument(
+        "--massive-date-diagnostic-2025-self-check",
+        action="store_true",
+        help="Run the January 2025 Massive.com date-diagnostic self-check with mock HTTP and fictional credentials.",
+    )
+    parser.add_argument(
         "--massive-date-diagnostic-2026-run",
         action="store_true",
         help="Run the interactive, operator-authorized January 2026 Massive.com date diagnostic.",
+    )
+    parser.add_argument(
+        "--massive-date-diagnostic-2025-run",
+        action="store_true",
+        help="Run the interactive, operator-authorized January 2025 Massive.com date diagnostic.",
     )
     args = parser.parse_args(argv)
     v2 = contract_v2.default_contract()
@@ -82,6 +100,9 @@ def main(argv: list[str] | None = None) -> int:
             args.massive_smoke_plan,
             args.massive_smoke_run,
             args.massive_smoke_self_check,
+            args.massive_date_diagnostic_2025_plan,
+            args.massive_date_diagnostic_2025_self_check,
+            args.massive_date_diagnostic_2025_run,
             args.massive_date_diagnostic_2026_plan,
             args.massive_date_diagnostic_2026_self_check,
             args.massive_date_diagnostic_2026_run,
@@ -138,6 +159,18 @@ def main(argv: list[str] | None = None) -> int:
         receipt = run_massive_smoke_live()
         print(json.dumps(receipt, sort_keys=True, indent=2))
         return 0 if receipt["smoke_status"] == "SMOKE_COMPLETED_NONCANONICAL" else 2
+    if args.massive_date_diagnostic_2025_plan:
+        receipt = massive_date_diagnostic_2025_plan()
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0
+    if args.massive_date_diagnostic_2025_self_check:
+        receipt = massive_date_diagnostic_2025_self_check()
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0
+    if args.massive_date_diagnostic_2025_run:
+        receipt = run_massive_date_diagnostic_2025_live()
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0 if receipt["status"] in {DATE_DIAGNOSTIC_SCHEMA_ACCEPTED, DATE_DIAGNOSTIC_SCHEMA_REJECTED} else 2
     if args.massive_date_diagnostic_2026_plan:
         receipt = massive_date_diagnostic_2026_plan()
         print(json.dumps(receipt, sort_keys=True, indent=2))

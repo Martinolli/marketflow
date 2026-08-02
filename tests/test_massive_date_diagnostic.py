@@ -16,9 +16,11 @@ from marketflow.historical_data import monthly_acquisition as monthly
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
+VALID_2025_TIMESTAMP = 1735741800000
 VALID_2026_TIMESTAMP = 1767277800000
 SMOKE_SPEC_DIGEST = "2116c4dfa3e8ea759e5bca09cf0f4ccc329134f0cac1329ad871fb7746cdcfe4"
-DATE_DIAGNOSTIC_DIGEST = "588e61a824799f24feedfeaa9b4629ed2f623b5ff0490624089562ca0eb63376"
+DATE_DIAGNOSTIC_2025_DIGEST = "b90f5e8d681be1ca753f2fccd78ed778341aefb6d6c4fb89b1d657376a5e8e98"
+DATE_DIAGNOSTIC_2026_DIGEST = "588e61a824799f24feedfeaa9b4629ed2f623b5ff0490624089562ca0eb63376"
 
 
 def _body(
@@ -30,6 +32,7 @@ def _body(
     count: int | None = 1,
     row_extra: str = ',"vw":9876.54,"otc":false',
     top_extra: str = "",
+    timestamp: int = VALID_2026_TIMESTAMP,
     row_values: tuple[str, str, str, str, str, str] = ("1234.50", "1235.50", "1233.50", "1234.75", "432100", "7"),
 ) -> bytes:
     open_value, high_value, low_value, close_value, volume_value, n_value = row_values
@@ -48,7 +51,7 @@ def _body(
         + ',"o":'
         + open_value
         + ',"t":'
-        + str(VALID_2026_TIMESTAMP)
+        + str(timestamp)
         + ',"v":'
         + volume_value
         + row_extra
@@ -65,10 +68,16 @@ def _body(
     ).encode("utf-8")
 
 
-def _run_with_mock(handler, *, key: str = "fictional-date-diagnostic-key") -> dict[str, object]:
-    spec = diag.default_date_diagnostic_spec()
-    return diag.run_massive_date_diagnostic_2026_live(
-        _input_func=lambda prompt: diag.date_diagnostic_confirmation_phrase(spec),
+def _run_with_mock(
+    handler,
+    *,
+    spec: diag.MassiveDateDiagnosticSpec | None = None,
+    key: str = "fictional-date-diagnostic-key",
+) -> dict[str, object]:
+    actual = spec or diag.default_date_diagnostic_spec()
+    return diag.run_massive_date_diagnostic_live(
+        spec=actual,
+        _input_func=lambda prompt: diag.date_diagnostic_confirmation_phrase(actual),
         _getpass_func=lambda prompt: key,
         _is_interactive=lambda: True,
         _http_transport=httpx.MockTransport(handler),
@@ -88,7 +97,7 @@ def test_existing_2025_smoke_spec_and_digest_remain_unchanged():
     assert smoke.smoke_spec_digest(spec) == SMOKE_SPEC_DIGEST
 
 
-def test_date_diagnostic_spec_exact_values_immutable_and_noncanonical():
+def test_date_diagnostic_2026_spec_exact_values_immutable_and_noncanonical():
     spec = diag.default_date_diagnostic_spec()
 
     assert spec.schema_version == "marketflow.massive_provider_date_diagnostic.v1"
@@ -115,11 +124,43 @@ def test_date_diagnostic_spec_exact_values_immutable_and_noncanonical():
         diag.default_date_diagnostic_spec(ticker="MSFT")
 
 
-def test_date_diagnostic_digest_is_deterministic_and_distinct_from_2025_smoke():
-    spec = diag.default_date_diagnostic_spec()
+def test_date_diagnostic_2025_spec_exact_values_immutable_and_noncanonical_inside_contract_range():
+    spec = diag.date_diagnostic_2025_spec()
 
-    assert diag.date_diagnostic_spec_digest(spec) == DATE_DIAGNOSTIC_DIGEST
+    assert spec.schema_version == "marketflow.massive_provider_date_diagnostic.v1"
+    assert spec.classification == "NONCANONICAL_PROVIDER_DATE_DIAGNOSTIC"
+    assert spec.provider == "MASSIVE.COM"
+    assert spec.endpoint == "STOCKS_CUSTOM_BARS_V2"
+    assert spec.ticker == "AAPL"
+    assert spec.month_key == "2025-01"
+    assert spec.effective_start == "2025-01-01"
+    assert spec.effective_end == "2025-01-31"
+    assert spec.multiplier == 15
+    assert spec.timespan == "minute"
+    assert spec.adjusted is True
+    assert spec.sort == "asc"
+    assert spec.limit == 50000
+    assert spec.maximum_provider_pages == 1
+    assert spec.canonical_eligibility is False
+    assert spec.registry_eligibility is False
+    assert spec.acquisition_generation_eligibility is False
+    assert spec.strategy_enabled is False
+    with pytest.raises(FrozenInstanceError):
+        spec.ticker = "MSFT"
+    with pytest.raises(diag.MassiveDateDiagnosticError):
+        diag.date_diagnostic_spec_for("AAPL_2025_02")
+
+
+def test_date_diagnostic_digests_are_deterministic_distinct_and_preserve_2026_digest():
+    spec = diag.default_date_diagnostic_spec()
+    spec_2025 = diag.date_diagnostic_2025_spec()
+
+    assert diag.date_diagnostic_spec_digest(spec_2025) == DATE_DIAGNOSTIC_2025_DIGEST
+    assert diag.date_diagnostic_spec_digest(diag.date_diagnostic_spec_for(diag.MASSIVE_DATE_DIAGNOSTIC_2025)) == DATE_DIAGNOSTIC_2025_DIGEST
+    assert diag.date_diagnostic_spec_digest(spec) == DATE_DIAGNOSTIC_2026_DIGEST
     assert diag.date_diagnostic_spec_digest(spec) == diag.date_diagnostic_spec_digest(diag.default_date_diagnostic_spec())
+    assert diag.date_diagnostic_spec_digest(spec) == diag.date_diagnostic_spec_digest(diag.date_diagnostic_2026_spec())
+    assert diag.date_diagnostic_spec_digest(spec_2025) != diag.date_diagnostic_spec_digest(spec)
     assert diag.date_diagnostic_spec_digest(spec) != smoke.smoke_spec_digest()
     changed = replace(spec, effective_end="2026-01-30")
     with pytest.raises(diag.MassiveDateDiagnosticError):
@@ -127,12 +168,48 @@ def test_date_diagnostic_digest_is_deterministic_and_distinct_from_2025_smoke():
     assert diag.date_diagnostic_spec_digest(changed) != diag.date_diagnostic_spec_digest(spec)
 
 
-def test_plan_receipt_is_offline_sanitized_and_writes_nothing(tmp_path: Path):
+def test_ab_specs_differ_only_in_approved_date_identity_fields():
+    left = diag.date_diagnostic_spec_payload(diag.date_diagnostic_2025_spec())
+    right = diag.date_diagnostic_spec_payload(diag.date_diagnostic_2026_spec())
+    differing = {key for key in left if left[key] != right[key]}
+
+    assert differing == {"month_key", "effective_start", "effective_end"}
+    assert left | {key: right[key] for key in differing} == right
+
+
+@pytest.mark.parametrize(
+    ("plan_func", "expected_start", "expected_end", "expected_digest", "expected_phrase"),
+    [
+        (
+            diag.massive_date_diagnostic_2025_plan,
+            "2025-01-01",
+            "2025-01-31",
+            DATE_DIAGNOSTIC_2025_DIGEST,
+            "RUN MARKETFLOW MASSIVE DATE DIAGNOSTIC b90f5e8d681b",
+        ),
+        (
+            diag.massive_date_diagnostic_2026_plan,
+            "2026-01-01",
+            "2026-01-31",
+            DATE_DIAGNOSTIC_2026_DIGEST,
+            "RUN MARKETFLOW MASSIVE DATE DIAGNOSTIC 588e61a82479",
+        ),
+    ],
+)
+def test_plan_receipts_are_offline_sanitized_and_write_nothing(
+    tmp_path: Path,
+    plan_func,
+    expected_start: str,
+    expected_end: str,
+    expected_digest: str,
+    expected_phrase: str,
+):
     before = sorted(tmp_path.rglob("*"))
 
-    receipt = diag.massive_date_diagnostic_2026_plan()
+    receipt = plan_func()
 
     assert receipt["status"] == diag.DATE_DIAGNOSTIC_PLAN_VALID
+    assert receipt["classification"] == "NONCANONICAL_PROVIDER_DATE_DIAGNOSTIC"
     assert receipt["network_execution_enabled"] is False
     assert receipt["credential_prompted"] is False
     assert receipt["request_performed"] is False
@@ -140,9 +217,10 @@ def test_plan_receipt_is_offline_sanitized_and_writes_nothing(tmp_path: Path):
     assert receipt["normalized_artifact_created"] is False
     assert receipt["monthly_executor_invoked"] is False
     assert receipt["ticker"] == "AAPL"
-    assert receipt["effective_start"] == "2026-01-01"
-    assert receipt["effective_end"] == "2026-01-31"
-    assert receipt["operator_confirmation_phrase"] == "RUN MARKETFLOW MASSIVE DATE DIAGNOSTIC 588e61a82479"
+    assert receipt["effective_start"] == expected_start
+    assert receipt["effective_end"] == expected_end
+    assert receipt["diagnostic_specification_digest"] == expected_digest
+    assert receipt["operator_confirmation_phrase"] == expected_phrase
     assert sorted(tmp_path.rglob("*")) == before
 
 
@@ -156,14 +234,33 @@ def test_canonical_monthly_acquisition_range_still_blocks_2026():
         )
 
 
-def test_valid_response_is_schema_accepted_with_one_exact_request_and_no_pagination():
+@pytest.mark.parametrize(
+    ("spec", "timestamp", "expected_path"),
+    [
+        (
+            diag.date_diagnostic_2025_spec(),
+            VALID_2025_TIMESTAMP,
+            "/v2/aggs/ticker/AAPL/range/15/minute/2025-01-01/2025-01-31",
+        ),
+        (
+            diag.date_diagnostic_2026_spec(),
+            VALID_2026_TIMESTAMP,
+            "/v2/aggs/ticker/AAPL/range/15/minute/2026-01-01/2026-01-31",
+        ),
+    ],
+)
+def test_valid_response_is_schema_accepted_with_one_exact_request_and_no_pagination(
+    spec: diag.MassiveDateDiagnosticSpec,
+    timestamp: int,
+    expected_path: str,
+):
     calls: list[httpx.Request] = []
 
     def handler(request: httpx.Request) -> httpx.Response:
         calls.append(request)
-        return httpx.Response(200, headers={"Content-Type": "application/json"}, content=_body())
+        return httpx.Response(200, headers={"Content-Type": "application/json"}, content=_body(timestamp=timestamp))
 
-    receipt = _run_with_mock(handler)
+    receipt = _run_with_mock(handler, spec=spec)
 
     assert receipt["status"] == diag.DATE_DIAGNOSTIC_SCHEMA_ACCEPTED
     assert receipt["parser_status"] == diag.PARSER_SCHEMA_ACCEPTED
@@ -180,7 +277,7 @@ def test_valid_response_is_schema_accepted_with_one_exact_request_and_no_paginat
     assert calls[0].method == "GET"
     assert calls[0].url.scheme == "https"
     assert calls[0].url.host == "api.massive.com"
-    assert calls[0].url.path == "/v2/aggs/ticker/AAPL/range/15/minute/2026-01-01/2026-01-31"
+    assert calls[0].url.path == expected_path
     assert calls[0].url.params["adjusted"] == "true"
     assert calls[0].url.params["sort"] == "asc"
     assert calls[0].url.params["limit"] == "50000"
@@ -220,17 +317,19 @@ def test_unknown_row_field_and_missing_row_field_include_failing_row_index_only(
 
 
 def test_rejected_status_count_mismatch_and_type_mismatch_are_structural_only():
-    body = _body(status="ERROR", count=0, row_values=("1234.50", "1235.50", "1233.50", "1234.75", "432100", '"bad-n"'))
+    body = _body(status="ACCOUNT_SECRET_ABC", count=0, row_values=("1234.50", "1235.50", "1233.50", "1234.75", "432100", '"bad-n"'))
     receipt = _run_with_mock(lambda request: httpx.Response(200, headers={"Content-Type": "application/json"}, content=body))
 
     assert receipt["status"] == diag.DATE_DIAGNOSTIC_SCHEMA_REJECTED
-    assert receipt["provider_response_status"] == "ERROR"
+    assert receipt["provider_response_status"] == diag.PROVIDER_STATUS_UNACCEPTED
     assert receipt["query_count"] == 1
     assert receipt["results_count"] == 1
     assert {"scope": "aggregate_row", "row_index": 0, "field": "n", "expected_type": "INTEGER", "actual_type": "STRING"} in receipt[
         "type_mismatches"
     ]
-    assert "bad-n" not in json.dumps(receipt, sort_keys=True)
+    rendered = json.dumps(receipt, sort_keys=True)
+    assert "bad-n" not in rendered
+    assert "ACCOUNT_SECRET_ABC" not in rendered
 
 
 def test_top_level_type_mismatch_reports_fixed_json_categories():
@@ -268,18 +367,21 @@ def test_receipt_excludes_key_auth_url_body_market_values_and_request_metadata()
         assert value not in rendered
 
 
-def test_live_mode_requires_tty_and_authorization_before_getpass_or_http():
+@pytest.mark.parametrize("spec", [diag.date_diagnostic_2025_spec(), diag.date_diagnostic_2026_spec()])
+def test_live_mode_requires_tty_and_authorization_before_getpass_or_http(spec: diag.MassiveDateDiagnosticSpec):
     prompted = {"key": 0}
     requested = {"http": 0}
-    noninteractive = diag.run_massive_date_diagnostic_2026_live(
-        _input_func=lambda prompt: diag.date_diagnostic_confirmation_phrase(),
+    noninteractive = diag.run_massive_date_diagnostic_live(
+        spec=spec,
+        _input_func=lambda prompt: diag.date_diagnostic_confirmation_phrase(spec),
         _getpass_func=lambda prompt: prompted.__setitem__("key", prompted["key"] + 1) or "fictional",
         _is_interactive=lambda: False,
         _http_transport=httpx.MockTransport(lambda request: requested.__setitem__("http", requested["http"] + 1) or httpx.Response(200)),
         _authorization_state=diag._AuthorizationState(),
         _emit_ceremony=False,
     )
-    wrong_phrase = diag.run_massive_date_diagnostic_2026_live(
+    wrong_phrase = diag.run_massive_date_diagnostic_live(
+        spec=spec,
         _input_func=lambda prompt: "wrong",
         _getpass_func=lambda prompt: prompted.__setitem__("key", prompted["key"] + 1) or "fictional",
         _is_interactive=lambda: True,
@@ -345,20 +447,38 @@ def test_authentication_and_transport_failures_are_bounded_without_raw_exception
 
 
 def test_self_check_uses_mock_http_and_fictional_key_without_persistent_artifacts():
+    receipt_2025 = diag.massive_date_diagnostic_2025_self_check()
     receipt = diag.massive_date_diagnostic_2026_self_check()
 
+    assert receipt_2025["status"] == "MASSIVE_DATE_DIAGNOSTIC_2025_SELF_CHECK"
+    assert receipt_2025["month_key"] == "2025-01"
+    assert receipt_2025["diagnostic_specification_digest"] == DATE_DIAGNOSTIC_2025_DIGEST
+    assert receipt_2025["valid_schema_status"] == diag.DATE_DIAGNOSTIC_SCHEMA_ACCEPTED
+    assert receipt_2025["rejected_schema_status"] == diag.DATE_DIAGNOSTIC_SCHEMA_REJECTED
+    assert receipt_2025["mock_http_only"] is True
+    assert receipt_2025["real_provider_call_performed"] is False
+    assert receipt_2025["persistent_artifact_written"] is False
+    assert receipt_2025["request_count"] == 2
     assert receipt["status"] == "MASSIVE_DATE_DIAGNOSTIC_2026_SELF_CHECK"
-    assert receipt["diagnostic_specification_digest"] == DATE_DIAGNOSTIC_DIGEST
+    assert receipt["diagnostic_specification_digest"] == DATE_DIAGNOSTIC_2026_DIGEST
     assert receipt["valid_schema_status"] == diag.DATE_DIAGNOSTIC_SCHEMA_ACCEPTED
     assert receipt["rejected_schema_status"] == diag.DATE_DIAGNOSTIC_SCHEMA_REJECTED
     assert receipt["mock_http_only"] is True
     assert receipt["real_provider_call_performed"] is False
     assert receipt["persistent_artifact_written"] is False
     assert receipt["request_count"] == 2
+    assert "fictional-date-diagnostic-key" not in json.dumps(receipt_2025, sort_keys=True)
     assert "fictional-date-diagnostic-key" not in json.dumps(receipt, sort_keys=True)
 
 
 def test_cli_plan_self_check_run_and_override_boundaries():
+    plan_2025 = subprocess.run(
+        [sys.executable, "-m", "marketflow.historical_data", "--massive-date-diagnostic-2025-plan"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
     plan = subprocess.run(
         [sys.executable, "-m", "marketflow.historical_data", "--massive-date-diagnostic-2026-plan"],
         cwd=REPO_ROOT,
@@ -367,12 +487,26 @@ def test_cli_plan_self_check_run_and_override_boundaries():
         check=True,
     )
     plan_receipt = json.loads(plan.stdout)
+    self_check_2025 = subprocess.run(
+        [sys.executable, "-m", "marketflow.historical_data", "--massive-date-diagnostic-2025-self-check"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=True,
+    )
     self_check = subprocess.run(
         [sys.executable, "-m", "marketflow.historical_data", "--massive-date-diagnostic-2026-self-check"],
         cwd=REPO_ROOT,
         text=True,
         capture_output=True,
         check=True,
+    )
+    run_2025_noninteractive = subprocess.run(
+        [sys.executable, "-m", "marketflow.historical_data", "--massive-date-diagnostic-2025-run"],
+        cwd=REPO_ROOT,
+        text=True,
+        capture_output=True,
+        check=False,
     )
     run_noninteractive = subprocess.run(
         [sys.executable, "-m", "marketflow.historical_data", "--massive-date-diagnostic-2026-run"],
@@ -389,9 +523,16 @@ def test_cli_plan_self_check_run_and_override_boundaries():
         check=False,
     )
 
+    plan_2025_receipt = json.loads(plan_2025.stdout)
+    assert plan_2025_receipt["status"] == diag.DATE_DIAGNOSTIC_PLAN_VALID
+    assert plan_2025_receipt["diagnostic_specification_digest"] == DATE_DIAGNOSTIC_2025_DIGEST
+    assert plan_2025_receipt["effective_start"] == "2025-01-01"
     assert plan_receipt["status"] == diag.DATE_DIAGNOSTIC_PLAN_VALID
-    assert plan_receipt["diagnostic_specification_digest"] == DATE_DIAGNOSTIC_DIGEST
+    assert plan_receipt["diagnostic_specification_digest"] == DATE_DIAGNOSTIC_2026_DIGEST
+    assert json.loads(self_check_2025.stdout)["status"] == "MASSIVE_DATE_DIAGNOSTIC_2025_SELF_CHECK"
     assert json.loads(self_check.stdout)["status"] == "MASSIVE_DATE_DIAGNOSTIC_2026_SELF_CHECK"
+    assert run_2025_noninteractive.returncode == 2
+    assert json.loads(run_2025_noninteractive.stdout)["fixed_findings"] == ["DATE_DIAGNOSTIC_REQUIRES_INTERACTIVE_TTY"]
     assert run_noninteractive.returncode == 2
     assert json.loads(run_noninteractive.stdout)["fixed_findings"] == ["DATE_DIAGNOSTIC_REQUIRES_INTERACTIVE_TTY"]
     assert override.returncode != 0
@@ -422,5 +563,12 @@ def test_source_boundary_has_no_month_request_monthly_executor_strategy_or_crede
     ]
     for value in forbidden_text:
         assert value not in source
+    assert source.count("def _send_one_request(") == 1
+    assert source.count("def _parse_outcome(") == 1
+    assert source.count("parse_provider_response(") == 1
+    assert "run_massive_date_diagnostic_live" in source
+    assert "run_massive_date_diagnostic_2025_live" in source
+    assert "run_massive_date_diagnostic_2026_live" in source
+    assert "MassiveRestTransport" not in source
     assert "os" not in imported_roots
     assert "getpass" in imported_roots

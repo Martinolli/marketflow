@@ -29,6 +29,7 @@ from marketflow.historical_data.provider_response import (
     AGGREGATE_ROW_FIELDS,
     AGGREGATE_ROW_REQUIRED_FIELDS,
     TOP_LEVEL_FIELDS,
+    VALID_PROVIDER_STATUSES,
     ProviderResponseError,
     ResponseRequestContext,
     parse_provider_response,
@@ -40,9 +41,17 @@ DATE_DIAGNOSTIC_CLASSIFICATION = "NONCANONICAL_PROVIDER_DATE_DIAGNOSTIC"
 DATE_DIAGNOSTIC_PROVIDER = "MASSIVE.COM"
 DATE_DIAGNOSTIC_ENDPOINT = "STOCKS_CUSTOM_BARS_V2"
 DATE_DIAGNOSTIC_TICKER = "AAPL"
-DATE_DIAGNOSTIC_MONTH_KEY = "2026-01"
-DATE_DIAGNOSTIC_EFFECTIVE_START = "2026-01-01"
-DATE_DIAGNOSTIC_EFFECTIVE_END = "2026-01-31"
+MASSIVE_DATE_DIAGNOSTIC_2025 = "MASSIVE_DATE_DIAGNOSTIC_2025"
+MASSIVE_DATE_DIAGNOSTIC_2026 = "MASSIVE_DATE_DIAGNOSTIC_2026"
+DATE_DIAGNOSTIC_2025_MONTH_KEY = "2025-01"
+DATE_DIAGNOSTIC_2025_EFFECTIVE_START = "2025-01-01"
+DATE_DIAGNOSTIC_2025_EFFECTIVE_END = "2025-01-31"
+DATE_DIAGNOSTIC_2026_MONTH_KEY = "2026-01"
+DATE_DIAGNOSTIC_2026_EFFECTIVE_START = "2026-01-01"
+DATE_DIAGNOSTIC_2026_EFFECTIVE_END = "2026-01-31"
+DATE_DIAGNOSTIC_MONTH_KEY = DATE_DIAGNOSTIC_2026_MONTH_KEY
+DATE_DIAGNOSTIC_EFFECTIVE_START = DATE_DIAGNOSTIC_2026_EFFECTIVE_START
+DATE_DIAGNOSTIC_EFFECTIVE_END = DATE_DIAGNOSTIC_2026_EFFECTIVE_END
 DATE_DIAGNOSTIC_MAXIMUM_PROVIDER_PAGES = 1
 DATE_DIAGNOSTIC_DIGEST_PREFIX_LENGTH = 12
 
@@ -56,6 +65,7 @@ DATE_DIAGNOSTIC_INVALID = "DATE_DIAGNOSTIC_INVALID"
 PARSER_SCHEMA_ACCEPTED = "RESPONSE_SCHEMA_ACCEPTED"
 PARSER_SCHEMA_REJECTED = "RESPONSE_SCHEMA_REJECTED"
 PARSER_NOT_RUN = "RESPONSE_SCHEMA_NOT_RUN"
+PROVIDER_STATUS_UNACCEPTED = "PROVIDER_STATUS_UNACCEPTED"
 
 _NO_STRATEGY_TEXT = "NO STRATEGY"
 _NO_CANONICAL_TEXT = "NO CANONICAL ACQUISITION"
@@ -95,9 +105,6 @@ class MassiveDateDiagnosticSpec:
             "provider": DATE_DIAGNOSTIC_PROVIDER,
             "endpoint": DATE_DIAGNOSTIC_ENDPOINT,
             "ticker": DATE_DIAGNOSTIC_TICKER,
-            "month_key": DATE_DIAGNOSTIC_MONTH_KEY,
-            "effective_start": DATE_DIAGNOSTIC_EFFECTIVE_START,
-            "effective_end": DATE_DIAGNOSTIC_EFFECTIVE_END,
             "multiplier": MASSIVE_MULTIPLIER,
             "timespan": MASSIVE_TIMESPAN,
             "adjusted": MASSIVE_ADJUSTED,
@@ -109,6 +116,24 @@ class MassiveDateDiagnosticSpec:
             "acquisition_generation_eligibility": False,
             "strategy_enabled": False,
         }
+        if self.month_key == DATE_DIAGNOSTIC_2025_MONTH_KEY:
+            expected.update(
+                {
+                    "month_key": DATE_DIAGNOSTIC_2025_MONTH_KEY,
+                    "effective_start": DATE_DIAGNOSTIC_2025_EFFECTIVE_START,
+                    "effective_end": DATE_DIAGNOSTIC_2025_EFFECTIVE_END,
+                }
+            )
+        elif self.month_key == DATE_DIAGNOSTIC_2026_MONTH_KEY:
+            expected.update(
+                {
+                    "month_key": DATE_DIAGNOSTIC_2026_MONTH_KEY,
+                    "effective_start": DATE_DIAGNOSTIC_2026_EFFECTIVE_START,
+                    "effective_end": DATE_DIAGNOSTIC_2026_EFFECTIVE_END,
+                }
+            )
+        else:
+            raise MassiveDateDiagnosticError("date diagnostic fixed field mismatch")
         for key, value in expected.items():
             if getattr(self, key) != value:
                 raise MassiveDateDiagnosticError("date diagnostic fixed field mismatch")
@@ -128,19 +153,21 @@ class _HttpOutcome:
     request_count: int
 
 
-_LIVE_AUTHORIZATION_STATE = _AuthorizationState()
+_LIVE_AUTHORIZATION_STATE_2025 = _AuthorizationState()
+_LIVE_AUTHORIZATION_STATE_2026 = _AuthorizationState()
+_LIVE_AUTHORIZATION_STATE = _LIVE_AUTHORIZATION_STATE_2026
 
 
-def default_date_diagnostic_spec() -> MassiveDateDiagnosticSpec:
+def _date_diagnostic_spec(*, month_key: str, effective_start: str, effective_end: str) -> MassiveDateDiagnosticSpec:
     return MassiveDateDiagnosticSpec(
         schema_version=DATE_DIAGNOSTIC_SCHEMA_VERSION,
         classification=DATE_DIAGNOSTIC_CLASSIFICATION,
         provider=DATE_DIAGNOSTIC_PROVIDER,
         endpoint=DATE_DIAGNOSTIC_ENDPOINT,
         ticker=DATE_DIAGNOSTIC_TICKER,
-        month_key=DATE_DIAGNOSTIC_MONTH_KEY,
-        effective_start=DATE_DIAGNOSTIC_EFFECTIVE_START,
-        effective_end=DATE_DIAGNOSTIC_EFFECTIVE_END,
+        month_key=month_key,
+        effective_start=effective_start,
+        effective_end=effective_end,
         multiplier=MASSIVE_MULTIPLIER,
         timespan=MASSIVE_TIMESPAN,
         adjusted=MASSIVE_ADJUSTED,
@@ -152,6 +179,34 @@ def default_date_diagnostic_spec() -> MassiveDateDiagnosticSpec:
         acquisition_generation_eligibility=False,
         strategy_enabled=False,
     )
+
+
+def date_diagnostic_spec_for(diagnostic_id: str) -> MassiveDateDiagnosticSpec:
+    if diagnostic_id == MASSIVE_DATE_DIAGNOSTIC_2025:
+        return _date_diagnostic_spec(
+            month_key=DATE_DIAGNOSTIC_2025_MONTH_KEY,
+            effective_start=DATE_DIAGNOSTIC_2025_EFFECTIVE_START,
+            effective_end=DATE_DIAGNOSTIC_2025_EFFECTIVE_END,
+        )
+    if diagnostic_id == MASSIVE_DATE_DIAGNOSTIC_2026:
+        return _date_diagnostic_spec(
+            month_key=DATE_DIAGNOSTIC_2026_MONTH_KEY,
+            effective_start=DATE_DIAGNOSTIC_2026_EFFECTIVE_START,
+            effective_end=DATE_DIAGNOSTIC_2026_EFFECTIVE_END,
+        )
+    raise MassiveDateDiagnosticError("unknown fixed date diagnostic identity")
+
+
+def default_date_diagnostic_spec() -> MassiveDateDiagnosticSpec:
+    return date_diagnostic_spec_for(MASSIVE_DATE_DIAGNOSTIC_2026)
+
+
+def date_diagnostic_2025_spec() -> MassiveDateDiagnosticSpec:
+    return date_diagnostic_spec_for(MASSIVE_DATE_DIAGNOSTIC_2025)
+
+
+def date_diagnostic_2026_spec() -> MassiveDateDiagnosticSpec:
+    return date_diagnostic_spec_for(MASSIVE_DATE_DIAGNOSTIC_2026)
 
 
 def date_diagnostic_spec_payload(spec: MassiveDateDiagnosticSpec | None = None) -> dict[str, object]:
@@ -223,7 +278,9 @@ def _optional_count(value: object) -> int | None:
 def _provider_status(value: object) -> str | None:
     if type(value) is not str:
         return None
-    return _safe_identifier(value)
+    if value in VALID_PROVIDER_STATUSES:
+        return value
+    return PROVIDER_STATUS_UNACCEPTED
 
 
 def _structural_diagnostics(body: bytes | None) -> dict[str, object]:
@@ -483,8 +540,9 @@ def _parse_outcome(spec: MassiveDateDiagnosticSpec, outcome: _HttpOutcome) -> di
     return receipt
 
 
-def run_massive_date_diagnostic_2026_live(
+def run_massive_date_diagnostic_live(
     *,
+    spec: MassiveDateDiagnosticSpec | None = None,
     _input_func: Callable[[str], str] = input,
     _getpass_func: Callable[[str], str] = getpass.getpass,
     _is_interactive: Callable[[], bool] = _stdio_is_interactive,
@@ -492,59 +550,88 @@ def run_massive_date_diagnostic_2026_live(
     _authorization_state: _AuthorizationState | None = None,
     _emit_ceremony: bool = True,
 ) -> dict[str, object]:
-    spec = default_date_diagnostic_spec()
-    plan = date_diagnostic_plan_receipt(spec)
+    actual = spec or default_date_diagnostic_spec()
+    actual.validate()
+    plan = date_diagnostic_plan_receipt(actual)
     if not _is_interactive():
-        receipt = _base_receipt(spec, status=DATE_DIAGNOSTIC_INVALID)
+        receipt = _base_receipt(actual, status=DATE_DIAGNOSTIC_INVALID)
         receipt["fixed_findings"] = ["DATE_DIAGNOSTIC_REQUIRES_INTERACTIVE_TTY"]
         return receipt
     if _emit_ceremony:
         print(json.dumps(plan, sort_keys=True, indent=2))
-    state = _authorization_state if _authorization_state is not None else _LIVE_AUTHORIZATION_STATE
+    if _authorization_state is not None:
+        state = _authorization_state
+    elif actual.month_key == DATE_DIAGNOSTIC_2025_MONTH_KEY:
+        state = _LIVE_AUTHORIZATION_STATE_2025
+    else:
+        state = _LIVE_AUTHORIZATION_STATE_2026
     try:
-        _authorize_diagnostic(_input_func("Type confirmation phrase: "), spec=spec, state=state)
+        _authorize_diagnostic(_input_func("Type confirmation phrase: "), spec=actual, state=state)
     except MassiveDateDiagnosticError:
-        receipt = _base_receipt(spec, status=DATE_DIAGNOSTIC_INVALID)
+        receipt = _base_receipt(actual, status=DATE_DIAGNOSTIC_INVALID)
         receipt["fixed_findings"] = ["DATE_DIAGNOSTIC_AUTHORIZATION_REJECTED"]
         return receipt
     try:
         provider_key = ProviderApiKey(_getpass_func("Massive.com API key: "))
     except MassiveTransportError:
-        receipt = _base_receipt(spec, status=DATE_DIAGNOSTIC_AUTHENTICATION_FAILED)
+        receipt = _base_receipt(actual, status=DATE_DIAGNOSTIC_AUTHENTICATION_FAILED)
         receipt["credential_prompted"] = True
         receipt["fixed_findings"] = ["DATE_DIAGNOSTIC_CREDENTIAL_REJECTED"]
         return receipt
     try:
-        outcome = _send_one_request(spec, provider_key, http_transport=_http_transport)
+        outcome = _send_one_request(actual, provider_key, http_transport=_http_transport)
     finally:
         del provider_key
-    receipt = _parse_outcome(spec, outcome)
+    receipt = _parse_outcome(actual, outcome)
     receipt["credential_prompted"] = True
     return receipt
 
 
+def run_massive_date_diagnostic_2025_live(
+    **kwargs: object,
+) -> dict[str, object]:
+    return run_massive_date_diagnostic_live(spec=date_diagnostic_2025_spec(), **kwargs)
+
+
+def run_massive_date_diagnostic_2026_live(
+    **kwargs: object,
+) -> dict[str, object]:
+    return run_massive_date_diagnostic_live(spec=date_diagnostic_2026_spec(), **kwargs)
+
+
+def massive_date_diagnostic_2025_plan() -> dict[str, object]:
+    return date_diagnostic_plan_receipt(date_diagnostic_2025_spec())
+
+
 def massive_date_diagnostic_2026_plan() -> dict[str, object]:
-    return date_diagnostic_plan_receipt()
+    return date_diagnostic_plan_receipt(date_diagnostic_2026_spec())
 
 
-def massive_date_diagnostic_2026_self_check() -> dict[str, object]:
-    spec = default_date_diagnostic_spec()
+def _self_check_body_for_spec(spec: MassiveDateDiagnosticSpec) -> tuple[bytes, bytes]:
+    timestamp = b"1735741800000" if spec.month_key == DATE_DIAGNOSTIC_2025_MONTH_KEY else b"1767277800000"
     valid_body = (
         b'{"adjusted":true,"queryCount":1,"results":[{"c":100,"h":101,"l":99,"n":1,'
-        b'"o":100,"t":1767277800000,"v":1000,"vw":100.5,"otc":false}],'
+        b'"o":100,"t":' + timestamp + b',"v":1000,"vw":100.5,"otc":false}],'
         b'"resultsCount":1,"count":1,"status":"OK","ticker":"AAPL"}'
     )
     rejected_body = (
         b'{"adjusted":true,"queryCount":1,"results":[{"c":100,"h":101,"l":99,"n":1,'
-        b'"o":100,"t":1767277800000,"v":1000,"mystery_row":"redacted"}],'
+        b'"o":100,"t":' + timestamp + b',"v":1000,"mystery_row":"redacted"}],'
         b'"resultsCount":1,"status":"OK","ticker":"AAPL","mysteryTop":"redacted"}'
     )
+    return valid_body, rejected_body
+
+
+def massive_date_diagnostic_self_check(spec: MassiveDateDiagnosticSpec) -> dict[str, object]:
+    spec.validate()
+    valid_body, rejected_body = _self_check_body_for_spec(spec)
 
     def run_body(body: bytes) -> dict[str, object]:
         def handler(request: httpx.Request) -> httpx.Response:
             return httpx.Response(200, headers={CONTENT_TYPE: "application/json"}, content=body)
 
-        return run_massive_date_diagnostic_2026_live(
+        return run_massive_date_diagnostic_live(
+            spec=spec,
             _input_func=lambda prompt: date_diagnostic_confirmation_phrase(spec),
             _getpass_func=lambda prompt: "fictional-date-diagnostic-key",
             _is_interactive=lambda: True,
@@ -556,7 +643,8 @@ def massive_date_diagnostic_2026_self_check() -> dict[str, object]:
     valid = run_body(valid_body)
     rejected = run_body(rejected_body)
     return {
-        "status": "MASSIVE_DATE_DIAGNOSTIC_2026_SELF_CHECK",
+        "status": f"{spec.month_key.replace('-', '_').upper()}_MASSIVE_DATE_DIAGNOSTIC_SELF_CHECK",
+        "month_key": spec.month_key,
         "diagnostic_specification_digest": date_diagnostic_spec_digest(spec),
         "valid_schema_status": valid["status"],
         "rejected_schema_status": rejected["status"],
@@ -566,3 +654,15 @@ def massive_date_diagnostic_2026_self_check() -> dict[str, object]:
         "credential_source": "FICTIONAL_EXPLICIT_INJECTION",
         "request_count": int(valid["transport_invocation_count"]) + int(rejected["transport_invocation_count"]),
     }
+
+
+def massive_date_diagnostic_2025_self_check() -> dict[str, object]:
+    receipt = massive_date_diagnostic_self_check(date_diagnostic_2025_spec())
+    receipt["status"] = "MASSIVE_DATE_DIAGNOSTIC_2025_SELF_CHECK"
+    return receipt
+
+
+def massive_date_diagnostic_2026_self_check() -> dict[str, object]:
+    receipt = massive_date_diagnostic_self_check(date_diagnostic_2026_spec())
+    receipt["status"] = "MASSIVE_DATE_DIAGNOSTIC_2026_SELF_CHECK"
+    return receipt
