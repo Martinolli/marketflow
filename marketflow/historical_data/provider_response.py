@@ -7,6 +7,7 @@ from dataclasses import dataclass
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
 from typing import Any
+from zoneinfo import ZoneInfo
 
 from marketflow.historical_data.artifacts import semantic_digest
 from marketflow.research import acquisition_contract_v2_1 as contract_v21
@@ -25,14 +26,30 @@ AGGREGATE_ROW_FIELDS = AGGREGATE_ROW_REQUIRED_FIELDS | AGGREGATE_ROW_OPTIONAL_FI
 SCHEMA_DIAGNOSTIC_VERSION = "massive_custom_bars_schema_diagnostics.v1"
 _MAX_DIAGNOSTIC_IDENTIFIER_LENGTH = 64
 _SENSITIVE_DIAGNOSTIC_FIELD_NAMES = frozenset({"next_url", "request_id"})
+TOP_LEVEL_SCHEMA = "TOP_LEVEL_SCHEMA"
+ROW_SCHEMA = "ROW_SCHEMA"
+ROW_TYPE = "ROW_TYPE"
+TIMESTAMP_ORDER = "TIMESTAMP_ORDER"
+TIMESTAMP_RANGE = "TIMESTAMP_RANGE"
+OHLCV_GEOMETRY = "OHLCV_GEOMETRY"
+COUNT_CONSISTENCY = "COUNT_CONSISTENCY"
+TIMESTAMP_RANGE_INVALID = "TIMESTAMP_RANGE_INVALID"
+SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE = "SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE"
 
 
 class ProviderResponseError(ValueError):
     """Raised when a provider response fails strict offline contract parsing."""
 
-    def __init__(self, message: str, *, sanitized_diagnostics: dict[str, Any] | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        sanitized_diagnostics: dict[str, Any] | None = None,
+        failure_category: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.sanitized_diagnostics = sanitized_diagnostics
+        self.failure_category = failure_category
 
 
 @dataclass(frozen=True, slots=True)
@@ -229,36 +246,46 @@ def _schema_diagnostics(payload: Any) -> dict[str, Any]:
     return diagnostics
 
 
-def _raise_schema_error(message: str, payload: Any) -> None:
-    raise ProviderResponseError(message, sanitized_diagnostics=_schema_diagnostics(payload))
+def _diagnostics_with_category(diagnostics: dict[str, Any], failure_stage: str) -> dict[str, Any]:
+    result = dict(diagnostics)
+    result["failure_stage"] = failure_stage
+    return result
+
+
+def _raise_schema_error(message: str, payload: Any, *, failure_stage: str) -> None:
+    raise ProviderResponseError(
+        message,
+        sanitized_diagnostics=_diagnostics_with_category(_schema_diagnostics(payload), failure_stage),
+        failure_category="SCHEMA_FAILURE",
+    )
 
 
 def _reject_unknown_top_level_fields(payload: dict[str, Any]) -> None:
     if set(payload) - TOP_LEVEL_FIELDS:
-        _raise_schema_error("provider response contains unexpected top-level field", payload)
+        _raise_schema_error("provider response contains unexpected top-level field", payload, failure_stage=TOP_LEVEL_SCHEMA)
 
 
 def _validate_optional_count(payload: dict[str, Any], results_count: int, result_length: int) -> None:
     if "count" not in payload:
         return
     if type(payload["count"]) is not int:
-        _raise_schema_error("count must be an exact integer", payload)
+        _raise_schema_error("count must be an exact integer", payload, failure_stage=COUNT_CONSISTENCY)
     count = payload["count"]
     if count < 0 or count != results_count or count != result_length:
-        _raise_schema_error("count must equal resultsCount and parsed result count", payload)
+        _raise_schema_error("count must equal resultsCount and parsed result count", payload, failure_stage=COUNT_CONSISTENCY)
 
 
 def _reject_unknown_or_missing_row_fields(row: dict[str, Any], payload: dict[str, Any], index: int) -> None:
     row_fields = set(row)
     if row_fields - AGGREGATE_ROW_FIELDS:
-        _raise_schema_error(f"results[{index}] contains unexpected aggregate field", payload)
+        _raise_schema_error(f"results[{index}] contains unexpected aggregate field", payload, failure_stage=ROW_SCHEMA)
     if AGGREGATE_ROW_REQUIRED_FIELDS - row_fields:
-        _raise_schema_error(f"results[{index}] is missing required aggregate field", payload)
+        _raise_schema_error(f"results[{index}] is missing required aggregate field", payload, failure_stage=ROW_SCHEMA)
 
 
 def _validate_optional_otc(row: dict[str, Any], payload: dict[str, Any]) -> None:
     if "otc" in row and type(row["otc"]) is not bool:
-        _raise_schema_error("results[].otc must be boolean", payload)
+        _raise_schema_error("results[].otc must be boolean", payload, failure_stage=ROW_SCHEMA)
 
 
 def _require_decimal(value: Any, field_name: str) -> Decimal:
@@ -298,6 +325,54 @@ def _iso_utc(value: datetime) -> str:
     if value.tzinfo is None or value.utcoffset() is None:
         raise ProviderResponseError("timestamp must be timezone-aware")
     return value.astimezone(UTC).isoformat().replace("+00:00", "Z")
+
+
+def _local_date_bounds_as_utc(start_date: date, end_date: date) -> tuple[datetime, datetime]:
+    source_tz = ZoneInfo(contract_v21.SESSION_MAPPING_TIMEZONE)
+    local_start = datetime.combine(start_date, time.min, tzinfo=source_tz)
+    local_end_exclusive = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=source_tz)
+    return local_start.astimezone(UTC), local_end_exclusive.astimezone(UTC)
+
+
+def _validate_source_window_in_effective_local_range(
+    *,
+    window_start: datetime,
+    window_end: datetime,
+    utc_start: datetime,
+    utc_end_exclusive: datetime,
+    row_index: int,
+) -> None:
+    for field_name, value in {
+        "window_start": window_start,
+        "window_end": window_end,
+        "utc_start": utc_start,
+        "utc_end_exclusive": utc_end_exclusive,
+    }.items():
+        if value.tzinfo is None or value.utcoffset() is None:
+            raise ProviderResponseError(
+                f"{field_name} must be timezone-aware",
+                sanitized_diagnostics={
+                    "schema_diagnostic_version": SCHEMA_DIAGNOSTIC_VERSION,
+                    "failure_stage": TIMESTAMP_RANGE,
+                    "failure_category": TIMESTAMP_RANGE_INVALID,
+                    "row_index": row_index,
+                    "source_timezone": contract_v21.SESSION_MAPPING_TIMEZONE,
+                },
+                failure_category=TIMESTAMP_RANGE_INVALID,
+            )
+    if window_start < utc_start or window_start >= utc_end_exclusive or window_end > utc_end_exclusive:
+        raise ProviderResponseError(
+            "provider source window falls outside effective local date range",
+            sanitized_diagnostics={
+                "schema_diagnostic_version": SCHEMA_DIAGNOSTIC_VERSION,
+                "failure_stage": TIMESTAMP_RANGE,
+                "failure_category": TIMESTAMP_RANGE_INVALID,
+                "fixed_finding": SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE,
+                "row_index": row_index,
+                "source_timezone": contract_v21.SESSION_MAPPING_TIMEZONE,
+            },
+            failure_category=TIMESTAMP_RANGE_INVALID,
+        )
 
 
 def _parse_query(query: str) -> dict[str, str]:
@@ -392,7 +467,7 @@ def parse_provider_response(
 
     start_date = _date_from_iso(context.effective_start_date, "effective_start_date")
     end_date = _date_from_iso(context.effective_end_date, "effective_end_date")
-    month_end_exclusive = datetime.combine(end_date + timedelta(days=1), time.min, tzinfo=UTC)
+    utc_start, utc_end_exclusive = _local_date_bounds_as_utc(start_date, end_date)
 
     rows: list[AggregateRow] = []
     previous_start: datetime | None = None
@@ -406,10 +481,15 @@ def parse_provider_response(
             window_start, window_end = contract_v21.source_window_from_epoch_ms(timestamp)
         except contract_v21.ContractV21ValidationError as exc:
             raise ProviderResponseError("provider timestamp violates v2.1 source-window contract") from exc
-        if window_start.date() < start_date or window_end > month_end_exclusive:
-            raise ProviderResponseError("provider timestamp falls outside effective month")
+        _validate_source_window_in_effective_local_range(
+            window_start=window_start,
+            window_end=window_end,
+            utc_start=utc_start,
+            utc_end_exclusive=utc_end_exclusive,
+            row_index=index,
+        )
         if previous_start is not None and window_start <= previous_start:
-            raise ProviderResponseError("provider timestamps must be strictly ascending")
+            raise ProviderResponseError("provider timestamps must be strictly ascending", failure_category=TIMESTAMP_ORDER)
         previous_start = window_start
 
         open_value = _require_decimal(row.get("o"), "results[].o")

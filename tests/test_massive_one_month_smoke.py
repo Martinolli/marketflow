@@ -321,6 +321,24 @@ def test_first_page_schema_failure_maps_to_provider_response_rejected(tmp_path: 
         assert forbidden not in all_text
 
 
+def test_first_page_timestamp_range_failure_is_invalid_not_schema_rejected(tmp_path: Path):
+    receipt = _run_with_mock(
+        tmp_path,
+        lambda request: httpx.Response(
+            200,
+            headers={"Content-Type": "application/json"},
+            content=_body(t=1738396800000),
+        ),
+        run_id="smoke-timestamp-range-run",
+    )
+
+    assert receipt["smoke_status"] == "SMOKE_INVALID"
+    assert receipt["request_status"] == monthly.MONTH_ACQUISITION_INVALID
+    assert receipt["fixed_findings"] == [monthly.TIMESTAMP_RANGE_INVALID]
+    assert receipt["raw_page_count"] == 0
+    assert receipt["normalized_artifact_receipts"] == []
+
+
 def test_multi_page_success_retry_then_success_and_no_automatic_rerun(tmp_path: Path):
     responses = iter(
         [

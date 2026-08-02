@@ -29,6 +29,8 @@ from marketflow.historical_data.provider_response import (
     AGGREGATE_ROW_FIELDS,
     AGGREGATE_ROW_REQUIRED_FIELDS,
     TOP_LEVEL_FIELDS,
+    TIMESTAMP_ORDER,
+    TIMESTAMP_RANGE_INVALID,
     VALID_PROVIDER_STATUSES,
     ProviderResponseError,
     ResponseRequestContext,
@@ -530,10 +532,19 @@ def _parse_outcome(spec: MassiveDateDiagnosticSpec, outcome: _HttpOutcome) -> di
             body_sha256=artifacts.sha256_bytes(outcome.body),
             context=_request_context(spec),
         )
-    except ProviderResponseError:
+    except ProviderResponseError as exc:
+        diagnostics = getattr(exc, "sanitized_diagnostics", None)
+        failure_category = getattr(exc, "failure_category", None)
         receipt["status"] = DATE_DIAGNOSTIC_SCHEMA_REJECTED
         receipt["parser_status"] = PARSER_SCHEMA_REJECTED
-        receipt["fixed_findings"] = ["RESPONSE_SCHEMA_INVALID"]
+        if failure_category in {TIMESTAMP_ORDER, TIMESTAMP_RANGE_INVALID}:
+            receipt["fixed_findings"] = [failure_category]
+        else:
+            receipt["fixed_findings"] = ["RESPONSE_SCHEMA_INVALID"]
+        if isinstance(diagnostics, dict):
+            stage = diagnostics.get("failure_stage")
+            if isinstance(stage, str):
+                receipt["parser_failure_stage"] = stage
         return receipt
     receipt["status"] = DATE_DIAGNOSTIC_SCHEMA_ACCEPTED
     receipt["parser_status"] = PARSER_SCHEMA_ACCEPTED

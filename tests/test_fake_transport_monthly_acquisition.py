@@ -2,7 +2,9 @@ import ast
 import json
 import subprocess
 import sys
+from datetime import UTC, datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 import pytest
 
@@ -56,12 +58,72 @@ def _body(
     ).encode("utf-8")
 
 
+def _epoch_ms(value: datetime) -> int:
+    if value.tzinfo is None or value.utcoffset() is None:
+        raise ValueError("test timestamp must be timezone-aware")
+    return int(value.astimezone(UTC).timestamp() * 1000)
+
+
+def _local_epoch_ms(local_date: str, local_time: str, *, timezone: str = "America/New_York") -> int:
+    hour, minute = (int(part) for part in local_time.split(":", 1))
+    local = datetime.fromisoformat(local_date).replace(hour=hour, minute=minute, tzinfo=ZoneInfo(timezone))
+    return _epoch_ms(local)
+
+
+def _bars_body(
+    timestamps: list[int],
+    *,
+    ticker: str = "FAKEFLOW",
+    row_extra: str = ',"vw":100.5,"otc":false',
+) -> bytes:
+    rows = []
+    for index, timestamp in enumerate(timestamps):
+        value = 100 + index
+        rows.append(
+            '{"c":'
+            + str(value)
+            + ',"h":'
+            + str(value + 1)
+            + ',"l":'
+            + str(value - 1)
+            + ',"n":10,"o":'
+            + str(value)
+            + ',"t":'
+            + str(timestamp)
+            + ',"v":1000'
+            + row_extra
+            + "}"
+        )
+    return (
+        '{"adjusted":true,"queryCount":'
+        + str(len(rows))
+        + ',"results":['
+        + ",".join(rows)
+        + '],"resultsCount":'
+        + str(len(rows))
+        + ',"count":'
+        + str(len(rows))
+        + ',"status":"OK","ticker":"'
+        + ticker
+        + '"}'
+    ).encode("utf-8")
+
+
 def _request(month_key: str = "2024-01") -> monthly.MonthChunkRequest:
     return monthly.build_month_chunk_request(
         canonical_ticker="FAKEFLOW",
         month_key=month_key,
         effective_start_date="2024-01-01",
         effective_end_date="2024-01-01",
+    )
+
+
+def _request_for_range(month_key: str, effective_start_date: str, effective_end_date: str) -> monthly.MonthChunkRequest:
+    return monthly.build_month_chunk_request(
+        canonical_ticker="FAKEFLOW",
+        month_key=month_key,
+        effective_start_date=effective_start_date,
+        effective_end_date=effective_end_date,
     )
 
 
@@ -103,6 +165,134 @@ def _schema_error_diagnostics(body: bytes) -> dict:
     diagnostics = excinfo.value.sanitized_diagnostics
     assert isinstance(diagnostics, dict)
     return diagnostics
+
+
+def test_reproduces_january_2025_provider_local_after_hours_utc_spill_defect():
+    request = _request_for_range("2025-01", "2025-01-01", "2025-01-31")
+    body = _bars_body(
+        [
+            _local_epoch_ms("2025-01-01", "00:00"),
+            _epoch_ms(datetime(2025, 2, 1, 0, 0, tzinfo=UTC)),
+            _epoch_ms(datetime(2025, 2, 1, 0, 45, tzinfo=UTC)),
+        ]
+    )
+
+    parsed = provider_response.parse_provider_response(body, body_sha256="x", context=_context(request))
+
+    assert [row.window_start_utc for row in parsed.rows] == [
+        "2025-01-01T05:00:00Z",
+        "2025-02-01T00:00:00Z",
+        "2025-02-01T00:45:00Z",
+    ]
+
+
+def test_provider_local_january_2025_month_end_boundaries_accept_utc_spill_and_reject_next_local_date():
+    request = _request_for_range("2025-01", "2025-01-01", "2025-01-31")
+    context = _context(request)
+    accepted = provider_response.parse_provider_response(
+        _bars_body(
+            [
+                _local_epoch_ms("2025-01-01", "00:00"),
+                _local_epoch_ms("2025-01-31", "19:00"),
+                _local_epoch_ms("2025-01-31", "19:45"),
+                _local_epoch_ms("2025-01-31", "23:45"),
+            ]
+        ),
+        body_sha256="x",
+        context=context,
+    )
+
+    assert [row.window_start_utc for row in accepted.rows] == [
+        "2025-01-01T05:00:00Z",
+        "2025-02-01T00:00:00Z",
+        "2025-02-01T00:45:00Z",
+        "2025-02-01T04:45:00Z",
+    ]
+    assert accepted.rows[-1].window_end_utc == "2025-02-01T05:00:00Z"
+
+    with pytest.raises(provider_response.ProviderResponseError) as excinfo:
+        provider_response.parse_provider_response(
+            _bars_body([_local_epoch_ms("2025-02-01", "00:00")]),
+            body_sha256="x",
+            context=context,
+        )
+
+    assert excinfo.value.failure_category == provider_response.TIMESTAMP_RANGE_INVALID
+    assert excinfo.value.sanitized_diagnostics["fixed_finding"] == provider_response.SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE
+
+
+def test_provider_local_summer_dst_month_end_uses_zoneinfo_not_fixed_offset():
+    request = _request_for_range("2025-07", "2025-07-01", "2025-07-31")
+    context = _context(request)
+    accepted = provider_response.parse_provider_response(
+        _bars_body([_local_epoch_ms("2025-07-31", "23:45")]),
+        body_sha256="x",
+        context=context,
+    )
+
+    assert accepted.rows[0].window_start_utc == "2025-08-01T03:45:00Z"
+    assert accepted.rows[0].window_end_utc == "2025-08-01T04:00:00Z"
+
+    with pytest.raises(provider_response.ProviderResponseError) as excinfo:
+        provider_response.parse_provider_response(
+            _bars_body([_local_epoch_ms("2025-08-01", "00:00")]),
+            body_sha256="x",
+            context=context,
+        )
+
+    assert excinfo.value.failure_category == provider_response.TIMESTAMP_RANGE_INVALID
+
+
+def test_provider_local_start_lower_boundary_and_timestamp_order_remain_strict():
+    request = _request_for_range("2025-01", "2025-01-01", "2025-01-31")
+    context = _context(request)
+    accepted = provider_response.parse_provider_response(
+        _bars_body([_local_epoch_ms("2025-01-01", "00:00")]),
+        body_sha256="x",
+        context=context,
+    )
+
+    assert accepted.rows[0].window_start_utc == "2025-01-01T05:00:00Z"
+    with pytest.raises(provider_response.ProviderResponseError) as before_start:
+        provider_response.parse_provider_response(
+            _bars_body([_local_epoch_ms("2024-12-31", "23:45")]),
+            body_sha256="x",
+            context=context,
+        )
+    with pytest.raises(provider_response.ProviderResponseError) as nonascending:
+        provider_response.parse_provider_response(
+            _bars_body([_local_epoch_ms("2025-01-01", "00:15"), _local_epoch_ms("2025-01-01", "00:00")]),
+            body_sha256="x",
+            context=context,
+        )
+    with pytest.raises(provider_response.ProviderResponseError) as duplicate:
+        provider_response.parse_provider_response(
+            _bars_body([_local_epoch_ms("2025-01-01", "00:00"), _local_epoch_ms("2025-01-01", "00:00")]),
+            body_sha256="x",
+            context=context,
+        )
+
+    assert before_start.value.failure_category == provider_response.TIMESTAMP_RANGE_INVALID
+    assert nonascending.value.failure_category == provider_response.TIMESTAMP_ORDER
+    assert duplicate.value.failure_category == provider_response.TIMESTAMP_ORDER
+
+
+def test_source_window_range_helper_rejects_naive_datetimes():
+    aware_start, aware_end = provider_response._local_date_bounds_as_utc(
+        datetime.fromisoformat("2025-01-01").date(),
+        datetime.fromisoformat("2025-01-31").date(),
+    )
+
+    with pytest.raises(provider_response.ProviderResponseError) as excinfo:
+        provider_response._validate_source_window_in_effective_local_range(
+            window_start=datetime(2025, 1, 1, 5, 0),
+            window_end=aware_start + (aware_end - aware_start),
+            utc_start=aware_start,
+            utc_end_exclusive=aware_end,
+            row_index=0,
+        )
+
+    assert excinfo.value.failure_category == provider_response.TIMESTAMP_RANGE_INVALID
 
 
 def test_month_request_binds_contracts_and_rejects_real_ticker():
@@ -356,6 +546,34 @@ def test_completed_two_page_acquisition_writes_lineage_and_paired_normalized_art
     assert first_body == next(_payload_from_manifest(tmp_path, m) for m in manifests if m["artifact_type"] == monthly.ARTIFACT_RAW_PROVIDER_PAGE)
 
 
+def test_monthly_normalization_retains_provider_local_after_hours_source_bars(tmp_path: Path):
+    request = _request_for_range("2025-01", "2025-01-01", "2025-01-31")
+    _, expected = _page_request(request, 1)
+    body = _bars_body([_local_epoch_ms("2025-01-01", "00:00"), _local_epoch_ms("2025-01-31", "23:45")])
+    transport = ScriptedFakeTransport([ScriptedExchange(expected, http_response(200, body))])
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=transport,
+        run_root=tmp_path,
+        run_id="run-provider-local-hours",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_COMPLETED
+    assert receipt["completeness_status"] == "COMPLETE"
+    assert receipt["row_count"] == 2
+    manifests = [json.loads(path.read_text()) for path in (tmp_path / "run-provider-local-hours").rglob("*.manifest.json")]
+    normalized = next(m for m in manifests if m["artifact_type"] == monthly.ARTIFACT_MONTH_NORMALIZED_15M_OHLCV)
+    normalized_payload = _load_json_payload(tmp_path, normalized)
+    assert [row["window_start_utc"] for row in normalized_payload["rows"]] == [
+        "2025-01-01T05:00:00Z",
+        "2025-02-01T04:45:00Z",
+    ]
+    assert normalized_payload["rows"][-1]["window_end_utc"] == "2025-02-01T05:00:00Z"
+
+
 def test_timeout_retry_records_backoff_and_accepts_second_attempt(tmp_path: Path):
     request = _request()
     _, expected = _page_request(request, 1)
@@ -575,6 +793,36 @@ def test_first_page_schema_failure_is_terminal_before_pagination_with_sanitized_
     assert monthly.ARTIFACT_MONTH_NORMALIZED_AGGREGATE_AUDIT_FIELDS not in {
         json.loads(path.read_text())["artifact_type"] for path in (tmp_path / "run-schema-200").rglob("*.manifest.json")
     }
+
+
+def test_timestamp_range_failure_is_not_reported_as_schema_failure(tmp_path: Path):
+    request = _request_for_range("2025-01", "2025-01-01", "2025-01-31")
+    _, expected = _page_request(request, 1)
+    body = _bars_body([_local_epoch_ms("2025-02-01", "00:00")])
+    transport = ScriptedFakeTransport([ScriptedExchange(expected, http_response(200, body))])
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=transport,
+        run_root=tmp_path,
+        run_id="run-timestamp-range",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_INVALID
+    assert receipt["fixed_findings"] == [monthly.TIMESTAMP_RANGE_INVALID]
+    assert receipt["pagination_status"] == monthly.PAGINATION_NOT_STARTED
+    assert receipt["raw_page_count"] == 0
+    attempts = [
+        _load_json_payload(tmp_path, json.loads(path.read_text()))
+        for path in (tmp_path / "run-timestamp-range").rglob("*.manifest.json")
+        if json.loads(path.read_text())["artifact_type"] == monthly.ARTIFACT_REQUEST_ATTEMPT_RECORD
+    ]
+    assert attempts[0]["failure_category"] == monthly.TIMESTAMP_RANGE_INVALID
+    assert attempts[0]["failure_category"] != monthly.SCHEMA_FAILURE
+    assert attempts[0]["sanitized_error_code"] == monthly.SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE
+    assert attempts[0]["sanitized_schema_diagnostics"]["failure_stage"] == provider_response.TIMESTAMP_RANGE
 
 
 def test_retry_after_policy_violation_blocks_without_completeness(tmp_path: Path):
@@ -814,6 +1062,8 @@ def test_monthly_acquisition_source_assurance_boundaries():
         "marketflow.marketflow_polygon_tools",
         "marketflow.marketflow_strategy",
         "marketflow.backtesting.outcome_engine",
+        "marketflow.historical_data.frozen_calendar",
+        "marketflow.historical_data.rth_bar_engine",
     }
     combined = ""
     for path in package_files:
@@ -831,3 +1081,6 @@ def test_monthly_acquisition_source_assurance_boundaries():
     assert "provider_native_4h" not in combined
     assert "provider_native_1d" not in combined
     assert "SCRIPTED_FAKE_TRANSPORT_FIXTURE" in combined
+    assert "ZoneInfo(contract_v21.SESSION_MAPPING_TIMEZONE)" in combined
+    assert "datetime.now()" not in combined
+    assert ".astimezone()" not in combined

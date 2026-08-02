@@ -9,6 +9,7 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Iterable
+from zoneinfo import ZoneInfo
 
 from marketflow.historical_data import artifacts
 from marketflow.historical_data.fake_transport import (
@@ -29,8 +30,11 @@ from marketflow.historical_data.provider_response import (
     ParsedProviderResponse,
     ProviderResponseError,
     ResponseRequestContext,
+    SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE as PROVIDER_SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE,
     TRANSACTION_COUNT_ABSENT,
     TRANSACTION_COUNT_PRESENT,
+    TIMESTAMP_ORDER as PROVIDER_TIMESTAMP_ORDER,
+    TIMESTAMP_RANGE_INVALID as PROVIDER_TIMESTAMP_RANGE_INVALID,
     VWAP_ABSENT,
     VWAP_PRESENT,
     parse_provider_response,
@@ -80,6 +84,9 @@ AUTHENTICATION_FAILURE = "AUTHENTICATION_FAILURE"
 AUTHORIZATION_FAILURE = "AUTHORIZATION_FAILURE"
 RESPONSE_SCHEMA_INVALID = "RESPONSE_SCHEMA_INVALID"
 SCHEMA_FAILURE = "SCHEMA_FAILURE"
+TIMESTAMP_ORDER = PROVIDER_TIMESTAMP_ORDER
+TIMESTAMP_RANGE_INVALID = PROVIDER_TIMESTAMP_RANGE_INVALID
+SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE = PROVIDER_SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE
 
 MAXIMUM_ATTEMPTS = 3
 RETRY_BACKOFF_SECONDS = (2, 5)
@@ -595,6 +602,10 @@ def _block_status_from_failed_page(terminal_status: str | None, attempts: list[d
             return MONTH_ACQUISITION_AUTHENTICATION_FAILED, AUTHENTICATION_FAILURE
         if attempt.get("failure_category") == SCHEMA_FAILURE:
             return MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED, RESPONSE_SCHEMA_INVALID
+        if attempt.get("failure_category") == TIMESTAMP_ORDER:
+            return MONTH_ACQUISITION_INVALID, TIMESTAMP_ORDER
+        if attempt.get("failure_category") == TIMESTAMP_RANGE_INVALID:
+            return MONTH_ACQUISITION_INVALID, TIMESTAMP_RANGE_INVALID
     block_status = terminal_status or MONTH_ACQUISITION_BLOCKED
     return block_status, block_status
 
@@ -759,13 +770,21 @@ def _acquire_page(
                     try:
                         parsed = _parse_body(body=body, body_sha256=body_sha256, month_request=month_request)
                     except ProviderResponseError as exc:
-                        attempt["failure_category"] = SCHEMA_FAILURE
+                        failure_category = getattr(exc, "failure_category", None) or SCHEMA_FAILURE
+                        attempt["failure_category"] = failure_category
                         attempt["attempt_status"] = ATTEMPT_REJECTED_NON_RETRYABLE
-                        attempt["sanitized_error_code"] = "PROVIDER_RESPONSE_SCHEMA_FAILURE"
+                        if failure_category == TIMESTAMP_RANGE_INVALID:
+                            attempt["sanitized_error_code"] = SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE
+                            terminal_status = MONTH_ACQUISITION_INVALID
+                        elif failure_category != SCHEMA_FAILURE:
+                            attempt["sanitized_error_code"] = failure_category
+                            terminal_status = MONTH_ACQUISITION_INVALID
+                        else:
+                            attempt["sanitized_error_code"] = "PROVIDER_RESPONSE_SCHEMA_FAILURE"
+                            terminal_status = MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED
                         diagnostics = getattr(exc, "sanitized_diagnostics", None)
                         if isinstance(diagnostics, dict):
                             attempt["sanitized_schema_diagnostics"] = diagnostics
-                        terminal_status = MONTH_ACQUISITION_INVALID
                         break
                     raw_page = _write_raw_page(
                         body=body,
@@ -893,8 +912,9 @@ def _audit_rows(rows: Iterable[AggregateRow], *, month_request: MonthChunkReques
 def _range_coverage_status(rows: list[AggregateRow], *, month_request: MonthChunkRequest) -> str:
     if not rows:
         return RANGE_COVERAGE_INCOMPLETE
-    first_date = datetime.fromisoformat(rows[0].window_start_utc.replace("Z", "+00:00")).date().isoformat()
-    last_date = datetime.fromisoformat(rows[-1].window_start_utc.replace("Z", "+00:00")).date().isoformat()
+    source_tz = ZoneInfo(contract_v21.SESSION_MAPPING_TIMEZONE)
+    first_date = datetime.fromisoformat(rows[0].window_start_utc.replace("Z", "+00:00")).astimezone(source_tz).date().isoformat()
+    last_date = datetime.fromisoformat(rows[-1].window_start_utc.replace("Z", "+00:00")).astimezone(source_tz).date().isoformat()
     if first_date != month_request.effective_start_date or last_date != month_request.effective_end_date:
         return RANGE_COVERAGE_INCOMPLETE
     return RANGE_COVERAGE_COMPLETE

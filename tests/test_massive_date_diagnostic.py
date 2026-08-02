@@ -285,6 +285,40 @@ def test_valid_response_is_schema_accepted_with_one_exact_request_and_no_paginat
     assert calls[0].headers["Accept-Encoding"] == "identity"
 
 
+def test_2025_date_diagnostic_accepts_provider_local_after_hours_utc_spill():
+    receipt = _run_with_mock(
+        lambda request: httpx.Response(
+            200,
+            headers={"Content-Type": "application/json"},
+            content=_body(timestamp=1738370700000),
+        ),
+        spec=diag.date_diagnostic_2025_spec(),
+    )
+
+    assert receipt["status"] == diag.DATE_DIAGNOSTIC_SCHEMA_ACCEPTED
+    assert receipt["parser_status"] == diag.PARSER_SCHEMA_ACCEPTED
+    assert receipt["diagnostic_specification_digest"] == DATE_DIAGNOSTIC_2025_DIGEST
+    assert receipt["results_count"] == 1
+
+
+def test_date_diagnostic_timestamp_range_failure_has_bounded_fixed_category():
+    receipt = _run_with_mock(
+        lambda request: httpx.Response(
+            200,
+            headers={"Content-Type": "application/json"},
+            content=_body(timestamp=1738386000000),
+        ),
+        spec=diag.date_diagnostic_2025_spec(),
+    )
+
+    assert receipt["status"] == diag.DATE_DIAGNOSTIC_SCHEMA_REJECTED
+    assert receipt["fixed_findings"] == ["TIMESTAMP_RANGE_INVALID"]
+    assert receipt["parser_failure_stage"] == "TIMESTAMP_RANGE"
+    rendered = json.dumps(receipt, sort_keys=True)
+    assert "SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE" not in rendered
+    assert "1738386000000" not in rendered
+
+
 def test_unknown_top_level_and_continuation_are_reported_by_structure_only():
     secret_next_url = (
         "https://api.massive.com/v2/aggs/ticker/AAPL/range/15/minute/"
