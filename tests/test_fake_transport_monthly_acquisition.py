@@ -533,7 +533,14 @@ def test_completed_two_page_acquisition_writes_lineage_and_paired_normalized_art
     assert completeness_payload["effective_start_date"] == "2024-01-01"
     assert completeness_payload["effective_end_date"] == "2024-01-01"
     assert completeness_payload["pagination_exhausted"] is True
-    assert completeness_payload["completion_status"] == "COMPLETE"
+    assert completeness_payload["pagination_status"] == monthly.PAGINATION_EXHAUSTED
+    assert completeness_payload["page_chain_status"] == monthly.PAGINATION_EXHAUSTED
+    assert completeness_payload["completion_status"] == monthly.PROVIDER_RETRIEVAL_COMPLETE
+    assert completeness_payload["scope"] == monthly.PROVIDER_RETRIEVAL_COMPLETE
+    assert completeness_payload["request_range_containment_status"] == monthly.REQUEST_RANGE_CONTAINED
+    assert completeness_payload["market_session_coverage_status"] == monthly.MARKET_SESSION_COVERAGE_NOT_EVALUATED
+    assert completeness_payload["canonical_dataset_complete"] is False
+    assert completeness_payload["rth_dataset_complete"] is False
     assert completeness_payload["page_chain_digest"]
     assert completeness_payload["first_source_window_start_utc"] == "2024-01-01T10:30:00Z"
     assert _load_json_payload(tmp_path, normalized)["rows"][0]["window_start_utc"] == audit_payload["rows"][0]["window_start_utc"]
@@ -543,7 +550,92 @@ def test_completed_two_page_acquisition_writes_lineage_and_paired_normalized_art
     assert receipt["accepted_page_count"] == 2
     assert receipt["failed_or_rejected_attempt_count"] == 0
     assert receipt["completeness_status"] == "COMPLETE"
+    assert receipt["retrieval_completeness_status"] == monthly.PROVIDER_RETRIEVAL_COMPLETE
+    assert receipt["market_session_coverage_status"] == monthly.MARKET_SESSION_COVERAGE_NOT_EVALUATED
     assert first_body == next(_payload_from_manifest(tmp_path, m) for m in manifests if m["artifact_type"] == monthly.ARTIFACT_RAW_PROVIDER_PAGE)
+
+
+def test_sparse_one_page_month_reproduces_false_range_coverage_defect_and_completes_after_fix(tmp_path: Path):
+    request = _request_for_range("2025-01", "2025-01-01", "2025-01-31")
+    _, expected = _page_request(request, 1)
+    body = _bars_body(
+        [
+            _local_epoch_ms("2025-01-02", "10:00"),
+            _local_epoch_ms("2025-01-06", "11:15"),
+            _local_epoch_ms("2025-01-31", "19:45"),
+        ]
+    )
+    transport = ScriptedFakeTransport([ScriptedExchange(expected, http_response(200, body))])
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=transport,
+        run_root=tmp_path,
+        run_id="run-sparse-retrieval-complete",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_COMPLETED
+    assert receipt["pagination_status"] == monthly.PAGINATION_EXHAUSTED
+    assert receipt["completeness_status"] == "COMPLETE"
+    assert receipt["retrieval_completeness_status"] == monthly.PROVIDER_RETRIEVAL_COMPLETE
+    assert receipt["market_session_coverage_status"] == monthly.MARKET_SESSION_COVERAGE_NOT_EVALUATED
+    assert receipt["accepted_page_count"] == 1
+    assert receipt["raw_page_count"] == 1
+    assert receipt["row_count"] == 3
+    assert monthly.RANGE_COVERAGE_INCOMPLETE not in receipt["fixed_findings"]
+    manifests = [json.loads(path.read_text()) for path in (tmp_path / "run-sparse-retrieval-complete").rglob("*.manifest.json")]
+    completeness = next(m for m in manifests if m["artifact_type"] == monthly.ARTIFACT_MONTH_CHUNK_COMPLETENESS_MANIFEST)
+    normalized = next(m for m in manifests if m["artifact_type"] == monthly.ARTIFACT_MONTH_NORMALIZED_15M_OHLCV)
+    audit = next(m for m in manifests if m["artifact_type"] == monthly.ARTIFACT_MONTH_NORMALIZED_AGGREGATE_AUDIT_FIELDS)
+    completeness_payload = _load_json_payload(tmp_path, completeness)
+    normalized_payload = _load_json_payload(tmp_path, normalized)
+    audit_payload = _load_json_payload(tmp_path, audit)
+    assert completeness_payload["scope"] == monthly.PROVIDER_RETRIEVAL_COMPLETE
+    assert completeness_payload["pagination_status"] == monthly.PAGINATION_EXHAUSTED
+    assert completeness_payload["request_range_containment_status"] == monthly.REQUEST_RANGE_CONTAINED
+    assert completeness_payload["range_coverage_status"] == monthly.REQUEST_RANGE_CONTAINED
+    assert completeness_payload["market_session_coverage_status"] == monthly.MARKET_SESSION_COVERAGE_NOT_EVALUATED
+    assert completeness_payload["first_source_window_start_utc"] == "2025-01-02T15:00:00Z"
+    assert completeness_payload["last_source_window_start_utc"] == "2025-02-01T00:45:00Z"
+    assert normalized["primary_parent_artifact_id"] == completeness["artifact_id"]
+    assert audit["primary_parent_artifact_id"] == completeness["artifact_id"]
+    assert [row["window_start_utc"] for row in normalized_payload["rows"]] == [
+        "2025-01-02T15:00:00Z",
+        "2025-01-06T16:15:00Z",
+        "2025-02-01T00:45:00Z",
+    ]
+    assert [row["window_start_utc"] for row in audit_payload["rows"]] == [
+        row["window_start_utc"] for row in normalized_payload["rows"]
+    ]
+
+
+def test_weekend_like_empty_periods_and_internal_no_trade_gaps_do_not_block_retrieval(tmp_path: Path):
+    request = _request_for_range("2025-01", "2025-01-01", "2025-01-31")
+    _, expected = _page_request(request, 1)
+    body = _bars_body(
+        [
+            _local_epoch_ms("2025-01-03", "15:45"),
+            _local_epoch_ms("2025-01-06", "09:30"),
+            _local_epoch_ms("2025-01-21", "14:00"),
+            _local_epoch_ms("2025-01-31", "16:15"),
+        ]
+    )
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=ScriptedFakeTransport([ScriptedExchange(expected, http_response(200, body))]),
+        run_root=tmp_path,
+        run_id="run-empty-periods",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_COMPLETED
+    assert receipt["pagination_status"] == monthly.PAGINATION_EXHAUSTED
+    assert receipt["row_count"] == 4
+    assert receipt["fixed_findings"] == []
 
 
 def test_monthly_normalization_retains_provider_local_after_hours_source_bars(tmp_path: Path):
@@ -563,6 +655,7 @@ def test_monthly_normalization_retains_provider_local_after_hours_source_bars(tm
 
     assert receipt["status"] == monthly.MONTH_ACQUISITION_COMPLETED
     assert receipt["completeness_status"] == "COMPLETE"
+    assert receipt["market_session_coverage_status"] == monthly.MARKET_SESSION_COVERAGE_NOT_EVALUATED
     assert receipt["row_count"] == 2
     manifests = [json.loads(path.read_text()) for path in (tmp_path / "run-provider-local-hours").rglob("*.manifest.json")]
     normalized = next(m for m in manifests if m["artifact_type"] == monthly.ARTIFACT_MONTH_NORMALIZED_15M_OHLCV)
@@ -657,7 +750,7 @@ def test_retryable_http_statuses_retry_once_then_accept(status_code: int, tmp_pa
     assert receipt["attempt_count"] == 2
     assert receipt["recorded_retry_delays_seconds"] == [2]
     assert receipt["accepted_page_count"] == 1
-    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_VALID
+    assert receipt["pagination_status"] == monthly.PAGINATION_EXHAUSTED
 
 
 def test_first_page_authentication_failure_is_terminal_before_pagination(tmp_path: Path):
@@ -825,6 +918,25 @@ def test_timestamp_range_failure_is_not_reported_as_schema_failure(tmp_path: Pat
     assert attempts[0]["sanitized_schema_diagnostics"]["failure_stage"] == provider_response.TIMESTAMP_RANGE
 
 
+def test_interval_end_beyond_provider_local_range_remains_rejected():
+    utc_start, utc_end_exclusive = provider_response._local_date_bounds_as_utc(
+        datetime.fromisoformat("2025-01-01").date(),
+        datetime.fromisoformat("2025-01-31").date(),
+    )
+
+    with pytest.raises(provider_response.ProviderResponseError) as excinfo:
+        provider_response._validate_source_window_in_effective_local_range(
+            window_start=utc_end_exclusive - provider_response.timedelta(minutes=5),
+            window_end=utc_end_exclusive + provider_response.timedelta(minutes=10),
+            utc_start=utc_start,
+            utc_end_exclusive=utc_end_exclusive,
+            row_index=0,
+        )
+
+    assert excinfo.value.failure_category == provider_response.TIMESTAMP_RANGE_INVALID
+    assert excinfo.value.sanitized_diagnostics["fixed_finding"] == provider_response.SOURCE_WINDOW_OUTSIDE_EFFECTIVE_LOCAL_DATE_RANGE
+
+
 def test_retry_after_policy_violation_blocks_without_completeness(tmp_path: Path):
     request = _request()
     _, expected = _page_request(request, 1)
@@ -987,6 +1099,44 @@ def test_repeated_continuation_blocks_pagination(tmp_path: Path):
     assert receipt["status"] == monthly.MONTH_ACQUISITION_PAGINATION_INVALID
     assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_INVALID
     assert "PAGINATION_REPEATED_CONTINUATION" in receipt["fixed_findings"]
+
+
+def test_missing_required_subsequent_page_is_pagination_incomplete_not_chain_invalid(tmp_path: Path):
+    request = _request()
+    next_url = "https://api.massive.com/v2/aggs/ticker/FAKEFLOW/range/15/minute/2024-01-01/2024-01-01?cursor=missing&adjusted=true&sort=asc&limit=50000"
+    continuation = provider_response.sanitize_continuation_identity(next_url, _context(request))
+    first_page, first_expected = _page_request(request, 1)
+    _, second_expected = _page_request(request, 2, first_page.logical_page_request_id, continuation)
+    transport = ScriptedFakeTransport(
+        [
+            ScriptedExchange(first_expected, http_response(200, _body(next_url=next_url))),
+            ScriptedExchange(second_expected, timeout()),
+            ScriptedExchange(second_expected, timeout()),
+            ScriptedExchange(second_expected, timeout()),
+        ]
+    )
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=transport,
+        run_root=tmp_path,
+        run_id="run-missing-next-page",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_RETRY_EXHAUSTED
+    assert receipt["pagination_status"] == monthly.PAGINATION_INCOMPLETE
+    assert receipt["completeness_status"] == "INCOMPLETE"
+    assert receipt["accepted_page_count"] == 1
+    assert receipt["raw_page_count"] == 1
+    artifact_types = {
+        json.loads(path.read_text())["artifact_type"]
+        for path in (tmp_path / "run-missing-next-page").rglob("*.manifest.json")
+    }
+    assert monthly.ARTIFACT_MONTH_CHUNK_COMPLETENESS_MANIFEST not in artifact_types
+    assert monthly.ARTIFACT_MONTH_NORMALIZED_15M_OHLCV not in artifact_types
+    assert monthly.ARTIFACT_MONTH_NORMALIZED_AGGREGATE_AUDIT_FIELDS not in artifact_types
 
 
 def test_duplicate_timestamp_across_pages_blocks_pagination(tmp_path: Path):

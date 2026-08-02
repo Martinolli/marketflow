@@ -9,7 +9,6 @@ from datetime import UTC, date, datetime, timedelta
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Iterable
-from zoneinfo import ZoneInfo
 
 from marketflow.historical_data import artifacts
 from marketflow.historical_data.fake_transport import (
@@ -75,11 +74,16 @@ PROVIDER_RESPONSE_VARIANCE = "PROVIDER_RESPONSE_VARIANCE"
 ONE_VALID_ATTEMPT_PER_PAGE = "ONE_VALID_ATTEMPT_PER_PAGE"
 SEMANTIC_RETRY_NOT_APPLICABLE = "SEMANTIC_RETRY_NOT_APPLICABLE"
 PAGINATION_CHAIN_VALID = "PAGINATION_CHAIN_VALID"
+PAGINATION_EXHAUSTED = "PAGINATION_EXHAUSTED"
 PAGINATION_CHAIN_INVALID = "PAGINATION_CHAIN_INVALID"
+PAGINATION_INCOMPLETE = "PAGINATION_INCOMPLETE"
 PAGINATION_NOT_STARTED = "PAGINATION_NOT_STARTED"
 RETRY_AFTER_POLICY_VIOLATION = "RETRY_AFTER_POLICY_VIOLATION"
 RANGE_COVERAGE_COMPLETE = "RANGE_COVERAGE_COMPLETE"
 RANGE_COVERAGE_INCOMPLETE = "RANGE_COVERAGE_INCOMPLETE"
+REQUEST_RANGE_CONTAINED = "REQUEST_RANGE_CONTAINED"
+PROVIDER_RETRIEVAL_COMPLETE = "PROVIDER_RETRIEVAL_COMPLETE"
+MARKET_SESSION_COVERAGE_NOT_EVALUATED = "MARKET_SESSION_COVERAGE_NOT_EVALUATED"
 AUTHENTICATION_FAILURE = "AUTHENTICATION_FAILURE"
 AUTHORIZATION_FAILURE = "AUTHORIZATION_FAILURE"
 RESPONSE_SCHEMA_INVALID = "RESPONSE_SCHEMA_INVALID"
@@ -612,9 +616,11 @@ def _block_status_from_failed_page(terminal_status: str | None, attempts: list[d
 
 def _pagination_status(*, status: str, page_count: int) -> str:
     if status == MONTH_ACQUISITION_COMPLETED:
-        return PAGINATION_CHAIN_VALID
+        return PAGINATION_EXHAUSTED
     if page_count == 0 and status != MONTH_ACQUISITION_PAGINATION_INVALID:
         return PAGINATION_NOT_STARTED
+    if status == MONTH_ACQUISITION_RETRY_EXHAUSTED:
+        return PAGINATION_INCOMPLETE
     return PAGINATION_CHAIN_INVALID
 
 
@@ -909,15 +915,10 @@ def _audit_rows(rows: Iterable[AggregateRow], *, month_request: MonthChunkReques
     )
 
 
-def _range_coverage_status(rows: list[AggregateRow], *, month_request: MonthChunkRequest) -> str:
+def _request_range_containment_status(rows: list[AggregateRow], *, month_request: MonthChunkRequest) -> str:
     if not rows:
         return RANGE_COVERAGE_INCOMPLETE
-    source_tz = ZoneInfo(contract_v21.SESSION_MAPPING_TIMEZONE)
-    first_date = datetime.fromisoformat(rows[0].window_start_utc.replace("Z", "+00:00")).astimezone(source_tz).date().isoformat()
-    last_date = datetime.fromisoformat(rows[-1].window_start_utc.replace("Z", "+00:00")).astimezone(source_tz).date().isoformat()
-    if first_date != month_request.effective_start_date or last_date != month_request.effective_end_date:
-        return RANGE_COVERAGE_INCOMPLETE
-    return RANGE_COVERAGE_COMPLETE
+    return REQUEST_RANGE_CONTAINED
 
 
 def _receipt(
@@ -975,6 +976,8 @@ def _receipt(
         "accepted_page_count": page_count,
         "failed_or_rejected_attempt_count": sum(1 for attempt in attempt_records if not attempt.get("accepted_attempt")),
         "completeness_status": "COMPLETE" if status == MONTH_ACQUISITION_COMPLETED else "INCOMPLETE",
+        "retrieval_completeness_status": PROVIDER_RETRIEVAL_COMPLETE if status == MONTH_ACQUISITION_COMPLETED else "INCOMPLETE",
+        "market_session_coverage_status": MARKET_SESSION_COVERAGE_NOT_EVALUATED,
         "page_count": page_count,
         "raw_page_count": sum(1 for attempt in attempt_records if attempt.get("raw_page_artifact_id")),
         "row_count": row_count,
@@ -1094,12 +1097,29 @@ def execute_fake_monthly_acquisition(
         raw_continuation_evidence = next_raw_continuation_evidence
         page_ordinal += 1
 
-    if not block_status and _range_coverage_status(all_rows, month_request=month_request) != RANGE_COVERAGE_COMPLETE:
-        block_status = MONTH_ACQUISITION_PAGINATION_INVALID
-        fixed_findings.append(RANGE_COVERAGE_INCOMPLETE)
+    range_containment_status = _request_range_containment_status(all_rows, month_request=month_request)
+    if not block_status and range_containment_status != REQUEST_RANGE_CONTAINED:
+        block_status = MONTH_ACQUISITION_INVALID
+        fixed_findings.append(range_containment_status)
     status = _status_from_block(block_status) if block_status else MONTH_ACQUISITION_COMPLETED
     if status == MONTH_ACQUISITION_COMPLETED:
         raw_page_manifests = tuple(candidate.raw_page.artifact for candidate in accepted_pages)
+        raw_page_manifest_refs = tuple(_manifest_ref(manifest, run_root=run_root) for manifest in raw_page_manifests)
+        for manifest, manifest_ref in zip(raw_page_manifests, raw_page_manifest_refs, strict=True):
+            validate_saved_monthly_manifest(
+                manifest,
+                run_root=run_root,
+                expected_run_id=actual_run_id,
+                expected_artifact_type=ARTIFACT_RAW_PROVIDER_PAGE,
+            )
+            _load_monthly_manifest_ref(run_root, manifest_ref)
+        for manifest in all_attempt_manifests:
+            validate_saved_monthly_manifest(
+                manifest,
+                run_root=run_root,
+                expected_run_id=actual_run_id,
+                expected_artifact_type=ARTIFACT_REQUEST_ATTEMPT_RECORD,
+            )
         completeness_payload = {
             "schema_version": "marketflow.month_chunk_completeness_manifest.v1",
             "month_request_digest": month_request.request_semantic_digest,
@@ -1107,12 +1127,18 @@ def execute_fake_monthly_acquisition(
             "month_key": month_request.month_key,
             "effective_start_date": month_request.effective_start_date,
             "effective_end_date": month_request.effective_end_date,
-            "pagination_status": PAGINATION_CHAIN_VALID,
+            "scope": PROVIDER_RETRIEVAL_COMPLETE,
+            "pagination_status": PAGINATION_EXHAUSTED,
             "pagination_exhausted": True,
-            "range_coverage_status": RANGE_COVERAGE_COMPLETE,
+            "page_chain_status": PAGINATION_EXHAUSTED,
+            "request_range_containment_status": REQUEST_RANGE_CONTAINED,
+            "range_coverage_status": REQUEST_RANGE_CONTAINED,
+            "market_session_coverage_status": MARKET_SESSION_COVERAGE_NOT_EVALUATED,
             "duplicate_status": "NO_DUPLICATES",
             "conflict_status": "NO_CONFLICTS",
-            "completion_status": "COMPLETE",
+            "completion_status": PROVIDER_RETRIEVAL_COMPLETE,
+            "canonical_dataset_complete": False,
+            "rth_dataset_complete": False,
             "page_count": len(accepted_pages),
             "row_count": len(all_rows),
             "first_source_window_start_utc": all_rows[0].window_start_utc if all_rows else None,

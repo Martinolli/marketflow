@@ -357,7 +357,7 @@ def test_multi_page_success_retry_then_success_and_no_automatic_rerun(tmp_path: 
 
     assert receipt["smoke_status"] == "SMOKE_COMPLETED_NONCANONICAL"
     assert receipt["request_status"] == monthly.MONTH_ACQUISITION_COMPLETED
-    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_VALID
+    assert receipt["pagination_status"] == monthly.PAGINATION_EXHAUSTED
     assert receipt["completeness_status"] == "COMPLETE"
     assert receipt["attempt_count"] == 3
     assert receipt["accepted_page_count"] == 2
@@ -367,22 +367,29 @@ def test_multi_page_success_retry_then_success_and_no_automatic_rerun(tmp_path: 
     assert "cursor=next" in seen_urls[-1]
 
 
-def test_transport_failure_and_incomplete_month_statuses(tmp_path: Path):
+def test_transport_failure_and_sparse_one_page_month_statuses(tmp_path: Path):
     failed = _run_with_mock(
         tmp_path / "failed",
         lambda request: httpx.Response(500, headers={"Content-Type": "application/json"}, content=b'{"status":"ERROR"}'),
         run_id="smoke-failed-run",
     )
-    incomplete = _run_with_mock(
-        tmp_path / "incomplete",
+    sparse = _run_with_mock(
+        tmp_path / "sparse",
         lambda request: httpx.Response(200, headers={"Content-Type": "application/json"}, content=_body(t=1735828200000)),
-        run_id="smoke-incomplete-run",
+        run_id="smoke-sparse-run",
     )
 
     assert failed["smoke_status"] == "SMOKE_TRANSPORT_FAILED"
     assert failed["attempt_count"] == 3
-    assert incomplete["smoke_status"] == "SMOKE_MONTH_INCOMPLETE"
-    assert "RANGE_COVERAGE_INCOMPLETE" in incomplete["fixed_findings"]
+    assert sparse["smoke_status"] == "SMOKE_COMPLETED_NONCANONICAL"
+    assert sparse["request_status"] == monthly.MONTH_ACQUISITION_COMPLETED
+    assert sparse["pagination_status"] == monthly.PAGINATION_EXHAUSTED
+    assert sparse["completeness_status"] == "COMPLETE"
+    assert sparse["accepted_page_count"] == 1
+    assert sparse["raw_page_count"] == 1
+    assert sparse["total_normalized_row_count"] > 0
+    assert sparse["normalized_artifact_receipts"]
+    assert "RANGE_COVERAGE_INCOMPLETE" not in sparse["fixed_findings"]
 
 
 def test_pagination_failure_is_invalid_without_second_run(tmp_path: Path):
@@ -421,7 +428,7 @@ def test_smoke_artifacts_are_isolated_opaque_noncanonical_and_sanitized(tmp_path
     assert receipt["smoke_receipt_ref"] == "smoke-opaque-123/smoke_receipt/smoke-receipt.json"
     assert receipt["classification"] == "NONCANONICAL_PROVIDER_SMOKE"
     assert receipt["request_status"] == monthly.MONTH_ACQUISITION_COMPLETED
-    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_VALID
+    assert receipt["pagination_status"] == monthly.PAGINATION_EXHAUSTED
     assert receipt["completeness_status"] == "COMPLETE"
     assert receipt["provenance"] == "LIVE_PROVIDER_SMOKE_NONCANONICAL"
     assert receipt["canonical_eligibility"] is False
