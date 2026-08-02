@@ -7,6 +7,14 @@ import json
 import tempfile
 
 from marketflow.historical_data.frozen_calendar import default_calendar_request, generate_frozen_calendar
+from marketflow.historical_data.live_month_rth_diagnostic import (
+    DIAGNOSTIC_CLASSIFICATION,
+    diagnostic_confirmation_details,
+    diagnostic_confirmation_phrase,
+    plan_receipt as live_month_rth_derivation_plan,
+    run_local_diagnostic as run_live_month_rth_derivation,
+    self_check as live_month_rth_derivation_self_check,
+)
 from marketflow.historical_data.massive_date_diagnostic import (
     DATE_DIAGNOSTIC_SCHEMA_ACCEPTED,
     DATE_DIAGNOSTIC_SCHEMA_REJECTED,
@@ -87,6 +95,21 @@ def main(argv: list[str] | None = None) -> int:
         action="store_true",
         help="Run the interactive, operator-authorized January 2025 Massive.com date diagnostic.",
     )
+    parser.add_argument(
+        "--live-month-rth-derivation-plan",
+        action="store_true",
+        help="Print the fixed noncanonical live-month RTH derivation diagnostic plan without network or credential access.",
+    )
+    parser.add_argument(
+        "--live-month-rth-derivation-self-check",
+        action="store_true",
+        help="Run the live-month RTH derivation diagnostic self-check with synthetic temporary artifacts only.",
+    )
+    parser.add_argument(
+        "--live-month-rth-derivation-run",
+        action="store_true",
+        help="Run the fixed local noncanonical RTH derivation diagnostic against accepted smoke evidence.",
+    )
     args = parser.parse_args(argv)
     v2 = contract_v2.default_contract()
     v21 = contract_v21.default_contract()
@@ -106,6 +129,9 @@ def main(argv: list[str] | None = None) -> int:
             args.massive_date_diagnostic_2026_plan,
             args.massive_date_diagnostic_2026_self_check,
             args.massive_date_diagnostic_2026_run,
+            args.live_month_rth_derivation_plan,
+            args.live_month_rth_derivation_self_check,
+            args.live_month_rth_derivation_run,
         )
         if selected
     )
@@ -183,6 +209,31 @@ def main(argv: list[str] | None = None) -> int:
         receipt = run_massive_date_diagnostic_2026_live()
         print(json.dumps(receipt, sort_keys=True, indent=2))
         return 0 if receipt["status"] in {DATE_DIAGNOSTIC_SCHEMA_ACCEPTED, DATE_DIAGNOSTIC_SCHEMA_REJECTED} else 2
+    if args.live_month_rth_derivation_plan:
+        receipt = live_month_rth_derivation_plan()
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0
+    if args.live_month_rth_derivation_self_check:
+        receipt = live_month_rth_derivation_self_check()
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0
+    if args.live_month_rth_derivation_run:
+        plan = live_month_rth_derivation_plan()
+        confirmation_details = diagnostic_confirmation_details()
+        print(json.dumps(plan, sort_keys=True, indent=2))
+        print(f"NONCANONICAL CLASSIFICATION: {DIAGNOSTIC_CLASSIFICATION}")
+        print("WARNING: LOCAL_NONCANONICAL_DIAGNOSTIC_ONLY_NO_PROVIDER_NO_CREDENTIAL_NO_STRATEGY_NO_PERFORMANCE_NO_REGISTRY")
+        print(f"Diagnostic specification digest: {confirmation_details['diagnostic_specification_digest']}")
+        print(f"Diagnostic digest prefix: {confirmation_details['diagnostic_specification_digest_prefix']}")
+        print(f"Required operator confirmation phrase: {confirmation_details['required_confirmation_phrase']}")
+        confirmation = input("Type confirmation phrase: ")
+        receipt = run_live_month_rth_derivation(confirmation)
+        print(json.dumps(receipt, sort_keys=True, indent=2))
+        return 0 if receipt["diagnostic_status"] in {
+            "LIVE_MONTH_RTH_DERIVATION_COMPLETE",
+            "LIVE_MONTH_RTH_DERIVATION_PARTIAL",
+            "LIVE_MONTH_RTH_DERIVATION_BLOCKED",
+        } and confirmation == diagnostic_confirmation_phrase() else 2
     calendar = generate_frozen_calendar(default_calendar_request())
     receipt = {
         "status": "HISTORICAL_DATA_ENGINE_READY_FOR_OFFLINE_SYNTHETIC_USE",
