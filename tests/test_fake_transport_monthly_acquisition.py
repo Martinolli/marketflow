@@ -31,19 +31,27 @@ def _body(
     close: str = "100",
     next_url: str | None = None,
     numeric_string: bool = False,
+    count: str | None = None,
+    row_extra: str = "",
+    top_extra: str = "",
 ) -> bytes:
     close_value = f'"{close}"' if numeric_string else close
     next_part = f',"next_url":"{next_url}"' if next_url else ""
+    count_part = f',"count":{count}' if count is not None else ""
     return (
         '{"adjusted":true,"queryCount":1,"results":[{"c":'
         + close_value
         + ',"h":101,"l":99,"n":10,"o":100,"t":'
         + str(t)
-        + ',"v":1000,"vw":100.5}],'
+        + ',"v":1000,"vw":100.5'
+        + row_extra
+        + "}],"
         + '"resultsCount":1,"status":"OK","ticker":"'
         + ticker
         + '"'
+        + count_part
         + next_part
+        + top_extra
         + "}"
     ).encode("utf-8")
 
@@ -86,6 +94,15 @@ def _payload_from_manifest(root: Path, manifest: dict) -> bytes:
 
 def _load_json_payload(root: Path, manifest: dict) -> dict:
     return json.loads(_payload_from_manifest(root, manifest))
+
+
+def _schema_error_diagnostics(body: bytes) -> dict:
+    request = _request()
+    with pytest.raises(provider_response.ProviderResponseError) as excinfo:
+        provider_response.parse_provider_response(body, body_sha256="x", context=_context(request))
+    diagnostics = excinfo.value.sanitized_diagnostics
+    assert isinstance(diagnostics, dict)
+    return diagnostics
 
 
 def test_month_request_binds_contracts_and_rejects_real_ticker():
@@ -149,6 +166,83 @@ def test_provider_parser_rejects_numeric_strings_and_bool_ints():
     bad_bool_int = b'{"adjusted":true,"queryCount":1,"results":[{"c":100,"h":101,"l":99,"n":true,"o":100,"t":1704105000000,"v":1000}],"resultsCount":1,"status":"OK","ticker":"FAKEFLOW"}'
     with pytest.raises(provider_response.ProviderResponseError):
         provider_response.parse_provider_response(bad_bool_int, body_sha256="x", context=context)
+
+
+def test_provider_parser_accepts_optional_count_when_redundant_and_excludes_from_projection():
+    request = _request()
+    context = _context(request)
+    without_count = provider_response.parse_provider_response(_body(), body_sha256="x", context=context)
+    with_count = provider_response.parse_provider_response(_body(count="1"), body_sha256="x", context=context)
+
+    assert with_count.results_count == 1
+    assert "count" not in with_count.semantic_projection
+    assert with_count.semantic_projection_digest == without_count.semantic_projection_digest
+
+
+def test_provider_parser_rejects_count_mismatch_and_invalid_count_types():
+    assert _schema_error_diagnostics(_body(count="0"))["unexpected_top_level_fields"] == []
+    assert _schema_error_diagnostics(
+        b'{"adjusted":true,"queryCount":2,"results":[{"c":100,"h":101,"l":99,"n":10,"o":100,"t":1704105000000,"v":1000,"vw":100.5}],"resultsCount":2,"status":"OK","ticker":"FAKEFLOW","count":2}'
+    )["unexpected_top_level_fields"] == []
+    for count in ("true", '"1"', "1.0"):
+        diagnostics = _schema_error_diagnostics(_body(count=count))
+        assert {"field": "count", "expected_type": "INTEGER", "actual_type": diagnostics["type_mismatches"][0]["actual_type"]} in diagnostics[
+            "type_mismatches"
+        ]
+
+
+def test_provider_parser_accepts_optional_otc_bool_and_excludes_from_projection():
+    request = _request()
+    context = _context(request)
+    absent = provider_response.parse_provider_response(_body(), body_sha256="x", context=context)
+    otc_true = provider_response.parse_provider_response(_body(row_extra=',"otc":true'), body_sha256="x", context=context)
+    otc_false = provider_response.parse_provider_response(_body(row_extra=',"otc":false'), body_sha256="x", context=context)
+
+    assert otc_true.rows[0].close == absent.rows[0].close
+    assert otc_false.rows[0].close == absent.rows[0].close
+    assert "otc" not in json.dumps(otc_true.semantic_projection, sort_keys=True)
+    assert otc_true.semantic_projection_digest == absent.semantic_projection_digest
+    assert otc_false.semantic_projection_digest == absent.semantic_projection_digest
+
+
+def test_provider_parser_rejects_otc_non_bool_and_unknown_fields_with_sanitized_diagnostics():
+    for row_extra in (',"otc":"true"', ',"otc":1'):
+        diagnostics = _schema_error_diagnostics(_body(row_extra=row_extra))
+        assert {
+            "field": "otc",
+            "row_index": 0,
+            "scope": "aggregate_row",
+            "expected_type": "BOOL",
+            "actual_type": diagnostics["type_mismatches"][0]["actual_type"],
+        } in diagnostics["type_mismatches"]
+
+    top_diagnostics = _schema_error_diagnostics(
+        _body(
+            next_url="https://api.massive.com/v2/aggs/ticker/FAKEFLOW/range/15/minute/2024-01-01/2024-01-01?cursor=opaque-secret-cursor&adjusted=true&sort=asc&limit=50000",
+            top_extra=',"request_id":"request-123-next-secret-1000","mysteryField":"request-123-next-secret-1000"',
+        )
+    )
+    assert top_diagnostics["unexpected_top_level_fields"] == ["mysteryField"]
+    assert top_diagnostics["top_level_fields"] == sorted(
+        ["adjusted", "mysteryField", "queryCount", "results", "resultsCount", "status", "ticker"]
+    )
+    row_diagnostics = _schema_error_diagnostics(_body(row_extra=',"mysteryRowField":"ohlcv-secret-1000"'))
+    assert row_diagnostics["aggregate_row_failures"] == [
+        {"row_index": 0, "unexpected_row_fields": ["mysteryRowField"], "missing_row_fields": []}
+    ]
+    diagnostic_text = json.dumps({"top": top_diagnostics, "row": row_diagnostics}, sort_keys=True)
+    for forbidden in (
+        "request-123-next-secret-1000",
+        "ohlcv-secret-1000",
+        "opaque-secret-cursor",
+        "Authorization",
+        "fictional-smoke-key",
+        "apiKey",
+        "request_id",
+        "next_url",
+        "100.5",
+    ):
+        assert forbidden not in diagnostic_text
 
 
 def test_provider_parser_rejects_nan_duplicate_keys_and_bad_timestamp():
@@ -383,6 +477,104 @@ def test_first_page_authentication_failure_is_terminal_before_pagination(tmp_pat
     assert attempts[0]["http_status"] == 401
     assert attempts[0]["response_body_available"] is False
     assert attempts[0]["response_body_complete"] is False
+
+
+def test_first_page_authentication_failure_with_body_does_not_persist_raw_page(tmp_path: Path):
+    request = _request()
+    _, expected = _page_request(request, 1)
+    transport = ScriptedFakeTransport(
+        [
+            ScriptedExchange(
+                expected,
+                http_response(
+                    401,
+                    b'{"status":"ERROR","message":"credential rejected body must not persist"}',
+                    headers={"failure_category": monthly.AUTHENTICATION_FAILURE},
+                ),
+            )
+        ]
+    )
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=transport,
+        run_root=tmp_path,
+        run_id="run-auth-401-body",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_AUTHENTICATION_FAILED
+    assert receipt["pagination_status"] == monthly.PAGINATION_NOT_STARTED
+    assert receipt["fixed_findings"] == [monthly.AUTHENTICATION_FAILURE]
+    assert receipt["attempt_count"] == 1
+    assert receipt["accepted_page_count"] == 0
+    assert receipt["raw_page_count"] == 0
+    assert receipt["recorded_retry_delays_seconds"] == []
+    attempts = [
+        _load_json_payload(tmp_path, json.loads(path.read_text()))
+        for path in (tmp_path / "run-auth-401-body").rglob("*.manifest.json")
+        if json.loads(path.read_text())["artifact_type"] == monthly.ARTIFACT_REQUEST_ATTEMPT_RECORD
+    ]
+    assert len(attempts) == 1
+    assert attempts[0]["attempt_status"] == monthly.ATTEMPT_REJECTED_NON_RETRYABLE
+    assert attempts[0]["response_body_available"] is True
+    assert attempts[0]["response_body_complete"] is True
+    assert attempts[0]["raw_page_artifact_id"] is None
+    all_text = "\n".join(path.read_text(encoding="utf-8", errors="ignore") for path in tmp_path.rglob("*") if path.is_file())
+    assert "credential rejected body must not persist" not in all_text
+
+
+def test_first_page_schema_failure_is_terminal_before_pagination_with_sanitized_diagnostics(tmp_path: Path):
+    request = _request()
+    _, expected = _page_request(request, 1)
+    body = _body(top_extra=',"mysteryField":"request-123-next-secret-1000"')
+    transport = ScriptedFakeTransport([ScriptedExchange(expected, http_response(200, body))])
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=transport,
+        run_root=tmp_path,
+        run_id="run-schema-200",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED
+    assert receipt["pagination_status"] == monthly.PAGINATION_NOT_STARTED
+    assert receipt["completeness_status"] == "INCOMPLETE"
+    assert receipt["fixed_findings"] == [monthly.RESPONSE_SCHEMA_INVALID]
+    assert receipt["attempt_count"] == 1
+    assert receipt["accepted_page_count"] == 0
+    assert receipt["raw_page_count"] == 0
+    assert receipt["recorded_retry_delays_seconds"] == []
+    attempts = [
+        _load_json_payload(tmp_path, json.loads(path.read_text()))
+        for path in (tmp_path / "run-schema-200").rglob("*.manifest.json")
+        if json.loads(path.read_text())["artifact_type"] == monthly.ARTIFACT_REQUEST_ATTEMPT_RECORD
+    ]
+    assert len(attempts) == 1
+    assert attempts[0]["attempt_status"] == monthly.ATTEMPT_REJECTED_NON_RETRYABLE
+    assert attempts[0]["failure_category"] == monthly.SCHEMA_FAILURE
+    assert attempts[0]["http_status"] == 200
+    assert attempts[0]["response_body_available"] is True
+    assert attempts[0]["response_body_complete"] is True
+    assert attempts[0]["raw_page_artifact_id"] is None
+    assert attempts[0]["sanitized_schema_diagnostics"]["unexpected_top_level_fields"] == ["mysteryField"]
+    diagnostic_text = json.dumps(attempts[0]["sanitized_schema_diagnostics"], sort_keys=True)
+    all_text = "\n".join(path.read_text(encoding="utf-8", errors="ignore") for path in tmp_path.rglob("*") if path.is_file())
+    for forbidden in ("request-123-next-secret-1000", "Authorization", "apiKey", "next_url", "100.5"):
+        assert forbidden not in diagnostic_text
+        assert forbidden not in all_text
+    assert monthly.ARTIFACT_MONTH_CHUNK_COMPLETENESS_MANIFEST not in {
+        json.loads(path.read_text())["artifact_type"] for path in (tmp_path / "run-schema-200").rglob("*.manifest.json")
+    }
+    assert monthly.ARTIFACT_MONTH_NORMALIZED_15M_OHLCV not in {
+        json.loads(path.read_text())["artifact_type"] for path in (tmp_path / "run-schema-200").rglob("*.manifest.json")
+    }
+    assert monthly.ARTIFACT_MONTH_NORMALIZED_AGGREGATE_AUDIT_FIELDS not in {
+        json.loads(path.read_text())["artifact_type"] for path in (tmp_path / "run-schema-200").rglob("*.manifest.json")
+    }
 
 
 def test_retry_after_policy_violation_blocks_without_completeness(tmp_path: Path):

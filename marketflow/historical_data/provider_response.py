@@ -18,10 +18,21 @@ VWAP_ABSENT = "VWAP_ABSENT"
 TRANSACTION_COUNT_PRESENT = "TRANSACTION_COUNT_PRESENT"
 TRANSACTION_COUNT_ABSENT = "TRANSACTION_COUNT_ABSENT"
 VALID_PROVIDER_STATUSES = frozenset({"OK"})
+TOP_LEVEL_FIELDS = frozenset({"adjusted", "count", "next_url", "queryCount", "request_id", "results", "resultsCount", "status", "ticker"})
+AGGREGATE_ROW_REQUIRED_FIELDS = frozenset({"c", "h", "l", "o", "t", "v"})
+AGGREGATE_ROW_OPTIONAL_FIELDS = frozenset({"n", "otc", "vw"})
+AGGREGATE_ROW_FIELDS = AGGREGATE_ROW_REQUIRED_FIELDS | AGGREGATE_ROW_OPTIONAL_FIELDS
+SCHEMA_DIAGNOSTIC_VERSION = "massive_custom_bars_schema_diagnostics.v1"
+_MAX_DIAGNOSTIC_IDENTIFIER_LENGTH = 64
+_SENSITIVE_DIAGNOSTIC_FIELD_NAMES = frozenset({"next_url", "request_id"})
 
 
 class ProviderResponseError(ValueError):
     """Raised when a provider response fails strict offline contract parsing."""
+
+    def __init__(self, message: str, *, sanitized_diagnostics: dict[str, Any] | None = None) -> None:
+        super().__init__(message)
+        self.sanitized_diagnostics = sanitized_diagnostics
 
 
 @dataclass(frozen=True, slots=True)
@@ -119,6 +130,135 @@ def _require_int(value: Any, field_name: str) -> int:
     if type(value) is not int:
         raise ProviderResponseError(f"{field_name} must be an exact integer")
     return value
+
+
+def _safe_field_identifier(value: str) -> str:
+    if type(value) is not str or not value or len(value) > _MAX_DIAGNOSTIC_IDENTIFIER_LENGTH:
+        return "UNSAFE_FIELD_IDENTIFIER"
+    if not all(char.isascii() and (char.isalnum() or char in {"_"}) for char in value):
+        return "UNSAFE_FIELD_IDENTIFIER"
+    return value
+
+
+def _safe_field_names(values: set[str]) -> list[str]:
+    return sorted({_safe_field_identifier(value) for value in values if value not in _SENSITIVE_DIAGNOSTIC_FIELD_NAMES})
+
+
+def _json_type_category(value: Any) -> str:
+    if value is None:
+        return "NULL"
+    if type(value) is bool:
+        return "BOOL"
+    if type(value) is int:
+        return "INTEGER"
+    if type(value) is Decimal:
+        return "NUMBER"
+    if type(value) is str:
+        return "STRING"
+    if isinstance(value, list):
+        return "ARRAY"
+    if isinstance(value, dict):
+        return "OBJECT"
+    return "UNKNOWN"
+
+
+def _schema_diagnostics(payload: Any) -> dict[str, Any]:
+    diagnostics: dict[str, Any] = {"schema_diagnostic_version": SCHEMA_DIAGNOSTIC_VERSION}
+    if not isinstance(payload, dict):
+        diagnostics["top_level_type"] = _json_type_category(payload)
+        return diagnostics
+    top_fields = set(payload)
+    diagnostics["top_level_fields"] = _safe_field_names(top_fields)
+    diagnostics["unexpected_top_level_fields"] = _safe_field_names(top_fields - TOP_LEVEL_FIELDS)
+    diagnostics["missing_top_level_fields"] = _safe_field_names(
+        field for field in {"adjusted", "queryCount", "results", "resultsCount", "status", "ticker"} if field not in payload
+    )
+    type_mismatches: list[dict[str, str]] = []
+    expected_top_level = {
+        "adjusted": "BOOL",
+        "count": "INTEGER",
+        "queryCount": "INTEGER",
+        "resultsCount": "INTEGER",
+        "status": "STRING",
+        "ticker": "STRING",
+    }
+    for field, expected in expected_top_level.items():
+        if field in payload:
+            actual = _json_type_category(payload[field])
+            if actual != expected:
+                type_mismatches.append({"field": field, "expected_type": expected, "actual_type": actual})
+    results = payload.get("results")
+    if isinstance(results, list):
+        row_field_sets: list[list[str]] = []
+        row_failures: list[dict[str, Any]] = []
+        for index, item in enumerate(results):
+            if not isinstance(item, dict):
+                row_failures.append({"row_index": index, "row_type": _json_type_category(item)})
+                continue
+            row_fields = set(item)
+            row_field_sets.append(_safe_field_names(row_fields))
+            unexpected = row_fields - AGGREGATE_ROW_FIELDS
+            missing = AGGREGATE_ROW_REQUIRED_FIELDS - row_fields
+            if unexpected or missing:
+                row_failures.append(
+                    {
+                        "row_index": index,
+                        "unexpected_row_fields": _safe_field_names(unexpected),
+                        "missing_row_fields": _safe_field_names(missing),
+                    }
+                )
+            for field in sorted(AGGREGATE_ROW_REQUIRED_FIELDS | {"n", "otc"}):
+                if field in item:
+                    actual = _json_type_category(item[field])
+                    expected = "BOOL" if field == "otc" else "INTEGER" if field in {"n", "t"} else "NUMBER"
+                    if actual != expected and not (expected == "NUMBER" and actual == "INTEGER"):
+                        type_mismatches.append(
+                            {
+                                "field": _safe_field_identifier(field),
+                                "row_index": index,
+                                "scope": "aggregate_row",
+                                "expected_type": expected,
+                                "actual_type": actual,
+                            }
+                        )
+        diagnostics["aggregate_row_field_sets"] = row_field_sets
+        diagnostics["aggregate_row_failures"] = row_failures
+    else:
+        diagnostics["results_type"] = _json_type_category(results)
+    diagnostics["type_mismatches"] = type_mismatches
+    return diagnostics
+
+
+def _raise_schema_error(message: str, payload: Any) -> None:
+    raise ProviderResponseError(message, sanitized_diagnostics=_schema_diagnostics(payload))
+
+
+def _reject_unknown_top_level_fields(payload: dict[str, Any]) -> None:
+    if set(payload) - TOP_LEVEL_FIELDS:
+        _raise_schema_error("provider response contains unexpected top-level field", payload)
+
+
+def _validate_optional_count(payload: dict[str, Any], results_count: int, result_length: int) -> None:
+    if "count" not in payload:
+        return
+    if type(payload["count"]) is not int:
+        _raise_schema_error("count must be an exact integer", payload)
+    count = payload["count"]
+    if count < 0 or count != results_count or count != result_length:
+        _raise_schema_error("count must equal resultsCount and parsed result count", payload)
+
+
+def _reject_unknown_or_missing_row_fields(row: dict[str, Any], payload: dict[str, Any], index: int) -> None:
+    row_fields = set(row)
+    if row_fields - AGGREGATE_ROW_FIELDS:
+        _raise_schema_error(f"results[{index}] contains unexpected aggregate field", payload)
+    if AGGREGATE_ROW_REQUIRED_FIELDS - row_fields:
+        _raise_schema_error(f"results[{index}] is missing required aggregate field", payload)
+
+
+def _validate_optional_otc(row: dict[str, Any], payload: dict[str, Any]) -> None:
+    if "otc" in row and type(row["otc"]) is not bool:
+        _raise_schema_error("results[].otc must be boolean", payload)
 
 
 def _require_decimal(value: Any, field_name: str) -> Decimal:
@@ -227,6 +367,7 @@ def parse_provider_response(
     context: ResponseRequestContext,
 ) -> ParsedProviderResponse:
     payload = _require_mapping(_load_json(body), "provider response")
+    _reject_unknown_top_level_fields(payload)
     ticker = _require_text(payload.get("ticker"), "ticker")
     if ticker != context.canonical_ticker:
         raise ProviderResponseError("provider ticker mismatch")
@@ -241,6 +382,7 @@ def parse_provider_response(
     results = payload.get("results")
     if not isinstance(results, list):
         raise ProviderResponseError("results must be an array")
+    _validate_optional_count(payload, results_count, len(results))
     if results_count != len(results):
         raise ProviderResponseError("resultsCount must equal parsed result count")
     if results_count <= 0:
@@ -257,6 +399,8 @@ def parse_provider_response(
     projection_rows: list[dict[str, Any]] = []
     for index, item in enumerate(results):
         row = _require_mapping(item, f"results[{index}]")
+        _reject_unknown_or_missing_row_fields(row, payload, index)
+        _validate_optional_otc(row, payload)
         timestamp = _require_int(row.get("t"), "results[].t")
         try:
             window_start, window_end = contract_v21.source_window_from_epoch_ms(timestamp)

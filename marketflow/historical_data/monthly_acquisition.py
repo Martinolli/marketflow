@@ -57,6 +57,7 @@ MONTH_ACQUISITION_RETRY_EXHAUSTED = "MONTH_ACQUISITION_RETRY_EXHAUSTED"
 MONTH_ACQUISITION_RESPONSE_VARIANCE = "MONTH_ACQUISITION_RESPONSE_VARIANCE"
 MONTH_ACQUISITION_PAGINATION_INVALID = "MONTH_ACQUISITION_PAGINATION_INVALID"
 MONTH_ACQUISITION_AUTHENTICATION_FAILED = "MONTH_ACQUISITION_AUTHENTICATION_FAILED"
+MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED = "MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED"
 MONTH_ACQUISITION_INVALID = "MONTH_ACQUISITION_INVALID"
 
 ATTEMPT_ACCEPTED = "REQUEST_ATTEMPT_ACCEPTED"
@@ -76,6 +77,9 @@ RETRY_AFTER_POLICY_VIOLATION = "RETRY_AFTER_POLICY_VIOLATION"
 RANGE_COVERAGE_COMPLETE = "RANGE_COVERAGE_COMPLETE"
 RANGE_COVERAGE_INCOMPLETE = "RANGE_COVERAGE_INCOMPLETE"
 AUTHENTICATION_FAILURE = "AUTHENTICATION_FAILURE"
+AUTHORIZATION_FAILURE = "AUTHORIZATION_FAILURE"
+RESPONSE_SCHEMA_INVALID = "RESPONSE_SCHEMA_INVALID"
+SCHEMA_FAILURE = "SCHEMA_FAILURE"
 
 MAXIMUM_ATTEMPTS = 3
 RETRY_BACKOFF_SECONDS = (2, 5)
@@ -567,6 +571,7 @@ def _attempt_base(logical_page: LogicalPageRequest, attempt_ordinal: int, starte
         "semantic_projection_digest": None,
         "accepted_attempt": False,
         "sanitized_error_code": None,
+        "sanitized_schema_diagnostics": None,
     }
 
 
@@ -576,6 +581,7 @@ def _status_from_block(block_status: str) -> str:
         MONTH_ACQUISITION_RESPONSE_VARIANCE,
         MONTH_ACQUISITION_PAGINATION_INVALID,
         MONTH_ACQUISITION_AUTHENTICATION_FAILED,
+        MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED,
     }:
         return block_status
     if block_status == MONTH_ACQUISITION_INVALID:
@@ -587,6 +593,8 @@ def _block_status_from_failed_page(terminal_status: str | None, attempts: list[d
     for attempt in attempts:
         if attempt.get("failure_category") == AUTHENTICATION_FAILURE and attempt.get("http_status") == 401:
             return MONTH_ACQUISITION_AUTHENTICATION_FAILED, AUTHENTICATION_FAILURE
+        if attempt.get("failure_category") == SCHEMA_FAILURE:
+            return MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED, RESPONSE_SCHEMA_INVALID
     block_status = terminal_status or MONTH_ACQUISITION_BLOCKED
     return block_status, block_status
 
@@ -750,10 +758,13 @@ def _acquire_page(
                     body_sha256 = artifacts.sha256_bytes(body)
                     try:
                         parsed = _parse_body(body=body, body_sha256=body_sha256, month_request=month_request)
-                    except ProviderResponseError:
-                        attempt["failure_category"] = "SCHEMA_FAILURE"
+                    except ProviderResponseError as exc:
+                        attempt["failure_category"] = SCHEMA_FAILURE
                         attempt["attempt_status"] = ATTEMPT_REJECTED_NON_RETRYABLE
                         attempt["sanitized_error_code"] = "PROVIDER_RESPONSE_SCHEMA_FAILURE"
+                        diagnostics = getattr(exc, "sanitized_diagnostics", None)
+                        if isinstance(diagnostics, dict):
+                            attempt["sanitized_schema_diagnostics"] = diagnostics
                         terminal_status = MONTH_ACQUISITION_INVALID
                         break
                     raw_page = _write_raw_page(
@@ -777,21 +788,23 @@ def _acquire_page(
                         break
                     attempt["failure_category"] = "CONNECTION_RESET"
                 else:
-                    raw_page = _write_raw_page(
-                        body=body,
-                        run_root=run_root,
-                        run_id=run_id,
-                        month_request=month_request,
-                        artifact_id_factory=artifact_id_factory,
-                        clock=clock,
-                        request_manifest=request_manifest,
-                        logical_page=logical_page,
-                        attempt_ordinal=attempt_ordinal,
-                        provenance=provenance,
-                    )
-                    raw_manifests_by_id[raw_page.artifact["artifact_id"]] = raw_page.artifact
-                    attempt["raw_page_artifact_id"] = raw_page.artifact["artifact_id"]
-                    attempt["raw_page_manifest_ref"] = raw_page.manifest_ref
+                    transport_category = _transport_failure_category(outcome)
+                    if transport_category not in {AUTHENTICATION_FAILURE, AUTHORIZATION_FAILURE}:
+                        raw_page = _write_raw_page(
+                            body=body,
+                            run_root=run_root,
+                            run_id=run_id,
+                            month_request=month_request,
+                            artifact_id_factory=artifact_id_factory,
+                            clock=clock,
+                            request_manifest=request_manifest,
+                            logical_page=logical_page,
+                            attempt_ordinal=attempt_ordinal,
+                            provenance=provenance,
+                        )
+                        raw_manifests_by_id[raw_page.artifact["artifact_id"]] = raw_page.artifact
+                        attempt["raw_page_artifact_id"] = raw_page.artifact["artifact_id"]
+                        attempt["raw_page_manifest_ref"] = raw_page.manifest_ref
             transport_category = _transport_failure_category(outcome)
             if transport_category is not None:
                 failure_category = transport_category

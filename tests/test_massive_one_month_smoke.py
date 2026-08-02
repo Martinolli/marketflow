@@ -250,8 +250,9 @@ def test_credential_like_continuation_is_rejected_before_raw_persistence(tmp_pat
         run_id="smoke-bad-continuation-run",
     )
 
-    assert receipt["smoke_status"] == "SMOKE_INVALID"
-    assert receipt["request_status"] == monthly.MONTH_ACQUISITION_INVALID
+    assert receipt["smoke_status"] == "SMOKE_PROVIDER_RESPONSE_REJECTED"
+    assert receipt["request_status"] == monthly.MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED
+    assert receipt["pagination_status"] == monthly.PAGINATION_NOT_STARTED
     assert receipt["raw_page_count"] == 0
     all_text = "\n".join(path.read_text(encoding="utf-8", errors="ignore") for path in tmp_path.rglob("*") if path.is_file())
     assert "apiKey" not in all_text
@@ -288,6 +289,36 @@ def test_first_page_401_maps_to_credential_rejected_without_artifacts_or_retry(t
         assert "Bearer" not in text
         assert "apiKey" not in text and "api_key" not in text
         assert "next_url" not in text
+
+
+def test_first_page_schema_failure_maps_to_provider_response_rejected(tmp_path: Path):
+    seen_urls: list[str] = []
+    body = (
+        b'{"adjusted":true,"queryCount":1,"results":[{"c":100,"h":101,"l":99,"n":1,'
+        b'"o":100,"t":1735741800000,"v":1000}],"resultsCount":1,"status":"OK",'
+        b'"ticker":"AAPL","mysteryField":"request-123-next-secret-1000"}'
+    )
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_urls.append(str(request.url))
+        return httpx.Response(200, headers={"Content-Type": "application/json"}, content=body)
+
+    receipt = _run_with_mock(tmp_path, handler, run_id="smoke-schema-200-run")
+
+    assert receipt["smoke_status"] == "SMOKE_PROVIDER_RESPONSE_REJECTED"
+    assert receipt["request_status"] == monthly.MONTH_ACQUISITION_RESPONSE_SCHEMA_FAILED
+    assert receipt["pagination_status"] == monthly.PAGINATION_NOT_STARTED
+    assert receipt["completeness_status"] == "INCOMPLETE"
+    assert receipt["fixed_findings"] == [monthly.RESPONSE_SCHEMA_INVALID]
+    assert receipt["attempt_count"] == 1
+    assert receipt["accepted_page_count"] == 0
+    assert receipt["raw_page_count"] == 0
+    assert receipt["normalized_artifact_receipts"] == []
+    assert len(seen_urls) == 1
+
+    all_text = "\n".join(path.read_text(encoding="utf-8", errors="ignore") for path in tmp_path.rglob("*") if path.is_file())
+    for forbidden in ("fictional-smoke-key", "Authorization", "Bearer", "apiKey", "next_url", "request-123-next-secret-1000"):
+        assert forbidden not in all_text
 
 
 def test_multi_page_success_retry_then_success_and_no_automatic_rerun(tmp_path: Path):
