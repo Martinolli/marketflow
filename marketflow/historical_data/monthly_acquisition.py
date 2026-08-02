@@ -56,6 +56,7 @@ MONTH_ACQUISITION_BLOCKED = "MONTH_ACQUISITION_BLOCKED"
 MONTH_ACQUISITION_RETRY_EXHAUSTED = "MONTH_ACQUISITION_RETRY_EXHAUSTED"
 MONTH_ACQUISITION_RESPONSE_VARIANCE = "MONTH_ACQUISITION_RESPONSE_VARIANCE"
 MONTH_ACQUISITION_PAGINATION_INVALID = "MONTH_ACQUISITION_PAGINATION_INVALID"
+MONTH_ACQUISITION_AUTHENTICATION_FAILED = "MONTH_ACQUISITION_AUTHENTICATION_FAILED"
 MONTH_ACQUISITION_INVALID = "MONTH_ACQUISITION_INVALID"
 
 ATTEMPT_ACCEPTED = "REQUEST_ATTEMPT_ACCEPTED"
@@ -70,9 +71,11 @@ ONE_VALID_ATTEMPT_PER_PAGE = "ONE_VALID_ATTEMPT_PER_PAGE"
 SEMANTIC_RETRY_NOT_APPLICABLE = "SEMANTIC_RETRY_NOT_APPLICABLE"
 PAGINATION_CHAIN_VALID = "PAGINATION_CHAIN_VALID"
 PAGINATION_CHAIN_INVALID = "PAGINATION_CHAIN_INVALID"
+PAGINATION_NOT_STARTED = "PAGINATION_NOT_STARTED"
 RETRY_AFTER_POLICY_VIOLATION = "RETRY_AFTER_POLICY_VIOLATION"
 RANGE_COVERAGE_COMPLETE = "RANGE_COVERAGE_COMPLETE"
 RANGE_COVERAGE_INCOMPLETE = "RANGE_COVERAGE_INCOMPLETE"
+AUTHENTICATION_FAILURE = "AUTHENTICATION_FAILURE"
 
 MAXIMUM_ATTEMPTS = 3
 RETRY_BACKOFF_SECONDS = (2, 5)
@@ -568,11 +571,32 @@ def _attempt_base(logical_page: LogicalPageRequest, attempt_ordinal: int, starte
 
 
 def _status_from_block(block_status: str) -> str:
-    if block_status in {MONTH_ACQUISITION_RETRY_EXHAUSTED, MONTH_ACQUISITION_RESPONSE_VARIANCE, MONTH_ACQUISITION_PAGINATION_INVALID}:
+    if block_status in {
+        MONTH_ACQUISITION_RETRY_EXHAUSTED,
+        MONTH_ACQUISITION_RESPONSE_VARIANCE,
+        MONTH_ACQUISITION_PAGINATION_INVALID,
+        MONTH_ACQUISITION_AUTHENTICATION_FAILED,
+    }:
         return block_status
     if block_status == MONTH_ACQUISITION_INVALID:
         return MONTH_ACQUISITION_INVALID
     return MONTH_ACQUISITION_BLOCKED
+
+
+def _block_status_from_failed_page(terminal_status: str | None, attempts: list[dict[str, Any]]) -> tuple[str, str]:
+    for attempt in attempts:
+        if attempt.get("failure_category") == AUTHENTICATION_FAILURE and attempt.get("http_status") == 401:
+            return MONTH_ACQUISITION_AUTHENTICATION_FAILED, AUTHENTICATION_FAILURE
+    block_status = terminal_status or MONTH_ACQUISITION_BLOCKED
+    return block_status, block_status
+
+
+def _pagination_status(*, status: str, page_count: int) -> str:
+    if status == MONTH_ACQUISITION_COMPLETED:
+        return PAGINATION_CHAIN_VALID
+    if page_count == 0 and status != MONTH_ACQUISITION_PAGINATION_INVALID:
+        return PAGINATION_NOT_STARTED
+    return PAGINATION_CHAIN_INVALID
 
 
 def _write_attempts(
@@ -907,7 +931,7 @@ def _receipt(
         "acquisition_enabled": False,
         "runtime_migration_performed": False,
         "provenance": provenance,
-        "pagination_status": PAGINATION_CHAIN_VALID if status == MONTH_ACQUISITION_COMPLETED else PAGINATION_CHAIN_INVALID,
+        "pagination_status": _pagination_status(status=status, page_count=page_count),
         "semantic_retry_status": semantic_retry_status,
         "maximum_attempts": MAXIMUM_ATTEMPTS,
         "retry_backoff_seconds": list(RETRY_BACKOFF_SECONDS),
@@ -1010,8 +1034,8 @@ def execute_fake_monthly_acquisition(
             )
         )
         if accepted is None:
-            block_status = terminal_status or MONTH_ACQUISITION_BLOCKED
-            fixed_findings.append(block_status)
+            block_status, finding = _block_status_from_failed_page(terminal_status, attempts)
+            fixed_findings.append(finding)
             break
         accepted_pages.append(accepted)
         for row in accepted.parsed.rows:

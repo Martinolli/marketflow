@@ -321,6 +321,70 @@ def test_retry_after_valid_uses_max_configured_backoff(tmp_path: Path):
     assert receipt["recorded_retry_delays_seconds"] == [7]
 
 
+@pytest.mark.parametrize("status_code", [429, 503])
+def test_retryable_http_statuses_retry_once_then_accept(status_code: int, tmp_path: Path):
+    request = _request()
+    _, expected = _page_request(request, 1)
+    transport = ScriptedFakeTransport(
+        [
+            ScriptedExchange(expected, http_status(status_code)),
+            ScriptedExchange(expected, http_response(200, _body())),
+        ]
+    )
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=transport,
+        run_root=tmp_path,
+        run_id=f"run-retry-{status_code}",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_COMPLETED
+    assert receipt["attempt_count"] == 2
+    assert receipt["recorded_retry_delays_seconds"] == [2]
+    assert receipt["accepted_page_count"] == 1
+    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_VALID
+
+
+def test_first_page_authentication_failure_is_terminal_before_pagination(tmp_path: Path):
+    request = _request()
+    _, expected = _page_request(request, 1)
+    transport = ScriptedFakeTransport(
+        [ScriptedExchange(expected, http_status(401, headers={"failure_category": monthly.AUTHENTICATION_FAILURE}))]
+    )
+
+    receipt = monthly.execute_fake_monthly_acquisition(
+        month_request=request,
+        transport=transport,
+        run_root=tmp_path,
+        run_id="run-auth-401",
+        clock=monthly.DeterministicClock(),
+        sleeper=monthly.RecordingSleeper([]),
+    )
+
+    assert receipt["status"] == monthly.MONTH_ACQUISITION_AUTHENTICATION_FAILED
+    assert receipt["pagination_status"] == monthly.PAGINATION_NOT_STARTED
+    assert receipt["completeness_status"] == "INCOMPLETE"
+    assert receipt["fixed_findings"] == [monthly.AUTHENTICATION_FAILURE]
+    assert receipt["attempt_count"] == 1
+    assert receipt["accepted_page_count"] == 0
+    assert receipt["raw_page_count"] == 0
+    assert receipt["recorded_retry_delays_seconds"] == []
+    attempts = [
+        _load_json_payload(tmp_path, json.loads(path.read_text()))
+        for path in (tmp_path / "run-auth-401").rglob("*.manifest.json")
+        if json.loads(path.read_text())["artifact_type"] == monthly.ARTIFACT_REQUEST_ATTEMPT_RECORD
+    ]
+    assert len(attempts) == 1
+    assert attempts[0]["attempt_status"] == monthly.ATTEMPT_REJECTED_NON_RETRYABLE
+    assert attempts[0]["failure_category"] == monthly.AUTHENTICATION_FAILURE
+    assert attempts[0]["http_status"] == 401
+    assert attempts[0]["response_body_available"] is False
+    assert attempts[0]["response_body_complete"] is False
+
+
 def test_retry_after_policy_violation_blocks_without_completeness(tmp_path: Path):
     request = _request()
     _, expected = _page_request(request, 1)
@@ -336,6 +400,7 @@ def test_retry_after_policy_violation_blocks_without_completeness(tmp_path: Path
     )
 
     assert receipt["status"] == monthly.MONTH_ACQUISITION_INVALID
+    assert receipt["pagination_status"] == monthly.PAGINATION_NOT_STARTED
     assert receipt["recorded_retry_delays_seconds"] == []
     assert monthly.ARTIFACT_MONTH_CHUNK_COMPLETENESS_MANIFEST not in {
         json.loads(path.read_text())["artifact_type"] for path in (tmp_path / "run-retry-after-invalid").rglob("*.manifest.json")
@@ -480,6 +545,7 @@ def test_repeated_continuation_blocks_pagination(tmp_path: Path):
     )
 
     assert receipt["status"] == monthly.MONTH_ACQUISITION_PAGINATION_INVALID
+    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_INVALID
     assert "PAGINATION_REPEATED_CONTINUATION" in receipt["fixed_findings"]
 
 
@@ -506,6 +572,7 @@ def test_duplicate_timestamp_across_pages_blocks_pagination(tmp_path: Path):
     )
 
     assert receipt["status"] == monthly.MONTH_ACQUISITION_PAGINATION_INVALID
+    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_INVALID
     assert "PAGINATION_DUPLICATE_TIMESTAMP" in receipt["fixed_findings"]
 
 

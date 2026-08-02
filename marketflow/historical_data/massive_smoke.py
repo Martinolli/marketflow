@@ -31,6 +31,8 @@ from marketflow.historical_data.monthly_acquisition import (
     ARTIFACT_MONTH_NORMALIZED_15M_OHLCV,
     ARTIFACT_MONTH_NORMALIZED_AGGREGATE_AUDIT_FIELDS,
     ARTIFACT_RAW_PROVIDER_PAGE,
+    AUTHENTICATION_FAILURE,
+    MONTH_ACQUISITION_AUTHENTICATION_FAILED,
     MONTH_ACQUISITION_COMPLETED,
     MONTH_ACQUISITION_PAGINATION_INVALID,
     MonthChunkRequest,
@@ -274,6 +276,8 @@ def _smoke_status_from_monthly(receipt: dict[str, object]) -> str:
     findings = set(str(item) for item in receipt.get("fixed_findings", []) if item)
     if status == MONTH_ACQUISITION_COMPLETED:
         return SMOKE_COMPLETED_NONCANONICAL
+    if status == MONTH_ACQUISITION_AUTHENTICATION_FAILED and AUTHENTICATION_FAILURE in findings:
+        return SMOKE_CREDENTIAL_REJECTED
     if status == MONTH_ACQUISITION_PAGINATION_INVALID and "RANGE_COVERAGE_INCOMPLETE" in findings:
         return SMOKE_MONTH_INCOMPLETE
     if status in {"MONTH_ACQUISITION_RETRY_EXHAUSTED", "MONTH_ACQUISITION_BLOCKED"}:

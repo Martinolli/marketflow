@@ -259,6 +259,37 @@ def test_credential_like_continuation_is_rejected_before_raw_persistence(tmp_pat
     assert "next_url" not in all_text
 
 
+def test_first_page_401_maps_to_credential_rejected_without_artifacts_or_retry(tmp_path: Path):
+    seen_urls: list[str] = []
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        seen_urls.append(str(request.url))
+        return httpx.Response(401, headers={"Content-Type": "application/json"}, content=b"")
+
+    receipt = _run_with_mock(tmp_path, handler, run_id="smoke-auth-401-run")
+
+    assert receipt["smoke_status"] == "SMOKE_CREDENTIAL_REJECTED"
+    assert receipt["request_status"] == monthly.MONTH_ACQUISITION_AUTHENTICATION_FAILED
+    assert receipt["pagination_status"] == monthly.PAGINATION_NOT_STARTED
+    assert receipt["completeness_status"] == "INCOMPLETE"
+    assert receipt["fixed_findings"] == [monthly.AUTHENTICATION_FAILURE]
+    assert receipt["attempt_count"] == 1
+    assert receipt["accepted_page_count"] == 0
+    assert receipt["raw_page_count"] == 0
+    assert receipt["normalized_artifact_receipts"] == []
+    assert len(seen_urls) == 1
+    assert "apiKey" not in seen_urls[0] and "api_key" not in seen_urls[0]
+
+    receipt_text = json.dumps(receipt, sort_keys=True)
+    all_text = "\n".join(path.read_text(encoding="utf-8", errors="ignore") for path in tmp_path.rglob("*") if path.is_file())
+    for text in (receipt_text, all_text):
+        assert "fictional-smoke-key" not in text
+        assert "Authorization" not in text
+        assert "Bearer" not in text
+        assert "apiKey" not in text and "api_key" not in text
+        assert "next_url" not in text
+
+
 def test_multi_page_success_retry_then_success_and_no_automatic_rerun(tmp_path: Path):
     responses = iter(
         [
@@ -276,9 +307,13 @@ def test_multi_page_success_retry_then_success_and_no_automatic_rerun(tmp_path: 
     receipt = _run_with_mock(tmp_path, handler, run_id="smoke-retry-run")
 
     assert receipt["smoke_status"] == "SMOKE_COMPLETED_NONCANONICAL"
+    assert receipt["request_status"] == monthly.MONTH_ACQUISITION_COMPLETED
+    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_VALID
+    assert receipt["completeness_status"] == "COMPLETE"
     assert receipt["attempt_count"] == 3
     assert receipt["accepted_page_count"] == 2
     assert receipt["raw_page_count"] == 2
+    assert len(receipt["normalized_artifact_receipts"]) == 2
     assert len(seen_urls) == 3
     assert "cursor=next" in seen_urls[-1]
 
@@ -317,6 +352,8 @@ def test_pagination_failure_is_invalid_without_second_run(tmp_path: Path):
     receipt = _run_with_mock(tmp_path, handler, run_id="smoke-pagination-run")
 
     assert receipt["smoke_status"] == "SMOKE_INVALID"
+    assert receipt["request_status"] == monthly.MONTH_ACQUISITION_PAGINATION_INVALID
+    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_INVALID
     assert "PAGINATION_DUPLICATE_TIMESTAMP" in receipt["fixed_findings"]
     assert len(seen_urls) == 2
 
@@ -334,6 +371,9 @@ def test_smoke_artifacts_are_isolated_opaque_noncanonical_and_sanitized(tmp_path
     assert "2025-01" not in run_dirs[0].name
     assert receipt["smoke_receipt_ref"] == "smoke-opaque-123/smoke_receipt/smoke-receipt.json"
     assert receipt["classification"] == "NONCANONICAL_PROVIDER_SMOKE"
+    assert receipt["request_status"] == monthly.MONTH_ACQUISITION_COMPLETED
+    assert receipt["pagination_status"] == monthly.PAGINATION_CHAIN_VALID
+    assert receipt["completeness_status"] == "COMPLETE"
     assert receipt["provenance"] == "LIVE_PROVIDER_SMOKE_NONCANONICAL"
     assert receipt["canonical_eligibility"] is False
     assert receipt["registry_eligibility"] is False
