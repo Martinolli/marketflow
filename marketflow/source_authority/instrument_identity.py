@@ -62,6 +62,19 @@ PAYLOAD_MEDIA_TYPE_CANONICAL_JSON = "application/vnd.marketflow.canonical+json"
 PAYLOAD_MEDIA_TYPE_PROVIDER_RAW_BYTES = "application/vnd.marketflow.provider-raw+octet-stream"
 CONFIRMATION_PREFIX = "RUN MARKETFLOW INSTRUMENT IDENTITY "
 WINDOWS_REPARSE_POINT_ATTRIBUTE = 0x400
+INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED = "INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED"
+INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID = "INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID"
+INSTRUMENT_IDENTITY_ARTIFACT_WRITER_UNREADY = "INSTRUMENT_IDENTITY_ARTIFACT_WRITER_UNREADY"
+INSTRUMENT_IDENTITY_SOURCE_DEPENDENCY_INVALID = "INSTRUMENT_IDENTITY_SOURCE_DEPENDENCY_INVALID"
+INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_FAILED = "INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_FAILED"
+INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_READY = "INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_READY"
+INSTRUMENT_IDENTITY_UNEXPECTED_FAILURE = "INSTRUMENT_IDENTITY_UNEXPECTED_FAILURE"
+REPOSITORY_EVIDENCE_REFS = (
+    "AGENTS.md",
+    "requirements.txt",
+    "marketflow/source_authority/instrument_identity.py",
+    "config/fixed_date_acquisition_contract_v2_1.toml",
+)
 
 TOP_LEVEL_FIELDS = frozenset({"request_id", "status", "results", "count"})
 RESULT_FIELDS = frozenset(
@@ -659,11 +672,54 @@ def _continuity(status: str, start: IdentitySnapshot | None, end: IdentitySnapsh
 
 
 def _repository_root() -> Path:
-    current = Path(__file__).resolve(strict=True)
-    for parent in current.parents:
-        if (parent / "pyproject.toml").is_file() and (parent / "marketflow").is_dir():
-            return parent
-    raise InstrumentIdentityError("repository root could not be determined")
+    try:
+        module_path = Path(__file__).resolve(strict=True)
+        root = module_path.parents[2].resolve(strict=True)
+    except (IndexError, OSError):
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED) from None
+    return _validate_repository_root(root, module_path=module_path)
+
+
+def _validate_repository_root(root: str | Path, *, module_path: str | Path | None = None) -> Path:
+    root_path = Path(root)
+    try:
+        _reject_reparse(root_path.lstat())
+    except InstrumentIdentityError:
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED) from None
+    except OSError:
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED) from None
+    try:
+        candidate = root_path.resolve(strict=True)
+    except OSError:
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED) from None
+    if not candidate.is_dir():
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED)
+    _reject_reparse_components(candidate)
+    resolved_module = Path(module_path).resolve(strict=True) if module_path is not None else Path(__file__).resolve(strict=True)
+    try:
+        resolved_module.relative_to(candidate)
+    except ValueError:
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED) from None
+    expected_module = candidate / "marketflow" / "source_authority" / "instrument_identity.py"
+    try:
+        if not expected_module.samefile(resolved_module):
+            raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED)
+    except OSError:
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED) from None
+    for ref in REPOSITORY_EVIDENCE_REFS:
+        evidence = candidate / ref
+        try:
+            _reject_reparse_components(evidence)
+            evidence_resolved = evidence.resolve(strict=True)
+            evidence_resolved.relative_to(candidate)
+        except (InstrumentIdentityError, OSError, ValueError):
+            raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED) from None
+        _reject_reparse_components(evidence_resolved)
+        metadata = evidence.lstat()
+        _reject_reparse(metadata)
+        if not stat.S_ISREG(metadata.st_mode):
+            raise InstrumentIdentityError(INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED)
+    return candidate
 
 
 def _safe_ref_to_path(root: str | Path, ref: str) -> Path:
@@ -710,6 +766,85 @@ def _reject_reparse_components(path: Path) -> None:
         _reject_reparse(current.lstat())
 
 
+def _reject_existing_reparse_components(path: Path) -> None:
+    current = Path(path.anchor) if path.is_absolute() else Path()
+    parts = path.parts[1:] if path.is_absolute() else path.parts
+    for part in parts:
+        current = current / part
+        try:
+            metadata = current.lstat()
+        except FileNotFoundError:
+            break
+        _reject_reparse(metadata)
+
+
+def _validated_runtime_root(run_root: str | Path, *, repository_root: Path | None = None) -> Path:
+    root = Path(run_root)
+    text = str(root)
+    if not text or "\x00" in text or ".." in root.parts:
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID)
+    root_abs = root if root.is_absolute() else root.resolve(strict=False)
+    _reject_existing_reparse_components(root_abs)
+    resolved = root_abs.resolve(strict=False)
+    _reject_existing_reparse_components(resolved)
+    if root_abs.exists() and not root_abs.is_dir():
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID)
+    if repository_root is not None:
+        repo_root = repository_root.resolve(strict=True)
+        try:
+            resolved.relative_to(repo_root)
+        except ValueError:
+            raise InstrumentIdentityError(INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID) from None
+    return resolved
+
+
+def _identity_runtime_root(*, repository_root: Path | None = None) -> Path:
+    repo_root = repository_root.resolve(strict=True) if repository_root is not None else _repository_root()
+    return _validated_runtime_root(repo_root / IDENTITY_RUNTIME_ROOT, repository_root=repo_root)
+
+
+def _validate_artifact_writer_readiness(runtime_root: Path, repository_root: Path) -> None:
+    current = runtime_root
+    while not current.exists():
+        parent = current.parent
+        if parent == current:
+            raise InstrumentIdentityError(INSTRUMENT_IDENTITY_ARTIFACT_WRITER_UNREADY)
+        current = parent
+    if not current.resolve(strict=True).is_dir():
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_ARTIFACT_WRITER_UNREADY)
+    try:
+        current.resolve(strict=True).relative_to(repository_root.resolve(strict=True))
+    except ValueError:
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID) from None
+    if not os.access(current, os.W_OK):
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_ARTIFACT_WRITER_UNREADY)
+
+
+def _validate_source_defined_dependencies() -> None:
+    if not callable(getattr(httpx, "Client", None)):
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_SOURCE_DEPENDENCY_INVALID)
+    if not callable(ProviderApiKey):
+        raise InstrumentIdentityError(INSTRUMENT_IDENTITY_SOURCE_DEPENDENCY_INVALID)
+
+
+def _local_preflight() -> dict[str, Any]:
+    repository_root = _repository_root()
+    runtime_root = _identity_runtime_root(repository_root=repository_root)
+    _validate_artifact_writer_readiness(runtime_root, repository_root)
+    _validate_source_defined_dependencies()
+    return {
+        "status": INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_READY,
+        "repository_root_status": "INSTRUMENT_IDENTITY_REPOSITORY_ROOT_RESOLVED",
+        "runtime_root_status": "INSTRUMENT_IDENTITY_RUNTIME_ROOT_READY",
+        "runtime_root_ref": IDENTITY_RUNTIME_ROOT.as_posix(),
+        "path_containment_status": "INSTRUMENT_IDENTITY_RUNTIME_ROOT_CONTAINED",
+        "artifact_writer_status": "INSTRUMENT_IDENTITY_ARTIFACT_WRITER_READY",
+        "source_dependency_status": "INSTRUMENT_IDENTITY_SOURCE_DEPENDENCIES_READY",
+        "credential_required": False,
+        "writes_artifacts": False,
+    }
+
+
 def _validate_regular_file(path: Path, root: Path) -> None:
     try:
         path.resolve(strict=True).relative_to(root.resolve(strict=True))
@@ -747,7 +882,7 @@ def create_identity_run(
     run_id_factory: Callable[[], str] | None = None,
     created_at_utc: str | None = None,
 ) -> IdentityRunContext:
-    root = Path(run_root) if run_root is not None else _repository_root() / IDENTITY_RUNTIME_ROOT
+    root = _validated_runtime_root(run_root) if run_root is not None else _identity_runtime_root()
     root.mkdir(parents=True, exist_ok=True)
     _reject_reparse_components(root.resolve(strict=True))
     run_id_text = _opaque(run_id or (run_id_factory() if run_id_factory else f"ident-{uuid.uuid4().hex}"), "run_id")
@@ -1160,6 +1295,7 @@ def _run_instrument_identity_evidence(
     http_transport: httpx.BaseTransport | None = None,
     run_root: str | Path | None = None,
     run_id_factory: Callable[[], str] | None = None,
+    _transport_factory: Callable[..., TickerOverviewTransport] = TickerOverviewTransport,
 ) -> dict[str, Any]:
     if confirmation != _confirmation_phrase():
         return {
@@ -1168,7 +1304,7 @@ def _run_instrument_identity_evidence(
             "identity_specification_digest": instrument_identity_specification_digest(),
         }
     context = create_identity_run(run_root=run_root, run_id_factory=run_id_factory)
-    transport = TickerOverviewTransport(api_key=api_key, http_transport=http_transport)
+    transport = _transport_factory(api_key=api_key, http_transport=http_transport)
     try:
         start_body = transport.send(START_SNAPSHOT_DATE)
         end_body = transport.send(END_SNAPSHOT_DATE)
@@ -1223,7 +1359,48 @@ def _run_instrument_identity_evidence(
     }
 
 
-def live_command(getpass_fn: Callable[[str], str] = getpass.getpass) -> int:
+def _local_preflight_failure_receipt(failure_category: str) -> dict[str, Any]:
+    return {
+        "status": INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_FAILED,
+        "failure_category": failure_category,
+        "credential_prompted": False,
+        "provider_request_count": 0,
+        "runtime_artifact_written": False,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+    }
+
+
+def _unexpected_failure_receipt(*, credential_prompted: bool) -> dict[str, Any]:
+    return {
+        "status": "INSTRUMENT_IDENTITY_EVIDENCE_FAILED",
+        "failure_category": INSTRUMENT_IDENTITY_UNEXPECTED_FAILURE,
+        "credential_prompted": credential_prompted,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+    }
+
+
+def _expected_failure_category(exc: InstrumentIdentityError) -> str:
+    text = str(exc)
+    fixed_categories = {
+        INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED,
+        INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID,
+        INSTRUMENT_IDENTITY_ARTIFACT_WRITER_UNREADY,
+        INSTRUMENT_IDENTITY_SOURCE_DEPENDENCY_INVALID,
+    }
+    return text if text in fixed_categories else "INSTRUMENT_IDENTITY_EXPECTED_FAILURE"
+
+
+def live_command(
+    getpass_fn: Callable[[str], str] = getpass.getpass,
+    *,
+    _provider_key_factory: Callable[[str], ProviderApiKey] = ProviderApiKey,
+    _http_transport: httpx.BaseTransport | None = None,
+    _run_id_factory: Callable[[], str] | None = None,
+    _transport_factory: Callable[..., TickerOverviewTransport] = TickerOverviewTransport,
+    _preflight: Callable[[], Mapping[str, Any]] = _local_preflight,
+) -> int:
     if not sys.stdin.isatty():
         print(json.dumps({"status": "INSTRUMENT_IDENTITY_EVIDENCE_BLOCKED", "finding": "TTY_REQUIRED"}, sort_keys=True, indent=2))
         return 2
@@ -1233,7 +1410,40 @@ def live_command(getpass_fn: Callable[[str], str] = getpass.getpass) -> int:
     if confirmation != _confirmation_phrase():
         print(json.dumps({"status": "INSTRUMENT_IDENTITY_EVIDENCE_BLOCKED", "finding": "IDENTITY_CONFIRMATION_REJECTED"}, sort_keys=True, indent=2))
         return 2
+    try:
+        _preflight()
+    except InstrumentIdentityError as exc:
+        print(json.dumps(_local_preflight_failure_receipt(_expected_failure_category(exc)), sort_keys=True, indent=2))
+        return 2
+    except Exception:
+        print(json.dumps(_unexpected_failure_receipt(credential_prompted=False), sort_keys=True, indent=2))
+        return 2
     secret = getpass_fn("Massive.com API key: ")
-    receipt = _run_instrument_identity_evidence(confirmation, api_key=ProviderApiKey(secret))
+    try:
+        receipt = _run_instrument_identity_evidence(
+            confirmation,
+            api_key=_provider_key_factory(secret),
+            http_transport=_http_transport,
+            run_id_factory=_run_id_factory,
+            _transport_factory=_transport_factory,
+        )
+    except InstrumentIdentityError as exc:
+        print(
+            json.dumps(
+                {
+                    "status": "INSTRUMENT_IDENTITY_EVIDENCE_FAILED",
+                    "failure_category": _expected_failure_category(exc),
+                    "credential_prompted": True,
+                    "canonical_eligibility": False,
+                    "registry_eligibility": False,
+                },
+                sort_keys=True,
+                indent=2,
+            )
+        )
+        return 2
+    except Exception:
+        print(json.dumps(_unexpected_failure_receipt(credential_prompted=True), sort_keys=True, indent=2))
+        return 2
     print(json.dumps(receipt, sort_keys=True, indent=2))
     return 0

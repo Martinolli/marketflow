@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import ast
+import builtins
 import json
+import stat
 import subprocess
 import sys
 from dataclasses import FrozenInstanceError, asdict, replace
@@ -58,6 +60,42 @@ def _snapshot(body: bytes | None = None, as_of_date: str = ident.START_SNAPSHOT_
     return ident.parse_ticker_overview_response(body or _response(), as_of_date=as_of_date)
 
 
+def _json_objects_from_output(output: str) -> list[dict[str, object]]:
+    decoder = json.JSONDecoder()
+    objects: list[dict[str, object]] = []
+    index = 0
+    while index < len(output):
+        start = output.find("{", index)
+        if start == -1:
+            break
+        value, offset = decoder.raw_decode(output[start:])
+        if isinstance(value, dict):
+            objects.append(value)
+        index = start + offset
+    return objects
+
+
+def _make_fake_identity_repo(root: Path, *, omit_ref: str | None = None, directory_ref: str | None = None) -> Path:
+    module_path = root / "marketflow" / "source_authority" / "instrument_identity.py"
+    for ref in ident.REPOSITORY_EVIDENCE_REFS:
+        path = root / ref
+        if ref == omit_ref:
+            continue
+        if ref == directory_ref:
+            path.mkdir(parents=True, exist_ok=True)
+            continue
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text("fixture\n", encoding="utf-8")
+    return module_path
+
+
+def _symlink_or_skip(link: Path, target: Path, *, target_is_directory: bool = False) -> None:
+    try:
+        link.symlink_to(target, target_is_directory=target_is_directory)
+    except (OSError, NotImplementedError) as exc:
+        pytest.skip(f"symlink creation is unavailable: {exc}")
+
+
 def test_identity_specification_fixed_immutable_and_digest_deterministic():
     spec = ident.default_identity_specification()
 
@@ -78,6 +116,114 @@ def test_identity_specification_fixed_immutable_and_digest_deterministic():
     assert ident.instrument_identity_specification_digest() == ident.instrument_identity_specification_digest()
     with pytest.raises(FrozenInstanceError):
         spec.ticker = "MSFT"  # type: ignore[misc]
+
+
+def test_repository_root_resolves_source_checkout_without_pyproject_marker():
+    module_path = Path(ident.__file__).resolve(strict=True)
+    candidate = module_path.parents[2]
+
+    assert candidate == REPO_ROOT
+    assert (candidate / "pyproject.toml").is_file() is False
+    assert (candidate / "requirements.txt").is_file()
+    assert (candidate / "AGENTS.md").is_file()
+    assert (candidate / "config" / "fixed_date_acquisition_contract_v2_1.toml").is_file()
+    assert ident._repository_root() == REPO_ROOT
+
+
+def test_repository_root_helper_rejects_missing_required_marker(tmp_path: Path):
+    module_path = _make_fake_identity_repo(tmp_path, omit_ref="requirements.txt")
+
+    with pytest.raises(ident.InstrumentIdentityError, match=ident.INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED):
+        ident._validate_repository_root(tmp_path, module_path=module_path)
+
+
+def test_repository_root_helper_rejects_marker_directory(tmp_path: Path):
+    module_path = _make_fake_identity_repo(tmp_path, directory_ref="requirements.txt")
+
+    with pytest.raises(ident.InstrumentIdentityError, match=ident.INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED):
+        ident._validate_repository_root(tmp_path, module_path=module_path)
+
+
+def test_repository_root_helper_rejects_symlinked_evidence_parent(tmp_path: Path):
+    real_source_authority = tmp_path / "real-source-authority"
+    real_source_authority.mkdir()
+    _make_fake_identity_repo(tmp_path)
+    original = tmp_path / "marketflow" / "source_authority"
+    original_file = original / "instrument_identity.py"
+    original_file.unlink()
+    original.rmdir()
+    _symlink_or_skip(original, real_source_authority, target_is_directory=True)
+    redirected_module = original / "instrument_identity.py"
+    redirected_module.write_text("fixture\n", encoding="utf-8")
+
+    with pytest.raises(ident.InstrumentIdentityError, match=ident.INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED):
+        ident._validate_repository_root(tmp_path, module_path=redirected_module)
+
+
+def test_repository_root_helper_rejects_root_symlink_when_supported(tmp_path: Path):
+    real_root = tmp_path / "real"
+    module_path = _make_fake_identity_repo(real_root)
+    link_root = tmp_path / "link"
+    _symlink_or_skip(link_root, real_root, target_is_directory=True)
+
+    with pytest.raises(ident.InstrumentIdentityError, match=ident.INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED):
+        ident._validate_repository_root(link_root, module_path=module_path)
+
+
+def test_repository_root_reparse_metadata_rejected_without_real_junction():
+    class ReparseMetadata:
+        st_mode = stat.S_IFDIR
+        st_file_attributes = ident.WINDOWS_REPARSE_POINT_ATTRIBUTE
+
+    with pytest.raises(ident.InstrumentIdentityError, match="reparse point"):
+        ident._reject_reparse(ReparseMetadata())
+
+
+def test_repository_root_helper_rejects_module_outside_proposed_root(tmp_path: Path):
+    _make_fake_identity_repo(tmp_path / "repo")
+    outside = tmp_path / "outside" / "instrument_identity.py"
+    outside.parent.mkdir(parents=True)
+    outside.write_text("fixture\n", encoding="utf-8")
+
+    with pytest.raises(ident.InstrumentIdentityError, match=ident.INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED):
+        ident._validate_repository_root(tmp_path / "repo", module_path=outside)
+
+
+def test_repository_root_ignores_unrelated_cwd_environment_and_upward_search(tmp_path: Path, monkeypatch):
+    unrelated = tmp_path / "cwd"
+    unrelated.mkdir()
+    shadow = unrelated / ".marketflow" / "source_authority" / "identity" / "runs"
+    shadow.mkdir(parents=True)
+    (unrelated / "pyproject.toml").write_text("shadow\n", encoding="utf-8")
+    (unrelated / "marketflow").mkdir()
+    monkeypatch.setenv("MARKETFLOW_REPOSITORY_ROOT", str(unrelated))
+    monkeypatch.chdir(unrelated)
+
+    assert ident._repository_root() == REPO_ROOT
+    assert ident._identity_runtime_root().is_relative_to(REPO_ROOT.resolve(strict=True))
+    assert sorted(shadow.iterdir()) == []
+
+
+def test_runtime_root_rejects_prefix_confusion_outside_repository(tmp_path: Path):
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    outside_prefix = tmp_path / "repo-other" / ".marketflow" / "source_authority" / "identity" / "runs"
+
+    with pytest.raises(ident.InstrumentIdentityError, match=ident.INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID):
+        ident._validated_runtime_root(outside_prefix, repository_root=repo_root)
+
+
+def test_local_preflight_dependency_check_does_not_override_package_python_floor(monkeypatch):
+    class VersionInfo(tuple):
+        major = 3
+        minor = 10
+
+        def __lt__(self, other):
+            return True
+
+    monkeypatch.setattr(sys, "version_info", VersionInfo((3, 10, 0)))
+
+    ident._validate_source_defined_dependencies()
 
 
 def test_prepare_request_uses_fixed_ticker_dates_host_headers_and_no_key_url():
@@ -446,6 +592,29 @@ def test_self_check_cli_uses_mock_only_and_no_persistent_output():
     assert "fictional-self-check-key" not in result.stdout
 
 
+def test_identity_plan_self_check_and_runtime_root_are_cwd_independent(tmp_path: Path, monkeypatch):
+    before_plan = ident.instrument_identity_plan()
+    unrelated = tmp_path / "unrelated-cwd"
+    unrelated.mkdir()
+    shadow = unrelated / ".marketflow" / "source_authority" / "identity" / "runs"
+    shadow.mkdir(parents=True)
+    monkeypatch.chdir(unrelated)
+
+    after_plan = ident.instrument_identity_plan()
+    runtime_root = ident._identity_runtime_root()
+    self_check = ident.instrument_identity_self_check()
+
+    assert after_plan == before_plan
+    assert ident._repository_root() == REPO_ROOT
+    assert runtime_root == (REPO_ROOT / ident.IDENTITY_RUNTIME_ROOT).resolve(strict=False)
+    assert runtime_root.is_relative_to(REPO_ROOT.resolve(strict=True))
+    assert sorted(shadow.iterdir()) == []
+    assert self_check["self_check_status"] == "INSTRUMENT_IDENTITY_SELF_CHECK_COMPLETE"
+    assert self_check["mock_transport_only"] is True
+    assert self_check["observed_request_count"] == 2
+    assert ident.instrument_identity_specification_digest() == "a728408f59948cd3cd244816fe99a1d85e8d381b53f8e03d61e2d751c22ff3ba"
+
+
 def test_live_command_requires_tty_and_delays_getpass(monkeypatch):
     called = False
 
@@ -458,6 +627,190 @@ def test_live_command_requires_tty_and_delays_getpass(monkeypatch):
 
     assert ident.live_command(getpass_fn=fake_getpass) == 2
     assert called is False
+
+
+def test_live_command_wrong_confirmation_stops_before_preflight_getpass_or_request(monkeypatch, tmp_path: Path, capsys):
+    events: list[str] = []
+    repo_root = tmp_path / "repo"
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(builtins, "input", lambda prompt: "WRONG CONFIRMATION")
+
+    def fail_getpass(prompt: str) -> str:
+        events.append("getpass")
+        raise AssertionError("getpass must not be called")
+
+    def fail_preflight():
+        events.append("preflight")
+        raise AssertionError("preflight must not be called")
+
+    assert ident.live_command(getpass_fn=fail_getpass, _preflight=fail_preflight) == 2
+    output = capsys.readouterr().out
+
+    assert events == []
+    assert "IDENTITY_CONFIRMATION_REJECTED" in output
+    assert not (repo_root / ident.IDENTITY_RUNTIME_ROOT).exists()
+
+
+def test_live_command_repository_preflight_failure_is_sanitized_before_secret(monkeypatch, tmp_path: Path, capsys):
+    events: list[str] = []
+    repo_root = tmp_path / "repo"
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(builtins, "input", lambda prompt: ident.diagnostic_confirmation_phrase())
+
+    def fail_preflight():
+        events.append("preflight")
+        raise ident.InstrumentIdentityError(ident.INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED)
+
+    def fail_getpass(prompt: str) -> str:
+        events.append("getpass")
+        raise AssertionError("getpass must not be called")
+
+    def fail_key(secret: str) -> ProviderApiKey:
+        events.append("key")
+        raise AssertionError("ProviderApiKey must not be constructed")
+
+    def fail_transport(**kwargs):
+        events.append("transport")
+        raise AssertionError("transport must not be constructed")
+
+    assert (
+        ident.live_command(
+            getpass_fn=fail_getpass,
+            _provider_key_factory=fail_key,
+            _transport_factory=fail_transport,
+            _preflight=fail_preflight,
+        )
+        == 2
+    )
+    output = capsys.readouterr().out
+    receipt = _json_objects_from_output(output)[-1]
+
+    assert events == ["preflight"]
+    assert receipt == {
+        "canonical_eligibility": False,
+        "credential_prompted": False,
+        "failure_category": ident.INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED,
+        "provider_request_count": 0,
+        "registry_eligibility": False,
+        "runtime_artifact_written": False,
+        "status": ident.INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_FAILED,
+    }
+    assert "Traceback" not in output
+    assert str(tmp_path) not in output
+    assert not (repo_root / ident.IDENTITY_RUNTIME_ROOT).exists()
+
+
+def test_live_command_runtime_preflight_failure_is_sanitized_before_secret(monkeypatch, tmp_path: Path, capsys):
+    events: list[str] = []
+    repo_root = tmp_path / "repo"
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(builtins, "input", lambda prompt: ident.diagnostic_confirmation_phrase())
+    monkeypatch.setattr(ident, "_repository_root", lambda: repo_root)
+    monkeypatch.setattr(
+        ident,
+        "_identity_runtime_root",
+        lambda *, repository_root=None: (_ for _ in ()).throw(
+            ident.InstrumentIdentityError(ident.INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID)
+        ),
+    )
+
+    def fail_getpass(prompt: str) -> str:
+        events.append("getpass")
+        raise AssertionError("getpass must not be called")
+
+    assert ident.live_command(getpass_fn=fail_getpass) == 2
+    output = capsys.readouterr().out
+    receipt = _json_objects_from_output(output)[-1]
+
+    assert events == []
+    assert receipt["status"] == ident.INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_FAILED
+    assert receipt["failure_category"] == ident.INSTRUMENT_IDENTITY_RUNTIME_ROOT_INVALID
+    assert receipt["credential_prompted"] is False
+    assert receipt["provider_request_count"] == 0
+    assert "Traceback" not in output
+    assert str(tmp_path) not in output
+    assert not (repo_root / ident.IDENTITY_RUNTIME_ROOT).exists()
+
+
+def test_live_command_unexpected_preflight_exception_is_sanitized(monkeypatch, tmp_path: Path, capsys):
+    called = False
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(builtins, "input", lambda prompt: ident.diagnostic_confirmation_phrase())
+
+    def fail_getpass(prompt: str) -> str:
+        nonlocal called
+        called = True
+        raise AssertionError("getpass must not be called")
+
+    def unexpected_preflight():
+        raise RuntimeError(f"local path {tmp_path}")
+
+    assert ident.live_command(getpass_fn=fail_getpass, _preflight=unexpected_preflight) == 2
+    output = capsys.readouterr().out
+    receipt = _json_objects_from_output(output)[-1]
+
+    assert called is False
+    assert receipt["status"] == "INSTRUMENT_IDENTITY_EVIDENCE_FAILED"
+    assert receipt["failure_category"] == ident.INSTRUMENT_IDENTITY_UNEXPECTED_FAILURE
+    assert receipt["credential_prompted"] is False
+    assert "Traceback" not in output
+    assert str(tmp_path) not in output
+
+
+def test_live_command_success_orders_confirmation_preflight_key_then_two_mock_requests(monkeypatch, tmp_path: Path, capsys):
+    events: list[str] = []
+    seen: list[str] = []
+    repo_root = tmp_path / "repo"
+    repo_root.mkdir()
+    cwd = tmp_path / "cwd"
+    cwd.mkdir()
+    monkeypatch.chdir(cwd)
+    monkeypatch.setattr(sys.stdin, "isatty", lambda: True)
+    monkeypatch.setattr(ident, "_repository_root", lambda: repo_root)
+
+    def confirm(prompt: str) -> str:
+        events.append("confirmation")
+        return ident.diagnostic_confirmation_phrase()
+
+    def preflight() -> dict[str, object]:
+        events.append("preflight")
+        return {"status": ident.INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_READY}
+
+    def key_prompt(prompt: str) -> str:
+        events.append("getpass")
+        return "fictional-key"
+
+    def key_factory(secret: str) -> ProviderApiKey:
+        events.append("key")
+        return ProviderApiKey(secret)
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        events.append("request")
+        seen.append(str(request.url))
+        return httpx.Response(200, headers={"Content-Type": "application/json"}, content=_response())
+
+    monkeypatch.setattr(builtins, "input", confirm)
+
+    assert (
+        ident.live_command(
+            getpass_fn=key_prompt,
+            _provider_key_factory=key_factory,
+            _http_transport=httpx.MockTransport(handler),
+            _run_id_factory=lambda: "ident-live-mock",
+            _preflight=preflight,
+        )
+        == 0
+    )
+    output = capsys.readouterr().out
+    receipt = _json_objects_from_output(output)[-1]
+
+    assert events[:4] == ["confirmation", "preflight", "getpass", "key"]
+    assert events.count("request") == 2
+    assert receipt["provider_request_count"] == 2
+    assert [url.rsplit("=", 1)[1] for url in seen] == ["2022-01-01", "2025-12-31"]
+    assert (repo_root / ident.IDENTITY_RUNTIME_ROOT / "ident-live-mock").is_dir()
+    assert not (cwd / ".marketflow").exists()
+    assert "fictional-key" not in output
 
 
 def test_run_identity_evidence_private_mock_seam_makes_exactly_two_requests(tmp_path: Path):
@@ -502,6 +855,7 @@ def test_contract_digests_and_prior_integrity_unchanged():
 def test_source_assurance_identity_package_boundaries():
     source_path = REPO_ROOT / "marketflow" / "source_authority" / "instrument_identity.py"
     source = source_path.read_text(encoding="utf-8")
+    main_source = (REPO_ROOT / "marketflow" / "source_authority" / "__main__.py").read_text(encoding="utf-8")
     tree = ast.parse(source)
     imported = {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
     imported_from = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
@@ -526,6 +880,8 @@ def test_source_assurance_identity_package_boundaries():
     assert forbidden_modules.isdisjoint(imported_from)
     assert "getenv" not in called_attrs
     assert "environ" not in called_attrs
+    assert "Path.cwd" not in source
+    assert "MARKETFLOW_REPOSITORY_ROOT" not in source
     assert "apiKey" not in source
     assert "Ticker Events" not in source
     assert "ticker_events" not in source.lower()
@@ -536,12 +892,19 @@ def test_source_assurance_identity_package_boundaries():
     assert "http_transport" not in exported
     assert "run_root" not in exported
     assert "run_id_factory" not in exported
+    assert "repository_root" not in exported
+    assert "--repository-root" not in main_source
+    assert "--run-root" not in main_source
+    assert "--output-root" not in main_source
+    assert "--ticker" not in main_source
+    assert "--api-key" not in main_source
 
 
 def test_identity_documentation_records_offline_authority_and_credential_boundaries():
     docs = {
         "plan": REPO_ROOT / "docs" / "plans" / "MARKETFLOW_INSTRUMENT_IDENTITY_EVIDENCE_PLAN.md",
         "status": REPO_ROOT / "docs" / "status" / "MARKETFLOW_INSTRUMENT_IDENTITY_EVIDENCE_STATUS.md",
+        "correction": REPO_ROOT / "docs" / "status" / "MARKETFLOW_INSTRUMENT_IDENTITY_REPOSITORY_ROOT_CORRECTION.md",
         "authority": REPO_ROOT / "docs" / "architecture" / "MARKETFLOW_INSTRUMENT_IDENTITY_AUTHORITY.md",
         "credential": REPO_ROOT / "docs" / "security" / "MARKETFLOW_IDENTITY_CREDENTIAL_BOUNDARY.md",
     }
@@ -558,3 +921,8 @@ def test_identity_documentation_records_offline_authority_and_credential_boundar
     assert "2025-12-31" in rendered
     assert "canonical registry authority" in rendered
     assert "getpass" in rendered
+    assert "INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED" in rendered
+    assert "INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_FAILED" in rendered
+    assert "Path(__file__).resolve().parents[2]" in rendered
+    assert "before `getpass`" in rendered
+    assert "Final live identity tooling acceptance remains `BLOCKED`" in rendered

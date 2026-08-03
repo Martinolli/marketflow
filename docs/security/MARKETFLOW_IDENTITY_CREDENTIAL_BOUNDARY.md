@@ -20,12 +20,21 @@ The command requires:
 - an interactive TTY;
 - display of the sanitized plan;
 - an exact digest-bound confirmation phrase;
-- confirmation before credential prompt;
-- API key entry through `getpass` only after confirmation.
+- confirmation before any credential prompt;
+- repository-root, runtime-root, containment, artifact-writer, and dependency
+  preflight before credential prompt;
+- API key entry through `getpass` only after confirmation and successful local
+  preflight.
 
 The key is passed in memory to the accepted provider-key wrapper and is used in
 the bearer header only. It is not accepted in a URL, CLI argument, environment
 lookup, persistent artifact, public receipt, or public error field.
+
+Expected local repository/runtime failures occur before `getpass`,
+`ProviderApiKey`, transport construction, runtime-directory creation, or
+provider request. Public failures are fixed sanitized receipts and do not print
+tracebacks, absolute local paths, exception text, URLs, request IDs, API keys,
+or Authorization headers.
 
 ## Receipt Boundary
 

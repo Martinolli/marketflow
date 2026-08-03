@@ -216,6 +216,71 @@ Contract digests reproduced unchanged:
 The full collection increased from the accepted 958-test baseline to 1009
 tests because this phase adds 51 focused identity evidence tests.
 
+## Repository-Root Correction Addendum
+
+A subsequent controlled local live attempt exposed a live-runner defect after
+the original offline acceptance. The operator accepted the exact digest-bound
+confirmation phrase and the command then prompted for the API key through
+`getpass` before completing nonsecret local preflight. The command failed
+locally with repository-root resolution and surfaced an uncaught traceback with
+an absolute local path.
+
+Root cause:
+
+`_repository_root()` required a `pyproject.toml` marker that is absent from this
+valid source checkout.
+
+Corrected behavior:
+
+- repository root derives from
+  `marketflow/source_authority/instrument_identity.py` via
+  `Path(__file__).resolve().parents[2]`;
+- fixed repository evidence is regular-file checked;
+- production runtime output resolves only beneath
+  `.marketflow/source_authority/identity/runs/` under the validated repository;
+- unrelated current working directories and shadow `.marketflow` trees are not
+  output authority;
+- local preflight runs before `getpass`, `ProviderApiKey`, transport
+  construction, runtime-directory creation, or provider request;
+- expected repository/runtime failures emit
+  `INSTRUMENT_IDENTITY_LOCAL_PREFLIGHT_FAILED` with fixed failure categories and
+  no traceback or absolute path.
+
+No provider request was completed by the failed local attempt, and no identity
+snapshot or artifact from that attempt was accepted.
+
+The identity specification digest remains:
+
+`a728408f59948cd3cd244816fe99a1d85e8d381b53f8e03d61e2d751c22ff3ba`
+
+Final live identity tooling acceptance is blocked until the controlled live
+identity run is repeated after this correction. That future evidence remains
+noncanonical candidate evidence unless separately accepted with the required
+Ticker Events and authority evidence.
+
+Repository-root correction final checks:
+
+- `python -m pip check`: passed
+- focused identity tests: `67 passed`
+- related Massive transport, artifact, source-assurance, and prior-integrity
+  bundle: `438 passed`
+- full collection: `1025 tests collected`
+- full suite: `1025 passed`
+- `python -W error -m compileall -q marketflow scripts apps trading_dashboard utils rag tests`: passed
+- `git diff --check`: passed with Git LF-to-CRLF working-copy normalization
+  warnings on modified text files
+
+Repository-root correction reviewers:
+
+- Reviewer A initially found evidence-parent symlink/reparse coverage and
+  private-seam documentation wording gaps; both were corrected and covered by
+  focused regressions.
+- Reviewer B initially found a Python 3.12-only local preflight gate that was
+  stricter than package metadata; it was removed and covered by focused
+  regression.
+
+No critical, high, or unresolved medium reviewer finding remains.
+
 ## Reviews
 
 Reviewer A covered request/parser/identity-field contract, credential boundary,

@@ -1,6 +1,6 @@
 # MarketFlow Instrument Identity Evidence Status
 
-Status: TOOLING PASS, LIVE EVIDENCE PENDING
+Status: TOOLING CORRECTION IMPLEMENTED, LIVE EVIDENCE PENDING
 
 ## Scope Result
 
@@ -44,6 +44,29 @@ Future live response bytes must be committed as raw response artifacts and
 validated on disk before the bounded identity projection is parsed. Public
 receipts still exclude raw provider bodies and request IDs.
 
+## Repository-Root Correction
+
+A later controlled local live attempt accepted the digest-bound confirmation
+phrase and prompted for the API key too early, then failed before any provider
+request with:
+
+`INSTRUMENT_IDENTITY_REPOSITORY_ROOT_UNRESOLVED`
+
+The defect was a fragile `pyproject.toml` repository marker. This checkout has
+valid fixed evidence but no `pyproject.toml`, so the previous root helper could
+not resolve the source checkout. The corrected helper derives the root from the
+identity source module path and validates `AGENTS.md`, `requirements.txt`, the
+identity module file, and `config/fixed_date_acquisition_contract_v2_1.toml`.
+
+The live command now performs nonsecret repository/runtime preflight after
+operator confirmation and before `getpass`, secret-wrapper construction,
+transport construction, runtime-directory creation, or provider request.
+Expected local failures return a sanitized receipt without traceback, absolute
+path, exception text, URL, request ID, API key, or Authorization header.
+
+No provider request was completed by the failed attempt, and no identity
+artifact or snapshot was accepted from it.
+
 Ticker Events audit remains:
 
 `TICKER_EVENT_AUDIT_NOT_IMPLEMENTED`
@@ -68,3 +91,6 @@ Production source must be re-executed once after this correction through the
 controlled interactive command, after human confirmation and credential entry
 through `getpass`. That future run may create noncanonical identity artifacts
 only; it still cannot freeze identity authority without the remaining evidence.
+
+Final live identity tooling acceptance remains blocked until that corrected
+controlled live run is repeated.
