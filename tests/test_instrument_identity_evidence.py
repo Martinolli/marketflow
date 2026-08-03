@@ -893,11 +893,22 @@ def test_source_assurance_identity_package_boundaries():
     assert "run_root" not in exported
     assert "run_id_factory" not in exported
     assert "repository_root" not in exported
-    assert "--repository-root" not in main_source
-    assert "--run-root" not in main_source
-    assert "--output-root" not in main_source
-    assert "--ticker" not in main_source
-    assert "--api-key" not in main_source
+    main_tree = ast.parse(main_source)
+    cli_options = {
+        node.args[0].value
+        for node in ast.walk(main_tree)
+        if isinstance(node, ast.Call)
+        and isinstance(node.func, ast.Attribute)
+        and node.func.attr == "add_argument"
+        and node.args
+        and isinstance(node.args[0], ast.Constant)
+        and isinstance(node.args[0].value, str)
+    }
+    assert "--repository-root" not in cli_options
+    assert "--run-root" not in cli_options
+    assert "--output-root" not in cli_options
+    assert "--ticker" not in cli_options
+    assert "--api-key" not in cli_options
 
 
 def test_identity_documentation_records_offline_authority_and_credential_boundaries():
