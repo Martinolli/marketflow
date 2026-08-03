@@ -1,16 +1,20 @@
 # MarketFlow Ticker Events Supporting Audit v1 Status
 
-Status: TOOLING PASS, LIVE TICKER EVENTS EVIDENCE NOT RUN
+Status: PASS, LIVE SUPPORTING EVIDENCE ACCEPTED
 
 ## Result
 
-MarketFlow Ticker Events Supporting Audit v1 implements offline tooling for the
-experimental Massive.com Ticker Events endpoint. No live Ticker Events request
-occurred in this task.
+MarketFlow Ticker Events Supporting Audit v1 implements offline tooling and
+accepted live supporting evidence for the experimental Massive.com Ticker
+Events endpoint. A controlled live observation showed additional `cik` and
+`composite_figi` result fields; the offline response-compatibility correction
+is documented in
+`MARKETFLOW_TICKER_EVENT_RESPONSE_IDENTITY_FIELDS_CORRECTION.md`.
 
-No actual Massive.com key was requested, inspected, read from the environment,
-or printed. No provider account, portal, billing, browser, market-data file,
-historical report, registry, Strategy, Monte Carlo, outcome, performance,
+This offline acceptance pass requested no actual Massive.com key, inspected no
+credential, read no environment-variable value, and issued no additional
+provider request. No provider account, portal, billing, browser, market-data
+file, historical report, registry, Strategy, Monte Carlo, outcome, performance,
 broker, execution, split, dividend, calendar, or runtime migration activity
 occurred.
 
@@ -34,8 +38,9 @@ The endpoint is explicitly:
 
 `EXPERIMENTAL`
 
-It currently supports ticker-change events only. Its result is supporting
-evidence only and no automatic stitching is allowed.
+It currently supports ticker-change events only. Its accepted live result is
+supporting evidence only and no automatic stitching is allowed. The accepted
+event was classified as pre-range historical context with zero in-range events.
 
 ## Implemented Commands
 

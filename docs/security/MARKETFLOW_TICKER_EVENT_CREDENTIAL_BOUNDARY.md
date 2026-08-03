@@ -5,11 +5,12 @@ offline tests and documentation.
 
 ## Offline Default
 
-No live Ticker Events request occurred in this task.
+Default tests and offline acceptance work execute no live Ticker Events
+request.
 
-No actual Massive.com key was requested, inspected, read from environment
-variables, printed, logged, or committed. Tests use fictional credential text
-and `httpx.MockTransport` only.
+No actual Massive.com key is requested, inspected, read from environment
+variables, printed, logged, or committed by default tests. Tests use fictional
+credential text and `httpx.MockTransport` only.
 
 ## Live Boundary
 

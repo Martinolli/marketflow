@@ -36,6 +36,12 @@ def _response(events: list[dict[str, object]] | None = None, **overrides: object
     return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
 
 
+def _response_with_results(events: list[dict[str, object]] | None = None, **result_fields: object) -> bytes:
+    results: dict[str, object] = {"events": events or [], "name": "not public"}
+    results.update(result_fields)
+    return _response(events, results=results)
+
+
 def _json_objects_from_output(output: str) -> list[dict[str, object]]:
     decoder = json.JSONDecoder()
     objects: list[dict[str, object]] = []
@@ -89,6 +95,8 @@ def _make_identity_chain(
     composite_figi: str = tkev.QUERY_IDENTIFIER,
     start_digest: str = tkev.SOURCE_START_SNAPSHOT_DIGEST,
     continuity_digest: str | None = None,
+    start_cik: str = "320193",
+    end_cik: str = "320193",
 ) -> Path:
     context = ident.create_identity_run(run_root=root, run_id=run_id, created_at_utc="2026-08-03T00:00:00Z")
     start_raw = ident.commit_identity_artifact(payload=b'{"status":"OK","results":{}}', artifact_type=ident.TICKER_OVERVIEW_RAW_RESPONSE, context=context, artifact_id="ident-art-start-raw", as_of_date=tkev.START_DATE)
@@ -97,6 +105,8 @@ def _make_identity_chain(
     end_payload, end_id = _snapshot_payload(tkev.END_DATE, "ident-art-end-snapshot")
     start_payload["composite_figi"] = composite_figi
     start_payload["identity_projection_digest"] = start_digest
+    start_payload["cik"] = start_cik
+    end_payload["cik"] = end_cik
     start_snapshot = ident.commit_identity_artifact(payload=start_payload, artifact_type=ident.TICKER_OVERVIEW_SNAPSHOT, context=context, artifact_id=start_id, as_of_date=tkev.START_DATE, input_manifests=(start_raw["manifest"],), input_manifest_refs=(start_raw["manifest_ref"],))
     end_snapshot = ident.commit_identity_artifact(payload=end_payload, artifact_type=ident.TICKER_OVERVIEW_SNAPSHOT, context=context, artifact_id=end_id, as_of_date=tkev.END_DATE, input_manifests=(end_raw["manifest"],), input_manifest_refs=(end_raw["manifest_ref"],))
     continuity_base = {
@@ -189,6 +199,8 @@ def test_source_identity_binding_accepts_exact_six_manifest_chain(tmp_path: Path
     assert binding.start_snapshot_semantic_digest == tkev.SOURCE_START_SNAPSHOT_DIGEST
     assert binding.end_snapshot_semantic_digest == tkev.SOURCE_END_SNAPSHOT_DIGEST
     assert binding.composite_figi == tkev.QUERY_IDENTIFIER
+    assert binding.cik_status == ident.PRESENT
+    assert binding.cik == "320193"
 
 
 def test_source_identity_binding_rejects_wrong_run_continuity_figi_digest_and_incomplete(tmp_path: Path):
@@ -202,6 +214,8 @@ def test_source_identity_binding_rejects_wrong_run_continuity_figi_digest_and_in
         tkev.validate_accepted_source_identity_evidence(identity_run_root=_make_identity_chain(tmp_path / "wrong-digest", start_digest="1" * 64))
     with pytest.raises(tkev.TickerEventAuditError, match=tkev.TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID):
         tkev.validate_accepted_source_identity_evidence(identity_run_root=_make_identity_chain(tmp_path / "wrong-continuity-digest", continuity_digest="0" * 64))
+    with pytest.raises(tkev.TickerEventAuditError, match=tkev.TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID):
+        tkev.validate_accepted_source_identity_evidence(identity_run_root=_make_identity_chain(tmp_path / "wrong-cik", start_cik="320193", end_cik="999999"))
     incomplete = tmp_path / "incomplete"
     context = ident.create_identity_run(run_root=incomplete, run_id=tkev.SOURCE_IDENTITY_RUN_ID)
     ident.commit_identity_artifact(payload=b"{}", artifact_type=ident.TICKER_OVERVIEW_RAW_RESPONSE, context=context, artifact_id="only-raw", as_of_date=tkev.START_DATE)
@@ -254,6 +268,47 @@ def test_parser_rejects_unknown_schema_fields(payload: dict[str, object]):
         tkev.parse_ticker_events_response(json.dumps(base).encode("utf-8"), source_binding=tkev._synthetic_source_binding())
 
 
+def test_parser_accepts_only_observed_optional_result_identity_fields():
+    binding = tkev._synthetic_source_binding()
+
+    absent = tkev.parse_ticker_events_response(_response([]), source_binding=binding)
+    matched = tkev.parse_ticker_events_response(
+        _response_with_results([], composite_figi=tkev.QUERY_IDENTIFIER, cik="320193"),
+        source_binding=binding,
+    )
+
+    assert absent.response_composite_figi_status == tkev.RESPONSE_COMPOSITE_FIGI_NOT_RETURNED
+    assert absent.response_cik_status == tkev.RESPONSE_CIK_NOT_RETURNED
+    assert matched.response_composite_figi_status == tkev.RESPONSE_COMPOSITE_FIGI_PRESENT_MATCHED
+    assert matched.response_cik_status == tkev.RESPONSE_CIK_PRESENT_MATCHED
+
+
+@pytest.mark.parametrize(
+    ("field_name", "value", "expected"),
+    [
+        ("composite_figi", "BAD", tkev.TICKER_EVENT_AUDIT_RESPONSE_REJECTED),
+        ("composite_figi", "BBG000B9XRZ5", tkev.TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT),
+        ("cik", "32A193", tkev.TICKER_EVENT_AUDIT_RESPONSE_REJECTED),
+        ("cik", 320193, tkev.TICKER_EVENT_AUDIT_RESPONSE_REJECTED),
+        ("cik", "999999", tkev.TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT),
+    ],
+)
+def test_parser_rejects_malformed_or_conflicting_result_identity_fields(field_name: str, value: object, expected: str):
+    with pytest.raises(tkev.TickerEventAuditError, match=expected) as raised:
+        tkev.parse_ticker_events_response(_response_with_results([], **{field_name: value}), source_binding=tkev._synthetic_source_binding())
+
+    assert raised.value.failure_stage in {"RESULTS_SCHEMA", "RESULTS_IDENTITY"}
+    assert raised.value.structural_field_names == (field_name,)
+
+
+def test_parser_still_rejects_arbitrary_unknown_result_fields():
+    with pytest.raises(tkev.TickerEventAuditError, match="unknown fields") as raised:
+        tkev.parse_ticker_events_response(_response_with_results([], exchange="XNAS"), source_binding=tkev._synthetic_source_binding())
+
+    assert raised.value.failure_stage == "RESULTS_SCHEMA"
+    assert raised.value.structural_field_names == ("exchange",)
+
+
 def test_parser_empty_events_valid_and_missing_events_incomplete():
     timeline = tkev.parse_ticker_events_response(_response([]), source_binding=tkev._synthetic_source_binding())
 
@@ -262,6 +317,9 @@ def test_parser_empty_events_valid_and_missing_events_incomplete():
     assert timeline.in_range_event_count == 0
     with pytest.raises(tkev.TickerEventAuditError, match=tkev.TICKER_EVENT_EVIDENCE_INCOMPLETE):
         tkev.parse_ticker_events_response(_response([], results={}), source_binding=tkev._synthetic_source_binding())
+    with pytest.raises(tkev.TickerEventAuditError, match=tkev.TICKER_EVENT_EVIDENCE_INCOMPLETE) as raised:
+        tkev.parse_ticker_events_response(_response([], results={"cik": "999999"}), source_binding=tkev._synthetic_source_binding())
+    assert raised.value.structural_field_names == ("events",)
 
 
 def test_parser_canonicalizes_provider_order_and_classifies_ranges():
@@ -332,7 +390,11 @@ def test_run_writes_four_artifacts_lineage_and_sanitized_receipt(tmp_path: Path)
 
     def handler(request: httpx.Request) -> httpx.Response:
         seen.append(str(request.url))
-        return httpx.Response(200, headers={"Content-Type": "application/json"}, content=_response([_event("2021-12-31", "PRE")]))
+        return httpx.Response(
+            200,
+            headers={"Content-Type": "application/json"},
+            content=_response_with_results([_event("2021-12-31", "PRE")], composite_figi=tkev.QUERY_IDENTIFIER, cik="320193"),
+        )
 
     receipt = tkev._run_ticker_event_audit(
         tkev.ticker_event_audit_confirmation_phrase(),
@@ -347,8 +409,10 @@ def test_run_writes_four_artifacts_lineage_and_sanitized_receipt(tmp_path: Path)
     assert receipt["audit_status"] == tkev.TICKER_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_CHANGE
     assert receipt["endpoint_stability"] == "EXPERIMENTAL"
     assert receipt["source_continuity_semantic_digest"] == "0" * 64
+    assert receipt["response_composite_figi_status"] == tkev.RESPONSE_COMPOSITE_FIGI_PRESENT_MATCHED
+    assert receipt["response_cik_status"] == tkev.RESPONSE_CIK_PRESENT_MATCHED
     rendered = json.dumps(receipt, sort_keys=True)
-    for forbidden in ("fictional-key", "rid-secret", "Authorization", "https://", "raw response"):
+    for forbidden in ("fictional-key", "rid-secret", "Authorization", "https://", "raw response", "not public", "320193"):
         assert forbidden not in rendered
     manifests = [json.loads(path.read_text(encoding="utf-8")) for path in (tmp_path / "tkev-run").rglob("*.manifest.json")]
     assert len(manifests) == 4
@@ -370,6 +434,8 @@ def test_run_writes_four_artifacts_lineage_and_sanitized_receipt(tmp_path: Path)
     assert timeline["input_artifact_ids"] == [raw["artifact_id"]]
     assert timeline["source_continuity_semantic_digest"] == "0" * 64
     assert timeline_payload["endpoint_stability"] == tkev.ENDPOINT_STABILITY_EXPERIMENTAL
+    assert timeline_payload["response_composite_figi_status"] == tkev.RESPONSE_COMPOSITE_FIGI_PRESENT_MATCHED
+    assert timeline_payload["response_cik_status"] == tkev.RESPONSE_CIK_PRESENT_MATCHED
     assert audit["input_artifact_ids"] == [raw["artifact_id"], timeline["artifact_id"]]
     assert final_receipt["input_artifact_ids"] == [audit["artifact_id"]]
     assert all(tkev.SOURCE_CONTINUITY_ARTIFACT_ID in item["external_source_artifact_ids"] for item in manifests)
@@ -393,6 +459,50 @@ def test_run_writes_four_artifacts_lineage_and_sanitized_receipt(tmp_path: Path)
     corrupt_raw["external_source_artifact_ids"] = [tkev.SOURCE_CONTINUITY_ARTIFACT_ID, tkev.SOURCE_CONTINUITY_ARTIFACT_ID]
     with pytest.raises(tkev.TickerEventAuditError, match="unique"):
         tkev.validate_ticker_event_manifest_shape_without_payload(corrupt_raw)
+
+
+def test_private_saved_raw_reprocess_validates_manifest_before_parse(tmp_path: Path):
+    binding = tkev._synthetic_source_binding()
+    context = tkev.create_ticker_event_run(run_root=tmp_path, run_id="tkev-reprocess")
+    raw = tkev.commit_ticker_event_artifact(
+        payload=_response_with_results([_event("2023-06-01", "MID")], composite_figi=tkev.QUERY_IDENTIFIER, cik="320193"),
+        artifact_type=tkev.TICKER_EVENTS_RAW_RESPONSE,
+        context=context,
+        source_binding=binding,
+        artifact_id="tkev-art-raw",
+    )
+
+    timeline = tkev._parse_saved_ticker_event_raw_response(raw["manifest_ref"], run_root=tmp_path, source_binding=binding)
+
+    assert timeline.event_count == 1
+    assert timeline.in_range_event_count == 1
+    assert timeline.response_composite_figi_status == tkev.RESPONSE_COMPOSITE_FIGI_PRESENT_MATCHED
+    assert timeline.response_cik_status == tkev.RESPONSE_CIK_PRESENT_MATCHED
+    assert len(list((tmp_path / "tkev-reprocess").rglob("*.manifest.json"))) == 1
+
+
+def test_rejected_cik_conflict_receipt_uses_status_without_value(tmp_path: Path):
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(200, headers={"Content-Type": "application/json"}, content=_response_with_results([], cik="999999"))
+
+    with pytest.raises(tkev.TickerEventAuditRunError, match=tkev.TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT):
+        tkev._run_ticker_event_audit(
+            tkev.ticker_event_audit_confirmation_phrase(),
+            api_key=ProviderApiKey("fictional-key"),
+            http_transport=httpx.MockTransport(handler),
+            run_root=tmp_path,
+            run_id_factory=lambda: "tkev-cik-conflict",
+            source_binding=tkev._synthetic_source_binding(),
+        )
+
+    manifests = [json.loads(path.read_text(encoding="utf-8")) for path in (tmp_path / "tkev-cik-conflict").rglob("*.manifest.json")]
+    failure_manifest = next(item for item in manifests if item["artifact_type"] == tkev.TICKER_EVENT_AUDIT_RECEIPT)
+    failure_payload = tkev.load_ticker_event_payload(failure_manifest["payload_ref"] + ".manifest.json", run_root=tmp_path)
+    assert failure_payload["failure_category"] == tkev.TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT
+    assert failure_payload["response_cik_status"] == tkev.RESPONSE_CIK_CONFLICT
+    rendered = json.dumps(failure_payload, sort_keys=True)
+    assert "999999" not in rendered
+    assert "320193" not in rendered
 
 
 def test_artifacts_reject_overwrite_and_unsafe_refs(tmp_path: Path):
@@ -549,7 +659,34 @@ def test_live_command_parse_failure_reports_request_and_raw_artifact(monkeypatch
     assert receipt["provider_request_count"] == 1
     assert receipt["runtime_artifact_written"] is True
     assert receipt["failure_category"] == tkev.TICKER_EVENT_EVIDENCE_INCOMPLETE
-    assert len(list((tmp_path / "tkev-live-bad-json").rglob("*.manifest.json"))) == 1
+    assert receipt["parser_failure_stage"] == "RESULTS_SCHEMA"
+    assert receipt["structural_field_names"] == ["events"]
+    manifests = [json.loads(path.read_text(encoding="utf-8")) for path in (tmp_path / "tkev-live-bad-json").rglob("*.manifest.json")]
+    assert len(manifests) == 2
+    counts = {item["artifact_type"]: 0 for item in manifests}
+    for item in manifests:
+        counts[item["artifact_type"]] += 1
+        tkev.validate_ticker_event_manifest(item, run_root=tmp_path)
+    assert counts == {tkev.TICKER_EVENTS_RAW_RESPONSE: 1, tkev.TICKER_EVENT_AUDIT_RECEIPT: 1}
+    failure_manifest = next(item for item in manifests if item["artifact_type"] == tkev.TICKER_EVENT_AUDIT_RECEIPT)
+    failure_payload = tkev.load_ticker_event_payload(failure_manifest["payload_ref"] + ".manifest.json", run_root=tmp_path)
+    assert failure_payload["status"] == tkev.TICKER_EVENT_AUDIT_RESPONSE_REJECTED
+    assert failure_payload["provider_request_count"] == 1
+    assert failure_payload["http_status_category"] == "HTTP_2XX"
+    assert failure_payload["parser_failure_stage"] == "RESULTS_SCHEMA"
+    assert failure_payload["failure_category"] == tkev.TICKER_EVENT_EVIDENCE_INCOMPLETE
+    assert failure_payload["structural_field_names"] == ["events"]
+    assert failure_payload["runtime_artifact_written"] is True
+    assert failure_payload["canonical_eligibility"] is False
+    assert failure_payload["registry_eligibility"] is False
+    assert failure_payload["identity_freeze_eligibility"] is False
+    assert failure_payload["strategy_enabled"] is False
+    assert "provider" not in failure_payload
+    assert "source_identity_run_id" not in failure_payload
+    assert "source_continuity_artifact_id" not in failure_payload
+    rendered_failure = json.dumps(failure_payload, sort_keys=True)
+    for forbidden in ("fictional-key", "rid-secret", "Authorization", "https://", "raw response", "not public", "320193", str(tmp_path)):
+        assert forbidden not in rendered_failure
     assert "fictional-key" not in output
     assert "Authorization" not in output
     assert "https://" not in output
@@ -685,6 +822,8 @@ def test_public_api_and_source_assurance_boundaries():
     assert source.find("validate_accepted_source_identity_evidence()") < source.find("secret = getpass_fn")
     for name in ("_run_ticker_event_audit", "http_transport", "run_root", "run_id_factory", "source_binding"):
         assert name not in exported
+    assert "_parse_saved_ticker_event_raw_response" not in exported
+    assert "_parse_saved_ticker_event_raw_response" not in main_source
     for forbidden in ("--repository-root", "--run-root", "--output-root", "--identifier", "--composite-figi", "--date", "--api-key"):
         assert forbidden not in main_source
 
@@ -701,6 +840,8 @@ def test_documentation_records_ticker_event_audit_boundaries():
         REPO_ROOT / "docs" / "plans" / "MARKETFLOW_TICKER_EVENT_AUDIT_PLAN.md",
         REPO_ROOT / "docs" / "status" / "MARKETFLOW_TICKER_EVENT_AUDIT_STATUS.md",
         REPO_ROOT / "docs" / "status" / "MARKETFLOW_TICKER_EVENT_AUDIT_ACCEPTANCE.md",
+        REPO_ROOT / "docs" / "status" / "MARKETFLOW_TICKER_EVENT_RESPONSE_IDENTITY_FIELDS_CORRECTION.md",
+        REPO_ROOT / "docs" / "status" / "MARKETFLOW_TICKER_EVENT_LIVE_EVIDENCE_ACCEPTANCE.md",
         REPO_ROOT / "docs" / "architecture" / "MARKETFLOW_TICKER_EVENT_SUPPORTING_AUTHORITY.md",
         REPO_ROOT / "docs" / "security" / "MARKETFLOW_TICKER_EVENT_CREDENTIAL_BOUNDARY.md",
     ]
@@ -710,8 +851,13 @@ def test_documentation_records_ticker_event_audit_boundaries():
         assert path.is_file()
     assert "MarketFlow Ticker Events Supporting Audit v1" in rendered
     assert "EXPERIMENTAL" in rendered
-    assert "No live Ticker Events request occurred" in rendered
-    assert "No actual Massive.com key was requested" in rendered
+    assert "LIVE SUPPORTING EVIDENCE ACCEPTED" in rendered
+    assert "cik" in rendered
+    assert "composite_figi" in rendered
+    assert "2003-09-10" in rendered
+    assert "BEFORE_CONTRACT_RANGE" in rendered
+    assert "zero in-range events" in rendered
+    assert "No actual Massive.com key is requested" in rendered
     assert "Status: PASS" in rendered
     assert "supporting evidence" in rendered
     assert "no automatic stitching" in rendered

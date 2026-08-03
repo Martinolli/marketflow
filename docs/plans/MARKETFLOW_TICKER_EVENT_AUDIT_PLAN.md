@@ -54,12 +54,14 @@ lineage. Raw Ticker Overview provider bodies are not printed or copied.
 
 ## Request Boundary
 
-The controlled live command is implemented but must not be executed during this
-task. Its fixed request is one Massive.com Ticker Events request using the
-Composite FIGI path identifier and `types=ticker_change`. It uses bearer-header
-authentication only, `Accept: application/json`, `Accept-Encoding: identity`,
-TLS verification, redirects disabled, `trust_env=False`, no cookies, no retry,
-no pagination, and no endpoint-version substitution.
+The controlled live command exists behind an explicit operator-confirmed
+boundary. A saved controlled live run has been accepted as supporting evidence,
+but ordinary tests and acceptance work must not execute another provider
+request. The command uses the Composite FIGI path identifier and
+`types=ticker_change`, bearer-header authentication only, `Accept:
+application/json`, `Accept-Encoding: identity`, TLS verification, redirects
+disabled, `trust_env=False`, no cookies, no retry, no pagination, and no
+endpoint-version substitution.
 
 The endpoint is experimental. Endpoint unavailability or incomplete evidence is
 not treated as proof of no ticker changes.

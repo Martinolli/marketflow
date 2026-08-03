@@ -1,6 +1,6 @@
 # MarketFlow Ticker Events Supporting Audit v1 Acceptance
 
-Status: PASS
+Status: PASS, OFFLINE TOOLING AND LIVE SUPPORTING EVIDENCE ACCEPTED
 
 UTC acceptance date: `2026-08-03T17:46:07Z`
 
@@ -37,7 +37,10 @@ Excluded scope:
   authority, Strategy, Monte Carlo, outcome, performance, broker, execution,
   report rewrite, or runtime migration.
 
-Tooling is accepted offline only. No real Ticker Events request occurred.
+Tooling is accepted offline. A later controlled live response observation
+showed additional `cik` and `composite_figi` result fields. The corrected
+parser was accepted against the saved controlled live run, and the returned
+event was successfully classified as pre-range historical context.
 
 ## Specification
 
@@ -147,11 +150,18 @@ Strict accepted `results` fields:
 
 - `events`
 - `name`
+- `cik`
+- `composite_figi`
 
 `events` is required for complete evidence and must be an exact array. An empty
 array is valid and produces `NO_TICKER_CHANGE_EVENTS_RETURNED`. Missing events
 produces `TICKER_EVENT_EVIDENCE_INCOMPLETE`. `name` is optional and excluded
 from identity authority and public receipts.
+
+`composite_figi` is optional. When present it must be exact string FIGI evidence
+matching `BBG000B9XRY4`. `cik` is optional. When present it must be exact
+decimal text matching the accepted start/end source identity CIK evidence.
+Public receipts expose only response identity statuses, not the CIK value.
 
 Strict event fields:
 
@@ -253,18 +263,24 @@ accepted identity artifact is referenced and not copied or rewritten.
 Future live raw responses are retained as exact bytes with exact SHA and size,
 validated before parsing, and excluded from public receipts.
 
+If a future live raw response is persisted and then rejected by parsing, a
+sanitized `TICKER_EVENT_AUDIT_RECEIPT` failure artifact is also written. It
+contains fixed run/spec/request-count/stage/category/field-name metadata,
+endpoint stability, raw-artifact-written status, and false authority flags
+only.
+
 ## Receipt Sanitization
 
 Receipts may include audit run ID, specification digest, provider, Composite
 FIGI, ticker context, range dates, source identity run/artifact IDs, source
 continuity semantic digest, raw/timeline/audit artifact IDs and digests, event
-counts, pre/in/post-range counts, standardized event dates and reported
-symbols, audit status, combined identity candidate status, experimental status,
-and false authority flags.
+counts, pre/in/post-range counts, response identity statuses, standardized event
+dates and reported symbols, audit status, combined identity candidate status,
+experimental status, and false authority flags.
 
 Receipts exclude API key, Authorization header, raw URL, request ID value, raw
-body, provider asset text, account data, absolute paths, raw exceptions,
-prices, candidate values, and performance values.
+body, provider asset text, CIK value, account data, absolute paths, raw
+exceptions, prices, candidate values, and performance values.
 
 ## Commands
 
@@ -286,10 +302,11 @@ Controlled live command:
 
 `python -m marketflow.source_authority --ticker-event-audit-run`
 
-Implemented but not executed in this acceptance. Required sequence is TTY check,
-sanitized plan, exact phrase display, operator confirmation, nonsecret
-source-identity/runtime preflight, `getpass`, one fixed HTTP request, artifact
-persistence, and sanitized receipt.
+Implemented and previously executed in a controlled live run. This final
+offline acceptance pass did not execute another provider request. Required
+sequence is TTY check, sanitized plan, exact phrase display, operator
+confirmation, nonsecret source-identity/runtime preflight, `getpass`, one fixed
+HTTP request, artifact persistence, and sanitized receipt.
 
 Preflight runs before `getpass`, key construction, transport construction,
 output-run creation, or provider request on source-evidence failure. Expected
@@ -370,9 +387,9 @@ No critical, high, or unresolved medium reviewer finding remains.
 
 ## Remaining Limitations
 
-- Tooling accepted offline only.
-- No real Ticker Events request occurred.
-- No actual API key was inspected.
+- Tooling and the saved live supporting evidence are accepted.
+- This final acceptance pass made no additional Ticker Events request.
+- No actual API key was inspected during acceptance.
 - Endpoint remains experimental.
 - Audit is supporting evidence only.
 - Identity freeze remains pending.

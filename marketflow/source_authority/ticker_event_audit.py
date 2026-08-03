@@ -68,6 +68,13 @@ TICKER_EVENT_CHANGE_REQUIRES_SEGMENT_REVIEW = "TICKER_EVENT_CHANGE_REQUIRES_SEGM
 TICKER_EVENT_EVIDENCE_INCOMPLETE = "TICKER_EVENT_EVIDENCE_INCOMPLETE"
 TICKER_EVENT_EVIDENCE_CONFLICT = "TICKER_EVENT_EVIDENCE_CONFLICT"
 TICKER_EVENT_ENDPOINT_UNAVAILABLE = "TICKER_EVENT_ENDPOINT_UNAVAILABLE"
+TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT = "TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT"
+RESPONSE_COMPOSITE_FIGI_PRESENT_MATCHED = "RESPONSE_COMPOSITE_FIGI_PRESENT_MATCHED"
+RESPONSE_COMPOSITE_FIGI_NOT_RETURNED = "RESPONSE_COMPOSITE_FIGI_NOT_RETURNED"
+RESPONSE_COMPOSITE_FIGI_MISMATCH = "RESPONSE_COMPOSITE_FIGI_MISMATCH"
+RESPONSE_CIK_PRESENT_MATCHED = "RESPONSE_CIK_PRESENT_MATCHED"
+RESPONSE_CIK_NOT_RETURNED = "RESPONSE_CIK_NOT_RETURNED"
+RESPONSE_CIK_CONFLICT = "RESPONSE_CIK_CONFLICT"
 IDENTITY_CONTINUITY_SUPPORTED_WITH_TICKER_EVENT_AUDIT_CANDIDATE = "IDENTITY_CONTINUITY_SUPPORTED_WITH_TICKER_EVENT_AUDIT_CANDIDATE"
 IDENTITY_CONTINUITY_REQUIRES_TICKER_EVENT_SEGMENT_REVIEW = "IDENTITY_CONTINUITY_REQUIRES_TICKER_EVENT_SEGMENT_REVIEW"
 IDENTITY_CONTINUITY_SUPPORTED_WITH_TICKER_EVENT_AUDIT_INCOMPLETE = "IDENTITY_CONTINUITY_SUPPORTED_WITH_TICKER_EVENT_AUDIT_INCOMPLETE"
@@ -93,7 +100,7 @@ PAYLOAD_MEDIA_TYPE_CANONICAL_JSON = identity.PAYLOAD_MEDIA_TYPE_CANONICAL_JSON
 PAYLOAD_MEDIA_TYPE_PROVIDER_RAW_BYTES = identity.PAYLOAD_MEDIA_TYPE_PROVIDER_RAW_BYTES
 
 TOP_LEVEL_FIELDS = frozenset({"request_id", "results", "status"})
-RESULT_FIELDS = frozenset({"events", "name"})
+RESULT_FIELDS = frozenset({"cik", "composite_figi", "events", "name"})
 EVENT_FIELDS = frozenset({"date", "type", "ticker_change"})
 TICKER_CHANGE_FIELDS = frozenset({"ticker"})
 MANIFEST_FIELDS = frozenset(
@@ -139,6 +146,17 @@ STAGE_DIRECTORY = {
 class TickerEventAuditError(ValueError):
     """Raised when ticker-event audit evidence fails closed."""
 
+    def __init__(
+        self,
+        message: str,
+        *,
+        failure_stage: str = "TICKER_EVENT_AUDIT_STAGE_UNSPECIFIED",
+        structural_field_names: Iterable[str] = (),
+    ) -> None:
+        super().__init__(message)
+        self.failure_stage = failure_stage
+        self.structural_field_names = tuple(sorted({str(item) for item in structural_field_names}))
+
 
 class TickerEventAuditRunError(TickerEventAuditError):
     """Raised after a live audit attempt with sanitized observable counts."""
@@ -149,8 +167,10 @@ class TickerEventAuditRunError(TickerEventAuditError):
         *,
         provider_request_count: int,
         runtime_artifact_written: bool,
+        failure_stage: str = "TICKER_EVENT_AUDIT_STAGE_UNSPECIFIED",
+        structural_field_names: Iterable[str] = (),
     ) -> None:
-        super().__init__(message)
+        super().__init__(message, failure_stage=failure_stage, structural_field_names=structural_field_names)
         self.provider_request_count = provider_request_count
         self.runtime_artifact_written = runtime_artifact_written
 
@@ -206,6 +226,8 @@ class SourceIdentityBinding:
     share_class_figi: str
     primary_exchange: str
     security_type: str
+    cik_status: str
+    cik: str | None
 
 
 @dataclass(frozen=True, slots=True)
@@ -227,6 +249,8 @@ class TickerEventTimeline:
     source_continuity_semantic_digest: str
     endpoint_stability: str
     provider_status: str
+    response_composite_figi_status: str
+    response_cik_status: str
     event_count: int
     pre_range_event_count: int
     in_range_event_count: int
@@ -247,6 +271,8 @@ class TickerEventAuditEvidence:
     end_snapshot_semantic_digest: str
     contract_start_date: str
     contract_end_date: str
+    response_composite_figi_status: str
+    response_cik_status: str
     audit_status: str
     combined_identity_candidate_status: str
     fixed_findings: tuple[str, ...]
@@ -372,6 +398,47 @@ def _validate_ticker(value: Any) -> str:
     return text
 
 
+def _schema_error(message: str, *, stage: str, fields: Iterable[str] = ()) -> TickerEventAuditError:
+    return TickerEventAuditError(message, failure_stage=stage, structural_field_names=fields)
+
+
+def _validate_response_composite_figi(value: Any, binding: SourceIdentityBinding) -> str:
+    try:
+        figi = identity._validate_figi(value, "composite_figi")
+    except identity.InstrumentIdentityError as exc:
+        raise TickerEventAuditError(TICKER_EVENT_AUDIT_RESPONSE_REJECTED, failure_stage="RESULTS_SCHEMA", structural_field_names=("composite_figi",)) from exc
+    if figi != QUERY_IDENTIFIER or figi != binding.composite_figi:
+        raise TickerEventAuditError(TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT, failure_stage="RESULTS_IDENTITY", structural_field_names=("composite_figi",))
+    return figi
+
+
+def _validate_response_cik(value: Any, binding: SourceIdentityBinding) -> str:
+    try:
+        cik = identity._validate_cik(value)
+    except identity.InstrumentIdentityError as exc:
+        raise TickerEventAuditError(TICKER_EVENT_AUDIT_RESPONSE_REJECTED, failure_stage="RESULTS_SCHEMA", structural_field_names=("cik",)) from exc
+    if cik is None:
+        raise TickerEventAuditError(TICKER_EVENT_AUDIT_RESPONSE_REJECTED, failure_stage="RESULTS_SCHEMA", structural_field_names=("cik",))
+    if binding.cik_status != identity.PRESENT or binding.cik is None or cik != binding.cik:
+        raise TickerEventAuditError(TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT, failure_stage="RESULTS_IDENTITY", structural_field_names=("cik",))
+    return cik
+
+
+def _response_identity_statuses(results: Mapping[str, Any], binding: SourceIdentityBinding) -> tuple[str, str]:
+    if "composite_figi" in results:
+        _validate_response_composite_figi(results["composite_figi"], binding)
+        response_composite_figi_status = RESPONSE_COMPOSITE_FIGI_PRESENT_MATCHED
+    else:
+        response_composite_figi_status = RESPONSE_COMPOSITE_FIGI_NOT_RETURNED
+
+    if "cik" in results:
+        _validate_response_cik(results["cik"], binding)
+        response_cik_status = RESPONSE_CIK_PRESENT_MATCHED
+    else:
+        response_cik_status = RESPONSE_CIK_NOT_RETURNED
+    return response_composite_figi_status, response_cik_status
+
+
 def _range_classification(value: str) -> str:
     event_date = date.fromisoformat(value)
     if event_date < date.fromisoformat(START_DATE):
@@ -385,44 +452,45 @@ def parse_ticker_events_response(body: bytes, *, source_binding: SourceIdentityB
     binding = source_binding or validate_accepted_source_identity_evidence()
     payload = _load_json(body)
     if not isinstance(payload, dict):
-        raise TickerEventAuditError("Ticker Events response must be a JSON object")
+        raise _schema_error("Ticker Events response must be a JSON object", stage="TOP_LEVEL_SCHEMA")
     unknown = set(payload) - TOP_LEVEL_FIELDS
     if unknown:
-        raise TickerEventAuditError("Ticker Events response has unknown top-level fields")
+        raise _schema_error("Ticker Events response has unknown top-level fields", stage="TOP_LEVEL_SCHEMA", fields=unknown)
     status = _require_text(payload.get("status"), "status")
     if status != PROVIDER_STATUS_OK:
-        raise TickerEventAuditError("Ticker Events response status mismatch")
+        raise TickerEventAuditError("Ticker Events response status mismatch", failure_stage="TOP_LEVEL_STATUS", structural_field_names=("status",))
     results = payload.get("results")
     if not isinstance(results, dict):
-        raise TickerEventAuditError("Ticker Events results must be an object")
+        raise _schema_error("Ticker Events results must be an object", stage="RESULTS_SCHEMA", fields=("results",))
     unknown_results = set(results) - RESULT_FIELDS
     if unknown_results:
-        raise TickerEventAuditError("Ticker Events results has unknown fields")
+        raise _schema_error("Ticker Events results has unknown fields", stage="RESULTS_SCHEMA", fields=unknown_results)
     if "events" not in results:
-        raise TickerEventAuditError(TICKER_EVENT_EVIDENCE_INCOMPLETE)
+        raise _schema_error(TICKER_EVENT_EVIDENCE_INCOMPLETE, stage="RESULTS_SCHEMA", fields=("events",))
+    response_composite_figi_status, response_cik_status = _response_identity_statuses(results, binding)
     raw_events = results["events"]
     if not isinstance(raw_events, list):
-        raise TickerEventAuditError("Ticker Events events must be an array")
+        raise _schema_error("Ticker Events events must be an array", stage="RESULTS_SCHEMA", fields=("events",))
 
     events: list[TickerEvent] = []
     by_date_type: dict[tuple[str, str], str] = {}
     seen_exact: set[tuple[str, str, str]] = set()
     for item in raw_events:
         if not isinstance(item, dict):
-            raise TickerEventAuditError("Ticker Events event must be an object")
+            raise _schema_error("Ticker Events event must be an object", stage="EVENT_SCHEMA")
         unknown_event = set(item) - EVENT_FIELDS
         if unknown_event:
-            raise TickerEventAuditError("Ticker Events event has unknown fields")
+            raise _schema_error("Ticker Events event has unknown fields", stage="EVENT_SCHEMA", fields=unknown_event)
         event_type = _require_text(item.get("type"), "type")
         if event_type != EVENT_TYPE_TICKER_CHANGE:
             raise TickerEventAuditError("Ticker Events event type mismatch")
         event_date = _validate_iso_date(_require_text(item.get("date"), "date"), "date")
         ticker_change = item.get("ticker_change")
         if not isinstance(ticker_change, dict):
-            raise TickerEventAuditError("ticker_change must be an object")
+            raise _schema_error("ticker_change must be an object", stage="TICKER_CHANGE_SCHEMA", fields=("ticker_change",))
         unknown_change = set(ticker_change) - TICKER_CHANGE_FIELDS
         if unknown_change:
-            raise TickerEventAuditError("ticker_change has unknown fields")
+            raise _schema_error("ticker_change has unknown fields", stage="TICKER_CHANGE_SCHEMA", fields=unknown_change)
         ticker = _validate_ticker(ticker_change.get("ticker"))
         exact_key = (event_date, event_type, ticker)
         date_type_key = (event_date, event_type)
@@ -448,6 +516,8 @@ def parse_ticker_events_response(body: bytes, *, source_binding: SourceIdentityB
         "source_continuity_semantic_digest": binding.source_continuity_semantic_digest,
         "endpoint_stability": ENDPOINT_STABILITY_EXPERIMENTAL,
         "provider_status": status,
+        "response_composite_figi_status": response_composite_figi_status,
+        "response_cik_status": response_cik_status,
         "event_count": len(ordered),
         "pre_range_event_count": pre,
         "in_range_event_count": in_range,
@@ -465,6 +535,8 @@ def parse_ticker_events_response(body: bytes, *, source_binding: SourceIdentityB
         source_continuity_semantic_digest=binding.source_continuity_semantic_digest,
         endpoint_stability=ENDPOINT_STABILITY_EXPERIMENTAL,
         provider_status=status,
+        response_composite_figi_status=response_composite_figi_status,
+        response_cik_status=response_cik_status,
         event_count=len(ordered),
         pre_range_event_count=pre,
         in_range_event_count=in_range,
@@ -501,6 +573,8 @@ def build_supporting_audit(timeline: TickerEventTimeline, source_binding: Source
         "end_snapshot_semantic_digest": source_binding.end_snapshot_semantic_digest,
         "contract_start_date": START_DATE,
         "contract_end_date": END_DATE,
+        "response_composite_figi_status": timeline.response_composite_figi_status,
+        "response_cik_status": timeline.response_cik_status,
         "audit_status": status,
         "combined_identity_candidate_status": combined,
         "fixed_findings": list(findings),
@@ -524,6 +598,8 @@ def build_supporting_audit(timeline: TickerEventTimeline, source_binding: Source
         end_snapshot_semantic_digest=source_binding.end_snapshot_semantic_digest,
         contract_start_date=START_DATE,
         contract_end_date=END_DATE,
+        response_composite_figi_status=timeline.response_composite_figi_status,
+        response_cik_status=timeline.response_cik_status,
         audit_status=status,
         combined_identity_candidate_status=combined,
         fixed_findings=findings,
@@ -739,6 +815,31 @@ def _validate_continuity_payload_digest(payload: Mapping[str, Any]) -> None:
         raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID)
 
 
+def _source_cik_evidence(start_payload: Mapping[str, Any], end_payload: Mapping[str, Any]) -> tuple[str, str | None]:
+    statuses = (start_payload.get("cik_status"), end_payload.get("cik_status"))
+    values = (start_payload.get("cik"), end_payload.get("cik"))
+    if statuses == (identity.PRESENT, identity.PRESENT):
+        try:
+            start_cik = identity._validate_cik(values[0])
+            end_cik = identity._validate_cik(values[1])
+        except identity.InstrumentIdentityError as exc:
+            raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID) from exc
+        if start_cik is None or end_cik is None or start_cik != end_cik:
+            raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID)
+        return identity.PRESENT, start_cik
+    if statuses[0] not in {identity.PRESENT, identity.NOT_RETURNED} or statuses[1] not in {identity.PRESENT, identity.NOT_RETURNED}:
+        raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID)
+    for status, value in zip(statuses, values):
+        if status == identity.NOT_RETURNED and value is not None:
+            raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID)
+        if status == identity.PRESENT:
+            try:
+                identity._validate_cik(value)
+            except identity.InstrumentIdentityError as exc:
+                raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID) from exc
+    return identity.NOT_RETURNED, None
+
+
 def validate_accepted_source_identity_evidence(*, identity_run_root: str | Path | None = None) -> SourceIdentityBinding:
     try:
         root = Path(identity_run_root) if identity_run_root is not None else identity._identity_runtime_root()
@@ -808,6 +909,7 @@ def validate_accepted_source_identity_evidence(*, identity_run_root: str | Path 
                 raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID)
             if payload["primary_exchange"] != PRIMARY_EXCHANGE_CONTEXT or payload["type"] != SECURITY_TYPE_CONTEXT:
                 raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID)
+        source_cik_status, source_cik = _source_cik_evidence(start_payload, end_payload)
         continuity_inputs = _validate_identity_input_refs(
             continuity_manifest,
             root=root,
@@ -854,6 +956,8 @@ def validate_accepted_source_identity_evidence(*, identity_run_root: str | Path 
             share_class_figi=SHARE_CLASS_FIGI_CONTEXT,
             primary_exchange=PRIMARY_EXCHANGE_CONTEXT,
             security_type=SECURITY_TYPE_CONTEXT,
+            cik_status=source_cik_status,
+            cik=source_cik,
         )
     except (identity.InstrumentIdentityError, KeyError, IndexError) as exc:
         raise TickerEventAuditError(TICKER_EVENT_AUDIT_SOURCE_IDENTITY_INVALID) from exc
@@ -874,6 +978,8 @@ def _synthetic_source_binding() -> SourceIdentityBinding:
         share_class_figi=SHARE_CLASS_FIGI_CONTEXT,
         primary_exchange=PRIMARY_EXCHANGE_CONTEXT,
         security_type=SECURITY_TYPE_CONTEXT,
+        cik_status=identity.PRESENT,
+        cik="320193",
     )
 
 
@@ -1148,6 +1254,18 @@ def load_ticker_event_raw_bytes(manifest_ref: str | Path, *, run_root: str | Pat
     return payload_path.read_bytes()
 
 
+def _parse_saved_ticker_event_raw_response(
+    manifest_ref: str | Path,
+    *,
+    run_root: str | Path,
+    source_binding: SourceIdentityBinding | None = None,
+) -> TickerEventTimeline:
+    manifest = load_ticker_event_manifest(manifest_ref, run_root=run_root)
+    if manifest["artifact_type"] != TICKER_EVENTS_RAW_RESPONSE:
+        raise TickerEventAuditError("saved Ticker Events artifact is not raw response", failure_stage="RAW_ARTIFACT_VALIDATION")
+    return parse_ticker_events_response(load_ticker_event_raw_bytes(manifest_ref, run_root=run_root), source_binding=source_binding)
+
+
 def sanitized_receipt(
     *,
     context: TickerEventRunContext,
@@ -1180,6 +1298,8 @@ def sanitized_receipt(
         "pre_range_event_count": timeline.pre_range_event_count,
         "in_range_event_count": timeline.in_range_event_count,
         "post_range_event_count": timeline.post_range_event_count,
+        "response_composite_figi_status": timeline.response_composite_figi_status,
+        "response_cik_status": timeline.response_cik_status,
         "events": [asdict(event) for event in timeline.events],
         "audit_status": audit.audit_status,
         "combined_identity_candidate_status": audit.combined_identity_candidate_status,
@@ -1190,6 +1310,41 @@ def sanitized_receipt(
         "identity_freeze_eligibility": False,
         "strategy_enabled": False,
     }
+
+
+def _sanitized_failure_receipt_artifact(
+    *,
+    context: TickerEventRunContext,
+    source_binding: SourceIdentityBinding,
+    provider_request_count: int,
+    failure_category: str,
+    parser_failure_stage: str,
+    structural_field_names: Iterable[str] = (),
+    runtime_artifact_written: bool,
+    http_status_category: str | None = None,
+) -> dict[str, Any]:
+    receipt: dict[str, Any] = {
+        "status": TICKER_EVENT_AUDIT_RESPONSE_REJECTED,
+        "audit_run_id": context.run_id,
+        "specification_digest": ticker_event_audit_specification_digest(),
+        "provider_request_count": provider_request_count,
+        "http_status_category": http_status_category,
+        "parser_failure_stage": parser_failure_stage,
+        "failure_category": failure_category,
+        "structural_field_names": sorted({str(item) for item in structural_field_names}),
+        "endpoint_stability": ENDPOINT_STABILITY_EXPERIMENTAL,
+        "runtime_artifact_written": runtime_artifact_written,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "identity_freeze_eligibility": False,
+        "strategy_enabled": False,
+    }
+    field_names = set(receipt["structural_field_names"])
+    if "cik" in field_names and failure_category == TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT:
+        receipt["response_cik_status"] = RESPONSE_CIK_CONFLICT
+    if "composite_figi" in field_names and failure_category == TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT:
+        receipt["response_composite_figi_status"] = RESPONSE_COMPOSITE_FIGI_MISMATCH
+    return receipt
 
 
 def ticker_event_audit_plan() -> dict[str, Any]:
@@ -1255,10 +1410,13 @@ def _run_ticker_event_audit(
                 str(exc),
                 provider_request_count=transport.call_count,
                 runtime_artifact_written=False,
+                failure_stage=exc.failure_stage,
+                structural_field_names=exc.structural_field_names,
             ) from exc
     finally:
         transport.close()
     raw_written = False
+    raw: dict[str, Any] | None = None
     try:
         raw = commit_ticker_event_artifact(payload=body, artifact_type=TICKER_EVENTS_RAW_RESPONSE, context=context, source_binding=binding)
         raw_written = True
@@ -1298,10 +1456,31 @@ def _run_ticker_event_audit(
             input_manifest_refs=(audit_artifact["manifest_ref"],),
         )
     except TickerEventAuditError as exc:
+        if raw_written and raw is not None:
+            failure_receipt = _sanitized_failure_receipt_artifact(
+                context=context,
+                source_binding=binding,
+                provider_request_count=transport.call_count,
+                failure_category=_expected_failure_category(exc),
+                parser_failure_stage=exc.failure_stage,
+                structural_field_names=exc.structural_field_names,
+                runtime_artifact_written=True,
+                http_status_category="HTTP_2XX",
+            )
+            commit_ticker_event_artifact(
+                payload=failure_receipt,
+                artifact_type=TICKER_EVENT_AUDIT_RECEIPT,
+                context=context,
+                source_binding=binding,
+                input_manifests=(raw["manifest"],),
+                input_manifest_refs=(raw["manifest_ref"],),
+            )
         raise TickerEventAuditRunError(
             str(exc),
             provider_request_count=transport.call_count,
             runtime_artifact_written=raw_written,
+            failure_stage=exc.failure_stage,
+            structural_field_names=exc.structural_field_names,
         ) from exc
     return receipt | {
         "receipt_artifact_id": receipt_artifact["manifest"]["artifact_id"],
@@ -1383,19 +1562,29 @@ def _failure_receipt(
     credential_prompted: bool,
     provider_request_count: int = 0,
     runtime_artifact_written: bool = False,
+    parser_failure_stage: str | None = None,
+    structural_field_names: Iterable[str] = (),
 ) -> dict[str, Any]:
-    return {
+    receipt: dict[str, Any] = {
         "status": status,
         "failure_category": failure_category,
         "credential_prompted": credential_prompted,
         "provider_request_count": provider_request_count,
         "runtime_artifact_written": runtime_artifact_written,
+        "parser_failure_stage": parser_failure_stage,
+        "structural_field_names": sorted({str(item) for item in structural_field_names}),
         "canonical_eligibility": False,
         "registry_eligibility": False,
         "identity_freeze_eligibility": False,
         "strategy_enabled": False,
         "endpoint_stability": ENDPOINT_STABILITY_EXPERIMENTAL,
     }
+    field_names = set(receipt["structural_field_names"])
+    if "cik" in field_names and failure_category == TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT:
+        receipt["response_cik_status"] = RESPONSE_CIK_CONFLICT
+    if "composite_figi" in field_names and failure_category == TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT:
+        receipt["response_composite_figi_status"] = RESPONSE_COMPOSITE_FIGI_MISMATCH
+    return receipt
 
 
 def _expected_failure_category(exc: TickerEventAuditError) -> str:
@@ -1411,6 +1600,7 @@ def _expected_failure_category(exc: TickerEventAuditError) -> str:
         TICKER_EVENT_AUDIT_RESPONSE_REJECTED,
         TICKER_EVENT_ENDPOINT_UNAVAILABLE,
         TICKER_EVENT_EVIDENCE_INCOMPLETE,
+        TICKER_EVENT_RESPONSE_IDENTITY_CONFLICT,
     }
     return text if text in fixed else "TICKER_EVENT_AUDIT_EXPECTED_FAILURE"
 
@@ -1475,6 +1665,8 @@ def live_command(
                     credential_prompted=True,
                     provider_request_count=exc.provider_request_count,
                     runtime_artifact_written=exc.runtime_artifact_written,
+                    parser_failure_stage=exc.failure_stage,
+                    structural_field_names=exc.structural_field_names,
                 ),
                 sort_keys=True,
                 indent=2,
