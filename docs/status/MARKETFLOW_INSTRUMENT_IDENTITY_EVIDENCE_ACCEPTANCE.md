@@ -253,10 +253,11 @@ The identity specification digest remains:
 
 `a728408f59948cd3cd244816fe99a1d85e8d381b53f8e03d61e2d751c22ff3ba`
 
-Final live identity tooling acceptance is blocked until the controlled live
-identity run is repeated after this correction. That future evidence remains
-noncanonical candidate evidence unless separately accepted with the required
-Ticker Events and authority evidence.
+The controlled live identity run was repeated after this correction and is
+accepted offline in
+`docs/status/MARKETFLOW_INSTRUMENT_IDENTITY_LIVE_EVIDENCE_ACCEPTANCE.md`.
+That evidence remains noncanonical candidate evidence unless separately
+accepted with the required Ticker Events and authority evidence.
 
 Repository-root correction final checks:
 
@@ -293,23 +294,22 @@ boundaries. Result: no issues found.
 
 ## Remaining Limitations
 
-Start and end snapshots are not yet provider-verified. Ticker Events audit is
-pending. Identity continuity is not frozen. Calendar, corporate-action, and
-registry authority remain pending. Canonical, registry, generation-freeze, and
-Strategy eligibility remain false.
+The post-correction live identity evidence chain is accepted offline as
+noncanonical candidate evidence in
+`docs/status/MARKETFLOW_INSTRUMENT_IDENTITY_LIVE_EVIDENCE_ACCEPTANCE.md`.
+Ticker Events audit is pending. Identity continuity is not frozen. Calendar,
+corporate-action, and registry authority remain pending. Canonical, registry,
+generation-freeze, and Strategy eligibility remain false.
 
 No Strategy, Monte Carlo, outcome, performance, broker, execution, registry
 authority, report rewrite, runtime migration, split/dividend audit, or calendar
 freeze occurred.
 
-## Next Manual Live Procedure
+## Live Evidence Follow-Up
 
-After separate human authorization, run the controlled live command in an
-interactive terminal:
-
-`python -m marketflow.source_authority --instrument-identity-run`
-
-Verify the printed plan, type the exact digest-bound confirmation phrase, enter
-the Massive.com key through `getpass`, and review the sanitized receipt. That
-future run will still be noncanonical candidate evidence until Ticker Events and
-remaining authority evidence are accepted.
+The controlled live command has been re-executed after the repository-root
+correction and accepted through the sanitized live-evidence document. Any future
+live repetition requires separate human authorization, the exact digest-bound
+confirmation phrase, and credential entry through `getpass`. Future evidence
+will still be noncanonical candidate evidence until Ticker Events and remaining
+authority evidence are accepted.

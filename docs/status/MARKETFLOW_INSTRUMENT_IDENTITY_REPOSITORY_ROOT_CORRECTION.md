@@ -205,10 +205,12 @@ pass with Git LF-to-CRLF working-copy normalization warnings on modified text fi
 No network, provider, credential, or real market-data activity occurred during
 the correction or final acceptance checks.
 
-## Remaining Limitation
+## Live Evidence Follow-Up
 
-Final live identity tooling acceptance remains `BLOCKED` until the controlled
-live identity command is repeated after this production correction. That future
-run must still be noncanonical candidate evidence only and cannot create
-canonical registry or Strategy authority without the remaining identity and
-corporate-action evidence.
+The controlled live identity command was repeated after this production
+correction, and the saved artifact chain is accepted offline in
+`docs/status/MARKETFLOW_INSTRUMENT_IDENTITY_LIVE_EVIDENCE_ACCEPTANCE.md`.
+
+That accepted run remains noncanonical candidate evidence only. It does not
+create canonical registry or Strategy authority without the remaining identity
+and corporate-action evidence.

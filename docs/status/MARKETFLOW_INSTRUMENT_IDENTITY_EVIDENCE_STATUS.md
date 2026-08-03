@@ -1,6 +1,6 @@
 # MarketFlow Instrument Identity Evidence Status
 
-Status: TOOLING CORRECTION IMPLEMENTED, LIVE EVIDENCE PENDING
+Status: LIVE EVIDENCE ACCEPTED AS NONCANONICAL CANDIDATE
 
 ## Scope Result
 
@@ -32,17 +32,26 @@ The implementation provides:
 
 ## Current Evidence State
 
-No live identity request occurred in this task.
+The original offline tooling acceptance remains historically true:
+
+No live identity request occurred in that task.
 
 No actual Massive.com key was requested, inspected, read from the environment,
-or printed.
+or printed in that task.
 
-The start and end snapshots used by automated acceptance are mock-only
-fixtures. They prove tooling behavior, not provider truth.
+The corrected controlled live run has been accepted offline as noncanonical
+candidate evidence in
+`docs/status/MARKETFLOW_INSTRUMENT_IDENTITY_LIVE_EVIDENCE_ACCEPTANCE.md`.
 
-Future live response bytes must be committed as raw response artifacts and
-validated on disk before the bounded identity projection is parsed. Public
-receipts still exclude raw provider bodies and request IDs.
+The accepted runtime chain contains the source-authorized six manifests:
+
+- `TICKER_OVERVIEW_RAW_RESPONSE`: 2
+- `TICKER_OVERVIEW_SNAPSHOT`: 2
+- `IDENTITY_CONTINUITY_CANDIDATE`: 1
+- `INSTRUMENT_IDENTITY_EVIDENCE_RECEIPT`: 1
+
+The corrected acceptance did not execute another provider request, request or
+inspect credentials, expose raw provider bodies, or modify production source.
 
 ## Repository-Root Correction
 
@@ -85,12 +94,14 @@ The following remain outside this phase:
 - production source authorization for Strategy;
 - Monte Carlo, outcomes, broker, execution, and performance paths.
 
-## Live Re-Execution Requirement
+## Live Evidence Acceptance
 
-Production source must be re-executed once after this correction through the
-controlled interactive command, after human confirmation and credential entry
-through `getpass`. That future run may create noncanonical identity artifacts
-only; it still cannot freeze identity authority without the remaining evidence.
+The required post-correction live evidence run has been completed and accepted
+offline as a sanitized noncanonical candidate. It still cannot freeze identity
+authority without the remaining evidence.
 
-Final live identity tooling acceptance remains blocked until that corrected
-controlled live run is repeated.
+The previous repository-root correction status said:
+
+Final live identity tooling acceptance remains `BLOCKED`
+
+That block is superseded by the corrected live-evidence acceptance document.
