@@ -1,6 +1,6 @@
 # MarketFlow Exchange Calendar Evidence v1 Plan
 
-Status: IMPLEMENTED AS CANDIDATE WITH OPERATOR REVIEW PACKAGE PLAN
+Status: IMPLEMENTED THROUGH OPERATOR FREEZE CEREMONY
 
 ## Purpose
 
@@ -111,8 +111,6 @@ registry eligibility, or modify Strategy/runtime/broker/execution logic.
 
 No raw provider payloads are copied, rewritten, regenerated, or committed.
 
-## Next Steps
-
 ## Operator Review Package
 
 Exchange Calendar Evidence Operator Review Package v1 adds an offline,
@@ -139,8 +137,38 @@ assessment when all software checks pass, but it does not approve a freeze. It
 keeps `operator_decision` null, `calendar_operator_frozen` false, and
 `software_freeze_authorized` false.
 
-## Next Steps
+## Operator Freeze Ceremony
 
-The next step is a separate digest-bound exchange calendar operator freeze
-ceremony. That later ceremony is required before any `EXCHANGE_CALENDAR_FROZEN`
-artifact or `calendar_operator_frozen = true` state can exist.
+Exchange Calendar Operator Freeze Ceremony v1 adds a separate offline,
+digest-bound freeze artifact:
+
+`EXCHANGE_CALENDAR_FROZEN`
+
+with status:
+
+`EXCHANGE_CALENDAR_FROZEN`
+
+The ceremony requires an explicit operator attestation phrase:
+
+`FREEZE EXCHANGE CALENDAR AAPL XNAS XNYS XNAS_USES_XNYS_SCHEDULE 2022-01-01 2025-12-31`
+
+It binds to the calendar candidate digest, review package digest, schedule
+digest, and frozen identity segment digest. The accepted frozen exchange
+calendar semantic digest is:
+
+`25258b528e45a7f36d1cf96a4a40a8f2c89243c69d034f480dd10c4464d847a6`
+
+The freeze checklist is `30 total`, `30 passed`, `0 failed`, `0 blockers`.
+
+This ceremony may set `calendar_operator_frozen` to `true` only for the
+exchange-calendar evidence. It does not approve canonical eligibility,
+registry eligibility, acquisition-generation freeze, Strategy/runtime
+migration, automatic stitching, predictive usefulness, or profitability.
+
+## Remaining Steps
+
+The next evidence step is split-event audit. Remaining work also includes
+dividend-event audit, full 2022-2025 acquisition generation,
+acquisition-generation freeze, SWING and POSITION_SWING canonical dataset and
+registry approval, normal runtime migration, applicability/research campaign,
+and predictive/profitability evaluation.

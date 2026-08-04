@@ -56,10 +56,16 @@ registry eligibility, or modify Strategy/runtime/broker/execution logic.
 
 ## Next Step
 
-The next possible step is a separate digest-bound exchange calendar operator
-freeze ceremony. Before any production source migration, the remaining
-evidence work still includes split-event audit, dividend-event audit, full
-2022-2025 acquisition generation, acquisition-generation freeze, SWING and
-POSITION_SWING canonical dataset and registry approval, normal runtime
-migration, applicability/research campaign, and predictive/profitability
-evaluation.
+The follow-on digest-bound exchange calendar operator freeze ceremony has been
+implemented on branch `feature/exchange-calendar-operator-freeze-v1`.
+
+That ceremony binds this review package digest to the frozen exchange calendar
+artifact digest:
+
+`25258b528e45a7f36d1cf96a4a40a8f2c89243c69d034f480dd10c4464d847a6`
+
+Before any production source migration, the remaining evidence work still
+includes split-event audit, dividend-event audit, full 2022-2025 acquisition
+generation, acquisition-generation freeze, SWING and POSITION_SWING canonical
+dataset and registry approval, normal runtime migration,
+applicability/research campaign, and predictive/profitability evaluation.
