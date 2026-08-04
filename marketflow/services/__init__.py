@@ -19,6 +19,7 @@ __all__ = [
     "monte_carlo_service",
     "monte_carlo_calibration_artifact_service",
     "monte_carlo_calibration_service",
+    "identity_segment_operator_freeze_service",
     "identity_segment_operator_review_service",
     "parameter_profile_service",
     "pnf_service",
@@ -159,11 +160,20 @@ __all__ = [
     "write_backtest_result_csv",
     "write_backtest_results_csv",
     "ARTIFACT_KIND_IDENTITY_SEGMENT_CANDIDATE_REVIEW_PACKAGE",
+    "ARTIFACT_KIND_IDENTITY_SEGMENT_FROZEN",
     "IDENTITY_SEGMENT_CANDIDATE_REVIEW_PACKAGE_READY",
+    "IDENTITY_SEGMENT_FROZEN",
+    "OPERATOR_DECISION_APPROVE_IDENTITY_SEGMENT_FREEZE",
+    "REQUIRED_OPERATOR_ATTESTATION_PHRASE",
     "build_identity_segment_candidate_review_markdown_v1",
     "build_identity_segment_candidate_review_package_v1",
+    "build_identity_segment_frozen_markdown_v1",
+    "build_identity_segment_frozen_v1",
+    "build_identity_segment_operator_attestation_v1",
     "validate_identity_segment_candidate_review_package_v1",
+    "validate_identity_segment_frozen_v1",
     "write_identity_segment_candidate_review_package_v1",
+    "write_identity_segment_frozen_v1",
 ]
 
 from marketflow.services.backtest_candidate_artifact_service import (
@@ -239,6 +249,17 @@ from marketflow.services.identity_segment_operator_review_service import (
     build_identity_segment_candidate_review_package_v1,
     validate_identity_segment_candidate_review_package_v1,
     write_identity_segment_candidate_review_package_v1,
+)
+from marketflow.services.identity_segment_operator_freeze_service import (
+    ARTIFACT_KIND_IDENTITY_SEGMENT_FROZEN,
+    IDENTITY_SEGMENT_FROZEN,
+    OPERATOR_DECISION_APPROVE_IDENTITY_SEGMENT_FREEZE,
+    REQUIRED_OPERATOR_ATTESTATION_PHRASE,
+    build_identity_segment_frozen_markdown_v1,
+    build_identity_segment_frozen_v1,
+    build_identity_segment_operator_attestation_v1,
+    validate_identity_segment_frozen_v1,
+    write_identity_segment_frozen_v1,
 )
 from marketflow.services.data_sufficiency_service import (
     assess_csv_data_sufficiency,

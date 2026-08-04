@@ -1,6 +1,6 @@
 # MarketFlow Identity Segment Evidence Freeze v1 Plan
 
-Status: IMPLEMENTED WITH OPERATOR REVIEW PACKAGE PLAN
+Status: IMPLEMENTED WITH OPERATOR REVIEW AND FREEZE CEREMONY PLAN
 
 ## Purpose
 
@@ -109,6 +109,39 @@ all software checks pass, but it does not approve a freeze. It keeps
 `operator_decision` null, `identity_segment_frozen` false, and
 `software_freeze_authorized` false. The next freeze step remains a separate
 digest-bound operator ceremony.
+
+The accepted review package semantic digest is:
+
+`c39ad88e25554de67a52a3383c53a1df2bcac257b89b3d087be68b22bbcc17bd`
+
+## Operator Freeze Ceremony
+
+Identity Segment Operator Freeze Ceremony v1 adds a guarded, offline,
+digest-bound artifact:
+
+`IDENTITY_SEGMENT_FROZEN`
+
+with status:
+
+`IDENTITY_SEGMENT_FROZEN`
+
+The ceremony is allowed to set only `identity_segment_frozen` to `true`. It
+requires a non-secret operator attestation with decision
+`APPROVE_IDENTITY_SEGMENT_FREEZE`, the exact attestation phrase
+`FREEZE IDENTITY SEGMENT AAPL BBG000B9XRY4 BBG001S5N8V8 XNAS CS 2022-01-01 2025-12-31`,
+matching candidate and review package digest confirmations, and explicit
+operator confirmations that no provider requests, calendar freeze, canonical
+approval, registry approval, or acquisition-generation freeze occurred.
+
+For the deterministic test attestation using operator reference
+`TEST_OPERATOR` and timestamp `2026-08-04T00:00:00Z`, the frozen artifact
+semantic digest is:
+
+`57a698979e827d7c95737c12ad3435563486e44559a7f1ddd49c94006d27d24e`
+
+Calendar authority, canonical eligibility, registry eligibility, acquisition
+generation freeze, Strategy runtime migration, predictive usefulness, and
+profitability remain future work after this ceremony.
 
 ## Non-Goals
 

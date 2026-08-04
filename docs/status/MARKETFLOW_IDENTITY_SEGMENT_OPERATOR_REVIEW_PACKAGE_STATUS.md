@@ -52,9 +52,21 @@ logic.
 
 ## Next Step
 
-The next possible step is a separate digest-bound operator freeze ceremony.
-Before any production source migration, the remaining evidence work still
-includes official/operator-frozen exchange-calendar evidence, split-event
+The follow-on digest-bound operator freeze ceremony is implemented on branch
+`feature/identity-segment-operator-freeze-v1` from stacked base commit
+`45c3709`.
+
+The review package remains source evidence for that ceremony:
+
+- review package kind: `IDENTITY_SEGMENT_CANDIDATE_REVIEW_PACKAGE`
+- review package status: `IDENTITY_SEGMENT_CANDIDATE_REVIEW_PACKAGE_READY`
+- review package semantic digest:
+  `c39ad88e25554de67a52a3383c53a1df2bcac257b89b3d087be68b22bbcc17bd`
+- checklist: `33 total`, `33 passed`, `0 failed`, `0 blockers`
+
+After the identity segment freeze ceremony, the next roadmap step is
+official/operator-frozen exchange-calendar evidence. Before any production
+source migration, the remaining evidence work still includes split-event
 audit, dividend-event audit, full 2022-2025 acquisition generation,
 acquisition-generation freeze, SWING and POSITION_SWING canonical dataset and
 registry approval, normal runtime migration, applicability/research campaign,
