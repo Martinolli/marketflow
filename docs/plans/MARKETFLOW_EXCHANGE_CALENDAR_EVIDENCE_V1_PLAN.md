@@ -1,6 +1,6 @@
 # MarketFlow Exchange Calendar Evidence v1 Plan
 
-Status: IMPLEMENTED AS CANDIDATE ONLY
+Status: IMPLEMENTED AS CANDIDATE WITH OPERATOR REVIEW PACKAGE PLAN
 
 ## Purpose
 
@@ -113,7 +113,34 @@ No raw provider payloads are copied, rewritten, regenerated, or committed.
 
 ## Next Steps
 
-The next step is an operator review package for the exchange-calendar evidence
-candidate. A separate later operator freeze ceremony is required before any
-`EXCHANGE_CALENDAR_FROZEN` artifact or `calendar_operator_frozen = true`
-state can exist.
+## Operator Review Package
+
+Exchange Calendar Evidence Operator Review Package v1 adds an offline,
+digest-bound review artifact:
+
+`EXCHANGE_CALENDAR_EVIDENCE_CANDIDATE_REVIEW_PACKAGE`
+
+with status:
+
+`EXCHANGE_CALENDAR_EVIDENCE_CANDIDATE_REVIEW_PACKAGE_READY`
+
+The review package verifies and summarizes the calendar candidate kind,
+candidate status, calendar candidate digest, schedule digest, frozen identity
+segment binding, calendar alias binding, schedule coverage, accepted 2025-01
+monthly cross-check, authority flags, guardrails, and remaining tasks before
+any future calendar freeze ceremony.
+
+The accepted review package semantic digest is:
+
+`5e7e528068cd161e06a7a3cf6b30c40909023f23eb6b64661abb063363a690cb`
+
+The review package may mark the calendar evidence ready for operator
+assessment when all software checks pass, but it does not approve a freeze. It
+keeps `operator_decision` null, `calendar_operator_frozen` false, and
+`software_freeze_authorized` false.
+
+## Next Steps
+
+The next step is a separate digest-bound exchange calendar operator freeze
+ceremony. That later ceremony is required before any `EXCHANGE_CALENDAR_FROZEN`
+artifact or `calendar_operator_frozen = true` state can exist.

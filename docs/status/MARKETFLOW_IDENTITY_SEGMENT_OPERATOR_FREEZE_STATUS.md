@@ -96,6 +96,16 @@ No raw provider payloads are copied, rewritten, regenerated, or committed.
 
 Next roadmap step started: Exchange Calendar Evidence Candidate v1.
 
+Exchange Calendar Evidence Candidate v1 is completed on branch
+`feature/exchange-calendar-evidence-candidate-v1` with candidate digest
+`867aa02ad9c9c737eda3d8398eda4e4aad3181cd4bc5505600ccf9647b0d60ee`.
+
+Exchange Calendar Evidence Operator Review Package v1 is implemented on branch
+`feature/exchange-calendar-operator-review-package-v1`. It reviews the
+calendar candidate and schedule digest
+`b0194dfed46ee06bd0954cc76f9e76d144d84c5e6f1a836acf2f486c083aeef0`, but it
+does not freeze calendar evidence.
+
 The next roadmap step is official/operator-frozen exchange-calendar evidence.
 Split-event audit, dividend-event audit, full acquisition generation,
 acquisition-generation freeze, canonical dataset and registry approval,
