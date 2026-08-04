@@ -1,6 +1,6 @@
 # MarketFlow Identity Segment Evidence Freeze v1 Plan
 
-Status: IMPLEMENTATION PLAN
+Status: IMPLEMENTED WITH OPERATOR REVIEW PACKAGE PLAN
 
 ## Purpose
 
@@ -17,6 +17,13 @@ AAPL identity segment:
 
 The candidate status is
 `IDENTITY_SEGMENT_READY_FOR_OPERATOR_FREEZE_REVIEW`.
+
+The candidate implementation is present in
+`marketflow/services/identity_segment_freeze_service.py`. It creates only
+`IDENTITY_SEGMENT_CANDIDATE`; it does not create `IDENTITY_SEGMENT_FROZEN`.
+The accepted candidate semantic digest is:
+
+`263902ddc149728d095a4f8bc941c92a82c2d4360e0a038d231e0eac6c70dc57`
 
 ## Evidence Bound
 
@@ -80,6 +87,28 @@ The Ticker Events evidence remains supporting evidence from an experimental
 endpoint. The returned `2003-09-10` `ticker_change` event is before the fixed
 contract range and the in-range event count is zero, but this does not
 authorize automatic stitching.
+
+## Operator Review Package
+
+Identity Segment Candidate Operator Review Package v1 adds an offline,
+digest-bound review artifact:
+
+`IDENTITY_SEGMENT_CANDIDATE_REVIEW_PACKAGE`
+
+with status:
+
+`IDENTITY_SEGMENT_CANDIDATE_REVIEW_PACKAGE_READY`
+
+The review package verifies and summarizes the candidate kind, candidate
+status, candidate semantic digest, segment fields, bound identity evidence,
+bound Ticker Events evidence, authority flags, reference-only guardrails, and
+remaining tasks before any future operator freeze ceremony.
+
+The review package may mark the evidence ready for operator assessment when
+all software checks pass, but it does not approve a freeze. It keeps
+`operator_decision` null, `identity_segment_frozen` false, and
+`software_freeze_authorized` false. The next freeze step remains a separate
+digest-bound operator ceremony.
 
 ## Non-Goals
 
