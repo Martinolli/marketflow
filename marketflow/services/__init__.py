@@ -27,6 +27,7 @@ __all__ = [
     "parameter_profile_service",
     "pnf_service",
     "report_index",
+    "split_event_audit_service",
     "strategy_service",
     "walk_forward_validation_service",
     "walk_forward_validation_artifact_service",
@@ -167,6 +168,7 @@ __all__ = [
     "ARTIFACT_KIND_EXCHANGE_CALENDAR_FROZEN",
     "ARTIFACT_KIND_IDENTITY_SEGMENT_CANDIDATE_REVIEW_PACKAGE",
     "ARTIFACT_KIND_IDENTITY_SEGMENT_FROZEN",
+    "ARTIFACT_KIND_SPLIT_EVENT_AUDIT_CANDIDATE",
     "EXCHANGE_CALENDAR_EVIDENCE_CANDIDATE_REVIEW_PACKAGE_READY",
     "EXCHANGE_CALENDAR_EVIDENCE_READY_FOR_OPERATOR_REVIEW",
     "EXCHANGE_CALENDAR_FROZEN",
@@ -176,6 +178,7 @@ __all__ = [
     "OPERATOR_DECISION_APPROVE_IDENTITY_SEGMENT_FREEZE",
     "REQUIRED_EXCHANGE_CALENDAR_OPERATOR_ATTESTATION_PHRASE",
     "REQUIRED_OPERATOR_ATTESTATION_PHRASE",
+    "SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE",
     "build_exchange_calendar_evidence_candidate_markdown_v1",
     "build_exchange_calendar_evidence_candidate_review_markdown_v1",
     "build_exchange_calendar_evidence_candidate_review_package_v1",
@@ -189,18 +192,23 @@ __all__ = [
     "build_identity_segment_frozen_markdown_v1",
     "build_identity_segment_frozen_v1",
     "build_identity_segment_operator_attestation_v1",
+    "build_split_event_audit_candidate_markdown_v1",
+    "build_split_event_audit_candidate_v1",
     "validate_identity_segment_candidate_review_package_v1",
     "validate_exchange_calendar_evidence_candidate_v1",
     "validate_exchange_calendar_evidence_candidate_review_package_v1",
     "validate_exchange_calendar_frozen_v1",
     "validate_identity_segment_frozen_v1",
+    "validate_split_event_audit_candidate_v1",
     "write_exchange_calendar_evidence_candidate_v1",
     "write_exchange_calendar_evidence_candidate_review_package_v1",
     "write_exchange_calendar_frozen_v1",
     "write_identity_segment_candidate_review_package_v1",
     "write_identity_segment_frozen_v1",
+    "write_split_event_audit_candidate_v1",
     "exchange_calendar_frozen_semantic_digest",
     "schedule_semantic_digest",
+    "split_event_audit_candidate_semantic_digest",
 ]
 
 from marketflow.services.backtest_candidate_artifact_service import (
@@ -317,6 +325,15 @@ from marketflow.services.exchange_calendar_operator_freeze_service import (
     exchange_calendar_frozen_semantic_digest,
     validate_exchange_calendar_frozen_v1,
     write_exchange_calendar_frozen_v1,
+)
+from marketflow.services.split_event_audit_service import (
+    ARTIFACT_KIND_SPLIT_EVENT_AUDIT_CANDIDATE,
+    SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE,
+    build_split_event_audit_candidate_markdown_v1,
+    build_split_event_audit_candidate_v1,
+    split_event_audit_candidate_semantic_digest,
+    validate_split_event_audit_candidate_v1,
+    write_split_event_audit_candidate_v1,
 )
 from marketflow.services.data_sufficiency_service import (
     assess_csv_data_sufficiency,

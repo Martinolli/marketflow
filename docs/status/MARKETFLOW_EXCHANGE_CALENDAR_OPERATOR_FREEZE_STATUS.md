@@ -85,6 +85,9 @@ No raw provider payloads are copied, rewritten, regenerated, or committed.
 
 ## Next Step
 
+Next roadmap step started: Split-Event Audit Candidate v1 offline scaffold /
+contract.
+
 The next evidence step is split-event audit. Remaining work also includes
 dividend-event audit, full 2022-2025 acquisition generation,
 acquisition-generation freeze, SWING and POSITION_SWING canonical dataset and
