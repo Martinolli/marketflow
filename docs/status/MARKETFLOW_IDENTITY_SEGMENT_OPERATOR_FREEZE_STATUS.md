@@ -94,8 +94,14 @@ No raw provider payloads are copied, rewritten, regenerated, or committed.
 
 ## Next Roadmap Step
 
+Next roadmap step started: Exchange Calendar Evidence Candidate v1.
+
 The next roadmap step is official/operator-frozen exchange-calendar evidence.
 Split-event audit, dividend-event audit, full acquisition generation,
 acquisition-generation freeze, canonical dataset and registry approval,
 runtime migration, research campaign, and predictive/profitability evaluation
 remain future work.
+
+The calendar work is candidate-only at this stage. It does not create
+`EXCHANGE_CALENDAR_FROZEN` and does not set `calendar_operator_frozen` to
+`true`.
