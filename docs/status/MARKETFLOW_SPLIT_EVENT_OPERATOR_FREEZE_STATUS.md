@@ -155,3 +155,5 @@ No raw provider payload or API key is included in the freeze status document.
 ## Next Roadmap Step
 
 `Dividend-event audit candidate`
+
+Next roadmap step started: Dividend-Event Audit Candidate v1 offline scaffold / contract.
