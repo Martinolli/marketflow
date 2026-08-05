@@ -27,6 +27,31 @@ def _candidate() -> dict:
     return deepcopy(_cached_candidate())
 
 
+def _provider_response(events: list[dict] | None = None) -> dict:
+    return {
+        "status": "OK",
+        "request_id": "test-request-not-public",
+        "results": {
+            "events": events or [],
+        },
+    }
+
+
+def _provider_event(execution_date: str, *, ticker: str | None = "AAPL") -> dict:
+    event = {
+        "execution_date": execution_date,
+        "split_from": 1,
+        "split_to": 4,
+    }
+    if ticker is not None:
+        event["ticker"] = ticker
+    return event
+
+
+def _provider_bound_candidate(events: list[dict] | None = None) -> dict:
+    return split.build_split_event_audit_provider_bound_candidate_v1(_provider_response(events))
+
+
 def _recompute_digest(candidate: dict) -> None:
     candidate["split_event_audit_candidate_semantic_digest"] = split.split_event_audit_candidate_semantic_digest(candidate)
 
@@ -418,12 +443,217 @@ def test_source_assurance_service_has_no_provider_strategy_runtime_or_broker_cal
     assert "strategy_runtime_migration" in source
 
 
+def test_provider_bound_candidate_builds_from_injected_response_without_live_provider_call(monkeypatch):
+    calls: list[str] = []
+
+    def fail_provider_call(*args, **kwargs):
+        calls.append("provider")
+        raise AssertionError("provider access must not be used")
+
+    monkeypatch.setattr(split, "canonical_json_bytes", fail_provider_call)
+
+    candidate = _provider_bound_candidate([])
+
+    assert calls == []
+    assert candidate["provider_requests_made"] is False
+    assert candidate["provider_response_injected"] is True
+    assert candidate["source_evidence_status"]["provider_response_injected"] is True
+
+
+def test_provider_bound_candidate_artifact_kind_and_status_are_candidate_not_freeze():
+    candidate = _provider_bound_candidate([])
+
+    assert candidate["artifact_kind"] == "SPLIT_EVENT_AUDIT_CANDIDATE"
+    assert candidate["candidate_status"] == "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
+    assert candidate["split_events_provider_evidence_bound"] is True
+    assert candidate["split_event_audit_complete"] is True
+    assert candidate["split_event_audit_frozen"] is False
+    assert candidate["operator_review_required"] is True
+    assert candidate["operator_freeze_required"] is True
+
+
+def test_provider_bound_candidate_uses_explicit_endpoint_limitation_for_injected_mode():
+    evidence = _provider_bound_candidate([])["provider_evidence"]
+
+    assert evidence["provider_name"] == "MASSIVE.COM"
+    assert evidence["provider_endpoint"] is None
+    assert evidence["provider_endpoint_stability"] == "SPLIT_ENDPOINT_ADAPTER_REQUIRED_NOT_LIVE_VERIFIED"
+    assert evidence["provider_query_identifier"] == "AAPL"
+    assert evidence["provider_query_ticker"] == "AAPL"
+    assert evidence["provider_query_composite_figi"] == "BBG000B9XRY4"
+    assert evidence["provider_response_status"] == "OK"
+
+
+def test_provider_bound_event_counts_are_derived_from_response_data():
+    candidate = _provider_bound_candidate(
+        [
+            _provider_event("2021-12-31"),
+            _provider_event("2024-06-10"),
+            _provider_event("2026-01-01"),
+        ]
+    )
+    outline = candidate["split_event_audit_outline"]
+
+    assert outline["split_event_count_total"] == 3
+    assert outline["split_event_count_pre_range"] == 1
+    assert outline["split_event_count_in_range"] == 1
+    assert outline["split_event_count_post_range"] == 1
+    assert outline["split_event_count_unknown"] == 0
+    assert candidate["provider_evidence"]["provider_raw_response_row_count"] == 3
+
+
+def test_provider_bound_zero_in_range_count_supports_no_reported_split_status():
+    candidate = _provider_bound_candidate([_provider_event("2021-12-31"), _provider_event("2026-01-01")])
+
+    assert candidate["split_event_audit_outline"]["split_event_count_in_range"] == 0
+    assert candidate["split_event_audit_outline"]["audit_status"] == "SPLIT_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_SPLIT"
+
+
+def test_provider_bound_in_range_count_reports_in_range_split_status():
+    candidate = _provider_bound_candidate([_provider_event("2024-06-10")])
+
+    assert candidate["split_event_audit_outline"]["split_event_count_in_range"] == 1
+    assert candidate["split_event_audit_outline"]["audit_status"] == "SPLIT_EVENT_AUDIT_FOUND_REPORTED_IN_RANGE_SPLIT"
+
+
+def test_provider_bound_digests_are_deterministic():
+    first = _provider_bound_candidate([_provider_event("2024-06-10")])
+    second = _provider_bound_candidate([_provider_event("2024-06-10")])
+
+    assert first == second
+    assert len(first["split_event_audit_candidate_semantic_digest"]) == 64
+    assert len(first["split_event_provider_raw_response_digest"]) == 64
+    assert len(first["split_event_timeline_semantic_digest"]) == 64
+    assert len(first["split_event_audit_receipt_digest"]) == 64
+    assert first["split_event_audit_candidate_semantic_digest"] == split.split_event_audit_candidate_semantic_digest(first)
+
+
+def test_provider_bound_event_position_classification_handles_pre_in_and_post_range():
+    events = _provider_bound_candidate(
+        [
+            _provider_event("2026-01-01"),
+            _provider_event("2021-12-31"),
+            _provider_event("2024-06-10"),
+        ]
+    )["split_event_audit_outline"]["split_events"]
+
+    assert {event["event_position"] for event in events} == {"PRE_RANGE", "IN_RANGE", "POST_RANGE"}
+
+
+def test_provider_bound_missing_provider_fields_remain_null():
+    event = _provider_bound_candidate([{"execution_date": "2024-06-10"}])["split_event_audit_outline"]["split_events"][0]
+
+    assert event["declaration_date"] is None
+    assert event["record_date"] is None
+    assert event["payable_date"] is None
+    assert event["split_from"] is None
+    assert event["split_to"] is None
+    assert event["split_ratio"] is None
+    assert event["ticker"] is None
+    assert event["composite_figi_if_available"] is None
+
+
+def test_validator_accepts_valid_provider_bound_candidate():
+    candidate = _provider_bound_candidate([_provider_event("2024-06-10")])
+    receipt = split.validate_split_event_audit_candidate_v1(candidate)
+
+    assert receipt["candidate_status"] == "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
+    assert receipt["split_events_provider_evidence_bound"] is True
+    assert receipt["split_event_audit_complete"] is True
+    assert receipt["split_event_audit_frozen"] is False
+
+
+def test_validator_rejects_provider_bound_candidate_without_raw_response_digest():
+    candidate = _provider_bound_candidate([_provider_event("2024-06-10")])
+    candidate["provider_evidence"]["provider_raw_response_digest"] = None
+    candidate["source_evidence_status"]["raw_response_semantic_digest"] = None
+    candidate["split_event_provider_raw_response_digest"] = None
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match="provider_raw_response_digest"):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
+def test_validator_rejects_provider_bound_inconsistent_event_counts():
+    candidate = _provider_bound_candidate([_provider_event("2024-06-10")])
+    candidate["split_event_audit_outline"]["split_event_count_total"] = 2
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match="count totals inconsistent"):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
+def test_validator_rejects_provider_bound_split_event_audit_frozen_true():
+    candidate = _provider_bound_candidate([_provider_event("2024-06-10")])
+    candidate["split_event_audit_frozen"] = True
+    candidate["authority_boundary"]["split_event_audit_frozen"] = True
+    candidate["guardrails"]["split_event_audit_frozen"] = True
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match="split_event_audit_frozen"):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "canonical_eligibility",
+        "registry_eligibility",
+        "acquisition_generation_freeze",
+        "strategy_runtime_migration",
+        "automatic_stitching",
+    ],
+)
+def test_validator_rejects_provider_bound_authority_flags_true(field: str):
+    candidate = _provider_bound_candidate([_provider_event("2024-06-10")])
+    candidate[field] = True
+    candidate["authority_boundary"][field] = True
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match=field):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize("field", ["predictive_usefulness", "profitability"])
+def test_validator_rejects_provider_bound_predictive_or_profitability_accepted(field: str):
+    candidate = _provider_bound_candidate([_provider_event("2024-06-10")])
+    candidate[field] = "accepted"
+    candidate["authority_boundary"][field] = "accepted"
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match=field):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize(
+    ("field", "binding_field", "contract_field"),
+    [
+        ("identity_segment_frozen_digest", "identity_segment_frozen_digest", None),
+        ("exchange_calendar_frozen_digest", "exchange_calendar_frozen_digest", None),
+        ("schedule_semantic_digest", "schedule_semantic_digest", None),
+        ("acquisition_contract_digest", "acquisition_contract_digest", "contract_digest"),
+    ],
+)
+def test_validator_rejects_provider_bound_wrong_authority_digests(field: str, binding_field: str, contract_field: str | None):
+    candidate = _provider_bound_candidate([_provider_event("2024-06-10")])
+    candidate[field] = "f" * 64
+    candidate["authority_bindings"][binding_field] = "f" * 64
+    if contract_field is not None:
+        candidate["acquisition_contract"][contract_field] = "f" * 64
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match=field):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
 def test_service_exports_split_event_candidate_functions_and_constants():
     import marketflow.services as services
 
     assert services.ARTIFACT_KIND_SPLIT_EVENT_AUDIT_CANDIDATE == "SPLIT_EVENT_AUDIT_CANDIDATE"
     assert services.SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE == "SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE"
+    assert services.SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND == "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
     assert services.build_split_event_audit_candidate_v1 is split.build_split_event_audit_candidate_v1
+    assert services.build_split_event_audit_provider_bound_candidate_v1 is split.build_split_event_audit_provider_bound_candidate_v1
     assert services.validate_split_event_audit_candidate_v1 is split.validate_split_event_audit_candidate_v1
     assert services.write_split_event_audit_candidate_v1 is split.write_split_event_audit_candidate_v1
     assert services.build_split_event_audit_candidate_markdown_v1 is split.build_split_event_audit_candidate_markdown_v1

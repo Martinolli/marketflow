@@ -179,6 +179,7 @@ __all__ = [
     "REQUIRED_EXCHANGE_CALENDAR_OPERATOR_ATTESTATION_PHRASE",
     "REQUIRED_OPERATOR_ATTESTATION_PHRASE",
     "SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE",
+    "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND",
     "build_exchange_calendar_evidence_candidate_markdown_v1",
     "build_exchange_calendar_evidence_candidate_review_markdown_v1",
     "build_exchange_calendar_evidence_candidate_review_package_v1",
@@ -193,6 +194,7 @@ __all__ = [
     "build_identity_segment_frozen_v1",
     "build_identity_segment_operator_attestation_v1",
     "build_split_event_audit_candidate_markdown_v1",
+    "build_split_event_audit_provider_bound_candidate_v1",
     "build_split_event_audit_candidate_v1",
     "validate_identity_segment_candidate_review_package_v1",
     "validate_exchange_calendar_evidence_candidate_v1",
@@ -328,8 +330,10 @@ from marketflow.services.exchange_calendar_operator_freeze_service import (
 )
 from marketflow.services.split_event_audit_service import (
     ARTIFACT_KIND_SPLIT_EVENT_AUDIT_CANDIDATE,
+    SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND,
     SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE,
     build_split_event_audit_candidate_markdown_v1,
+    build_split_event_audit_provider_bound_candidate_v1,
     build_split_event_audit_candidate_v1,
     split_event_audit_candidate_semantic_digest,
     validate_split_event_audit_candidate_v1,

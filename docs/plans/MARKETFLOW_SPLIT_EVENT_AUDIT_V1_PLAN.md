@@ -1,23 +1,27 @@
 # MarketFlow Split-Event Audit v1 Plan
 
-Status: OFFLINE SCAFFOLD / CONTRACT IMPLEMENTED
+Status: PROVIDER EVIDENCE BINDING IMPLEMENTED / RESPONSE-INJECTION MODE
 
 ## Purpose
 
 Split-Event Audit Evidence Candidate v1 creates an offline scaffold artifact
-for the future provider-backed split-event audit chain.
+and now supports a provider-bound candidate from supplied provider response
+data for the future provider-backed split-event audit chain.
 
-It creates only:
+It creates only candidate artifacts:
 
 `SPLIT_EVENT_AUDIT_CANDIDATE`
 
-with status:
+with either scaffold status:
 
 `SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE`
 
-It does not claim that the split audit is complete, does not assert zero split
-events, does not assert in-range split events, and does not create
-`SPLIT_EVENT_AUDIT_FROZEN`.
+or provider-bound candidate status:
+
+`SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND`
+
+It does not create `SPLIT_EVENT_AUDIT_FROZEN` and does not set
+`split_event_audit_frozen` to `true`.
 
 ## Authority Chain Position
 
@@ -41,6 +45,9 @@ The deterministic split-event audit candidate digest is:
 `6874936bcbc10db46f5ad084b1ada6fa1658502994a1a935472507452d09d33d`
 
 The scaffold checklist is `21 total`, `21 passed`, `0 failed`, `0 blockers`.
+The provider-bound candidate retains the scaffold digest as
+`previous_scaffold_candidate_digest` and does not mutate any frozen authority
+digest.
 
 ## Fixed Segment
 
@@ -53,28 +60,108 @@ The candidate binds to:
 - security type: `CS`
 - segment range: `2022-01-01` through `2025-12-31`
 
-## Provider Evidence
+## Provider Evidence Collection Status
 
-No provider evidence is collected in this task.
+Provider evidence binding is implemented in response-injection mode.
 
-The candidate records:
+No live split-event provider request path is implemented in this task because
+the repository has no safe existing split-event endpoint adapter. The existing
+Massive.com Ticker Events adapter is explicitly for ticker-change events and is
+not reused as a split endpoint.
+
+Injected provider response data produces a provider-bound candidate that
+records:
 
 - `provider_evidence_required`: `true`
-- `provider_evidence_status`: `NOT_BOUND`
+- `provider_evidence_status`: `BOUND`
 - `provider_request_performed_in_this_task`: `false`
-- provider endpoint/query identifiers: `null`
-- raw response/timeline/receipt artifact IDs and digests: `null`
-- split event counts: `null`
-- split events: empty
-- audit status: `null`
+- `provider_requests_made`: `false`
+- `provider_response_injected`: `true`
+- `split_events_provider_evidence_bound`: `true`
+- `split_event_audit_complete`: `true`
+- `split_event_audit_frozen`: `false`
+- provider endpoint: `null`
+- provider endpoint stability:
+  `SPLIT_ENDPOINT_ADAPTER_REQUIRED_NOT_LIVE_VERIFIED`
+- provider endpoint limitation:
+  `NO_SAFE_EXISTING_SPLIT_EVENT_PROVIDER_ENDPOINT_ADAPTER_IN_REPOSITORY`
+- provider query ticker: `AAPL`
+- provider query Composite FIGI: `BBG000B9XRY4`
+- provider query range: `2022-01-01` through `2025-12-31`
+- deterministic raw response, timeline, receipt, and candidate digests
+
+The provider evidence object includes:
+
+- `provider_name`
+- `provider_endpoint`
+- `provider_endpoint_stability`
+- `provider_query_identifier`
+- `provider_query_ticker`
+- `provider_query_composite_figi`
+- `provider_query_start`
+- `provider_query_end`
+- `provider_request_timestamp_utc`
+- `provider_response_artifact_id`
+- `provider_raw_response_digest`
+- `provider_raw_response_row_count`
+- `provider_response_status`
+
+## Event Timeline
+
+The provider-bound candidate builds a deterministic split-event timeline from
+the injected response rows.
+
+Each event records:
+
+- `execution_date`
+- `declaration_date`
+- `record_date`
+- `payable_date`
+- `split_from`
+- `split_to`
+- `split_ratio`
+- `ticker`
+- `composite_figi_if_available`
+- `raw_event_index`
+- `raw_event_digest`
+- `event_position`
+
+Missing provider fields remain `null`. The service does not fabricate missing
+provider values from the fixed identity segment.
+
+Event position is classified as:
+
+- `PRE_RANGE`
+- `IN_RANGE`
+- `POST_RANGE`
+- `UNKNOWN`
+
+Counts are derived from provider response rows:
+
+- `split_event_count_total`
+- `split_event_count_pre_range`
+- `split_event_count_in_range`
+- `split_event_count_post_range`
+- `split_event_count_unknown`
+
+## Audit Status Meanings
+
+Provider-bound candidates use these audit statuses:
+
+- `SPLIT_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_SPLIT`: provider evidence is
+  bound and the in-range split count is zero.
+- `SPLIT_EVENT_AUDIT_FOUND_REPORTED_IN_RANGE_SPLIT`: provider evidence is bound
+  and the in-range split count is greater than zero.
+- `SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_INCOMPLETE`: provider evidence is bound
+  but one or more split events cannot be positioned in the fixed range.
 
 The next required task is:
 
-`SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_COLLECTION`
+`SPLIT_EVENT_OPERATOR_REVIEW_PACKAGE`
 
 ## Authority Boundary
 
-The scaffold preserves these boundaries:
+The scaffold and provider-bound candidate preserve these boundaries:
 
 - `identity_segment_frozen`: `true`
 - `calendar_operator_frozen`: `true`
@@ -90,18 +177,17 @@ The scaffold preserves these boundaries:
 
 ## Non-Goals
 
-This phase does not make provider requests, call Massive.com, call Polygon,
-call Ticker Details, call Ticker Events, call Splits, call Dividends, call
-Corporate Actions, refresh source evidence, generate acquisition bars, freeze
-split evidence, approve canonical or registry eligibility, or modify
+This phase does not make live provider requests, call Massive.com, call
+Polygon, call Ticker Details, call Ticker Events, call Splits, call Dividends,
+call Corporate Actions, refresh source evidence, generate acquisition bars,
+freeze split evidence, approve canonical or registry eligibility, or modify
 Strategy/runtime/broker/execution logic.
 
-No raw provider payloads are copied, rewritten, regenerated, or committed.
+No raw provider payloads are copied, rewritten, regenerated, or committed by
+default tests.
 
 ## Next Tasks
 
-1. Split-event provider evidence collection.
-2. Split-event audit candidate with bound provider evidence.
-3. Split-event operator review package.
-4. Split-event operator freeze ceremony.
-5. Dividend-event audit chain.
+1. Split-event operator review package.
+2. Split-event operator freeze ceremony.
+3. Dividend-event audit candidate.
