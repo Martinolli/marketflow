@@ -1,6 +1,6 @@
 # MarketFlow Split-Event Audit v1 Plan
 
-Status: OPERATOR REVIEW PACKAGE IMPLEMENTED / SPLIT FREEZE PENDING
+Status: SPLIT-EVENT OPERATOR FREEZE IMPLEMENTED / DIVIDEND AUDIT PENDING
 
 ## Purpose
 
@@ -8,7 +8,9 @@ Split-Event Audit Evidence Candidate v1 creates an offline scaffold artifact,
 supports a provider-bound candidate from supplied provider response data, and
 supports a live Massive.com provider adapter behind an explicit execution gate.
 A follow-on offline operator-review package now binds the recorded live
-provider evidence status for operator assessment.
+provider evidence status for operator assessment. A guarded offline
+operator-freeze ceremony now creates the split-event audit frozen artifact from
+that accepted review package.
 
 It creates only candidate artifacts:
 
@@ -35,6 +37,19 @@ with review status:
 
 It also does not create `SPLIT_EVENT_AUDIT_FROZEN` and does not set
 `split_event_audit_frozen` to `true`.
+
+The operator-freeze ceremony creates:
+
+`SPLIT_EVENT_AUDIT_FROZEN`
+
+with freeze status:
+
+`SPLIT_EVENT_AUDIT_FROZEN`
+
+It freezes only the split-event audit evidence. Dividend evidence, canonical
+eligibility, registry eligibility, acquisition-generation freeze, Strategy
+runtime migration, automatic stitching, predictive usefulness, and
+profitability remain unapproved.
 
 ## Authority Chain Position
 
@@ -311,17 +326,44 @@ freeze, Strategy/runtime migration, broker behavior, or execution behavior.
 The next split-event task is the digest-bound split-event operator freeze
 ceremony.
 
+## Operator Freeze Ceremony
+
+The offline operator-freeze ceremony requires an explicit non-secret operator
+attestation with exact phrase:
+
+`FREEZE SPLIT EVENT AUDIT AAPL BBG000B9XRY4 BBG001S5N8V8 XNAS CS 2022-01-01 2025-12-31 NO_REPORTED_IN_RANGE_SPLIT`
+
+The ceremony records:
+
+- artifact kind: `SPLIT_EVENT_AUDIT_FROZEN`
+- schema version: `split_event_audit_operator_freeze_v1`
+- freeze status: `SPLIT_EVENT_AUDIT_FROZEN`
+- provider requests made in freeze: `false`
+- split event audit frozen: `true`
+- dividend event audit frozen: `false`
+- canonical eligibility: `false`
+- registry eligibility: `false`
+- acquisition generation freeze: `false`
+- strategy runtime migration: `false`
+- automatic stitching: `false`
+- frozen artifact digest:
+  `9bf3ff52f599757add22e01889c9ee3e72b4ff31e831ae312b94483b37f05fae`
+- freeze checklist: `42 total`, `42 passed`, `0 failed`, `0 blockers`
+
+The ceremony does not refresh live provider evidence, call Massive.com or
+Polygon, fetch dividend events, generate acquisition bars, approve canonical or
+registry eligibility, or change Strategy/runtime/broker/execution behavior.
+
 ## Next Tasks
 
-1. Digest-bound split-event operator freeze ceremony.
-2. Dividend-event audit candidate.
-3. Dividend-event provider evidence collection.
-4. Dividend-event operator review package.
-5. Dividend-event operator freeze ceremony.
-6. Full 2022-2025 acquisition generation.
-7. Acquisition-generation freeze.
-8. SWING canonical dataset and registry approval.
-9. POSITION_SWING canonical dataset and registry approval.
-10. Normal runtime migration.
-11. Applicability/research campaign.
-12. Predictive and profitability evaluation.
+1. Dividend-event audit candidate.
+2. Dividend-event provider evidence collection.
+3. Dividend-event operator review package.
+4. Dividend-event operator freeze ceremony.
+5. Full 2022-2025 acquisition generation.
+6. Acquisition-generation freeze.
+7. SWING canonical dataset and registry approval.
+8. POSITION_SWING canonical dataset and registry approval.
+9. Normal runtime migration.
+10. Applicability/research campaign.
+11. Predictive and profitability evaluation.

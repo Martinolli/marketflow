@@ -119,3 +119,23 @@ status document.
 ## Next Step
 
 `Digest-bound split-event operator freeze ceremony`
+
+## Follow-On Freeze Ceremony
+
+The split-event operator freeze ceremony has been implemented on branch
+`feature/split-event-operator-freeze-v1` as a guarded offline ceremony over
+this accepted review package.
+
+The review package remains source evidence for the freeze ceremony:
+
+- source review package digest:
+  `f3c393c3981152b93e25de4aadfdac16f6c579208c703809f46f6291fb3930e6`
+- source live split candidate digest:
+  `92c0a4b4350be4731501fae3300f528bf5f42e5140f01e587ff9c87014c1f66b`
+- source live audit status:
+  `SPLIT_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_SPLIT`
+
+The follow-on ceremony freezes only the split-event audit evidence. It does not
+freeze dividend evidence and does not approve canonical eligibility, registry
+eligibility, acquisition generation, Strategy runtime migration, automatic
+stitching, predictive usefulness, or profitability.
