@@ -91,3 +91,17 @@ in candidate, timeline, receipt, metadata, or documentation.
 ## Next Required Task
 
 `SPLIT_EVENT_OPERATOR_REVIEW_PACKAGE`
+
+## Follow-On Review Package
+
+The split-event operator review package has been implemented on branch
+`feature/split-event-operator-review-package-v1` as an offline, digest-bound
+review layer over this recorded live evidence.
+
+The review package binds this live smoke through
+`LIVE_PROVIDER_EVIDENCE_STATUS_BINDING` and records review package digest:
+
+`f3c393c3981152b93e25de4aadfdac16f6c579208c703809f46f6291fb3930e6`
+
+The live evidence remains source evidence for review. The split-event audit is
+still not frozen, and `split_event_audit_frozen` remains `false`.

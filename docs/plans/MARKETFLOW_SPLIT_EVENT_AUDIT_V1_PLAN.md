@@ -1,13 +1,14 @@
 # MarketFlow Split-Event Audit v1 Plan
 
-Status: LIVE PROVIDER ADAPTER IMPLEMENTED / EXPLICIT-GATE MODE
+Status: OPERATOR REVIEW PACKAGE IMPLEMENTED / SPLIT FREEZE PENDING
 
 ## Purpose
 
 Split-Event Audit Evidence Candidate v1 creates an offline scaffold artifact,
 supports a provider-bound candidate from supplied provider response data, and
-now supports a live Massive.com provider adapter behind an explicit execution
-gate.
+supports a live Massive.com provider adapter behind an explicit execution gate.
+A follow-on offline operator-review package now binds the recorded live
+provider evidence status for operator assessment.
 
 It creates only candidate artifacts:
 
@@ -22,6 +23,17 @@ or provider-bound candidate status:
 `SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND`
 
 It does not create `SPLIT_EVENT_AUDIT_FROZEN` and does not set
+`split_event_audit_frozen` to `true`.
+
+The operator-review package creates only:
+
+`SPLIT_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE`
+
+with review status:
+
+`SPLIT_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE_READY`
+
+It also does not create `SPLIT_EVENT_AUDIT_FROZEN` and does not set
 `split_event_audit_frozen` to `true`.
 
 ## Authority Chain Position
@@ -245,8 +257,71 @@ logic.
 No raw provider payloads are copied, rewritten, regenerated, or committed by
 default tests.
 
+## Live Evidence Smoke
+
+The controlled AAPL live provider evidence smoke has been completed and
+recorded in:
+
+`docs/status/MARKETFLOW_SPLIT_EVENT_LIVE_PROVIDER_EVIDENCE_STATUS.md`
+
+Recorded live evidence:
+
+- provider request mode: `LIVE_PROVIDER_REQUEST`
+- provider response status: `OK`
+- provider response page count: `1`
+- provider raw row count: `0`
+- split event count total/pre/in/post/unknown: `0/0/0/0/0`
+- audit status: `SPLIT_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_SPLIT`
+- raw response digest:
+  `e8db3f18ca3b441a4ae6436d22f48a5481fe5ab0554c092b7cba4010178974bf`
+- timeline digest:
+  `e73556f686e19eef149a95141718bb6c5ab2f53f4df9e5e3f9520f7c050c5076`
+- receipt digest:
+  `dd09dd19fe091816310ec4896ba1d63579f5e794d2efc4de7a897e9c5b117d91`
+- live provider-bound candidate digest:
+  `92c0a4b4350be4731501fae3300f528bf5f42e5140f01e587ff9c87014c1f66b`
+
+This smoke remains source evidence for review only. It is not a split-event
+freeze and does not approve acquisition generation or runtime use.
+
+## Operator Review Package
+
+The offline operator-review package binds the recorded live provider evidence
+through:
+
+`LIVE_PROVIDER_EVIDENCE_STATUS_BINDING`
+
+The package records:
+
+- artifact kind: `SPLIT_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE`
+- schema version: `split_event_audit_candidate_review_v1`
+- review status: `SPLIT_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE_READY`
+- operator decision required: `true`
+- provider requests made in review: `false`
+- split event audit frozen: `false`
+- automatic stitching: `false`
+- review package digest:
+  `f3c393c3981152b93e25de4aadfdac16f6c579208c703809f46f6291fb3930e6`
+- checklist: `39 total`, `39 passed`, `0 failed`, `0 blockers`
+
+The review package does not include raw provider payloads or API keys. It does
+not create canonical eligibility, registry eligibility, acquisition-generation
+freeze, Strategy/runtime migration, broker behavior, or execution behavior.
+
+The next split-event task is the digest-bound split-event operator freeze
+ceremony.
+
 ## Next Tasks
 
-1. Split-event operator review package.
-2. Split-event operator freeze ceremony.
-3. Dividend-event audit candidate.
+1. Digest-bound split-event operator freeze ceremony.
+2. Dividend-event audit candidate.
+3. Dividend-event provider evidence collection.
+4. Dividend-event operator review package.
+5. Dividend-event operator freeze ceremony.
+6. Full 2022-2025 acquisition generation.
+7. Acquisition-generation freeze.
+8. SWING canonical dataset and registry approval.
+9. POSITION_SWING canonical dataset and registry approval.
+10. Normal runtime migration.
+11. Applicability/research campaign.
+12. Predictive and profitability evaluation.
