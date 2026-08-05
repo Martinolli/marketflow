@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 from copy import deepcopy
 from datetime import date
+import os
 from pathlib import Path
 from typing import Any, Mapping
 
@@ -17,6 +18,9 @@ SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE = "SPLIT_EVENT_AUDIT_REQUIRES_PROVI
 SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND = "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
 SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_COLLECTION = "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_COLLECTION"
 SPLIT_EVENT_OPERATOR_REVIEW_PACKAGE = "SPLIT_EVENT_OPERATOR_REVIEW_PACKAGE"
+SPLIT_EVENT_LIVE_PROVIDER_COLLECTION_DISABLED = "SPLIT_EVENT_LIVE_PROVIDER_COLLECTION_DISABLED"
+SPLIT_EVENT_LIVE_PROVIDER_API_KEY_MISSING = "SPLIT_EVENT_LIVE_PROVIDER_API_KEY_MISSING"
+MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT = "MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT"
 
 EXPECTED_IDENTITY_SEGMENT_FROZEN_DIGEST = "57a698979e827d7c95737c12ad3435563486e44559a7f1ddd49c94006d27d24e"
 EXPECTED_EXCHANGE_CALENDAR_FROZEN_DIGEST = "25258b528e45a7f36d1cf96a4a40a8f2c89243c69d034f480dd10c4464d847a6"
@@ -29,6 +33,9 @@ PROVIDER_EVIDENCE_STATUS_BOUND = "BOUND"
 PROVIDER_NAME_MASSIVE = "MASSIVE.COM"
 PROVIDER_ENDPOINT_STABILITY_ADAPTER_REQUIRED = "SPLIT_ENDPOINT_ADAPTER_REQUIRED_NOT_LIVE_VERIFIED"
 PROVIDER_ENDPOINT_LIMITATION = "NO_SAFE_EXISTING_SPLIT_EVENT_PROVIDER_ENDPOINT_ADAPTER_IN_REPOSITORY"
+PROVIDER_ENDPOINT_STABILITY_MASSIVE_STOCKS_V1 = "CURRENT_STOCKS_V1_SPLITS"
+LIVE_PROVIDER_REQUEST = "LIVE_PROVIDER_REQUEST"
+PROVIDER_RESPONSE_INJECTION = "PROVIDER_RESPONSE_INJECTION"
 PREDICTIVE_USEFULNESS_NOT_ACCEPTED = "not accepted"
 PROFITABILITY_NOT_ACCEPTED = "not accepted"
 SPLIT_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_SPLIT = "SPLIT_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_SPLIT"
@@ -146,6 +153,7 @@ PROVIDER_EVIDENCE_FIELDS = {
     "provider_query_start",
     "provider_query_end",
     "provider_request_timestamp_utc",
+    "provider_request_mode",
     "provider_response_artifact_id",
     "provider_raw_response_digest",
     "provider_raw_response_row_count",
@@ -391,8 +399,8 @@ def _optional_iso_date(value: Any, field_name: str) -> str | None:
         raise SplitEventAuditError(f"{field_name} must be an ISO date or null")
     try:
         return date.fromisoformat(value).isoformat()
-    except ValueError as exc:
-        raise SplitEventAuditError(f"{field_name} must be an ISO date or null") from exc
+    except ValueError:
+        return None
 
 
 def _event_position(execution_date: str | None) -> str:
@@ -484,12 +492,20 @@ def _artifact_id(prefix: str, digest: str) -> str:
     return f"split-art-{prefix}-{digest[:24]}"
 
 
-def _provider_bound_source_evidence_status(provider_evidence: Mapping[str, Any], timeline: Mapping[str, Any], receipt: Mapping[str, Any]) -> dict[str, Any]:
+def _provider_bound_source_evidence_status(
+    provider_evidence: Mapping[str, Any],
+    timeline: Mapping[str, Any],
+    receipt: Mapping[str, Any],
+    *,
+    provider_requests_made: bool,
+    provider_response_injected: bool,
+) -> dict[str, Any]:
     return {
         "provider_evidence_required": True,
         "provider_evidence_status": PROVIDER_EVIDENCE_STATUS_BOUND,
-        "provider_request_performed_in_this_task": False,
-        "provider_response_injected": True,
+        "provider_request_performed_in_this_task": provider_requests_made,
+        "provider_response_injected": provider_response_injected,
+        "provider_request_mode": provider_evidence["provider_request_mode"],
         "provider_endpoint": provider_evidence["provider_endpoint"],
         "provider_query_identifier": provider_evidence["provider_query_identifier"],
         "raw_response_artifact_id": provider_evidence["provider_response_artifact_id"],
@@ -533,6 +549,7 @@ def build_split_event_audit_provider_bound_candidate_v1(
         "provider_query_start": FIXED_IDENTITY_SEGMENT["segment_start"],
         "provider_query_end": FIXED_IDENTITY_SEGMENT["segment_end"],
         "provider_request_timestamp_utc": provider_request_timestamp_utc,
+        "provider_request_mode": PROVIDER_RESPONSE_INJECTION,
         "provider_response_artifact_id": raw_artifact_id,
         "provider_raw_response_digest": raw_digest,
         "provider_raw_response_row_count": len(raw_events),
@@ -546,6 +563,7 @@ def build_split_event_audit_provider_bound_candidate_v1(
         "previous_scaffold_digest": PREVIOUS_SPLIT_EVENT_AUDIT_SCAFFOLD_DIGEST,
         "provider_requests_made": False,
         "provider_response_injected": True,
+        "provider_request_mode": PROVIDER_RESPONSE_INJECTION,
         "split_events_provider_evidence_bound": True,
         "split_event_audit_complete": True,
         "split_event_audit_frozen": False,
@@ -567,6 +585,7 @@ def build_split_event_audit_provider_bound_candidate_v1(
         "created_offline": False,
         "provider_requests_made": False,
         "provider_response_injected": True,
+        "provider_request_mode": PROVIDER_RESPONSE_INJECTION,
         "split_events_provider_evidence_bound": True,
         "split_event_audit_complete": True,
         "split_event_audit_frozen": False,
@@ -590,7 +609,13 @@ def build_split_event_audit_provider_bound_candidate_v1(
         "authority_bindings": deepcopy(FIXED_AUTHORITY_BINDINGS),
         "acquisition_contract": deepcopy(FIXED_ACQUISITION_CONTRACT),
         "provider_evidence": provider_evidence,
-        "source_evidence_status": _provider_bound_source_evidence_status(provider_evidence, timeline, receipt),
+        "source_evidence_status": _provider_bound_source_evidence_status(
+            provider_evidence,
+            timeline,
+            receipt,
+            provider_requests_made=False,
+            provider_response_injected=True,
+        ),
         "split_event_timeline": timeline,
         "split_event_audit_outline": {
             **counts,
@@ -606,6 +631,154 @@ def build_split_event_audit_provider_bound_candidate_v1(
         "split_event_audit_receipt_digest": receipt_digest,
         "authority_boundary": _authority_boundary(),
         "guardrails": _provider_bound_guardrails(provider_requests_made=False, provider_response_injected=True),
+        "next_required_task": SPLIT_EVENT_OPERATOR_REVIEW_PACKAGE,
+        "remaining_roadmap": list(REMAINING_ROADMAP_AFTER_SPLIT_EVENT_PROVIDER_EVIDENCE),
+    }
+    candidate["split_event_audit_candidate_semantic_digest"] = split_event_audit_candidate_semantic_digest(candidate)
+    validate_split_event_audit_candidate_v1(candidate)
+    return candidate
+
+
+def _api_key_from_environment() -> str | None:
+    return os.environ.get("MASSIVE_API_KEY") or os.environ.get("POLYGON_API_KEY")
+
+
+def build_split_event_audit_candidate_from_live_provider_v1(
+    *,
+    api_key: str | None = None,
+    transport: Any | None = None,
+    request_timestamp_utc: str | None = None,
+) -> dict[str, Any]:
+    """Build a provider-bound split-event candidate from an explicitly gated live request."""
+    if os.environ.get(MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT) != "1":
+        return {
+            "status": SPLIT_EVENT_LIVE_PROVIDER_COLLECTION_DISABLED,
+            "provider_requests_made": False,
+            "provider_response_injected": False,
+            "required_environment_variable": MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT,
+            "split_event_audit_frozen": False,
+        }
+    resolved_api_key = api_key or _api_key_from_environment()
+    if resolved_api_key is None:
+        return {
+            "status": SPLIT_EVENT_LIVE_PROVIDER_API_KEY_MISSING,
+            "provider_requests_made": False,
+            "provider_response_injected": False,
+            "accepted_environment_variables": ["MASSIVE_API_KEY", "POLYGON_API_KEY"],
+            "split_event_audit_frozen": False,
+        }
+    from marketflow.services.split_event_provider_adapter_service import fetch_massive_split_events_v1
+
+    raw_response = fetch_massive_split_events_v1(
+        ticker=FIXED_IDENTITY_SEGMENT["ticker"],
+        start_date=FIXED_IDENTITY_SEGMENT["segment_start"],
+        end_date=FIXED_IDENTITY_SEGMENT["segment_end"],
+        api_key=resolved_api_key,
+        transport=transport,
+        request_timestamp_utc=request_timestamp_utc,
+    )
+    raw_events = _extract_split_event_rows(raw_response)
+    raw_digest = raw_response["provider_raw_response_digest"]
+    raw_artifact_id = _artifact_id("raw-response", raw_digest)
+    timeline = _build_split_event_timeline(raw_events)
+    timeline["event_timeline_artifact_id"] = _artifact_id("timeline", timeline["split_event_timeline_semantic_digest"])
+    counts = {field: int(timeline[field]) for field in PROVIDER_EVENT_COUNT_FIELDS}
+    audit_status = _audit_status_from_counts(counts)
+    request_metadata = raw_response["request"]
+    provider_evidence = {
+        "provider_name": PROVIDER_NAME_MASSIVE,
+        "provider_endpoint": raw_response["provider_endpoint"],
+        "provider_endpoint_stability": raw_response["provider_endpoint_stability"],
+        "provider_query_identifier": raw_response["provider_query_identifier"],
+        "provider_query_ticker": FIXED_IDENTITY_SEGMENT["ticker"],
+        "provider_query_composite_figi": FIXED_IDENTITY_SEGMENT["composite_figi"],
+        "provider_query_start": FIXED_IDENTITY_SEGMENT["segment_start"],
+        "provider_query_end": FIXED_IDENTITY_SEGMENT["segment_end"],
+        "provider_request_timestamp_utc": raw_response["provider_request_timestamp_utc"],
+        "provider_request_mode": LIVE_PROVIDER_REQUEST,
+        "provider_response_artifact_id": raw_artifact_id,
+        "provider_raw_response_digest": raw_digest,
+        "provider_raw_response_row_count": raw_response["provider_raw_response_row_count"],
+        "provider_response_status": raw_response["provider_response_status"],
+        "provider_response_page_count": raw_response["provider_response_page_count"],
+        "provider_request_metadata": request_metadata,
+    }
+    receipt_base = {
+        "schema_version": "split_event_audit_receipt_v1",
+        "artifact_kind": ARTIFACT_KIND_SPLIT_EVENT_AUDIT_CANDIDATE,
+        "candidate_status": SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND,
+        "previous_scaffold_digest": PREVIOUS_SPLIT_EVENT_AUDIT_SCAFFOLD_DIGEST,
+        "provider_requests_made": True,
+        "provider_response_injected": False,
+        "provider_request_mode": LIVE_PROVIDER_REQUEST,
+        "split_events_provider_evidence_bound": True,
+        "split_event_audit_complete": True,
+        "split_event_audit_frozen": False,
+        "provider_evidence": provider_evidence,
+        "split_event_provider_raw_response_digest": raw_digest,
+        "split_event_timeline_semantic_digest": timeline["split_event_timeline_semantic_digest"],
+        "audit_status": audit_status,
+        **counts,
+    }
+    receipt_digest = semantic_digest(receipt_base)
+    receipt = receipt_base | {
+        "audit_receipt_artifact_id": _artifact_id("receipt", receipt_digest),
+        "split_event_audit_receipt_digest": receipt_digest,
+    }
+    candidate: dict[str, Any] = {
+        "artifact_kind": ARTIFACT_KIND_SPLIT_EVENT_AUDIT_CANDIDATE,
+        "schema_version": SCHEMA_VERSION_SPLIT_EVENT_AUDIT_CANDIDATE_V1,
+        "candidate_status": SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND,
+        "created_offline": False,
+        "provider_requests_made": True,
+        "provider_response_injected": False,
+        "provider_request_mode": LIVE_PROVIDER_REQUEST,
+        "split_events_provider_evidence_bound": True,
+        "split_event_audit_complete": True,
+        "split_event_audit_frozen": False,
+        "operator_review_required": True,
+        "operator_freeze_required": True,
+        "identity_segment_frozen": True,
+        "calendar_operator_frozen": True,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "acquisition_generation_freeze": False,
+        "strategy_runtime_migration": False,
+        "automatic_stitching": False,
+        "predictive_usefulness": PREDICTIVE_USEFULNESS_NOT_ACCEPTED,
+        "profitability": PROFITABILITY_NOT_ACCEPTED,
+        "identity_segment_frozen_digest": EXPECTED_IDENTITY_SEGMENT_FROZEN_DIGEST,
+        "exchange_calendar_frozen_digest": EXPECTED_EXCHANGE_CALENDAR_FROZEN_DIGEST,
+        "schedule_semantic_digest": EXPECTED_SCHEDULE_SEMANTIC_DIGEST,
+        "acquisition_contract_digest": EXPECTED_ACQUISITION_CONTRACT_DIGEST,
+        "previous_scaffold_candidate_digest": PREVIOUS_SPLIT_EVENT_AUDIT_SCAFFOLD_DIGEST,
+        "identity_segment": deepcopy(FIXED_IDENTITY_SEGMENT),
+        "authority_bindings": deepcopy(FIXED_AUTHORITY_BINDINGS),
+        "acquisition_contract": deepcopy(FIXED_ACQUISITION_CONTRACT),
+        "provider_evidence": provider_evidence,
+        "provider_raw_response": raw_response,
+        "source_evidence_status": _provider_bound_source_evidence_status(
+            provider_evidence,
+            timeline,
+            receipt,
+            provider_requests_made=True,
+            provider_response_injected=False,
+        ),
+        "split_event_timeline": timeline,
+        "split_event_audit_outline": {
+            **counts,
+            "split_events": deepcopy(timeline["events"]),
+            "audit_status": audit_status,
+        },
+        "split_event_audit_receipt": receipt,
+        "raw_response_artifact_id": raw_artifact_id,
+        "event_timeline_artifact_id": timeline["event_timeline_artifact_id"],
+        "audit_receipt_artifact_id": receipt["audit_receipt_artifact_id"],
+        "split_event_provider_raw_response_digest": raw_digest,
+        "split_event_timeline_semantic_digest": timeline["split_event_timeline_semantic_digest"],
+        "split_event_audit_receipt_digest": receipt_digest,
+        "authority_boundary": _authority_boundary(),
+        "guardrails": _provider_bound_guardrails(provider_requests_made=True, provider_response_injected=False),
         "next_required_task": SPLIT_EVENT_OPERATOR_REVIEW_PACKAGE,
         "remaining_roadmap": list(REMAINING_ROADMAP_AFTER_SPLIT_EVENT_PROVIDER_EVIDENCE),
     }
@@ -678,13 +851,20 @@ def _validate_split_event_outline(outline: Any) -> None:
     _expect(outline.get("audit_status"), None, "split_event_audit_outline.audit_status")
 
 
-def _validate_provider_bound_source_evidence_status(status: Any) -> None:
+def _validate_provider_bound_source_evidence_status(
+    status: Any,
+    *,
+    provider_requests_made: bool,
+    provider_response_injected: bool,
+    provider_request_mode: str,
+) -> None:
     if not isinstance(status, dict):
         raise SplitEventAuditError("source_evidence_status must be a JSON object")
     _expect_true(status.get("provider_evidence_required"), "source_evidence_status.provider_evidence_required")
     _expect(status.get("provider_evidence_status"), PROVIDER_EVIDENCE_STATUS_BOUND, "source_evidence_status.provider_evidence_status")
-    _expect_false(status.get("provider_request_performed_in_this_task"), "source_evidence_status.provider_request_performed_in_this_task")
-    _expect_true(status.get("provider_response_injected"), "source_evidence_status.provider_response_injected")
+    _expect(status.get("provider_request_performed_in_this_task"), provider_requests_made, "source_evidence_status.provider_request_performed_in_this_task")
+    _expect(status.get("provider_response_injected"), provider_response_injected, "source_evidence_status.provider_response_injected")
+    _expect(status.get("provider_request_mode"), provider_request_mode, "source_evidence_status.provider_request_mode")
     for field in (
         "raw_response_artifact_id",
         "raw_response_semantic_digest",
@@ -746,8 +926,17 @@ def _validate_provider_bound_counts(outline: Mapping[str, Any]) -> dict[str, int
 
 
 def _validate_provider_bound_candidate_v1(candidate: dict[str, Any]) -> dict[str, Any]:
-    _expect_false(candidate.get("provider_requests_made"), "provider_requests_made")
-    _expect_true(candidate.get("provider_response_injected"), "provider_response_injected")
+    provider_requests_made = candidate.get("provider_requests_made")
+    provider_response_injected = candidate.get("provider_response_injected")
+    provider_request_mode = candidate.get("provider_request_mode")
+    if provider_requests_made is True:
+        _expect_false(provider_response_injected, "provider_response_injected")
+        _expect(provider_request_mode, LIVE_PROVIDER_REQUEST, "provider_request_mode")
+    elif provider_requests_made is False:
+        _expect_true(provider_response_injected, "provider_response_injected")
+        _expect(provider_request_mode, PROVIDER_RESPONSE_INJECTION, "provider_request_mode")
+    else:
+        raise SplitEventAuditError("provider_requests_made must be boolean")
     _expect_true(candidate.get("split_events_provider_evidence_bound"), "split_events_provider_evidence_bound")
     _expect_true(candidate.get("split_event_audit_complete"), "split_event_audit_complete")
     _expect_false(candidate.get("split_event_audit_frozen"), "split_event_audit_frozen")
@@ -766,10 +955,25 @@ def _validate_provider_bound_candidate_v1(candidate: dict[str, Any]) -> dict[str
     _expect(provider_evidence.get("provider_query_composite_figi"), FIXED_IDENTITY_SEGMENT["composite_figi"], "provider_evidence.provider_query_composite_figi")
     _expect(provider_evidence.get("provider_query_start"), FIXED_IDENTITY_SEGMENT["segment_start"], "provider_evidence.provider_query_start")
     _expect(provider_evidence.get("provider_query_end"), FIXED_IDENTITY_SEGMENT["segment_end"], "provider_evidence.provider_query_end")
+    _expect(provider_evidence.get("provider_request_mode"), provider_request_mode, "provider_evidence.provider_request_mode")
+    if provider_requests_made is True:
+        if not provider_evidence.get("provider_endpoint"):
+            raise SplitEventAuditError("provider_evidence.provider_endpoint missing")
+        if not provider_evidence.get("provider_query_identifier"):
+            raise SplitEventAuditError("provider_evidence.provider_query_identifier missing")
+        if not provider_evidence.get("provider_request_timestamp_utc"):
+            raise SplitEventAuditError("provider_evidence.provider_request_timestamp_utc missing")
+    else:
+        _expect(provider_evidence.get("provider_request_mode"), PROVIDER_RESPONSE_INJECTION, "provider_evidence.provider_request_mode")
     raw_digest = _expect_hex_digest(provider_evidence.get("provider_raw_response_digest"), "provider_evidence.provider_raw_response_digest")
     _expect_nonnegative_int(provider_evidence.get("provider_raw_response_row_count"), "provider_evidence.provider_raw_response_row_count")
 
-    _validate_provider_bound_source_evidence_status(candidate.get("source_evidence_status"))
+    _validate_provider_bound_source_evidence_status(
+        candidate.get("source_evidence_status"),
+        provider_requests_made=provider_requests_made,
+        provider_response_injected=provider_response_injected,
+        provider_request_mode=provider_request_mode,
+    )
     source_status = candidate["source_evidence_status"]
     _expect(source_status.get("raw_response_artifact_id"), provider_evidence.get("provider_response_artifact_id"), "source_evidence_status.raw_response_artifact_id")
     _expect(source_status.get("raw_response_semantic_digest"), raw_digest, "source_evidence_status.raw_response_semantic_digest")
@@ -828,7 +1032,15 @@ def _validate_provider_bound_candidate_v1(candidate: dict[str, Any]) -> dict[str
     _expect(candidate["split_event_audit_receipt_digest"], semantic_digest(receipt_payload), "split_event_audit_receipt_digest")
     _expect(receipt.get("audit_status"), audit_status, "split_event_audit_receipt.audit_status")
 
-    _expect(candidate.get("guardrails"), _provider_bound_guardrails(provider_requests_made=False, provider_response_injected=True), "guardrails")
+    if provider_requests_made is True:
+        raw_response = candidate.get("provider_raw_response")
+        if not isinstance(raw_response, dict):
+            raise SplitEventAuditError("provider_raw_response must be a JSON object")
+        _expect_true(raw_response.get("provider_requests_made"), "provider_raw_response.provider_requests_made")
+        _expect_false(raw_response.get("provider_response_injected"), "provider_raw_response.provider_response_injected")
+        _expect(raw_response.get("provider_request_mode"), LIVE_PROVIDER_REQUEST, "provider_raw_response.provider_request_mode")
+        _expect(raw_response.get("provider_raw_response_digest"), raw_digest, "provider_raw_response.provider_raw_response_digest")
+    _expect(candidate.get("guardrails"), _provider_bound_guardrails(provider_requests_made=provider_requests_made, provider_response_injected=provider_response_injected), "guardrails")
     _expect(candidate.get("next_required_task"), SPLIT_EVENT_OPERATOR_REVIEW_PACKAGE, "next_required_task")
     _expect(candidate.get("remaining_roadmap"), REMAINING_ROADMAP_AFTER_SPLIT_EVENT_PROVIDER_EVIDENCE, "remaining_roadmap")
 
@@ -848,8 +1060,9 @@ def _validate_provider_bound_candidate_v1(candidate: dict[str, Any]) -> dict[str
         "exchange_calendar_frozen_digest": EXPECTED_EXCHANGE_CALENDAR_FROZEN_DIGEST,
         "schedule_semantic_digest": EXPECTED_SCHEDULE_SEMANTIC_DIGEST,
         "acquisition_contract_digest": EXPECTED_ACQUISITION_CONTRACT_DIGEST,
-        "provider_requests_made": False,
-        "provider_response_injected": True,
+        "provider_requests_made": provider_requests_made,
+        "provider_response_injected": provider_response_injected,
+        "provider_request_mode": provider_request_mode,
         "provider_evidence_status": PROVIDER_EVIDENCE_STATUS_BOUND,
         "split_events_provider_evidence_bound": True,
         "split_event_audit_complete": True,

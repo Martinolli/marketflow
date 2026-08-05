@@ -1,12 +1,13 @@
 # MarketFlow Split-Event Audit v1 Plan
 
-Status: PROVIDER EVIDENCE BINDING IMPLEMENTED / RESPONSE-INJECTION MODE
+Status: LIVE PROVIDER ADAPTER IMPLEMENTED / EXPLICIT-GATE MODE
 
 ## Purpose
 
-Split-Event Audit Evidence Candidate v1 creates an offline scaffold artifact
-and now supports a provider-bound candidate from supplied provider response
-data for the future provider-backed split-event audit chain.
+Split-Event Audit Evidence Candidate v1 creates an offline scaffold artifact,
+supports a provider-bound candidate from supplied provider response data, and
+now supports a live Massive.com provider adapter behind an explicit execution
+gate.
 
 It creates only candidate artifacts:
 
@@ -62,12 +63,41 @@ The candidate binds to:
 
 ## Provider Evidence Collection Status
 
-Provider evidence binding is implemented in response-injection mode.
+Provider evidence binding supports two modes:
 
-No live split-event provider request path is implemented in this task because
-the repository has no safe existing split-event endpoint adapter. The existing
-Massive.com Ticker Events adapter is explicitly for ticker-change events and is
-not reused as a split endpoint.
+- response injection
+- live provider request
+
+The live adapter uses:
+
+`GET /stocks/v1/splits`
+
+Provider metadata records:
+
+- provider: `MASSIVE.COM`
+- endpoint stability: `CURRENT_STOCKS_V1_SPLITS`
+- provider request mode: `LIVE_PROVIDER_REQUEST`
+- ticker filter: `AAPL`
+- execution date filters: `2022-01-01` through `2025-12-31`
+- sort: `execution_date.asc`
+- limit: `5000`
+
+Live execution is blocked unless:
+
+`MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT=1`
+
+An API key is accepted from an explicit function argument or from existing
+environment conventions:
+
+- `MASSIVE_API_KEY`
+- `POLYGON_API_KEY`
+
+API keys are wrapped by the existing `ProviderApiKey` boundary and are not
+stored in candidate artifacts, request metadata, raw response objects, timeline
+objects, receipts, logs, or tests.
+
+The default pytest suite uses fake transport only. It does not depend on live
+provider availability and does not perform network access.
 
 Injected provider response data produces a provider-bound candidate that
 records:
@@ -90,6 +120,18 @@ records:
 - provider query range: `2022-01-01` through `2025-12-31`
 - deterministic raw response, timeline, receipt, and candidate digests
 
+Live provider response data produces a provider-bound candidate that records:
+
+- `provider_requests_made`: `true`
+- `provider_response_injected`: `false`
+- `provider_request_mode`: `LIVE_PROVIDER_REQUEST`
+- `split_events_provider_evidence_bound`: `true`
+- `split_event_audit_complete`: `true`
+- `split_event_audit_frozen`: `false`
+- deterministic raw response, timeline, receipt, and candidate digests
+- sanitized provider request metadata
+- provider raw response page count and row count
+
 The provider evidence object includes:
 
 - `provider_name`
@@ -101,10 +143,27 @@ The provider evidence object includes:
 - `provider_query_start`
 - `provider_query_end`
 - `provider_request_timestamp_utc`
+- `provider_request_mode`
 - `provider_response_artifact_id`
 - `provider_raw_response_digest`
 - `provider_raw_response_row_count`
 - `provider_response_status`
+
+## Live Adapter Scope
+
+The live adapter is intentionally small and bounded:
+
+- It requests only Massive.com stock split evidence for the fixed AAPL segment.
+- It does not call Ticker Overview, Ticker Events, calendar, dividends, custom
+  bars, registry, Strategy, runtime, or broker paths.
+- It supports fake transport for deterministic tests.
+- It rejects credential-like query parameters and untrusted pagination URLs.
+- It supports `next_url` pagination only for the expected Massive host, scheme,
+  path, and query shape.
+- It stores sanitized request metadata only.
+
+Pagination support is bounded by a safe page limit. If the provider returns
+more pages than the limit, collection fails closed.
 
 ## Event Timeline
 
@@ -177,11 +236,11 @@ The scaffold and provider-bound candidate preserve these boundaries:
 
 ## Non-Goals
 
-This phase does not make live provider requests, call Massive.com, call
-Polygon, call Ticker Details, call Ticker Events, call Splits, call Dividends,
-call Corporate Actions, refresh source evidence, generate acquisition bars,
-freeze split evidence, approve canonical or registry eligibility, or modify
-Strategy/runtime/broker/execution logic.
+This phase does not make live provider requests by default, call Ticker
+Overview, call Ticker Events, call Dividends, call Custom Bars, refresh calendar
+source evidence, generate acquisition bars, freeze split evidence, approve
+canonical or registry eligibility, or modify Strategy/runtime/broker/execution
+logic.
 
 No raw provider payloads are copied, rewritten, regenerated, or committed by
 default tests.

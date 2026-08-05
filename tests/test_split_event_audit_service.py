@@ -52,6 +52,25 @@ def _provider_bound_candidate(events: list[dict] | None = None) -> dict:
     return split.build_split_event_audit_provider_bound_candidate_v1(_provider_response(events))
 
 
+def _fake_live_page(events: list[dict]) -> dict:
+    return {
+        "status": "OK",
+        "request_id": "test-live-request-not-public",
+        "results": events,
+    }
+
+
+def _fake_live_candidate(events: list[dict] | None = None) -> dict:
+    def fake_transport(request):
+        return _fake_live_page(events or [])
+
+    return split.build_split_event_audit_candidate_from_live_provider_v1(
+        api_key="fictional-secret-key",
+        transport=fake_transport,
+        request_timestamp_utc="2026-08-05T00:00:00Z",
+    )
+
+
 def _recompute_digest(candidate: dict) -> None:
     candidate["split_event_audit_candidate_semantic_digest"] = split.split_event_audit_candidate_semantic_digest(candidate)
 
@@ -646,6 +665,188 @@ def test_validator_rejects_provider_bound_wrong_authority_digests(field: str, bi
         split.validate_split_event_audit_candidate_v1(candidate)
 
 
+def test_live_provider_builder_is_disabled_without_explicit_gate(monkeypatch):
+    monkeypatch.delenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", raising=False)
+
+    result = split.build_split_event_audit_candidate_from_live_provider_v1(
+        api_key="fictional-secret-key",
+        transport=lambda request: pytest.fail("transport must not be used"),
+        request_timestamp_utc="2026-08-05T00:00:00Z",
+    )
+
+    assert result["status"] == "SPLIT_EVENT_LIVE_PROVIDER_COLLECTION_DISABLED"
+    assert result["provider_requests_made"] is False
+    assert result["split_event_audit_frozen"] is False
+
+
+def test_live_provider_builder_requires_api_key_when_gate_enabled(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    monkeypatch.delenv("MASSIVE_API_KEY", raising=False)
+    monkeypatch.delenv("POLYGON_API_KEY", raising=False)
+
+    result = split.build_split_event_audit_candidate_from_live_provider_v1(
+        transport=lambda request: pytest.fail("transport must not be used"),
+        request_timestamp_utc="2026-08-05T00:00:00Z",
+    )
+
+    assert result["status"] == "SPLIT_EVENT_LIVE_PROVIDER_API_KEY_MISSING"
+    assert result["provider_requests_made"] is False
+    assert result["provider_response_injected"] is False
+
+
+def test_live_provider_bound_candidate_has_live_flags_and_status(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    candidate = _fake_live_candidate([])
+
+    assert candidate["artifact_kind"] == "SPLIT_EVENT_AUDIT_CANDIDATE"
+    assert candidate["candidate_status"] == "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
+    assert candidate["provider_requests_made"] is True
+    assert candidate["provider_response_injected"] is False
+    assert candidate["provider_request_mode"] == "LIVE_PROVIDER_REQUEST"
+    assert candidate["split_events_provider_evidence_bound"] is True
+    assert candidate["split_event_audit_complete"] is True
+    assert candidate["split_event_audit_frozen"] is False
+
+
+def test_live_provider_empty_response_yields_zero_counts_and_no_reported_split_status(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    candidate = _fake_live_candidate([])
+    outline = candidate["split_event_audit_outline"]
+
+    assert outline["split_event_count_total"] == 0
+    assert outline["split_event_count_in_range"] == 0
+    assert outline["audit_status"] == "SPLIT_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_SPLIT"
+
+
+def test_live_provider_in_range_response_yields_reported_split_status(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    candidate = _fake_live_candidate([_provider_event("2024-06-10")])
+
+    assert candidate["split_event_audit_outline"]["split_event_count_in_range"] == 1
+    assert candidate["split_event_audit_outline"]["audit_status"] == "SPLIT_EVENT_AUDIT_FOUND_REPORTED_IN_RANGE_SPLIT"
+
+
+def test_live_provider_classifies_pre_in_post_and_unknown_dates(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    candidate = _fake_live_candidate(
+        [
+            _provider_event("2021-12-31"),
+            _provider_event("2024-06-10"),
+            _provider_event("2026-01-01"),
+            _provider_event("not-a-date"),
+        ]
+    )
+    outline = candidate["split_event_audit_outline"]
+
+    assert outline["split_event_count_pre_range"] == 1
+    assert outline["split_event_count_in_range"] == 1
+    assert outline["split_event_count_post_range"] == 1
+    assert outline["split_event_count_unknown"] == 1
+    assert {event["event_position"] for event in outline["split_events"]} == {"PRE_RANGE", "IN_RANGE", "POST_RANGE", "UNKNOWN"}
+
+
+def test_live_provider_digests_are_deterministic_with_fixed_timestamp(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    first = _fake_live_candidate([_provider_event("2024-06-10")])
+    second = _fake_live_candidate([_provider_event("2024-06-10")])
+
+    assert first == second
+    assert len(first["split_event_provider_raw_response_digest"]) == 64
+    assert len(first["split_event_timeline_semantic_digest"]) == 64
+    assert len(first["split_event_audit_receipt_digest"]) == 64
+    assert len(first["split_event_audit_candidate_semantic_digest"]) == 64
+    assert first["split_event_audit_candidate_semantic_digest"] == split.split_event_audit_candidate_semantic_digest(first)
+
+
+def test_live_provider_missing_provider_fields_remain_null(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    event = _fake_live_candidate([{"execution_date": "2024-06-10"}])["split_event_audit_outline"]["split_events"][0]
+
+    assert event["declaration_date"] is None
+    assert event["record_date"] is None
+    assert event["payable_date"] is None
+    assert event["split_from"] is None
+    assert event["split_to"] is None
+    assert event["split_ratio"] is None
+    assert event["ticker"] is None
+    assert event["composite_figi_if_available"] is None
+
+
+def test_live_provider_candidate_does_not_store_api_key(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    seen: list[dict] = []
+
+    def fake_transport(request):
+        seen.append(dict(request))
+        return _fake_live_page([])
+
+    candidate = split.build_split_event_audit_candidate_from_live_provider_v1(
+        api_key="fictional-secret-key",
+        transport=fake_transport,
+        request_timestamp_utc="2026-08-05T00:00:00Z",
+    )
+    rendered = json.dumps(candidate, sort_keys=True)
+    request_rendered = json.dumps(seen, sort_keys=True)
+
+    assert "fictional-secret-key" not in rendered
+    assert "fictional-secret-key" not in request_rendered
+    assert "api_key" not in rendered.lower()
+    assert "apikey" not in rendered.lower()
+
+
+def test_validator_accepts_valid_fake_live_provider_bound_candidate(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    receipt = split.validate_split_event_audit_candidate_v1(_fake_live_candidate([_provider_event("2024-06-10")]))
+
+    assert receipt["candidate_status"] == "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
+    assert receipt["provider_requests_made"] is True
+    assert receipt["provider_response_injected"] is False
+    assert receipt["provider_request_mode"] == "LIVE_PROVIDER_REQUEST"
+
+
+def test_validator_rejects_live_candidate_with_provider_requests_made_false(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    candidate = _fake_live_candidate([_provider_event("2024-06-10")])
+    candidate["provider_requests_made"] = False
+    candidate["guardrails"]["provider_requests_made"] = False
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
+def test_validator_rejects_live_candidate_with_provider_response_injected_true(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    candidate = _fake_live_candidate([_provider_event("2024-06-10")])
+    candidate["provider_response_injected"] = True
+    candidate["guardrails"]["provider_response_injected"] = True
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match="provider_response_injected"):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
+def test_validator_rejects_live_candidate_missing_endpoint_metadata(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    candidate = _fake_live_candidate([_provider_event("2024-06-10")])
+    candidate["provider_evidence"]["provider_endpoint"] = None
+    candidate["source_evidence_status"]["provider_endpoint"] = None
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match="provider_endpoint"):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
+def test_validator_rejects_live_candidate_inconsistent_counts(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT", "1")
+    candidate = _fake_live_candidate([_provider_event("2024-06-10")])
+    candidate["split_event_audit_outline"]["split_event_count_total"] = 2
+    _recompute_digest(candidate)
+
+    with pytest.raises(split.SplitEventAuditError, match="count totals inconsistent"):
+        split.validate_split_event_audit_candidate_v1(candidate)
+
+
 def test_service_exports_split_event_candidate_functions_and_constants():
     import marketflow.services as services
 
@@ -653,6 +854,7 @@ def test_service_exports_split_event_candidate_functions_and_constants():
     assert services.SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE == "SPLIT_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE"
     assert services.SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND == "SPLIT_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
     assert services.build_split_event_audit_candidate_v1 is split.build_split_event_audit_candidate_v1
+    assert services.build_split_event_audit_candidate_from_live_provider_v1 is split.build_split_event_audit_candidate_from_live_provider_v1
     assert services.build_split_event_audit_provider_bound_candidate_v1 is split.build_split_event_audit_provider_bound_candidate_v1
     assert services.validate_split_event_audit_candidate_v1 is split.validate_split_event_audit_candidate_v1
     assert services.write_split_event_audit_candidate_v1 is split.write_split_event_audit_candidate_v1
