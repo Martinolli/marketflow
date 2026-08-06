@@ -32,6 +32,48 @@ def _recompute_digest(candidate: dict) -> None:
     candidate["dividend_event_audit_candidate_semantic_digest"] = dividend.dividend_event_audit_candidate_semantic_digest(candidate)
 
 
+def _provider_event(ex_dividend_date: str | None, **overrides) -> dict:
+    event = {
+        "ex_dividend_date": ex_dividend_date,
+        "declaration_date": "2024-01-25",
+        "record_date": "2024-02-12",
+        "pay_date": "2024-02-15",
+        "cash_amount": 0.24,
+        "split_adjusted_cash_amount": 0.24,
+        "historical_adjustment_factor": 1,
+        "currency": "USD",
+        "frequency": 4,
+        "distribution_type": "cash",
+        "dividend_type": "CD",
+        "ticker": "AAPL",
+    }
+    event.update(overrides)
+    return event
+
+
+def _provider_payload(events: list[dict]) -> dict:
+    return {"status": "OK", "results": events}
+
+
+def _provider_bound_candidate(events: list[dict]) -> dict:
+    return dividend.build_dividend_event_audit_provider_bound_candidate_v1(
+        _provider_payload(events),
+        provider_request_timestamp_utc="2026-08-06T00:00:00Z",
+    )
+
+
+def _fake_live_page(events: list[dict]) -> dict:
+    return {"status": "OK", "results": events}
+
+
+def _fake_live_candidate(events: list[dict]) -> dict:
+    return dividend.build_dividend_event_audit_candidate_from_live_provider_v1(
+        api_key="fictional-secret-key",
+        transport=lambda request: _fake_live_page(events),
+        request_timestamp_utc="2026-08-06T00:00:00Z",
+    )
+
+
 def test_candidate_scaffold_builds_offline_with_no_provider_calls(monkeypatch):
     calls: list[str] = []
 
@@ -193,11 +235,14 @@ def test_expected_future_normalized_dividend_event_fields_are_definitions_only()
         "ex_dividend_date",
         "declaration_date",
         "record_date",
-        "payable_date",
+        "pay_date",
         "cash_amount",
+        "split_adjusted_cash_amount",
+        "historical_adjustment_factor",
         "currency",
         "frequency",
-        "dividend_type",
+        "distribution_type",
+        "dividend_type_if_available",
         "ticker",
         "composite_figi_if_available",
         "raw_event_index",
@@ -230,11 +275,11 @@ def test_validator_accepts_valid_scaffold_candidate():
 
 @pytest.mark.parametrize(
     ("field", "value"),
-    [
-        ("artifact_kind", "SPLIT_EVENT_AUDIT_CANDIDATE"),
-        ("schema_version", "dividend_event_audit_candidate_v2"),
-        ("candidate_status", "DIVIDEND_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"),
-    ],
+        [
+            ("artifact_kind", "SPLIT_EVENT_AUDIT_CANDIDATE"),
+            ("schema_version", "dividend_event_audit_candidate_v2"),
+            ("candidate_status", "DIVIDEND_EVENT_AUDIT_FROZEN"),
+        ],
 )
 def test_validator_rejects_wrong_kind_schema_or_status(field: str, value: str):
     candidate = _candidate()
@@ -489,12 +534,11 @@ def test_markdown_includes_required_sections_and_guardrails():
 
     for heading in (
         "# Dividend-Event Audit Candidate v1",
-        "## Scaffold Candidate",
+        "## Candidate",
         "## Frozen Authority Bindings",
         "## Provider Evidence",
-        "## Scaffold Checklist Summary",
         "## Authority Boundary",
-        "## Expected Future Normalized Fields",
+        "## Expected Normalized Fields",
         "## Remaining Roadmap",
         "## Guardrails",
     ):
@@ -505,7 +549,7 @@ def test_markdown_includes_required_sections_and_guardrails():
     assert EXPECTED_SPLIT_FREEZE_DIGEST in markdown
     assert "No provider requests were made." in markdown
     assert "No dividend-event provider evidence is bound." in markdown
-    assert "No dividend audit completion or freeze is claimed." in markdown
+    assert "No dividend audit freeze is claimed." in markdown
 
 
 def test_source_assurance_service_has_no_provider_strategy_runtime_broker_or_dividend_endpoint_calls():
@@ -528,13 +572,10 @@ def test_source_assurance_service_has_no_provider_strategy_runtime_broker_or_div
         "marketflow.historical_data.live_month_rth_diagnostic",
         "marketflow.historical_data.monthly_acquisition",
         "marketflow.historical_data.polygon",
-        "marketflow.services.split_event_provider_adapter_service",
     }
     assert forbidden_modules.isdisjoint(imported)
     assert forbidden_modules.isdisjoint(imported_from)
     assert {"send", "post", "put", "delete", "request", "execute"}.isdisjoint(called_attrs)
-    assert "fetch_massive" not in source
-    assert "/stocks/v1/dividends" not in source
     assert "DIVIDEND_EVENT_AUDIT_CANDIDATE" in source
     assert "DIVIDEND_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE" in source
     assert "provider_requests_made" in source
@@ -546,8 +587,316 @@ def test_service_exports_dividend_event_candidate_functions_and_constants():
 
     assert services.ARTIFACT_KIND_DIVIDEND_EVENT_AUDIT_CANDIDATE == "DIVIDEND_EVENT_AUDIT_CANDIDATE"
     assert services.DIVIDEND_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE == "DIVIDEND_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE"
+    assert services.DIVIDEND_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND == "DIVIDEND_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
     assert services.build_dividend_event_audit_candidate_v1 is dividend.build_dividend_event_audit_candidate_v1
+    assert services.build_dividend_event_audit_candidate_from_live_provider_v1 is dividend.build_dividend_event_audit_candidate_from_live_provider_v1
+    assert services.build_dividend_event_audit_provider_bound_candidate_v1 is dividend.build_dividend_event_audit_provider_bound_candidate_v1
     assert services.validate_dividend_event_audit_candidate_v1 is dividend.validate_dividend_event_audit_candidate_v1
     assert services.write_dividend_event_audit_candidate_v1 is dividend.write_dividend_event_audit_candidate_v1
     assert services.build_dividend_event_audit_candidate_markdown_v1 is dividend.build_dividend_event_audit_candidate_markdown_v1
     assert services.dividend_event_audit_candidate_semantic_digest is dividend.dividend_event_audit_candidate_semantic_digest
+
+
+def test_provider_bound_candidate_builds_from_injected_response_without_live_provider_call(monkeypatch):
+    calls: list[str] = []
+
+    def fail_provider_call(*args, **kwargs):
+        calls.append("provider")
+        raise AssertionError("provider access must not be used")
+
+    monkeypatch.setattr(dividend, "_api_key_from_environment", fail_provider_call)
+    candidate = _provider_bound_candidate([])
+
+    assert calls == []
+    assert candidate["provider_requests_made"] is False
+    assert candidate["provider_response_injected"] is True
+    assert candidate["dividend_events_provider_evidence_bound"] is True
+
+
+def test_provider_bound_candidate_artifact_kind_status_and_freeze_flags():
+    candidate = _provider_bound_candidate([])
+
+    assert candidate["artifact_kind"] == "DIVIDEND_EVENT_AUDIT_CANDIDATE"
+    assert candidate["candidate_status"] == "DIVIDEND_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
+    assert candidate["dividend_event_audit_complete"] is True
+    assert candidate["dividend_event_audit_frozen"] is False
+    assert candidate["operator_review_required"] is True
+    assert candidate["operator_freeze_required"] is True
+
+
+def test_provider_bound_event_counts_are_derived_from_response_data():
+    candidate = _provider_bound_candidate(
+        [
+            _provider_event("2021-12-31"),
+            _provider_event("2024-02-09"),
+            _provider_event("2026-01-01"),
+            _provider_event("not-a-date"),
+        ]
+    )
+    outline = candidate["dividend_event_audit_outline"]
+
+    assert outline["dividend_event_count_total"] == 4
+    assert outline["dividend_event_count_pre_range"] == 1
+    assert outline["dividend_event_count_in_range"] == 1
+    assert outline["dividend_event_count_post_range"] == 1
+    assert outline["dividend_event_count_unknown"] == 1
+    assert candidate["provider_evidence"]["provider_raw_response_row_count"] == 4
+
+
+def test_provider_bound_zero_in_range_count_supports_no_reported_dividend_status():
+    candidate = _provider_bound_candidate([_provider_event("2021-12-31"), _provider_event("2026-01-01")])
+
+    assert candidate["dividend_event_audit_outline"]["dividend_event_count_in_range"] == 0
+    assert candidate["dividend_event_audit_outline"]["audit_status"] == "DIVIDEND_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_DIVIDEND"
+
+
+def test_provider_bound_in_range_count_reports_in_range_dividend_status():
+    candidate = _provider_bound_candidate([_provider_event("2024-02-09")])
+
+    assert candidate["dividend_event_audit_outline"]["dividend_event_count_in_range"] == 1
+    assert candidate["dividend_event_audit_outline"]["audit_status"] == "DIVIDEND_EVENT_AUDIT_FOUND_REPORTED_IN_RANGE_DIVIDEND"
+
+
+def test_provider_bound_digests_are_deterministic():
+    first = _provider_bound_candidate([_provider_event("2024-02-09")])
+    second = _provider_bound_candidate([_provider_event("2024-02-09")])
+
+    assert first == second
+    assert len(first["dividend_event_provider_raw_response_digest"]) == 64
+    assert len(first["dividend_event_timeline_semantic_digest"]) == 64
+    assert len(first["dividend_event_audit_receipt_digest"]) == 64
+    assert len(first["dividend_event_audit_candidate_semantic_digest"]) == 64
+    assert first["dividend_event_audit_candidate_semantic_digest"] == dividend.dividend_event_audit_candidate_semantic_digest(first)
+
+
+def test_provider_bound_event_position_classification_handles_pre_in_post_and_unknown():
+    events = _provider_bound_candidate(
+        [
+            _provider_event("2021-12-31"),
+            _provider_event("2024-02-09"),
+            _provider_event("2026-01-01"),
+            _provider_event(None),
+        ]
+    )["dividend_event_audit_outline"]["dividend_events"]
+
+    assert {event["event_position"] for event in events} == {"PRE_RANGE", "IN_RANGE", "POST_RANGE", "UNKNOWN"}
+
+
+def test_provider_bound_missing_provider_fields_remain_null():
+    event = _provider_bound_candidate([{"ex_dividend_date": "2024-02-09"}])["dividend_event_audit_outline"]["dividend_events"][0]
+
+    assert event["declaration_date"] is None
+    assert event["record_date"] is None
+    assert event["pay_date"] is None
+    assert event["cash_amount"] is None
+    assert event["split_adjusted_cash_amount"] is None
+    assert event["historical_adjustment_factor"] is None
+    assert event["currency"] is None
+    assert event["frequency"] is None
+    assert event["distribution_type"] is None
+    assert event["dividend_type_if_available"] is None
+    assert event["ticker"] is None
+    assert event["composite_figi_if_available"] is None
+
+
+def test_validator_accepts_valid_provider_bound_candidate():
+    receipt = dividend.validate_dividend_event_audit_candidate_v1(_provider_bound_candidate([_provider_event("2024-02-09")]))
+
+    assert receipt["candidate_status"] == "DIVIDEND_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
+    assert receipt["dividend_events_provider_evidence_bound"] is True
+    assert receipt["dividend_event_audit_complete"] is True
+    assert receipt["dividend_event_audit_frozen"] is False
+
+
+def test_validator_rejects_provider_bound_candidate_without_raw_response_digest():
+    candidate = _provider_bound_candidate([_provider_event("2024-02-09")])
+    candidate["provider_evidence"]["provider_raw_response_digest"] = None
+    candidate["source_evidence_status"]["raw_response_semantic_digest"] = None
+    candidate["dividend_event_provider_raw_response_digest"] = None
+    _recompute_digest(candidate)
+
+    with pytest.raises(dividend.DividendEventAuditError, match="provider_raw_response_digest"):
+        dividend.validate_dividend_event_audit_candidate_v1(candidate)
+
+
+def test_validator_rejects_provider_bound_inconsistent_event_counts():
+    candidate = _provider_bound_candidate([_provider_event("2024-02-09")])
+    candidate["dividend_event_audit_outline"]["dividend_event_count_total"] = 2
+    _recompute_digest(candidate)
+
+    with pytest.raises(dividend.DividendEventAuditError, match="count totals inconsistent"):
+        dividend.validate_dividend_event_audit_candidate_v1(candidate)
+
+
+def test_validator_rejects_provider_bound_dividend_event_audit_frozen_true():
+    candidate = _provider_bound_candidate([_provider_event("2024-02-09")])
+    candidate["dividend_event_audit_frozen"] = True
+    candidate["authority_boundary"]["dividend_event_audit_frozen"] = True
+    candidate["guardrails"]["dividend_event_audit_frozen"] = True
+    _recompute_digest(candidate)
+
+    with pytest.raises(dividend.DividendEventAuditError, match="dividend_event_audit_frozen"):
+        dividend.validate_dividend_event_audit_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "canonical_eligibility",
+        "registry_eligibility",
+        "acquisition_generation_freeze",
+        "strategy_runtime_migration",
+        "automatic_stitching",
+    ],
+)
+def test_validator_rejects_provider_bound_authority_flags_true(field: str):
+    candidate = _provider_bound_candidate([_provider_event("2024-02-09")])
+    candidate[field] = True
+    candidate["authority_boundary"][field] = True
+    _recompute_digest(candidate)
+
+    with pytest.raises(dividend.DividendEventAuditError, match=field):
+        dividend.validate_dividend_event_audit_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize("field", ["predictive_usefulness", "profitability"])
+def test_validator_rejects_provider_bound_predictive_or_profitability_accepted(field: str):
+    candidate = _provider_bound_candidate([_provider_event("2024-02-09")])
+    candidate[field] = "accepted"
+    candidate["authority_boundary"][field] = "accepted"
+    _recompute_digest(candidate)
+
+    with pytest.raises(dividend.DividendEventAuditError, match=field):
+        dividend.validate_dividend_event_audit_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize(
+    ("field", "binding_field", "contract_field"),
+    [
+        ("identity_segment_frozen_digest", "identity_segment_frozen_digest", None),
+        ("exchange_calendar_frozen_digest", "exchange_calendar_frozen_digest", None),
+        ("schedule_semantic_digest", "schedule_semantic_digest", None),
+        ("split_event_audit_frozen_digest", "split_event_audit_frozen_digest", None),
+        ("acquisition_contract_digest", "acquisition_contract_digest", "contract_digest"),
+    ],
+)
+def test_validator_rejects_provider_bound_wrong_authority_digests(field: str, binding_field: str, contract_field: str | None):
+    candidate = _provider_bound_candidate([_provider_event("2024-02-09")])
+    candidate[field] = "f" * 64
+    candidate["authority_bindings"][binding_field] = "f" * 64
+    if contract_field is not None:
+        candidate["acquisition_contract"][contract_field] = "f" * 64
+    _recompute_digest(candidate)
+
+    with pytest.raises(dividend.DividendEventAuditError, match=field):
+        dividend.validate_dividend_event_audit_candidate_v1(candidate)
+
+
+def test_live_provider_builder_is_disabled_without_explicit_gate(monkeypatch):
+    monkeypatch.delenv("MARKETFLOW_ENABLE_LIVE_DIVIDEND_AUDIT", raising=False)
+
+    result = dividend.build_dividend_event_audit_candidate_from_live_provider_v1(
+        api_key="fictional-secret-key",
+        transport=lambda request: pytest.fail("transport must not be used"),
+        request_timestamp_utc="2026-08-06T00:00:00Z",
+    )
+
+    assert result["status"] == "DIVIDEND_EVENT_LIVE_PROVIDER_COLLECTION_DISABLED"
+    assert result["provider_requests_made"] is False
+    assert result["dividend_event_audit_frozen"] is False
+
+
+def test_live_provider_builder_requires_api_key_when_gate_enabled(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_DIVIDEND_AUDIT", "1")
+    monkeypatch.delenv("MASSIVE_API_KEY", raising=False)
+    monkeypatch.delenv("POLYGON_API_KEY", raising=False)
+
+    result = dividend.build_dividend_event_audit_candidate_from_live_provider_v1(
+        transport=lambda request: pytest.fail("transport must not be used"),
+        request_timestamp_utc="2026-08-06T00:00:00Z",
+    )
+
+    assert result["status"] == "DIVIDEND_EVENT_LIVE_PROVIDER_API_KEY_MISSING"
+    assert result["provider_requests_made"] is False
+    assert result["provider_response_injected"] is False
+
+
+def test_live_provider_bound_candidate_has_live_flags_and_status(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_DIVIDEND_AUDIT", "1")
+    candidate = _fake_live_candidate([])
+
+    assert candidate["artifact_kind"] == "DIVIDEND_EVENT_AUDIT_CANDIDATE"
+    assert candidate["candidate_status"] == "DIVIDEND_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
+    assert candidate["provider_requests_made"] is True
+    assert candidate["provider_response_injected"] is False
+    assert candidate["provider_request_mode"] == "LIVE_PROVIDER_REQUEST"
+    assert candidate["dividend_events_provider_evidence_bound"] is True
+    assert candidate["dividend_event_audit_complete"] is True
+    assert candidate["dividend_event_audit_frozen"] is False
+
+
+def test_live_provider_empty_response_yields_zero_counts_and_no_reported_dividend_status(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_DIVIDEND_AUDIT", "1")
+    outline = _fake_live_candidate([])["dividend_event_audit_outline"]
+
+    assert outline["dividend_event_count_total"] == 0
+    assert outline["dividend_event_count_in_range"] == 0
+    assert outline["audit_status"] == "DIVIDEND_EVENT_AUDIT_SUPPORTS_NO_REPORTED_IN_RANGE_DIVIDEND"
+
+
+def test_live_provider_in_range_response_yields_reported_dividend_status(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_DIVIDEND_AUDIT", "1")
+    candidate = _fake_live_candidate([_provider_event("2024-02-09")])
+
+    assert candidate["dividend_event_audit_outline"]["dividend_event_count_in_range"] == 1
+    assert candidate["dividend_event_audit_outline"]["audit_status"] == "DIVIDEND_EVENT_AUDIT_FOUND_REPORTED_IN_RANGE_DIVIDEND"
+
+
+def test_live_provider_classifies_pre_in_post_and_unknown_dates(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_DIVIDEND_AUDIT", "1")
+    outline = _fake_live_candidate(
+        [
+            _provider_event("2021-12-31"),
+            _provider_event("2024-02-09"),
+            _provider_event("2026-01-01"),
+            _provider_event("not-a-date"),
+        ]
+    )["dividend_event_audit_outline"]
+
+    assert outline["dividend_event_count_pre_range"] == 1
+    assert outline["dividend_event_count_in_range"] == 1
+    assert outline["dividend_event_count_post_range"] == 1
+    assert outline["dividend_event_count_unknown"] == 1
+    assert {event["event_position"] for event in outline["dividend_events"]} == {"PRE_RANGE", "IN_RANGE", "POST_RANGE", "UNKNOWN"}
+
+
+def test_live_provider_candidate_does_not_store_api_key(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_DIVIDEND_AUDIT", "1")
+    seen: list[dict] = []
+
+    def fake_transport(request):
+        seen.append(dict(request))
+        return _fake_live_page([])
+
+    candidate = dividend.build_dividend_event_audit_candidate_from_live_provider_v1(
+        api_key="fictional-secret-key",
+        transport=fake_transport,
+        request_timestamp_utc="2026-08-06T00:00:00Z",
+    )
+    rendered = json.dumps(candidate, sort_keys=True)
+    request_rendered = json.dumps(seen, sort_keys=True)
+
+    assert "fictional-secret-key" not in rendered
+    assert "fictional-secret-key" not in request_rendered
+    assert "api_key" not in rendered.lower()
+    assert "apikey" not in rendered.lower()
+
+
+def test_validator_accepts_valid_fake_live_provider_bound_candidate(monkeypatch):
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_DIVIDEND_AUDIT", "1")
+    receipt = dividend.validate_dividend_event_audit_candidate_v1(_fake_live_candidate([_provider_event("2024-02-09")]))
+
+    assert receipt["candidate_status"] == "DIVIDEND_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND"
+    assert receipt["provider_requests_made"] is True
+    assert receipt["provider_response_injected"] is False
+    assert receipt["provider_request_mode"] == "LIVE_PROVIDER_REQUEST"
