@@ -1,12 +1,18 @@
 # MarketFlow Dividend-Event Audit v1 Plan
 
-Status: LIVE PROVIDER ADAPTER IMPLEMENTED / PROVIDER-BOUND CANDIDATE SUPPORTED / OPERATOR REVIEW PACKAGE READY / NO FREEZE
+Status: LIVE PROVIDER ADAPTER IMPLEMENTED / PROVIDER-BOUND CANDIDATE SUPPORTED / OPERATOR REVIEW PACKAGE READY / OPERATOR FREEZE CEREMONY IMPLEMENTED
 
 ## Purpose
 
 Dividend-Event Audit Candidate v1 creates an offline scaffold artifact and now
 supports a provider-bound candidate from either injected provider response data
 or an explicitly gated live Massive.com provider request.
+
+Dividend-Event Operator Review Package v1 prepares digest-bound operator
+review evidence without creating a freeze.
+
+Dividend-Event Operator Freeze Ceremony v1 creates the guarded offline
+dividend-event audit freeze after explicit operator attestation.
 
 It creates only:
 
@@ -15,6 +21,10 @@ It creates only:
 and, after recorded live evidence is reviewed offline:
 
 `DIVIDEND_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE`
+
+and, after explicit operator attestation:
+
+`DIVIDEND_EVENT_AUDIT_FROZEN`
 
 with either scaffold status:
 
@@ -28,8 +38,14 @@ or review-package status:
 
 `DIVIDEND_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE_READY`
 
-It does not create `DIVIDEND_EVENT_AUDIT_FROZEN` and does not set
-`dividend_event_audit_frozen` to `true`.
+or freeze status:
+
+`DIVIDEND_EVENT_AUDIT_FROZEN`
+
+Only the freeze ceremony may set `dividend_event_audit_frozen` to `true`.
+It does not approve canonical eligibility, registry eligibility, acquisition
+generation, Strategy/runtime migration, predictive usefulness, or
+profitability.
 
 ## Authority Chain Position
 
@@ -234,6 +250,50 @@ It sets the implication:
 
 `ACQUISITION_GENERATION_MUST_ACCOUNT_FOR_ADJUSTED_DATA_AND_DIVIDEND_POLICY`
 
+## Operator Freeze Ceremony
+
+Dividend-Event Operator Freeze Ceremony v1 freezes the accepted dividend-event
+audit evidence after an explicit non-secret operator attestation.
+
+The frozen artifact records:
+
+- `artifact_kind`: `DIVIDEND_EVENT_AUDIT_FROZEN`
+- `schema_version`: `dividend_event_audit_operator_freeze_v1`
+- `freeze_status`: `DIVIDEND_EVENT_AUDIT_FROZEN`
+- `created_offline`: `true`
+- `provider_requests_made_in_freeze`: `false`
+- `identity_segment_frozen`: `true`
+- `calendar_operator_frozen`: `true`
+- `split_event_audit_frozen`: `true`
+- `dividend_event_audit_frozen`: `true`
+- `automatic_stitching`: `false`
+
+Frozen source bindings:
+
+- source dividend review package digest:
+  `5cfa4b8f86658b84df932afbf8278d431f18a1082014b3df3ad8c15af2d55742`
+- source live dividend candidate digest:
+  `19a6275675c14e4ab06c9785828c60bd6a27274507fcddc60dced2ce82662d50`
+- raw response digest:
+  `3b60a63bf0103c1f6b735efd6b086626605c7e717f45d0299965e8988dee396f`
+- timeline digest:
+  `e5d13b1e203b3106855571299f147d0221d92ebcbed019e4b50e6f8e908c0659`
+- receipt digest:
+  `e8bb85d0ceefbe5f1bad411e333142e7957cca09572d0f7be64612eba4bef9e5`
+- frozen artifact digest:
+  `0ef4e69954d67a5df8a246f623b2904651d579e5ebbe620a9647e16b42b95141`
+- freeze checks: `48` total, `48` passed, `0` failed, `0` blockers
+
+The frozen artifact preserves:
+
+- in-range dividends found: `true`
+- in-range dividend count: `16`
+- implication:
+  `ACQUISITION_GENERATION_MUST_ACCOUNT_FOR_ADJUSTED_DATA_AND_DIVIDEND_POLICY`
+
+This implication remains evidence for future acquisition-generation policy
+work. It is not canonical approval and not acquisition-generation approval.
+
 ## Non-Goals
 
 This task does not call Ticker Overview, Ticker Events, calendar, split events,
@@ -245,11 +305,10 @@ execution behavior, predictive acceptance, or profitability acceptance.
 
 ## Next Tasks
 
-1. Digest-bound dividend-event operator freeze ceremony.
-2. Full 2022-2025 acquisition generation.
-3. Acquisition-generation freeze.
-4. SWING canonical dataset and registry approval.
-5. POSITION_SWING canonical dataset and registry approval.
-6. Normal runtime migration.
-7. Applicability/research campaign.
-8. Predictive and profitability evaluation.
+1. Full 2022-2025 acquisition generation.
+2. Acquisition-generation freeze.
+3. SWING canonical dataset and registry approval.
+4. POSITION_SWING canonical dataset and registry approval.
+5. Normal runtime migration.
+6. Applicability/research campaign.
+7. Predictive and profitability evaluation.

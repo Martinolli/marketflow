@@ -134,3 +134,22 @@ It also does not create or approve:
 6. Normal runtime migration.
 7. Applicability/research campaign.
 8. Predictive and profitability evaluation.
+
+## Follow-On Freeze Ceremony
+
+The follow-on dividend-event operator freeze ceremony has been implemented on:
+
+- branch: `feature/dividend-event-operator-freeze-v1`
+- stacked base commit:
+  `3898c157826def39b405236698e57708fe2f4a11`
+- frozen artifact kind: `DIVIDEND_EVENT_AUDIT_FROZEN`
+- freeze status: `DIVIDEND_EVENT_AUDIT_FROZEN`
+- frozen artifact digest:
+  `0ef4e69954d67a5df8a246f623b2904651d579e5ebbe620a9647e16b42b95141`
+- freeze checks: `48` total, `48` passed, `0` failed, `0` blockers
+- provider requests made during freeze: `false`
+
+The review package remains the source evidence for the freeze. The freeze
+ceremony does not refresh provider evidence and does not approve acquisition
+generation, canonical eligibility, registry eligibility, Strategy/runtime
+migration, predictive usefulness, or profitability.
