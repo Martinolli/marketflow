@@ -1,6 +1,6 @@
 # MarketFlow Dividend-Event Audit v1 Plan
 
-Status: LIVE PROVIDER ADAPTER IMPLEMENTED / PROVIDER-BOUND CANDIDATE SUPPORTED / NO FREEZE
+Status: LIVE PROVIDER ADAPTER IMPLEMENTED / PROVIDER-BOUND CANDIDATE SUPPORTED / OPERATOR REVIEW PACKAGE READY / NO FREEZE
 
 ## Purpose
 
@@ -12,6 +12,10 @@ It creates only:
 
 `DIVIDEND_EVENT_AUDIT_CANDIDATE`
 
+and, after recorded live evidence is reviewed offline:
+
+`DIVIDEND_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE`
+
 with either scaffold status:
 
 `DIVIDEND_EVENT_AUDIT_REQUIRES_PROVIDER_EVIDENCE`
@@ -19,6 +23,10 @@ with either scaffold status:
 or provider-bound candidate status:
 
 `DIVIDEND_EVENT_AUDIT_PROVIDER_EVIDENCE_BOUND`
+
+or review-package status:
+
+`DIVIDEND_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE_READY`
 
 It does not create `DIVIDEND_EVENT_AUDIT_FROZEN` and does not set
 `dividend_event_audit_frozen` to `true`.
@@ -189,6 +197,43 @@ Provider-bound evidence produces:
 In-range dividends are not a failure. They are source evidence for the next
 operator review and later acquisition-generation adjustment policy work.
 
+## Operator Review Package
+
+Dividend-Event Operator Review Package v1 binds to the recorded live AAPL
+dividend evidence status without making a new provider request and without
+copying raw provider payload data.
+
+The review package records:
+
+- `artifact_kind`: `DIVIDEND_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE`
+- `schema_version`: `dividend_event_audit_candidate_review_v1`
+- `review_status`: `DIVIDEND_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE_READY`
+- `created_offline`: `true`
+- `provider_requests_made_in_review`: `false`
+- `operator_decision_required`: `true`
+- `operator_decision`: `null`
+- `dividend_event_audit_frozen`: `false`
+- `automatic_stitching`: `false`
+
+Recorded live evidence bindings:
+
+- candidate semantic digest:
+  `19a6275675c14e4ab06c9785828c60bd6a27274507fcddc60dced2ce82662d50`
+- raw response digest:
+  `3b60a63bf0103c1f6b735efd6b086626605c7e717f45d0299965e8988dee396f`
+- timeline digest:
+  `e5d13b1e203b3106855571299f147d0221d92ebcbed019e4b50e6f8e908c0659`
+- receipt digest:
+  `e8bb85d0ceefbe5f1bad411e333142e7957cca09572d0f7be64612eba4bef9e5`
+- review package digest:
+  `5cfa4b8f86658b84df932afbf8278d431f18a1082014b3df3ad8c15af2d55742`
+- checks: `39` total, `39` passed, `0` failed, `0` blockers
+
+The review package records `16` in-range dividends. This is not a blocker.
+It sets the implication:
+
+`ACQUISITION_GENERATION_MUST_ACCOUNT_FOR_ADJUSTED_DATA_AND_DIVIDEND_POLICY`
+
 ## Non-Goals
 
 This task does not call Ticker Overview, Ticker Events, calendar, split events,
@@ -200,7 +245,11 @@ execution behavior, predictive acceptance, or profitability acceptance.
 
 ## Next Tasks
 
-1. Dividend-event live evidence smoke.
-2. Dividend-event operator review package.
-3. Dividend-event operator freeze ceremony.
-4. Full 2022-2025 acquisition generation.
+1. Digest-bound dividend-event operator freeze ceremony.
+2. Full 2022-2025 acquisition generation.
+3. Acquisition-generation freeze.
+4. SWING canonical dataset and registry approval.
+5. POSITION_SWING canonical dataset and registry approval.
+6. Normal runtime migration.
+7. Applicability/research campaign.
+8. Predictive and profitability evaluation.

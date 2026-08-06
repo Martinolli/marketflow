@@ -96,3 +96,21 @@ candidate summary, timeline digest, receipt digest, metadata, or documentation.
 The next recommended task is a dividend-event operator review package over this
 recorded live evidence. A later operator freeze ceremony is still required
 before dividend-event audit authority is frozen.
+
+## Offline Review Package Follow-Up
+
+The recorded live evidence has a follow-up offline operator review package on:
+
+- branch: `feature/dividend-event-operator-review-package-v1`
+- stacked base commit: `1a9a7f5`
+- review package status:
+  `DIVIDEND_EVENT_AUDIT_CANDIDATE_REVIEW_PACKAGE_READY`
+- review package digest:
+  `5cfa4b8f86658b84df932afbf8278d431f18a1082014b3df3ad8c15af2d55742`
+- checks: `39` total, `39` passed, `0` failed, `0` blockers
+- provider requests made during review: `false`
+- dividend event audit frozen: `false`
+
+The follow-up package does not create `DIVIDEND_EVENT_AUDIT_FROZEN`. It only
+prepares a digest-bound operator review package over the sanitized status
+evidence recorded above.
