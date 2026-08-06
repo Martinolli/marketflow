@@ -1,0 +1,461 @@
+from __future__ import annotations
+
+import ast
+import json
+import os
+from copy import deepcopy
+from datetime import UTC, datetime, time
+from functools import lru_cache
+from pathlib import Path
+from zoneinfo import ZoneInfo
+
+import pytest
+
+from marketflow.services import acquisition_generation_service as acquisition
+
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+EXPECTED_IDENTITY_DIGEST = "57a698979e827d7c95737c12ad3435563486e44559a7f1ddd49c94006d27d24e"
+EXPECTED_CALENDAR_DIGEST = "25258b528e45a7f36d1cf96a4a40a8f2c89243c69d034f480dd10c4464d847a6"
+EXPECTED_SCHEDULE_DIGEST = "b0194dfed46ee06bd0954cc76f9e76d144d84c5e6f1a836acf2f486c083aeef0"
+EXPECTED_SPLIT_DIGEST = "9bf3ff52f599757add22e01889c9ee3e72b4ff31e831ae312b94483b37f05fae"
+EXPECTED_DIVIDEND_DIGEST = "0ef4e69954d67a5df8a246f623b2904651d579e5ebbe620a9647e16b42b95141"
+EXPECTED_CONTRACT_DIGEST = "538f076a9d63e564a4279091c9a0b39c90091d781a1b867d12b79572cd4998e6"
+EXPECTED_DIVIDEND_IMPLICATION = "ACQUISITION_GENERATION_MUST_ACCOUNT_FOR_ADJUSTED_DATA_AND_DIVIDEND_POLICY"
+
+
+def _epoch_ms(local_date: str, local_hhmm: str) -> int:
+    hour, minute = (int(part) for part in local_hhmm.split(":", 1))
+    local = datetime.fromisoformat(local_date).replace(hour=hour, minute=minute, tzinfo=ZoneInfo("America/New_York"))
+    return int(local.astimezone(UTC).timestamp() * 1000)
+
+
+def _row(timestamp_ms: int, index: int, *, optional: bool = True) -> dict:
+    row = {
+        "o": 100 + index,
+        "h": 101 + index,
+        "l": 99 + index,
+        "c": 100 + index,
+        "v": 1000 + index,
+        "t": timestamp_ms,
+    }
+    if optional:
+        row["vw"] = 100
+        row["n"] = 10
+        row["otc"] = False
+    return row
+
+
+def _body(timestamps: list[int], *, optional: bool = True) -> bytes:
+    rows = [_row(timestamp, index, optional=optional) for index, timestamp in enumerate(timestamps)]
+    payload = {
+        "adjusted": True,
+        "queryCount": len(rows),
+        "results": rows,
+        "resultsCount": len(rows),
+        "count": len(rows),
+        "status": "OK",
+        "ticker": "AAPL",
+    }
+    return json.dumps(payload, sort_keys=True, separators=(",", ":")).encode("utf-8")
+
+
+def _single_month_timestamp(month: str) -> int:
+    return _epoch_ms(f"{month}-01", "04:00")
+
+
+def _january_2025_timestamps() -> list[int]:
+    schedule = acquisition.calendar_service.build_exchange_calendar_schedule_rows_v1()
+    january_sessions = [row for row in schedule if row["session_date"].startswith("2025-01") and row["is_full_session"] is True]
+    rth: list[int] = []
+    extended_candidates: list[int] = []
+    for session in january_sessions:
+        session_date = session["session_date"]
+        for hour, minute in [(4, 0), (4, 15), (4, 30), (4, 45), (5, 0), (5, 15), (5, 30), (5, 45), (6, 0), (6, 15), (6, 30), (6, 45), (7, 0), (7, 15), (7, 30), (7, 45), (8, 0), (8, 15), (8, 30), (8, 45), (9, 0), (9, 15)]:
+            extended_candidates.append(_epoch_ms(session_date, f"{hour:02d}:{minute:02d}"))
+        for hour in range(9, 16):
+            start_minute = 30 if hour == 9 else 0
+            for minute in range(start_minute, 60, 15):
+                if hour == 15 and minute > 45:
+                    continue
+                rth.append(_epoch_ms(session_date, f"{hour:02d}:{minute:02d}"))
+        for hour, minute in [(16, 0), (16, 15), (16, 30), (16, 45), (17, 0), (17, 15), (17, 30), (17, 45), (18, 0), (18, 15), (18, 30), (18, 45), (19, 0), (19, 15), (19, 30), (19, 45), (20, 0), (20, 15), (20, 30), (20, 45), (21, 0)]:
+            extended_candidates.append(_epoch_ms(session_date, f"{hour:02d}:{minute:02d}"))
+    timestamps = sorted(rth + sorted(extended_candidates)[:757])
+    assert len(rth) == 520
+    assert len(timestamps) == 1277
+    return timestamps
+
+
+@lru_cache(maxsize=1)
+def _provider_responses() -> tuple[dict, ...]:
+    responses = []
+    for chunk in acquisition.build_acquisition_month_chunks_v1():
+        month = chunk["month"]
+        timestamps = _january_2025_timestamps() if month == "2025-01" else [_single_month_timestamp(month)]
+        responses.append({"month": month, "response": _body(timestamps)})
+    return tuple(responses)
+
+
+def _candidate() -> dict:
+    return acquisition.build_acquisition_generation_candidate_v1(provider_responses=[deepcopy(item) for item in _provider_responses()])
+
+
+def _recompute_digest(candidate: dict) -> None:
+    candidate["acquisition_generation_candidate_semantic_digest"] = acquisition.acquisition_generation_candidate_semantic_digest(candidate)
+
+
+def test_request_metadata_builds_without_api_key_leakage():
+    request = acquisition.build_massive_custom_bars_request_v1(ticker="AAPL", start_date="2022-01-01", end_date="2022-01-31", api_key="secret")
+
+    assert request["provider_endpoint"] == "/v2/aggs/ticker/{stocksTicker}/range/{multiplier}/{timespan}/{from}/{to}"
+    assert request["provider_endpoint_path"] == "/v2/aggs/ticker/AAPL/range/15/minute/2022-01-01/2022-01-31"
+    assert request["provider_multiplier"] == 15
+    assert request["provider_timespan"] == "minute"
+    assert request["provider_adjusted"] is True
+    assert request["provider_sort"] == "asc"
+    assert request["provider_limit"] == 50000
+    assert request["api_key_supplied"] is True
+    assert request["api_key_stored"] is False
+    assert "secret" not in repr(request)
+    assert "apiKey" not in request["request_url_without_credentials"]
+
+
+def test_monthly_chunking_produces_48_chunks_for_fixed_range():
+    chunks = acquisition.build_acquisition_month_chunks_v1()
+
+    assert len(chunks) == 48
+    assert chunks[0]["month"] == "2022-01"
+    assert chunks[-1]["month"] == "2025-12"
+    assert chunks[0]["effective_start_date"] == "2022-01-01"
+    assert chunks[-1]["effective_end_date"] == "2025-12-31"
+    assert [chunk["chunk_ordinal"] for chunk in chunks] == list(range(1, 49))
+
+
+def test_fake_transport_can_generate_provider_response_without_live_calls():
+    calls: list[str] = []
+
+    def transport(request: dict) -> bytes:
+        calls.append(request["provider_endpoint_path"])
+        return _body([_single_month_timestamp("2025-01")])
+
+    result = acquisition.fetch_massive_custom_bars_v1(
+        ticker="AAPL",
+        start_date="2025-01-01",
+        end_date="2025-01-31",
+        api_key="fake-key",
+        transport=transport,
+    )
+
+    assert calls == ["/v2/aggs/ticker/AAPL/range/15/minute/2025-01-01/2025-01-31"]
+    assert result["provider_response_status"] == "OK"
+    assert result["provider_response_row_count"] == 1
+    assert "fake-key" not in repr(result)
+
+
+def test_provider_response_rows_normalize_deterministically_and_preserve_timestamps():
+    chunk = next(item for item in acquisition.build_acquisition_month_chunks_v1() if item["month"] == "2025-01")
+    result = acquisition.normalize_provider_response_rows_v1(chunk=chunk, provider_response_data=_body([_epoch_ms("2025-01-02", "09:30")]))
+    row = result["normalized_rows"][0]
+
+    assert row["ticker"] == "AAPL"
+    assert row["timestamp_utc"] == "2025-01-02T14:30:00Z"
+    assert row["timestamp_source"] == _epoch_ms("2025-01-02", "09:30")
+    assert row["timestamp_source_timezone"] == "America/New_York"
+    assert row["open"] == "100"
+    assert row["high"] == "101"
+    assert row["low"] == "99"
+    assert row["close"] == "100"
+    assert row["volume"] == "1000"
+    assert row["vwap"] == "100"
+    assert row["transactions"] == 10
+    assert row["otc"] is False
+    assert row["adjusted"] is True
+    assert row["source_interval_minutes"] == 15
+    assert row["source_chunk_id"] == "AAPL-2025-01"
+    assert len(row["raw_row_digest"]) == 64
+
+
+def test_missing_optional_provider_fields_remain_null():
+    chunk = next(item for item in acquisition.build_acquisition_month_chunks_v1() if item["month"] == "2025-01")
+    row = acquisition.normalize_provider_response_rows_v1(
+        chunk=chunk,
+        provider_response_data=_body([_epoch_ms("2025-01-02", "09:30")], optional=False),
+    )["normalized_rows"][0]
+
+    assert row["vwap"] is None
+    assert row["transactions"] is None
+    assert row["otc"] is None
+
+
+def test_normalized_source_rows_digest_is_deterministic():
+    first = _candidate()
+    second = _candidate()
+
+    assert first["normalized_source_rows_digest"] == second["normalized_source_rows_digest"]
+    assert first["normalized_source_rows_digest"] == acquisition.normalized_source_rows_digest_v1(first["normalized_source_rows"])
+
+
+def test_chunk_manifest_digest_is_deterministic():
+    chunks = acquisition.build_acquisition_month_chunks_v1()
+
+    assert acquisition.chunk_manifest_digest_v1(chunks) == acquisition.chunk_manifest_digest_v1(acquisition.build_acquisition_month_chunks_v1())
+
+
+def test_monthly_reconciliation_digest_is_deterministic():
+    candidate = _candidate()
+
+    assert candidate["monthly_reconciliation_digest"] == acquisition.monthly_reconciliation_digest_v1(candidate["monthly_reconciliation"])
+
+
+def test_candidate_digest_is_deterministic():
+    first = _candidate()
+    second = _candidate()
+
+    assert first == second
+    assert len(first["acquisition_generation_candidate_semantic_digest"]) == 64
+    assert first["acquisition_generation_candidate_semantic_digest"] == acquisition.acquisition_generation_candidate_semantic_digest(first)
+
+
+def test_candidate_binds_required_frozen_authority_digests():
+    candidate = _candidate()
+
+    assert candidate["identity_segment_frozen_digest"] == EXPECTED_IDENTITY_DIGEST
+    assert candidate["exchange_calendar_frozen_digest"] == EXPECTED_CALENDAR_DIGEST
+    assert candidate["schedule_semantic_digest"] == EXPECTED_SCHEDULE_DIGEST
+    assert candidate["split_event_audit_frozen_digest"] == EXPECTED_SPLIT_DIGEST
+    assert candidate["dividend_event_audit_frozen_digest"] == EXPECTED_DIVIDEND_DIGEST
+    assert candidate["acquisition_contract_digest"] == EXPECTED_CONTRACT_DIGEST
+
+
+def test_candidate_preserves_dividend_implication():
+    candidate = _candidate()
+
+    assert candidate["in_range_dividends_found"] is True
+    assert candidate["in_range_dividend_count"] == 16
+    assert candidate["in_range_dividend_implication"] == EXPECTED_DIVIDEND_IMPLICATION
+
+
+def test_candidate_status_is_ready_for_completed_fake_generation():
+    candidate = _candidate()
+
+    assert candidate["artifact_kind"] == "ACQUISITION_GENERATION_CANDIDATE"
+    assert candidate["schema_version"] == "acquisition_generation_candidate_v1"
+    assert candidate["candidate_status"] == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
+    assert candidate["provider_response_injected"] is True
+    assert candidate["provider_requests_made"] is False
+    assert candidate["acquisition_generation_complete"] is True
+    assert candidate["chunk_count_completed"] == 48
+    assert candidate["failed_chunk_count"] == 0
+
+
+def test_candidate_without_provider_responses_requires_live_execution_without_freeze():
+    candidate = acquisition.build_acquisition_generation_candidate_v1()
+
+    assert candidate["candidate_status"] == "ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION"
+    assert candidate["provider_response_injected"] is False
+    assert candidate["provider_requests_made"] is False
+    assert candidate["acquisition_generation_complete"] is False
+    assert candidate["acquisition_generation_freeze"] is False
+
+
+def test_candidate_does_not_set_freeze_canonical_registry_or_runtime_eligibility():
+    candidate = _candidate()
+
+    assert candidate["acquisition_generation_freeze"] is False
+    assert candidate["canonical_eligibility"] is False
+    assert candidate["registry_eligibility"] is False
+    assert candidate["strategy_runtime_migration"] is False
+    assert candidate["automatic_stitching"] is False
+    assert candidate["predictive_usefulness"] == "not accepted"
+    assert candidate["profitability"] == "not accepted"
+
+
+def test_validator_accepts_valid_fake_completed_candidate():
+    receipt = acquisition.validate_acquisition_generation_candidate_v1(_candidate())
+
+    assert receipt["status"] == "ACQUISITION_GENERATION_CANDIDATE_VALID"
+    assert receipt["artifact_kind"] == "ACQUISITION_GENERATION_CANDIDATE"
+    assert receipt["candidate_status"] == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
+    assert receipt["chunk_count_expected"] == 48
+    assert receipt["chunk_count_completed"] == 48
+    assert receipt["failed_chunk_count"] == 0
+    assert receipt["provider_requests_made"] is False
+
+
+@pytest.mark.parametrize(
+    ("field", "binding_field"),
+    [
+        ("identity_segment_frozen_digest", "identity_segment_frozen_digest"),
+        ("exchange_calendar_frozen_digest", "exchange_calendar_frozen_digest"),
+        ("schedule_semantic_digest", "schedule_semantic_digest"),
+        ("split_event_audit_frozen_digest", "split_event_audit_frozen_digest"),
+        ("dividend_event_audit_frozen_digest", "dividend_event_audit_frozen_digest"),
+        ("acquisition_contract_digest", "acquisition_contract_digest"),
+    ],
+)
+def test_validator_rejects_wrong_authority_digest(field: str, binding_field: str):
+    candidate = _candidate()
+    candidate[field] = "0" * 64
+    candidate["authority_bindings"][binding_field] = "0" * 64
+    _recompute_digest(candidate)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match=field):
+        acquisition.validate_acquisition_generation_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "acquisition_generation_freeze",
+        "canonical_eligibility",
+        "registry_eligibility",
+        "strategy_runtime_migration",
+        "automatic_stitching",
+    ],
+)
+def test_validator_rejects_disallowed_authority_flags_true(field: str):
+    candidate = _candidate()
+    candidate[field] = True
+    candidate["authority_boundary"][field] = True
+    _recompute_digest(candidate)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match=field):
+        acquisition.validate_acquisition_generation_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize("field", ["predictive_usefulness", "profitability"])
+def test_validator_rejects_predictive_or_profitability_accepted(field: str):
+    candidate = _candidate()
+    candidate[field] = "accepted"
+    candidate["authority_boundary"][field] = "accepted"
+    _recompute_digest(candidate)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match=field):
+        acquisition.validate_acquisition_generation_candidate_v1(candidate)
+
+
+def test_validator_rejects_failed_chunks_while_complete():
+    candidate = _candidate()
+    candidate["failed_chunk_count"] = 1
+    candidate["provider_failed_chunk_count"] = 1
+    _recompute_digest(candidate)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match="failed_chunk_count"):
+        acquisition.validate_acquisition_generation_candidate_v1(candidate)
+
+
+@pytest.mark.parametrize("field", ["normalized_source_rows_digest", "monthly_reconciliation_digest"])
+def test_validator_rejects_missing_required_digest_while_complete(field: str):
+    candidate = _candidate()
+    candidate[field] = None
+    _recompute_digest(candidate)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match=field):
+        acquisition.validate_acquisition_generation_candidate_v1(candidate)
+
+
+def test_validator_rejects_2025_01_cross_check_mismatch_when_present():
+    candidate = _candidate()
+    january = next(item for item in candidate["monthly_reconciliation"] if item["month"] == "2025-01")
+    january["validated_rth_rows"] = 519
+    _recompute_digest(candidate)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match="2025-01.validated_rth_rows"):
+        acquisition.validate_acquisition_generation_candidate_v1(candidate)
+
+
+def test_accepted_2025_01_fixture_cross_check_passes_exactly():
+    candidate = _candidate()
+    january = next(item for item in candidate["monthly_reconciliation"] if item["month"] == "2025-01")
+
+    assert january["normalized_source_rows"] == 1277
+    assert january["extended_hours_rows"] == 757
+    assert january["expected_rth_rows"] == 520
+    assert january["validated_rth_rows"] == 520
+    assert january["rth_reconciliation_status"] == "RTH_SOURCE_ROWS_RECONCILED"
+    assert january["full_ordinary_sessions"] == 20
+    assert january["incomplete_ordinary_sessions"] == 0
+    assert january["swing_rth_half_session_195m_bars"] == 40
+    assert january["position_swing_rth_full_session_1d_bars"] == 20
+
+
+def test_rth_and_extended_hours_classification_counts_are_deterministic():
+    candidate = _candidate()
+
+    assert candidate["normalized_source_row_count"] == 1324
+    assert candidate["rth_row_count"] == 520
+    assert candidate["extended_hours_row_count"] == 788
+    assert candidate["out_of_calendar_range_row_count"] == 16
+    assert candidate["unknown_session_row_count"] == 0
+
+
+def test_writer_is_json_no_overwrite(tmp_path: Path):
+    result = acquisition.write_acquisition_generation_candidate_v1(tmp_path, candidate=_candidate())
+    path = Path(result["path"])
+
+    assert result["artifact_kind"] == "ACQUISITION_GENERATION_CANDIDATE"
+    assert path.is_file()
+    payload = json.loads(path.read_text(encoding="utf-8"))
+    assert payload["acquisition_generation_candidate_semantic_digest"] == result["acquisition_generation_candidate_semantic_digest"]
+    with pytest.raises(acquisition.AcquisitionGenerationError, match="already exists"):
+        acquisition.write_acquisition_generation_candidate_v1(tmp_path, candidate=_candidate())
+
+
+def test_remaining_roadmap_tracks_post_candidate_work():
+    roadmap = _candidate()["remaining_roadmap"]
+
+    assert roadmap == [
+        "Full live acquisition smoke/generation.",
+        "Acquisition generation operator review package.",
+        "Acquisition generation freeze.",
+        "SWING canonical dataset candidate.",
+        "POSITION_SWING canonical dataset candidate.",
+    ]
+
+
+def test_source_assurance_has_no_legacy_provider_strategy_runtime_or_broker_calls():
+    source_path = REPO_ROOT / "marketflow" / "services" / "acquisition_generation_service.py"
+    source = source_path.read_text(encoding="utf-8")
+    tree = ast.parse(source)
+    imported = {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
+    imported_from = {node.module for node in ast.walk(tree) if isinstance(node, ast.ImportFrom) and node.module}
+    called_attrs = {node.func.attr for node in ast.walk(tree) if isinstance(node, ast.Call) and isinstance(node.func, ast.Attribute)}
+
+    forbidden_modules = {
+        "httpx",
+        "requests",
+        "socket",
+        "urllib",
+        "polygon",
+        "marketflow.marketflow_strategy",
+        "marketflow.marketflow_data_provider",
+        "marketflow.historical_data.massive_transport",
+        "marketflow.historical_data.live_month_rth_diagnostic",
+        "marketflow.historical_data.monthly_acquisition",
+    }
+    assert forbidden_modules.isdisjoint(imported)
+    assert forbidden_modules.isdisjoint(imported_from)
+    assert {"send", "post", "put", "delete", "request"}.isdisjoint(called_attrs)
+    assert "ACQUISITION_GENERATION_FROZEN" in source
+
+
+def test_service_exports_acquisition_generation_functions_and_constants():
+    import marketflow.services as services
+
+    assert services.ARTIFACT_KIND_ACQUISITION_GENERATION_CANDIDATE == "ACQUISITION_GENERATION_CANDIDATE"
+    assert services.ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
+    assert services.build_acquisition_generation_candidate_v1 is acquisition.build_acquisition_generation_candidate_v1
+    assert services.build_acquisition_month_chunks_v1 is acquisition.build_acquisition_month_chunks_v1
+    assert services.build_massive_custom_bars_request_v1 is acquisition.build_massive_custom_bars_request_v1
+    assert services.validate_acquisition_generation_candidate_v1 is acquisition.validate_acquisition_generation_candidate_v1
+    assert services.write_acquisition_generation_candidate_v1 is acquisition.write_acquisition_generation_candidate_v1
+
+
+@pytest.mark.skipif(
+    os.environ.get("MARKETFLOW_ENABLE_LIVE_ACQUISITION_GENERATION") != "1"
+    or not (os.environ.get("MASSIVE_API_KEY") or os.environ.get("POLYGON_API_KEY")),
+    reason="live acquisition generation is explicitly gated and requires an API key",
+)
+def test_optional_live_smoke_is_not_part_of_default_suite():
+    pytest.skip("manual live acquisition generation is intentionally not executed by default")

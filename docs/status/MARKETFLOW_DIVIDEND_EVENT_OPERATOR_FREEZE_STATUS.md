@@ -151,6 +151,10 @@ This ceremony does not:
 
 ## Next Roadmap Step
 
+Next roadmap step started:
+
+`Full 2022-2025 Acquisition Generation Candidate v1`
+
 1. Full 2022-2025 acquisition generation.
 2. Acquisition-generation freeze.
 3. SWING canonical dataset and registry approval.
