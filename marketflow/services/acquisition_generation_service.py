@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from copy import deepcopy
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -12,15 +13,23 @@ from zoneinfo import ZoneInfo
 
 from marketflow.historical_data import provider_response
 from marketflow.historical_data.artifacts import canonical_json_bytes, semantic_digest, sha256_bytes
+from marketflow.services import acquisition_provider_adapter_service as acquisition_adapter
 from marketflow.services import dividend_event_operator_freeze_service as dividend_freeze
 from marketflow.services import exchange_calendar_evidence_service as calendar_service
 
 
 ARTIFACT_KIND_ACQUISITION_GENERATION_CANDIDATE = "ACQUISITION_GENERATION_CANDIDATE"
+ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE = "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE"
 SCHEMA_VERSION_ACQUISITION_GENERATION_CANDIDATE_V1 = "acquisition_generation_candidate_v1"
+SCHEMA_VERSION_ACQUISITION_MONTHLY_LIVE_SMOKE_V1 = "acquisition_monthly_live_smoke_candidate_v1"
 ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW = "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
 ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION = "ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION"
 ACQUISITION_GENERATION_FROZEN = "ACQUISITION_GENERATION_FROZEN"
+ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW = "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
+ACQUISITION_MONTHLY_LIVE_SMOKE_RECONCILIATION_MISMATCH = "ACQUISITION_MONTHLY_LIVE_SMOKE_RECONCILIATION_MISMATCH"
+LIVE_ACQUISITION_SMOKE_BLOCKED_MISSING_API_KEY = "LIVE_ACQUISITION_SMOKE_BLOCKED_MISSING_API_KEY"
+LIVE_ACQUISITION_SMOKE_BLOCKED_GATE_NOT_ENABLED = "LIVE_ACQUISITION_SMOKE_BLOCKED_GATE_NOT_ENABLED"
+LIVE_ACQUISITION_SMOKE_PROVIDER_ERROR = "LIVE_ACQUISITION_SMOKE_PROVIDER_ERROR"
 MARKETFLOW_ENABLE_LIVE_ACQUISITION_GENERATION = "MARKETFLOW_ENABLE_LIVE_ACQUISITION_GENERATION"
 
 PROVIDER_NAME_MASSIVE = "Massive.com"
@@ -513,6 +522,272 @@ def acquisition_generation_candidate_semantic_digest(candidate: dict[str, Any]) 
     return semantic_digest(_candidate_digest_payload(candidate))
 
 
+def _monthly_smoke_digest_payload(smoke: dict[str, Any]) -> dict[str, Any]:
+    payload = deepcopy(smoke)
+    payload.pop("acquisition_smoke_receipt_digest", None)
+    payload.pop("acquisition_monthly_smoke_candidate_digest", None)
+    return payload
+
+
+def acquisition_monthly_smoke_candidate_digest_v1(smoke: dict[str, Any]) -> str:
+    return semantic_digest(_monthly_smoke_digest_payload(smoke))
+
+
+def _smoke_receipt_payload(smoke: dict[str, Any]) -> dict[str, Any]:
+    return {
+        "artifact_kind": smoke["artifact_kind"],
+        "candidate_status": smoke["candidate_status"],
+        "provider_request_mode": smoke.get("provider_request_mode"),
+        "provider_response_status": smoke.get("provider_response_status"),
+        "provider_raw_response_digest": smoke.get("provider_raw_response_digest"),
+        "normalized_source_rows_digest": smoke.get("normalized_source_rows_digest"),
+        "monthly_reconciliation_digest": smoke.get("monthly_reconciliation_digest"),
+        "normalized_source_row_count": smoke.get("normalized_source_row_count"),
+        "rth_row_count": smoke.get("rth_row_count"),
+        "extended_hours_row_count": smoke.get("extended_hours_row_count"),
+        "rth_reconciliation_status": smoke.get("rth_reconciliation_status"),
+        "accepted_2025_01_cross_check_passed": smoke.get("accepted_2025_01_cross_check_passed"),
+    }
+
+
+def _month_chunk_for_smoke(*, ticker: str, month: str) -> dict[str, Any]:
+    if ticker.strip().upper() != FIXED_IDENTITY_SEGMENT["ticker"]:
+        raise AcquisitionGenerationError("ticker must match fixed identity segment")
+    if month != ACCEPTED_MONTHLY_SOURCE_CROSS_CHECK["month"]:
+        raise AcquisitionGenerationError("monthly live smoke is fixed to 2025-01")
+    start_date, end_date = _month_bounds(month, range_start=f"{month}-01", range_end=f"{month}-31")
+    request = build_massive_custom_bars_request_v1(ticker=ticker, start_date=start_date, end_date=end_date)
+    return {
+        "chunk_id": f"{ticker.strip().upper()}-{month}",
+        "chunk_ordinal": 1,
+        "month": month,
+        "effective_start_date": start_date,
+        "effective_end_date": end_date,
+        "request": request,
+        "request_semantic_digest": request["request_semantic_digest"],
+    }
+
+
+def _blocked_monthly_smoke(
+    *,
+    status: str,
+    ticker: str,
+    month: str,
+    request_timestamp_utc: str | None,
+) -> dict[str, Any]:
+    smoke = {
+        "artifact_kind": ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE,
+        "schema_version": SCHEMA_VERSION_ACQUISITION_MONTHLY_LIVE_SMOKE_V1,
+        "candidate_status": status,
+        "ticker": ticker.strip().upper(),
+        "month": month,
+        "range_start": f"{month}-01",
+        "range_end": f"{month}-31",
+        "created_offline": True,
+        "provider_requests_made": False,
+        "provider_response_injected": False,
+        "provider_request_mode": None,
+        "provider_request_timestamp_utc": request_timestamp_utc,
+        "provider_response_status": None,
+        "provider_raw_row_count": None,
+        "provider_raw_response_digest": None,
+        "provider_raw_body_sha256": None,
+        "normalized_source_row_count": None,
+        "rth_row_count": None,
+        "extended_hours_row_count": None,
+        "expected_rth_rows": ACCEPTED_MONTHLY_SOURCE_CROSS_CHECK["expected_rth_rows"],
+        "validated_rth_rows": None,
+        "rth_reconciliation_status": None,
+        "full_ordinary_sessions": None,
+        "incomplete_ordinary_sessions": None,
+        "swing_rth_half_session_195m_bars": None,
+        "position_swing_rth_full_session_1d_bars": None,
+        "normalized_source_rows_digest": None,
+        "monthly_reconciliation_digest": None,
+        "accepted_2025_01_cross_check": deepcopy(ACCEPTED_MONTHLY_SOURCE_CROSS_CHECK),
+        "accepted_2025_01_cross_check_passed": False,
+        "normalized_source_rows": [],
+        "monthly_reconciliation": [],
+        "request_metadata": None,
+        "identity_segment": deepcopy(FIXED_IDENTITY_SEGMENT),
+        "acquisition_contract": deepcopy(FIXED_ACQUISITION_CONTRACT),
+        "authority_bindings": _authority_bindings(),
+        "authority_boundary": _authority_boundary(),
+        "identity_segment_frozen": True,
+        "calendar_operator_frozen": True,
+        "split_event_audit_frozen": True,
+        "dividend_event_audit_frozen": True,
+        "identity_segment_frozen_digest": EXPECTED_IDENTITY_SEGMENT_FROZEN_DIGEST,
+        "exchange_calendar_frozen_digest": EXPECTED_EXCHANGE_CALENDAR_FROZEN_DIGEST,
+        "schedule_semantic_digest": EXPECTED_SCHEDULE_SEMANTIC_DIGEST,
+        "split_event_audit_frozen_digest": EXPECTED_SPLIT_EVENT_AUDIT_FROZEN_DIGEST,
+        "dividend_event_audit_frozen_digest": EXPECTED_DIVIDEND_EVENT_AUDIT_FROZEN_DIGEST,
+        "acquisition_contract_digest": EXPECTED_ACQUISITION_CONTRACT_DIGEST,
+        "in_range_dividends_found": True,
+        "in_range_dividend_count": 16,
+        "in_range_dividend_implication": EXPECTED_IN_RANGE_DIVIDEND_IMPLICATION,
+        "acquisition_generation_freeze": False,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "strategy_runtime_migration": False,
+        "automatic_stitching": False,
+        "predictive_usefulness": PREDICTIVE_USEFULNESS_NOT_ACCEPTED,
+        "profitability": PROFITABILITY_NOT_ACCEPTED,
+        "api_key_stored": False,
+        "raw_provider_payload_stored": False,
+        "generated_bars_stored": False,
+        "next_required_task": "Full 2022-2025 live acquisition generation candidate, after operator review of monthly smoke.",
+    }
+    smoke["acquisition_smoke_receipt_digest"] = semantic_digest(_smoke_receipt_payload(smoke))
+    smoke["acquisition_monthly_smoke_candidate_digest"] = acquisition_monthly_smoke_candidate_digest_v1(smoke)
+    return smoke
+
+
+def _api_key_from_environment() -> str | None:
+    return os.environ.get("MASSIVE_API_KEY") or os.environ.get("POLYGON_API_KEY")
+
+
+def _january_cross_check_passed(summary: dict[str, Any]) -> bool:
+    expected = ACCEPTED_MONTHLY_SOURCE_CROSS_CHECK
+    return (
+        summary.get("month") == expected["month"]
+        and summary.get("normalized_source_rows") == expected["normalized_source_rows"]
+        and summary.get("extended_hours_rows") == expected["extended_hours_rows"]
+        and summary.get("expected_rth_rows") == expected["expected_rth_rows"]
+        and summary.get("validated_rth_rows") == expected["validated_rth_rows"]
+        and summary.get("rth_reconciliation_status") == expected["rth_reconciliation"]
+        and summary.get("full_ordinary_sessions") == expected["full_ordinary_sessions"]
+        and summary.get("incomplete_ordinary_sessions") == expected["incomplete_ordinary_sessions"]
+        and summary.get("swing_rth_half_session_195m_bars") == expected["swing_rth_half_session_195m_bars"]
+        and summary.get("position_swing_rth_full_session_1d_bars") == expected["position_swing_rth_full_session_1d_bars"]
+    )
+
+
+def build_acquisition_generation_monthly_live_smoke_v1(
+    *,
+    ticker: str = "AAPL",
+    month: str = "2025-01",
+    api_key: str | None = None,
+    transport: Callable[[Mapping[str, Any]], Any] | None = None,
+    request_timestamp_utc: str | None = None,
+) -> dict[str, Any]:
+    """Build one-month custom-bars smoke evidence without promoting acquisition authority."""
+    ticker_text = ticker.strip().upper()
+    timestamp = request_timestamp_utc or datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    if transport is None and os.environ.get(MARKETFLOW_ENABLE_LIVE_ACQUISITION_GENERATION) != "1":
+        return _blocked_monthly_smoke(
+            status=LIVE_ACQUISITION_SMOKE_BLOCKED_GATE_NOT_ENABLED,
+            ticker=ticker_text,
+            month=month,
+            request_timestamp_utc=timestamp,
+        )
+    key = api_key or _api_key_from_environment()
+    if not key:
+        return _blocked_monthly_smoke(
+            status=LIVE_ACQUISITION_SMOKE_BLOCKED_MISSING_API_KEY,
+            ticker=ticker_text,
+            month=month,
+            request_timestamp_utc=timestamp,
+        )
+    chunk = _month_chunk_for_smoke(ticker=ticker_text, month=month)
+    try:
+        raw = acquisition_adapter.fetch_massive_custom_bars_live_v1(
+            ticker=ticker_text,
+            start_date=chunk["effective_start_date"],
+            end_date=chunk["effective_end_date"],
+            api_key=key,
+            transport=transport,
+            request_timestamp_utc=timestamp,
+        )
+        normalized = normalize_provider_response_rows_v1(chunk=chunk, provider_response_data=raw["provider_response_body"])
+        normalized_rows = normalized["normalized_rows"]
+        classified_rows = classify_normalized_source_rows_v1(normalized_rows)
+        monthly_reconciliation = build_monthly_reconciliation_v1(classified_rows, chunks=[chunk])
+        january_summary = monthly_reconciliation[0]
+        cross_check_passed = _january_cross_check_passed(january_summary)
+        candidate_status = (
+            ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW
+            if cross_check_passed
+            else ACQUISITION_MONTHLY_LIVE_SMOKE_RECONCILIATION_MISMATCH
+        )
+        normalized_digest = normalized_source_rows_digest_v1(normalized_rows)
+        monthly_digest = monthly_reconciliation_digest_v1(monthly_reconciliation)
+        smoke = {
+            "artifact_kind": ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE,
+            "schema_version": SCHEMA_VERSION_ACQUISITION_MONTHLY_LIVE_SMOKE_V1,
+            "candidate_status": candidate_status,
+            "ticker": ticker_text,
+            "month": month,
+            "range_start": chunk["effective_start_date"],
+            "range_end": chunk["effective_end_date"],
+            "created_offline": transport is not None,
+            "provider_requests_made": raw["provider_requests_made"],
+            "provider_response_injected": raw["provider_response_injected"],
+            "provider_request_mode": raw["provider_request_mode"],
+            "provider_request_timestamp_utc": timestamp,
+            "provider_response_status": raw["provider_response_status"],
+            "provider_raw_row_count": raw["provider_raw_response_row_count"],
+            "provider_raw_response_digest": raw["provider_raw_response_digest"],
+            "provider_raw_body_sha256": raw["provider_raw_body_sha256"],
+            "normalized_source_row_count": len(normalized_rows),
+            "rth_row_count": january_summary["rth_rows"],
+            "extended_hours_row_count": january_summary["extended_hours_rows"],
+            "expected_rth_rows": january_summary["expected_rth_rows"],
+            "validated_rth_rows": january_summary["validated_rth_rows"],
+            "rth_reconciliation_status": january_summary["rth_reconciliation_status"],
+            "full_ordinary_sessions": january_summary["full_ordinary_sessions"],
+            "incomplete_ordinary_sessions": january_summary["incomplete_ordinary_sessions"],
+            "swing_rth_half_session_195m_bars": january_summary["swing_rth_half_session_195m_bars"],
+            "position_swing_rth_full_session_1d_bars": january_summary["position_swing_rth_full_session_1d_bars"],
+            "normalized_source_rows_digest": normalized_digest,
+            "monthly_reconciliation_digest": monthly_digest,
+            "accepted_2025_01_cross_check": deepcopy(ACCEPTED_MONTHLY_SOURCE_CROSS_CHECK),
+            "accepted_2025_01_cross_check_passed": cross_check_passed,
+            "normalized_source_rows": normalized_rows,
+            "monthly_reconciliation": monthly_reconciliation,
+            "request_metadata": raw["request"],
+            "identity_segment": deepcopy(FIXED_IDENTITY_SEGMENT),
+            "acquisition_contract": deepcopy(FIXED_ACQUISITION_CONTRACT),
+            "authority_bindings": _authority_bindings(),
+            "authority_boundary": _authority_boundary(),
+            "identity_segment_frozen": True,
+            "calendar_operator_frozen": True,
+            "split_event_audit_frozen": True,
+            "dividend_event_audit_frozen": True,
+            "identity_segment_frozen_digest": EXPECTED_IDENTITY_SEGMENT_FROZEN_DIGEST,
+            "exchange_calendar_frozen_digest": EXPECTED_EXCHANGE_CALENDAR_FROZEN_DIGEST,
+            "schedule_semantic_digest": EXPECTED_SCHEDULE_SEMANTIC_DIGEST,
+            "split_event_audit_frozen_digest": EXPECTED_SPLIT_EVENT_AUDIT_FROZEN_DIGEST,
+            "dividend_event_audit_frozen_digest": EXPECTED_DIVIDEND_EVENT_AUDIT_FROZEN_DIGEST,
+            "acquisition_contract_digest": EXPECTED_ACQUISITION_CONTRACT_DIGEST,
+            "in_range_dividends_found": True,
+            "in_range_dividend_count": 16,
+            "in_range_dividend_implication": EXPECTED_IN_RANGE_DIVIDEND_IMPLICATION,
+            "acquisition_generation_freeze": False,
+            "canonical_eligibility": False,
+            "registry_eligibility": False,
+            "strategy_runtime_migration": False,
+            "automatic_stitching": False,
+            "predictive_usefulness": PREDICTIVE_USEFULNESS_NOT_ACCEPTED,
+            "profitability": PROFITABILITY_NOT_ACCEPTED,
+            "api_key_stored": False,
+            "raw_provider_payload_stored": False,
+            "generated_bars_stored": False,
+            "next_required_task": "Full 2022-2025 live acquisition generation candidate, after operator review of monthly smoke.",
+        }
+    except Exception as exc:
+        smoke = _blocked_monthly_smoke(
+            status=LIVE_ACQUISITION_SMOKE_PROVIDER_ERROR,
+            ticker=ticker_text,
+            month=month,
+            request_timestamp_utc=timestamp,
+        )
+        smoke["provider_response_status"] = type(exc).__name__
+    smoke["acquisition_smoke_receipt_digest"] = semantic_digest(_smoke_receipt_payload(smoke))
+    smoke["acquisition_monthly_smoke_candidate_digest"] = acquisition_monthly_smoke_candidate_digest_v1(smoke)
+    return smoke
+
+
 def _provider_records_from_responses(
     provider_responses: list[dict[str, Any]],
     *,
@@ -732,6 +1007,208 @@ def validate_acquisition_generation_candidate_v1(candidate: dict[str, Any]) -> d
         "canonical_eligibility": False,
         "registry_eligibility": False,
         "strategy_runtime_migration": False,
+    }
+
+
+def _expect_hex_digest(value: Any, field_name: str) -> None:
+    if not isinstance(value, str) or len(value) != 64 or any(char not in "0123456789abcdef" for char in value):
+        raise AcquisitionGenerationError(f"{field_name} missing")
+
+
+def validate_acquisition_generation_monthly_live_smoke_v1(smoke: dict[str, Any]) -> dict[str, Any]:
+    """Validate an acquisition monthly smoke candidate and reject premature authority claims."""
+    if not isinstance(smoke, dict):
+        raise AcquisitionGenerationError("acquisition monthly smoke must be a JSON object")
+    _expect(smoke.get("artifact_kind"), ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE, "artifact_kind")
+    _expect(smoke.get("schema_version"), SCHEMA_VERSION_ACQUISITION_MONTHLY_LIVE_SMOKE_V1, "schema_version")
+    if smoke.get("candidate_status") not in {
+        ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW,
+        LIVE_ACQUISITION_SMOKE_BLOCKED_MISSING_API_KEY,
+        LIVE_ACQUISITION_SMOKE_BLOCKED_GATE_NOT_ENABLED,
+        LIVE_ACQUISITION_SMOKE_PROVIDER_ERROR,
+    }:
+        raise AcquisitionGenerationError("candidate_status mismatch")
+    _expect(smoke.get("ticker"), ACCEPTED_MONTHLY_SOURCE_CROSS_CHECK["ticker"], "ticker")
+    _expect(smoke.get("month"), ACCEPTED_MONTHLY_SOURCE_CROSS_CHECK["month"], "month")
+    _expect_false(smoke.get("acquisition_generation_freeze"), "acquisition_generation_freeze")
+    for field in ("canonical_eligibility", "registry_eligibility", "strategy_runtime_migration", "automatic_stitching"):
+        _expect_false(smoke.get(field), field)
+    _expect(smoke.get("predictive_usefulness"), PREDICTIVE_USEFULNESS_NOT_ACCEPTED, "predictive_usefulness")
+    _expect(smoke.get("profitability"), PROFITABILITY_NOT_ACCEPTED, "profitability")
+    for field in ("identity_segment_frozen", "calendar_operator_frozen", "split_event_audit_frozen", "dividend_event_audit_frozen"):
+        _expect_true(smoke.get(field), field)
+    _expect(smoke.get("identity_segment_frozen_digest"), EXPECTED_IDENTITY_SEGMENT_FROZEN_DIGEST, "identity_segment_frozen_digest")
+    _expect(smoke.get("exchange_calendar_frozen_digest"), EXPECTED_EXCHANGE_CALENDAR_FROZEN_DIGEST, "exchange_calendar_frozen_digest")
+    _expect(smoke.get("schedule_semantic_digest"), EXPECTED_SCHEDULE_SEMANTIC_DIGEST, "schedule_semantic_digest")
+    _expect(smoke.get("split_event_audit_frozen_digest"), EXPECTED_SPLIT_EVENT_AUDIT_FROZEN_DIGEST, "split_event_audit_frozen_digest")
+    _expect(smoke.get("dividend_event_audit_frozen_digest"), EXPECTED_DIVIDEND_EVENT_AUDIT_FROZEN_DIGEST, "dividend_event_audit_frozen_digest")
+    _expect(smoke.get("acquisition_contract_digest"), EXPECTED_ACQUISITION_CONTRACT_DIGEST, "acquisition_contract_digest")
+    _expect(smoke.get("identity_segment"), FIXED_IDENTITY_SEGMENT, "identity_segment")
+    _expect(smoke.get("acquisition_contract"), FIXED_ACQUISITION_CONTRACT, "acquisition_contract")
+    _expect(smoke.get("authority_bindings"), _authority_bindings(), "authority_bindings")
+    _expect(smoke.get("authority_boundary"), _authority_boundary(), "authority_boundary")
+    _expect_true(smoke.get("in_range_dividends_found"), "in_range_dividends_found")
+    _expect(smoke.get("in_range_dividend_count"), 16, "in_range_dividend_count")
+    _expect(smoke.get("in_range_dividend_implication"), EXPECTED_IN_RANGE_DIVIDEND_IMPLICATION, "in_range_dividend_implication")
+    _expect_false(smoke.get("api_key_stored"), "api_key_stored")
+    _expect_false(smoke.get("raw_provider_payload_stored"), "raw_provider_payload_stored")
+    _expect_false(smoke.get("generated_bars_stored"), "generated_bars_stored")
+    if smoke.get("candidate_status") == ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW:
+        _expect_true(smoke.get("accepted_2025_01_cross_check_passed"), "accepted_2025_01_cross_check_passed")
+        _expect(smoke.get("normalized_source_row_count"), 1277, "normalized_source_row_count")
+        _expect(smoke.get("extended_hours_row_count"), 757, "extended_hours_row_count")
+        _expect(smoke.get("expected_rth_rows"), 520, "expected_rth_rows")
+        _expect(smoke.get("validated_rth_rows"), 520, "validated_rth_rows")
+        _expect(smoke.get("rth_row_count"), 520, "rth_row_count")
+        _expect(smoke.get("rth_reconciliation_status"), RTH_SOURCE_ROWS_RECONCILED, "rth_reconciliation_status")
+        _expect(smoke.get("full_ordinary_sessions"), 20, "full_ordinary_sessions")
+        _expect(smoke.get("incomplete_ordinary_sessions"), 0, "incomplete_ordinary_sessions")
+        _expect(smoke.get("swing_rth_half_session_195m_bars"), 40, "swing_rth_half_session_195m_bars")
+        _expect(smoke.get("position_swing_rth_full_session_1d_bars"), 20, "position_swing_rth_full_session_1d_bars")
+        for field in (
+            "provider_raw_response_digest",
+            "normalized_source_rows_digest",
+            "monthly_reconciliation_digest",
+            "acquisition_smoke_receipt_digest",
+            "acquisition_monthly_smoke_candidate_digest",
+        ):
+            _expect_hex_digest(smoke.get(field), field)
+        _expect(
+            smoke["normalized_source_rows_digest"],
+            normalized_source_rows_digest_v1(smoke.get("normalized_source_rows") or []),
+            "normalized_source_rows_digest",
+        )
+        _expect(
+            smoke["monthly_reconciliation_digest"],
+            monthly_reconciliation_digest_v1(smoke.get("monthly_reconciliation") or []),
+            "monthly_reconciliation_digest",
+        )
+    if smoke.get("accepted_2025_01_cross_check_passed") is False and smoke.get("provider_raw_response_digest"):
+        raise AcquisitionGenerationError("accepted_2025_01_cross_check_passed must be true for provider-bound smoke")
+    _expect(
+        smoke.get("acquisition_smoke_receipt_digest"),
+        semantic_digest(_smoke_receipt_payload(smoke)),
+        "acquisition_smoke_receipt_digest",
+    )
+    _expect(
+        smoke.get("acquisition_monthly_smoke_candidate_digest"),
+        acquisition_monthly_smoke_candidate_digest_v1(smoke),
+        "acquisition_monthly_smoke_candidate_digest",
+    )
+    return {
+        "status": "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE_VALID",
+        "artifact_kind": ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE,
+        "candidate_status": smoke["candidate_status"],
+        "provider_request_mode": smoke.get("provider_request_mode"),
+        "provider_response_status": smoke.get("provider_response_status"),
+        "provider_raw_row_count": smoke.get("provider_raw_row_count"),
+        "normalized_source_row_count": smoke.get("normalized_source_row_count"),
+        "rth_row_count": smoke.get("rth_row_count"),
+        "extended_hours_row_count": smoke.get("extended_hours_row_count"),
+        "expected_rth_rows": smoke.get("expected_rth_rows"),
+        "rth_reconciliation_status": smoke.get("rth_reconciliation_status"),
+        "full_ordinary_sessions": smoke.get("full_ordinary_sessions"),
+        "incomplete_ordinary_sessions": smoke.get("incomplete_ordinary_sessions"),
+        "provider_raw_response_digest": smoke.get("provider_raw_response_digest"),
+        "normalized_source_rows_digest": smoke.get("normalized_source_rows_digest"),
+        "monthly_reconciliation_digest": smoke.get("monthly_reconciliation_digest"),
+        "acquisition_smoke_receipt_digest": smoke.get("acquisition_smoke_receipt_digest"),
+        "acquisition_monthly_smoke_candidate_digest": smoke.get("acquisition_monthly_smoke_candidate_digest"),
+        "accepted_2025_01_cross_check_passed": smoke.get("accepted_2025_01_cross_check_passed"),
+        "api_key_stored": False,
+        "acquisition_generation_freeze": False,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "strategy_runtime_migration": False,
+    }
+
+
+def build_acquisition_generation_monthly_live_smoke_markdown_v1(smoke: dict[str, Any]) -> str:
+    """Render a sanitized monthly smoke status document without raw bars or credentials."""
+    endpoint = PROVIDER_ENDPOINT_MASSIVE_CUSTOM_BARS
+    request = smoke.get("request_metadata") if isinstance(smoke.get("request_metadata"), dict) else {}
+    boundary = smoke["authority_boundary"]
+    bindings = smoke["authority_bindings"]
+    lines = [
+        "# MarketFlow Acquisition Live Provider Smoke 2025-01 Status",
+        "",
+        "## Scope",
+        f"- Artifact kind: `{smoke['artifact_kind']}`",
+        f"- Candidate status: `{smoke['candidate_status']}`",
+        f"- Ticker: `{smoke['ticker']}`",
+        f"- Month: `{smoke['month']}`",
+        f"- Range: `{smoke['range_start']}` through `{smoke['range_end']}`",
+        f"- Endpoint used: `{endpoint}`",
+        f"- Endpoint path: `{request.get('provider_endpoint_path')}`",
+        f"- Request mode: `{smoke.get('provider_request_mode')}`",
+        f"- Provider response status: `{smoke.get('provider_response_status')}`",
+        "",
+        "## Reconciliation",
+        f"- Raw row count: `{smoke.get('provider_raw_row_count')}`",
+        f"- Normalized source row count: `{smoke.get('normalized_source_row_count')}`",
+        f"- RTH row count: `{smoke.get('rth_row_count')}`",
+        f"- Extended-hours row count: `{smoke.get('extended_hours_row_count')}`",
+        f"- Expected RTH row count: `{smoke.get('expected_rth_rows')}`",
+        f"- RTH reconciliation status: `{smoke.get('rth_reconciliation_status')}`",
+        f"- Full ordinary sessions: `{smoke.get('full_ordinary_sessions')}`",
+        f"- Incomplete ordinary sessions: `{smoke.get('incomplete_ordinary_sessions')}`",
+        f"- SWING half-session 195m bars: `{smoke.get('swing_rth_half_session_195m_bars')}`",
+        f"- POSITION_SWING full-session 1d bars: `{smoke.get('position_swing_rth_full_session_1d_bars')}`",
+        f"- Accepted 2025-01 cross-check passed: `{smoke.get('accepted_2025_01_cross_check_passed')}`",
+        "",
+        "## Digests",
+        f"- Provider raw response digest: `{smoke.get('provider_raw_response_digest')}`",
+        f"- Provider raw body sha256: `{smoke.get('provider_raw_body_sha256')}`",
+        f"- Normalized rows digest: `{smoke.get('normalized_source_rows_digest')}`",
+        f"- Monthly reconciliation digest: `{smoke.get('monthly_reconciliation_digest')}`",
+        f"- Acquisition smoke receipt digest: `{smoke.get('acquisition_smoke_receipt_digest')}`",
+        f"- Acquisition monthly smoke candidate digest: `{smoke.get('acquisition_monthly_smoke_candidate_digest')}`",
+        "",
+        "## Authority Bindings",
+        f"- Identity frozen digest: `{bindings['identity_segment_frozen_digest']}`",
+        f"- Calendar frozen digest: `{bindings['exchange_calendar_frozen_digest']}`",
+        f"- Schedule digest: `{bindings['schedule_semantic_digest']}`",
+        f"- Split-event audit frozen digest: `{bindings['split_event_audit_frozen_digest']}`",
+        f"- Dividend-event audit frozen digest: `{bindings['dividend_event_audit_frozen_digest']}`",
+        f"- Acquisition contract digest: `{bindings['acquisition_contract_digest']}`",
+        "",
+        "## Dividend Implication",
+        f"- In-range dividends found: `{smoke['in_range_dividends_found']}`",
+        f"- In-range dividend count: `{smoke['in_range_dividend_count']}`",
+        f"- Implication: `{smoke['in_range_dividend_implication']}`",
+        "",
+        "## Authority Boundary",
+        f"- acquisition_generation_freeze: `{boundary['acquisition_generation_freeze']}`",
+        f"- canonical_eligibility: `{boundary['canonical_eligibility']}`",
+        f"- registry_eligibility: `{boundary['registry_eligibility']}`",
+        f"- strategy_runtime_migration: `{boundary['strategy_runtime_migration']}`",
+        f"- automatic_stitching: `{boundary['automatic_stitching']}`",
+        f"- predictive_usefulness: `{boundary['predictive_usefulness']}`",
+        f"- profitability: `{boundary['profitability']}`",
+        "",
+        "## Safety Confirmations",
+        f"- API key stored: `{smoke['api_key_stored']}`",
+        f"- Raw provider payload stored in this document: `{False}`",
+        f"- Full generated bars stored in this document: `{False}`",
+        "- No acquisition-generation freeze was created.",
+        "- No canonical, registry, runtime, predictive, or profitability approval occurred.",
+        "",
+        "## Next Task Recommendation",
+        f"- {smoke['next_required_task']}",
+        "",
+    ]
+    return "\n".join(lines)
+
+
+def write_acquisition_generation_monthly_live_smoke_status_v1(path: str | Path, *, smoke: dict[str, Any]) -> dict[str, Any]:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    text = build_acquisition_generation_monthly_live_smoke_markdown_v1(smoke)
+    output_path.write_text(text, encoding="utf-8")
+    return {
+        "path": str(output_path),
+        "filename": output_path.name,
+        "status_document_digest": sha256_bytes(text.encode("utf-8")),
     }
 
 

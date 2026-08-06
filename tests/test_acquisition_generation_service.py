@@ -12,6 +12,7 @@ from zoneinfo import ZoneInfo
 import pytest
 
 from marketflow.services import acquisition_generation_service as acquisition
+from marketflow.services import acquisition_provider_adapter_service as acquisition_adapter
 
 
 REPO_ROOT = Path(__file__).resolve().parents[1]
@@ -101,8 +102,25 @@ def _candidate() -> dict:
     return acquisition.build_acquisition_generation_candidate_v1(provider_responses=[deepcopy(item) for item in _provider_responses()])
 
 
+def _monthly_smoke(api_key: str = "fake-live-smoke-key") -> dict:
+    def transport(request: dict) -> bytes:
+        assert request["provider_endpoint_path"] == "/v2/aggs/ticker/AAPL/range/15/minute/2025-01-01/2025-01-31"
+        return _body(_january_2025_timestamps())
+
+    return acquisition.build_acquisition_generation_monthly_live_smoke_v1(
+        api_key=api_key,
+        transport=transport,
+        request_timestamp_utc="2026-08-06T00:00:00Z",
+    )
+
+
 def _recompute_digest(candidate: dict) -> None:
     candidate["acquisition_generation_candidate_semantic_digest"] = acquisition.acquisition_generation_candidate_semantic_digest(candidate)
+
+
+def _recompute_smoke_digest(smoke: dict) -> None:
+    smoke["acquisition_smoke_receipt_digest"] = acquisition.semantic_digest(acquisition._smoke_receipt_payload(smoke))
+    smoke["acquisition_monthly_smoke_candidate_digest"] = acquisition.acquisition_monthly_smoke_candidate_digest_v1(smoke)
 
 
 def test_request_metadata_builds_without_api_key_leakage():
@@ -444,12 +462,151 @@ def test_service_exports_acquisition_generation_functions_and_constants():
     import marketflow.services as services
 
     assert services.ARTIFACT_KIND_ACQUISITION_GENERATION_CANDIDATE == "ACQUISITION_GENERATION_CANDIDATE"
+    assert services.ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE == "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE"
     assert services.ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
+    assert services.ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
     assert services.build_acquisition_generation_candidate_v1 is acquisition.build_acquisition_generation_candidate_v1
+    assert services.build_acquisition_generation_monthly_live_smoke_v1 is acquisition.build_acquisition_generation_monthly_live_smoke_v1
     assert services.build_acquisition_month_chunks_v1 is acquisition.build_acquisition_month_chunks_v1
     assert services.build_massive_custom_bars_request_v1 is acquisition.build_massive_custom_bars_request_v1
+    assert services.build_massive_custom_bars_live_request_v1 is acquisition_adapter.build_massive_custom_bars_live_request_v1
     assert services.validate_acquisition_generation_candidate_v1 is acquisition.validate_acquisition_generation_candidate_v1
+    assert services.validate_acquisition_generation_monthly_live_smoke_v1 is acquisition.validate_acquisition_generation_monthly_live_smoke_v1
     assert services.write_acquisition_generation_candidate_v1 is acquisition.write_acquisition_generation_candidate_v1
+    assert services.write_acquisition_generation_monthly_live_smoke_status_v1 is acquisition.write_acquisition_generation_monthly_live_smoke_status_v1
+
+
+def test_direct_live_request_builder_sanitizes_api_key():
+    request = acquisition_adapter.build_massive_custom_bars_live_request_v1(
+        ticker="AAPL",
+        start_date="2025-01-01",
+        end_date="2025-01-31",
+        api_key="do-not-store-this-key",
+        request_timestamp_utc="2026-08-06T00:00:00Z",
+    )
+
+    assert request["provider_endpoint"] == "/v2/aggs/ticker/{stocksTicker}/range/{multiplier}/{timespan}/{from}/{to}"
+    assert request["provider_endpoint_path"] == "/v2/aggs/ticker/AAPL/range/15/minute/2025-01-01/2025-01-31"
+    assert request["sanitized_url"] == "https://api.massive.com/v2/aggs/ticker/AAPL/range/15/minute/2025-01-01/2025-01-31?adjusted=true&sort=asc&limit=50000"
+    assert request["headers"]["Authorization"] == "<redacted>"
+    assert request["api_key_stored"] is False
+    assert "do-not-store-this-key" not in repr(request)
+    assert "apiKey" not in request["sanitized_url"]
+    assert "api_key" not in request["sanitized_url"]
+
+
+def test_direct_live_smoke_path_is_gated_and_fails_safely(monkeypatch: pytest.MonkeyPatch):
+    monkeypatch.delenv("MARKETFLOW_ENABLE_LIVE_ACQUISITION_GENERATION", raising=False)
+    monkeypatch.delenv("MASSIVE_API_KEY", raising=False)
+    monkeypatch.delenv("POLYGON_API_KEY", raising=False)
+
+    gate_blocked = acquisition.build_acquisition_generation_monthly_live_smoke_v1(request_timestamp_utc="2026-08-06T00:00:00Z")
+    assert gate_blocked["candidate_status"] == "LIVE_ACQUISITION_SMOKE_BLOCKED_GATE_NOT_ENABLED"
+    assert gate_blocked["provider_requests_made"] is False
+    assert gate_blocked["acquisition_generation_freeze"] is False
+
+    monkeypatch.setenv("MARKETFLOW_ENABLE_LIVE_ACQUISITION_GENERATION", "1")
+    key_blocked = acquisition.build_acquisition_generation_monthly_live_smoke_v1(request_timestamp_utc="2026-08-06T00:00:00Z")
+    assert key_blocked["candidate_status"] == "LIVE_ACQUISITION_SMOKE_BLOCKED_MISSING_API_KEY"
+    assert key_blocked["provider_requests_made"] is False
+    assert key_blocked["canonical_eligibility"] is False
+
+
+def test_fake_monthly_live_smoke_result_normalizes_rows_deterministically():
+    smoke = _monthly_smoke()
+
+    assert smoke["artifact_kind"] == "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE"
+    assert smoke["candidate_status"] == "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
+    assert smoke["provider_request_mode"] == "FAKE_TRANSPORT_PROVIDER_RESPONSE_INJECTION"
+    assert smoke["provider_requests_made"] is False
+    assert smoke["provider_response_injected"] is True
+    assert smoke["provider_raw_row_count"] == 1277
+    assert smoke["normalized_source_row_count"] == 1277
+    assert smoke["normalized_source_rows"][0]["ticker"] == "AAPL"
+    assert smoke["normalized_source_rows"][0]["timestamp_source_timezone"] == "America/New_York"
+
+
+def test_fake_monthly_live_smoke_digests_are_deterministic():
+    first = _monthly_smoke()
+    second = _monthly_smoke()
+
+    assert first["provider_raw_response_digest"] == second["provider_raw_response_digest"]
+    assert first["normalized_source_rows_digest"] == second["normalized_source_rows_digest"]
+    assert first["monthly_reconciliation_digest"] == second["monthly_reconciliation_digest"]
+    assert first["acquisition_smoke_receipt_digest"] == second["acquisition_smoke_receipt_digest"]
+    assert first["acquisition_monthly_smoke_candidate_digest"] == second["acquisition_monthly_smoke_candidate_digest"]
+    assert first["normalized_source_rows_digest"] == acquisition.normalized_source_rows_digest_v1(first["normalized_source_rows"])
+    assert first["monthly_reconciliation_digest"] == acquisition.monthly_reconciliation_digest_v1(first["monthly_reconciliation"])
+
+
+def test_fake_monthly_live_smoke_validates_accepted_2025_01_cross_check():
+    smoke = _monthly_smoke()
+    validation = acquisition.validate_acquisition_generation_monthly_live_smoke_v1(smoke)
+
+    assert validation["status"] == "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE_VALID"
+    assert validation["normalized_source_row_count"] == 1277
+    assert validation["extended_hours_row_count"] == 757
+    assert validation["expected_rth_rows"] == 520
+    assert validation["rth_row_count"] == 520
+    assert validation["rth_reconciliation_status"] == "RTH_SOURCE_ROWS_RECONCILED"
+    assert validation["full_ordinary_sessions"] == 20
+    assert validation["incomplete_ordinary_sessions"] == 0
+    assert validation["accepted_2025_01_cross_check_passed"] is True
+
+
+def test_monthly_live_smoke_validator_rejects_accepted_cross_check_mismatch():
+    smoke = _monthly_smoke()
+    smoke["validated_rth_rows"] = 519
+    _recompute_smoke_digest(smoke)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match="validated_rth_rows"):
+        acquisition.validate_acquisition_generation_monthly_live_smoke_v1(smoke)
+
+
+def test_monthly_live_smoke_validator_rejects_mismatch_status_with_provider_digest():
+    smoke = _monthly_smoke()
+    smoke["candidate_status"] = "ACQUISITION_MONTHLY_LIVE_SMOKE_RECONCILIATION_MISMATCH"
+    smoke["accepted_2025_01_cross_check_passed"] = False
+    _recompute_smoke_digest(smoke)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match="candidate_status"):
+        acquisition.validate_acquisition_generation_monthly_live_smoke_v1(smoke)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "acquisition_generation_freeze",
+        "canonical_eligibility",
+        "registry_eligibility",
+        "strategy_runtime_migration",
+        "automatic_stitching",
+    ],
+)
+def test_monthly_live_smoke_validator_rejects_disallowed_authority_flags_true(field: str):
+    smoke = _monthly_smoke()
+    smoke[field] = True
+    smoke["authority_boundary"][field] = True
+    _recompute_smoke_digest(smoke)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match=field):
+        acquisition.validate_acquisition_generation_monthly_live_smoke_v1(smoke)
+
+
+def test_monthly_live_smoke_status_doc_contains_no_api_key_or_raw_payload(tmp_path: Path):
+    secret = "secret-live-smoke-value"
+    smoke = _monthly_smoke(api_key=secret)
+    text = acquisition.build_acquisition_generation_monthly_live_smoke_markdown_v1(smoke)
+    result = acquisition.write_acquisition_generation_monthly_live_smoke_status_v1(tmp_path / "smoke.md", smoke=smoke)
+    written = Path(result["path"]).read_text(encoding="utf-8")
+
+    assert secret not in repr(smoke)
+    assert secret not in text
+    assert secret not in written
+    assert '"results"' not in text
+    assert "Raw provider payload stored in this document: `False`" in text
+    assert "No acquisition-generation freeze was created." in text
+    assert "No canonical, registry, runtime, predictive, or profitability approval occurred." in text
 
 
 @pytest.mark.skipif(
@@ -458,4 +615,7 @@ def test_service_exports_acquisition_generation_functions_and_constants():
     reason="live acquisition generation is explicitly gated and requires an API key",
 )
 def test_optional_live_smoke_is_not_part_of_default_suite():
-    pytest.skip("manual live acquisition generation is intentionally not executed by default")
+    smoke = acquisition.build_acquisition_generation_monthly_live_smoke_v1(request_timestamp_utc="2026-08-06T00:00:00Z")
+    if smoke["candidate_status"] != "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW":
+        pytest.fail(f"manual live acquisition smoke did not pass: {smoke['candidate_status']}")
+    acquisition.validate_acquisition_generation_monthly_live_smoke_v1(smoke)
