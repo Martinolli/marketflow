@@ -14,6 +14,15 @@
 - Normalized source rows digest bound: `0844164e1056732b0a887f19e569312cebab51e2e9c3db787415b4f56d533bdc`
 - Source rows: `63804 total / 25970 RTH / 37834 extended-hours / 0 unknown`
 
+## Source Rows Materialization Follow-Up
+- Source rows materialization task created/completed: `True`
+- Materialization artifact kind: `ACQUISITION_FROZEN_SOURCE_ROWS_MATERIALIZATION`
+- Materialization status: `ACQUISITION_FROZEN_SOURCE_ROWS_MATERIALIZED`
+- Materialized rows digest: `0844164e1056732b0a887f19e569312cebab51e2e9c3db787415b4f56d533bdc`
+- Materialized rows path: `.marketflow/frozen_acquisition_sources/AAPL/2022_2025/AAPL_15m_adjusted_2022_2025_normalized_source_rows.csv`
+- Materialization manifest path: `.marketflow/frozen_acquisition_sources/AAPL/2022_2025/AAPL_15m_adjusted_2022_2025_source_rows_manifest.json`
+- SWING candidate should be rerun using verified materialized frozen source rows.
+
 ## Frozen Acquisition Binding
 - Acquisition frozen digest: `df3e1d1278b0d0738effbb0ed64e6de223426402852ed949cab30cf4379b0118`
 - Acquisition candidate digest: `5b1f7507c4549b0cd590737e37571cd0ff18f5710c5bfb853bd04aeec6b3f1cb`

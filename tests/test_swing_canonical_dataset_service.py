@@ -287,3 +287,11 @@ def test_blocked_candidate_records_missing_row_artifact():
     assert candidate["source_row_artifact_available"] is False
     assert candidate["source_row_digest_matched"] is False
     assert candidate["dataset_rows_digest"] is None
+
+
+def test_blocked_candidate_points_to_materialization_requirement_without_generating_bars():
+    candidate = swing.build_swing_canonical_dataset_candidate_from_local_artifact_v1("missing-materialization-root")
+
+    assert candidate["candidate_status"] == swing.SWING_CANONICAL_DATASET_REQUIRES_FROZEN_ACQUISITION_ROWS
+    assert "Persist frozen normalized acquisition source rows" in candidate["next_required_task"]
+    assert candidate["swing_bar_count"] == 0
