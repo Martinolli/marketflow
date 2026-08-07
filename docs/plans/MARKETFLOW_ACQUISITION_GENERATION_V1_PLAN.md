@@ -1,6 +1,6 @@
 # MarketFlow Acquisition Generation Candidate v1 Plan
 
-Status: LIVE GENERATION COMPLETED / TARGETED TRIAGE COMPLETED / OPERATOR REVIEW PACKAGE IMPLEMENTED / NO FREEZE
+Status: LIVE GENERATION COMPLETED / TARGETED TRIAGE COMPLETED / OPERATOR REVIEW PACKAGE COMPLETED / OPERATOR FREEZE CEREMONY IMPLEMENTED
 
 ## Purpose
 
@@ -197,6 +197,25 @@ The review package makes the candidate ready for human operator assessment,
 but it does not authorize software freeze, canonical eligibility, registry
 eligibility, or runtime migration.
 
+## Operator Freeze Ceremony
+
+Acquisition Generation Operator Freeze Ceremony v1 is implemented as a guarded
+offline ceremony:
+
+- artifact kind: `ACQUISITION_GENERATION_FROZEN`
+- freeze status: `ACQUISITION_GENERATION_FROZEN`
+- acquisition generation freeze: `true`
+- provider requests made in freeze: `false`
+- frozen status:
+  `docs/status/MARKETFLOW_ACQUISITION_GENERATION_OPERATOR_FREEZE_STATUS.md`
+
+Only the acquisition generation evidence is frozen. Canonical eligibility,
+registry eligibility, Strategy/runtime migration, automatic stitching,
+predictive usefulness, and profitability remain not approved.
+
+The next implementation step is a SWING canonical dataset candidate, followed
+by SWING/POSITION_SWING review and registry approval work.
+
 ## Dividend Implication
 
 The candidate preserves the frozen dividend-event implication:
@@ -215,10 +234,8 @@ This candidate does not:
 
 - refresh identity, calendar, split, dividend, Ticker Overview, or Ticker
   Events evidence
-- create `ACQUISITION_GENERATION_FROZEN`
 - approve canonical eligibility
 - approve registry eligibility
-- freeze acquisition generation
 - migrate Strategy/runtime logic
 - assert predictive usefulness
 - assert profitability

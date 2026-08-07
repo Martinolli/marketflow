@@ -92,8 +92,15 @@
 - Created offline: `True`
 - Provider requests made in review: `False`
 - API key stored: `False`
-- No acquisition-generation freeze was created.
+- No acquisition-generation freeze was created by this review package.
 - No canonical, registry, runtime, predictive, or profitability approval occurred.
+
+## Follow-On Acquisition Generation Freeze
+- Freeze artifact: `ACQUISITION_GENERATION_FROZEN`
+- Freeze status: `ACQUISITION_GENERATION_FROZEN`
+- Status document: `docs/status/MARKETFLOW_ACQUISITION_GENERATION_OPERATOR_FREEZE_STATUS.md`
+- The review package remains the source evidence for the freeze ceremony.
+- Canonical eligibility, registry eligibility, and Strategy/runtime migration remain future work.
 
 ## Digests
 - Chunk manifest digest: `8a4bf37f501fb7da5ea23e04d5ebe90da2cdfda1bf9e06e55e4c459be53fa374`
