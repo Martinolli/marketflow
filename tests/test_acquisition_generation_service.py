@@ -251,6 +251,52 @@ def _recompute_per_session_digest(diagnostics: dict) -> None:
     )
 
 
+def _targeted_session_timestamp_ms(*, open_utc: str, close_utc: str) -> list[int]:
+    cursor = datetime.fromisoformat(open_utc.replace("Z", "+00:00"))
+    close = datetime.fromisoformat(close_utc.replace("Z", "+00:00"))
+    timestamps: list[int] = []
+    while cursor < close:
+        timestamps.append(int(cursor.timestamp() * 1000))
+        cursor = cursor.replace(minute=cursor.minute + 15) if cursor.minute < 45 else cursor.replace(hour=cursor.hour + 1, minute=0)
+    return timestamps
+
+
+def _targeted_monthly_bodies(*, omit_first_target_bar: bool = False) -> dict[str, bytes]:
+    months = set(acquisition.DEFAULT_PER_SESSION_DIAGNOSTIC_TARGET_MONTHS)
+    schedule = acquisition.calendar_service.build_exchange_calendar_schedule_rows_v1()
+    bodies: dict[str, bytes] = {}
+    for month in sorted(months):
+        timestamps: list[int] = []
+        for session in schedule:
+            if session["session_date"].startswith(month):
+                timestamps.extend(
+                    _targeted_session_timestamp_ms(
+                        open_utc=session["market_open_utc"],
+                        close_utc=session["market_close_utc"],
+                    )
+                )
+        if omit_first_target_bar and month == "2022-11":
+            timestamps = timestamps[1:]
+        bodies[month] = _body(timestamps)
+    return bodies
+
+
+def _targeted_transport(monthly_bodies: dict[str, bytes]):
+    def transport(request: dict) -> bytes:
+        month = str(request["provider_query_start"])[:7]
+        return monthly_bodies[month]
+
+    return transport
+
+
+def _targeted_result(*, omit_first_target_bar: bool = False) -> dict:
+    return acquisition.build_acquisition_targeted_session_diagnostic_rerun_v1(
+        api_key="fake-targeted-session-key",
+        transport=_targeted_transport(_targeted_monthly_bodies(omit_first_target_bar=omit_first_target_bar)),
+        provider_request_timestamp_utc="2026-08-07T00:00:00Z",
+    )
+
+
 def test_request_metadata_builds_without_api_key_leakage():
     request = acquisition.build_massive_custom_bars_request_v1(ticker="AAPL", start_date="2022-01-01", end_date="2022-01-31", api_key="secret")
 
@@ -664,11 +710,14 @@ def test_service_exports_acquisition_generation_functions_and_constants():
         services.ARTIFACT_KIND_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS
         == "ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS"
     )
+    assert services.ARTIFACT_KIND_ACQUISITION_TARGETED_SESSION_DIAGNOSTIC_RERUN == "ACQUISITION_TARGETED_SESSION_DIAGNOSTIC_RERUN"
     assert services.ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
     assert services.ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE == "ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE"
     assert services.ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH == "ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH"
     assert services.ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY == "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY"
     assert services.ACQUISITION_PER_SESSION_DIAGNOSTICS_COMPLETE == "ACQUISITION_PER_SESSION_DIAGNOSTICS_COMPLETE"
+    assert services.ACQUISITION_TARGETED_SESSION_DIAGNOSTIC_RERUN_COMPLETE == "ACQUISITION_TARGETED_SESSION_DIAGNOSTIC_RERUN_COMPLETE"
+    assert services.ACQUISITION_OPERATOR_REVIEW_READY_AFTER_TRIAGE == "READY_AFTER_TRIAGE"
     assert services.LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED == "LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED"
     assert services.LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY == "LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY"
     assert services.ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
@@ -681,6 +730,11 @@ def test_service_exports_acquisition_generation_functions_and_constants():
         services.build_acquisition_per_session_reconciliation_diagnostics_v1
         is acquisition.build_acquisition_per_session_reconciliation_diagnostics_v1
     )
+    assert (
+        services.build_acquisition_targeted_session_diagnostic_rerun_v1
+        is acquisition.build_acquisition_targeted_session_diagnostic_rerun_v1
+    )
+    assert services.build_targeted_acquisition_month_chunks_v1 is acquisition.build_targeted_acquisition_month_chunks_v1
     assert services.build_per_session_reconciliation_rows_v1 is acquisition.build_per_session_reconciliation_rows_v1
     assert services.build_acquisition_generation_monthly_live_smoke_v1 is acquisition.build_acquisition_generation_monthly_live_smoke_v1
     assert services.build_acquisition_month_chunks_v1 is acquisition.build_acquisition_month_chunks_v1
@@ -693,6 +747,10 @@ def test_service_exports_acquisition_generation_functions_and_constants():
         services.validate_acquisition_per_session_reconciliation_diagnostics_v1
         is acquisition.validate_acquisition_per_session_reconciliation_diagnostics_v1
     )
+    assert (
+        services.validate_acquisition_targeted_session_diagnostic_rerun_v1
+        is acquisition.validate_acquisition_targeted_session_diagnostic_rerun_v1
+    )
     assert services.write_acquisition_generation_candidate_v1 is acquisition.write_acquisition_generation_candidate_v1
     assert services.write_acquisition_generation_live_status_v1 is acquisition.write_acquisition_generation_live_status_v1
     assert services.write_acquisition_monthly_reconciliation_triage_status_v1 is acquisition.write_acquisition_monthly_reconciliation_triage_status_v1
@@ -700,7 +758,12 @@ def test_service_exports_acquisition_generation_functions_and_constants():
         services.write_acquisition_per_session_reconciliation_diagnostics_status_v1
         is acquisition.write_acquisition_per_session_reconciliation_diagnostics_status_v1
     )
+    assert (
+        services.write_acquisition_targeted_session_diagnostic_rerun_status_v1
+        is acquisition.write_acquisition_targeted_session_diagnostic_rerun_status_v1
+    )
     assert services.write_per_session_reconciliation_csv_v1 is acquisition.write_per_session_reconciliation_csv_v1
+    assert services.write_targeted_session_diagnostics_csv_v1 is acquisition.write_targeted_session_diagnostics_csv_v1
     assert services.write_acquisition_generation_monthly_live_smoke_status_v1 is acquisition.write_acquisition_generation_monthly_live_smoke_status_v1
     assert services.classify_monthly_reconciliation_issue_v1 is acquisition.classify_monthly_reconciliation_issue_v1
     assert services.classify_session_reconciliation_issue_v1 is acquisition.classify_session_reconciliation_issue_v1
@@ -1324,6 +1387,127 @@ def test_per_session_diagnostics_csv_writer_uses_compact_non_raw_columns(tmp_pat
     assert "close" not in header
     assert "volume" not in header
     assert "raw_row_digest" not in text
+
+
+def test_targeted_rerun_accepts_exactly_the_9_target_months():
+    chunks = acquisition.build_targeted_acquisition_month_chunks_v1()
+
+    assert [chunk["month"] for chunk in chunks] == acquisition.DEFAULT_PER_SESSION_DIAGNOSTIC_TARGET_MONTHS
+
+
+def test_targeted_rerun_rejects_non_target_months():
+    with pytest.raises(acquisition.AcquisitionGenerationError, match="exactly the 9 non-reconciled target months"):
+        acquisition.build_targeted_acquisition_month_chunks_v1(target_months=["2025-01"])
+
+
+def test_targeted_diagnostic_result_computes_chunk_count_9():
+    result = _targeted_result()
+
+    assert result["target_chunk_count_expected"] == 9
+    assert result["target_chunk_count_completed"] == 9
+    assert result["target_failed_chunk_count"] == 0
+    assert {record["month"] for record in result["targeted_chunk_records"]} == set(
+        acquisition.DEFAULT_PER_SESSION_DIAGNOSTIC_TARGET_MONTHS
+    )
+
+
+def test_targeted_per_session_diagnostics_digest_is_deterministic():
+    result = _targeted_result()
+
+    assert result["per_session_diagnostics_digest"] == acquisition.targeted_session_diagnostics_digest_v1(
+        result["targeted_per_session_diagnostics"]
+    )
+
+
+def test_targeted_diagnostic_receipt_digest_is_deterministic():
+    result = _targeted_result()
+
+    assert result["targeted_diagnostic_receipt_digest"] == acquisition.targeted_diagnostic_receipt_digest_v1(result)
+
+
+def test_targeted_status_doc_builder_includes_target_months_and_review_status(tmp_path: Path):
+    result = _targeted_result()
+    text = acquisition.build_acquisition_targeted_session_diagnostic_rerun_markdown_v1(result)
+    written = acquisition.write_acquisition_targeted_session_diagnostic_rerun_status_v1(
+        tmp_path / "targeted.md",
+        result=result,
+    )
+    status_text = Path(written["path"]).read_text(encoding="utf-8")
+
+    assert "Target months: `2022-11, 2023-07, 2023-11, 2024-07, 2024-11, 2024-12, 2025-07, 2025-11, 2025-12`" in text
+    assert "Acquisition operator review status: `READY_AFTER_TRIAGE`" in text
+    assert "Targeted diagnostic receipt digest:" in status_text
+
+
+def test_targeted_review_status_is_blocked_when_unresolved_session_issues_remain():
+    result = _targeted_result(omit_first_target_bar=True)
+
+    assert result["acquisition_operator_review_status"] == "BLOCKED_PENDING_RECONCILIATION_EXPLANATION"
+    assert result["all_9_monthly_mismatches_explained"] is False
+    assert result["non_reconciled_sessions"]
+
+
+def test_targeted_review_status_ready_when_all_target_sessions_are_explained_without_blockers():
+    result = _targeted_result()
+
+    assert result["acquisition_operator_review_status"] == "READY_AFTER_TRIAGE"
+    assert result["all_9_monthly_mismatches_explained"] is True
+    assert result["blocker_count"] == 0
+    assert result["non_reconciled_sessions"] == []
+
+
+def test_targeted_compact_session_diagnostics_do_not_include_ohlcv_or_raw_bar_fields(tmp_path: Path):
+    result = _targeted_result()
+    compact = result["targeted_per_session_diagnostics"][0]
+    forbidden = {"open", "high", "low", "close", "volume", "vwap", "transactions", "raw_row_digest"}
+
+    assert forbidden.isdisjoint(compact)
+    csv_result = acquisition.write_targeted_session_diagnostics_csv_v1(
+        tmp_path / "targeted_sessions.csv",
+        result["targeted_per_session_diagnostics"],
+    )
+    header = Path(csv_result["path"]).read_text(encoding="utf-8").splitlines()[0].split(",")
+    assert header == acquisition.TARGETED_SESSION_DIAGNOSTIC_CSV_COLUMNS
+    assert forbidden.isdisjoint(header)
+
+
+def test_targeted_result_and_status_doc_do_not_store_api_key(tmp_path: Path):
+    result = _targeted_result()
+    text = acquisition.build_acquisition_targeted_session_diagnostic_rerun_markdown_v1(result)
+
+    assert "fake-targeted-session-key" not in repr(result)
+    assert "fake-targeted-session-key" not in text
+    assert result["api_key_stored"] is False
+
+
+def test_targeted_rerun_keeps_acquisition_freeze_false():
+    result = _targeted_result()
+
+    assert result["acquisition_generation_freeze"] is False
+    assert result["authority_boundary"]["acquisition_generation_freeze"] is False
+
+
+def test_targeted_rerun_keeps_canonical_registry_and_runtime_false():
+    result = _targeted_result()
+
+    assert result["canonical_eligibility"] is False
+    assert result["registry_eligibility"] is False
+    assert result["strategy_runtime_migration"] is False
+    assert result["automatic_stitching"] is False
+
+
+@pytest.mark.skipif(
+    os.environ.get("MARKETFLOW_ENABLE_LIVE_ACQUISITION_GENERATION") != "1"
+    or not (os.environ.get("MASSIVE_API_KEY") or os.environ.get("POLYGON_API_KEY")),
+    reason="live targeted session diagnostics are explicitly gated and require an API key",
+)
+def test_optional_live_targeted_session_diagnostics_is_not_part_of_default_suite():
+    result = acquisition.build_acquisition_targeted_session_diagnostic_rerun_v1(
+        provider_request_timestamp_utc="2026-08-07T00:00:00Z"
+    )
+
+    assert result["target_chunk_count_expected"] == 9
+    acquisition.validate_acquisition_targeted_session_diagnostic_rerun_v1(result)
 
 
 @pytest.mark.skipif(
