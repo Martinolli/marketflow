@@ -24,9 +24,13 @@ SCHEMA_VERSION_ACQUISITION_GENERATION_CANDIDATE_V1 = "acquisition_generation_can
 SCHEMA_VERSION_ACQUISITION_MONTHLY_LIVE_SMOKE_V1 = "acquisition_monthly_live_smoke_candidate_v1"
 ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW = "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
 ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION = "ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION"
+ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE = "ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE"
+ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH = "ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH"
 ACQUISITION_GENERATION_FROZEN = "ACQUISITION_GENERATION_FROZEN"
 ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW = "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
 ACQUISITION_MONTHLY_LIVE_SMOKE_RECONCILIATION_MISMATCH = "ACQUISITION_MONTHLY_LIVE_SMOKE_RECONCILIATION_MISMATCH"
+LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY = "LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY"
+LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED = "LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED"
 LIVE_ACQUISITION_SMOKE_BLOCKED_MISSING_API_KEY = "LIVE_ACQUISITION_SMOKE_BLOCKED_MISSING_API_KEY"
 LIVE_ACQUISITION_SMOKE_BLOCKED_GATE_NOT_ENABLED = "LIVE_ACQUISITION_SMOKE_BLOCKED_GATE_NOT_ENABLED"
 LIVE_ACQUISITION_SMOKE_PROVIDER_ERROR = "LIVE_ACQUISITION_SMOKE_PROVIDER_ERROR"
@@ -501,10 +505,15 @@ def _receipt_digest_payload(candidate: dict[str, Any]) -> dict[str, Any]:
     return {
         "artifact_kind": candidate["artifact_kind"],
         "candidate_status": candidate["candidate_status"],
+        "provider_request_mode": candidate.get("provider_request_mode"),
+        "provider_requests_made": candidate.get("provider_requests_made"),
+        "provider_response_injected": candidate.get("provider_response_injected"),
         "provider_raw_response_digest": candidate.get("provider_raw_response_digest"),
         "normalized_source_rows_digest": candidate.get("normalized_source_rows_digest"),
         "monthly_reconciliation_digest": candidate.get("monthly_reconciliation_digest"),
         "chunk_manifest_digest": candidate.get("provider_chunk_manifest_digest"),
+        "chunk_count_completed": candidate.get("chunk_count_completed"),
+        "failed_chunk_count": candidate.get("failed_chunk_count"),
         "normalized_source_row_count": candidate.get("normalized_source_row_count"),
         "rth_row_count": candidate.get("rth_row_count"),
         "extended_hours_row_count": candidate.get("extended_hours_row_count"),
@@ -800,32 +809,102 @@ def _provider_records_from_responses(
         month = str(item["month"])
         chunk = chunks_by_month[month]
         result = normalize_provider_response_rows_v1(chunk=chunk, provider_response_data=item["response"])
+        chunk_normalized_rows = result["normalized_rows"]
+        raw_metadata = item.get("raw_metadata") if isinstance(item.get("raw_metadata"), Mapping) else {}
+        request_metadata = raw_metadata.get("request") if isinstance(raw_metadata.get("request"), Mapping) else None
         chunk_records.append(
             {
                 "chunk_id": chunk["chunk_id"],
                 "month": month,
+                "from": chunk["effective_start_date"],
+                "to": chunk["effective_end_date"],
                 "provider_response_status": result["provider_response_status"],
+                "raw_row_count": result["provider_response_row_count"],
+                "normalized_row_count": len(chunk_normalized_rows),
+                "rth_row_count": None,
+                "extended_hours_row_count": None,
+                "out_of_calendar_range_row_count": None,
+                "unknown_session_row_count": None,
                 "provider_response_row_count": result["provider_response_row_count"],
+                "raw_response_digest": result["provider_raw_response_digest"],
                 "provider_raw_response_digest": result["provider_raw_response_digest"],
+                "provider_raw_body_sha256": raw_metadata.get("provider_raw_body_sha256"),
+                "provider_raw_metadata_digest": raw_metadata.get("provider_raw_response_digest"),
+                "normalized_rows_digest": normalized_source_rows_digest_v1(chunk_normalized_rows),
+                "monthly_reconciliation_digest": None,
                 "provider_projection_digest": result["provider_projection_digest"],
                 "request_semantic_digest": chunk["request_semantic_digest"],
+                "request_metadata": deepcopy(request_metadata),
+                "warnings": [],
+                "errors": [],
             }
         )
-        normalized_rows.extend(result["normalized_rows"])
+        normalized_rows.extend(chunk_normalized_rows)
     normalized_rows.sort(key=lambda row: (row["timestamp_utc"], row["source_chunk_id"], row["source_row_index"]))
     for index, row in enumerate(normalized_rows):
         row["source_row_index"] = index
     return chunk_records, normalized_rows
 
 
+def _merge_reconciliation_into_provider_records(
+    provider_records: list[dict[str, Any]],
+    monthly_reconciliation: list[dict[str, Any]],
+) -> None:
+    by_month = {item["month"]: item for item in monthly_reconciliation}
+    for record in provider_records:
+        summary = by_month.get(record["month"])
+        if not summary:
+            continue
+        record["rth_row_count"] = summary["rth_rows"]
+        record["extended_hours_row_count"] = summary["extended_hours_rows"]
+        record["out_of_calendar_range_row_count"] = summary["out_of_calendar_range_rows"]
+        record["unknown_session_row_count"] = summary["unknown_session_rows"]
+        record["monthly_reconciliation_digest"] = semantic_digest(summary)
+        record["warnings"] = list(summary["warnings"])
+        record["errors"] = list(summary["errors"])
+
+
+def _january_2025_summary(monthly_reconciliation: list[dict[str, Any]]) -> dict[str, Any] | None:
+    return next((item for item in monthly_reconciliation if item.get("month") == "2025-01"), None)
+
+
+def _candidate_status_for_generation(
+    *,
+    generated: bool,
+    completed_chunks: int,
+    expected_chunks: int,
+    failed_chunks: int,
+    january_cross_check_passed: bool,
+) -> str:
+    if not generated:
+        return ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION
+    if failed_chunks or completed_chunks != expected_chunks:
+        return ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE
+    if not january_cross_check_passed:
+        return ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH
+    return ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW
+
+
 def build_acquisition_generation_candidate_v1(
     *,
     provider_responses: list[dict[str, Any]] | None = None,
     provider_request_timestamp_utc: str | None = None,
+    failed_chunk_records: list[dict[str, Any]] | None = None,
+    provider_request_mode: str | None = None,
+    provider_requests_made: bool = False,
+    provider_response_injected: bool | None = None,
+    created_offline: bool | None = None,
 ) -> dict[str, Any]:
     """Build a candidate-only acquisition generation artifact."""
     chunks = build_acquisition_month_chunks_v1()
     generated = provider_responses is not None
+    failed_records = [deepcopy(item) for item in (failed_chunk_records or [])]
+    if provider_response_injected is None:
+        provider_response_injected = generated and not provider_requests_made
+    if created_offline is None:
+        created_offline = not provider_requests_made
+    if provider_request_mode is None:
+        provider_request_mode = PROVIDER_REQUEST_MODE_FAKE_TRANSPORT if generated else None
     provider_records: list[dict[str, Any]] = []
     normalized_rows: list[dict[str, Any]] = []
     monthly_reconciliation: list[dict[str, Any]] = []
@@ -834,22 +913,35 @@ def build_acquisition_generation_candidate_v1(
         provider_records, normalized_rows = _provider_records_from_responses(provider_responses or [], chunks=chunks)
         classified_rows = classify_normalized_source_rows_v1(normalized_rows)
         monthly_reconciliation = build_monthly_reconciliation_v1(classified_rows, chunks=chunks)
+        _merge_reconciliation_into_provider_records(provider_records, monthly_reconciliation)
     rth_count = sum(1 for row in classified_rows if row.get("session_classification") == RTH)
     extended_count = sum(1 for row in classified_rows if row.get("session_classification") == EXTENDED_HOURS)
     out_count = sum(1 for row in classified_rows if row.get("session_classification") == OUT_OF_CALENDAR_RANGE)
     unknown_count = sum(1 for row in classified_rows if row.get("session_classification") == UNKNOWN)
-    failed_chunks = 0
-    provider_raw_digest = semantic_digest(provider_records) if generated else None
+    failed_chunks = len(failed_records)
+    january_summary = _january_2025_summary(monthly_reconciliation)
+    january_cross_check_passed = _january_cross_check_passed(january_summary) if january_summary else not generated
+    acquisition_generation_complete = (
+        generated and len(provider_records) == len(chunks) and failed_chunks == 0 and january_cross_check_passed
+    )
+    candidate_status = _candidate_status_for_generation(
+        generated=generated,
+        completed_chunks=len(provider_records),
+        expected_chunks=len(chunks),
+        failed_chunks=failed_chunks,
+        january_cross_check_passed=january_cross_check_passed,
+    )
+    provider_raw_digest = semantic_digest({"completed": provider_records, "failed": failed_records}) if generated or failed_records else None
     normalized_digest = normalized_source_rows_digest_v1(normalized_rows) if generated else None
     monthly_digest = monthly_reconciliation_digest_v1(monthly_reconciliation) if generated else None
     candidate: dict[str, Any] = {
         "artifact_kind": ARTIFACT_KIND_ACQUISITION_GENERATION_CANDIDATE,
         "schema_version": SCHEMA_VERSION_ACQUISITION_GENERATION_CANDIDATE_V1,
-        "candidate_status": ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW if generated else ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION,
-        "created_offline": True,
-        "provider_requests_made": False,
-        "provider_response_injected": generated,
-        "acquisition_generation_complete": generated and len(provider_records) == len(chunks) and failed_chunks == 0,
+        "candidate_status": candidate_status,
+        "created_offline": created_offline,
+        "provider_requests_made": provider_requests_made,
+        "provider_response_injected": provider_response_injected,
+        "acquisition_generation_complete": acquisition_generation_complete,
         "acquisition_generation_freeze": False,
         "operator_review_required": True,
         "operator_freeze_required": True,
@@ -880,7 +972,7 @@ def build_acquisition_generation_candidate_v1(
         "provider_endpoint": PROVIDER_ENDPOINT_MASSIVE_CUSTOM_BARS,
         "provider_endpoint_stability": PROVIDER_ENDPOINT_STABILITY_MASSIVE_AGGS_V2,
         "provider_query_identifier": FIXED_IDENTITY_SEGMENT["ticker"],
-        "provider_request_mode": PROVIDER_REQUEST_MODE_FAKE_TRANSPORT if generated else None,
+        "provider_request_mode": provider_request_mode,
         "provider_request_timestamp_utc": provider_request_timestamp_utc,
         "provider_chunk_count": len(provider_records),
         "provider_failed_chunk_count": failed_chunks,
@@ -890,6 +982,7 @@ def build_acquisition_generation_candidate_v1(
         "chunk_count_expected": len(chunks),
         "chunk_count_completed": len(provider_records),
         "failed_chunk_count": failed_chunks,
+        "failed_chunks": failed_records,
         "chunk_manifest_digest": chunk_manifest_digest_v1(chunks),
         "chunk_manifest": chunks,
         "provider_chunk_records": provider_records,
@@ -911,6 +1004,81 @@ def build_acquisition_generation_candidate_v1(
     return candidate
 
 
+def _failed_chunk_record(chunk: dict[str, Any], exc: Exception) -> dict[str, Any]:
+    return {
+        "chunk_id": chunk["chunk_id"],
+        "month": chunk["month"],
+        "from": chunk["effective_start_date"],
+        "to": chunk["effective_end_date"],
+        "provider_response_status": type(exc).__name__,
+        "raw_row_count": None,
+        "normalized_row_count": 0,
+        "rth_row_count": None,
+        "extended_hours_row_count": None,
+        "out_of_calendar_range_row_count": None,
+        "unknown_session_row_count": None,
+        "raw_response_digest": None,
+        "provider_raw_response_digest": None,
+        "normalized_rows_digest": None,
+        "monthly_reconciliation_digest": None,
+        "request_semantic_digest": chunk["request_semantic_digest"],
+        "warnings": [],
+        "errors": ["PROVIDER_CHUNK_FAILED"],
+    }
+
+
+def build_acquisition_generation_live_candidate_v1(
+    *,
+    ticker: str = "AAPL",
+    api_key: str | None = None,
+    transport: Callable[[Mapping[str, Any]], Any] | None = None,
+    provider_request_timestamp_utc: str | None = None,
+) -> dict[str, Any]:
+    """Run the gated 48-month provider-backed acquisition candidate generation."""
+    ticker_text = ticker.strip().upper()
+    timestamp = provider_request_timestamp_utc or datetime.now(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+    if transport is None and os.environ.get(MARKETFLOW_ENABLE_LIVE_ACQUISITION_GENERATION) != "1":
+        raise AcquisitionGenerationError(LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED)
+    key = api_key or _api_key_from_environment()
+    if not key:
+        raise AcquisitionGenerationError(LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY)
+
+    provider_responses: list[dict[str, Any]] = []
+    failed_records: list[dict[str, Any]] = []
+    chunks = build_acquisition_month_chunks_v1(ticker=ticker_text)
+    for chunk in chunks:
+        try:
+            raw = acquisition_adapter.fetch_massive_custom_bars_live_v1(
+                ticker=ticker_text,
+                start_date=chunk["effective_start_date"],
+                end_date=chunk["effective_end_date"],
+                api_key=key,
+                transport=transport,
+                request_timestamp_utc=timestamp,
+            )
+        except Exception as exc:
+            failed_records.append(_failed_chunk_record(chunk, exc))
+            continue
+        raw_metadata = {field: value for field, value in raw.items() if field != "provider_response_body"}
+        provider_responses.append(
+            {
+                "month": chunk["month"],
+                "response": raw["provider_response_body"],
+                "raw_metadata": raw_metadata,
+            }
+        )
+
+    return build_acquisition_generation_candidate_v1(
+        provider_responses=provider_responses,
+        failed_chunk_records=failed_records,
+        provider_request_timestamp_utc=timestamp,
+        provider_request_mode=PROVIDER_REQUEST_MODE_LIVE if transport is None else PROVIDER_REQUEST_MODE_FAKE_TRANSPORT,
+        provider_requests_made=transport is None,
+        provider_response_injected=transport is not None,
+        created_offline=transport is not None,
+    )
+
+
 def _validate_january_2025_cross_check(candidate: dict[str, Any]) -> None:
     months = candidate.get("monthly_reconciliation")
     if not months:
@@ -918,15 +1086,23 @@ def _validate_january_2025_cross_check(candidate: dict[str, Any]) -> None:
     january = next((item for item in months if item.get("month") == "2025-01"), None)
     if january is None:
         return
-    _expect(january.get("normalized_source_rows"), 1277, "2025-01.normalized_source_rows")
-    _expect(january.get("extended_hours_rows"), 757, "2025-01.extended_hours_rows")
-    _expect(january.get("expected_rth_rows"), 520, "2025-01.expected_rth_rows")
-    _expect(january.get("validated_rth_rows"), 520, "2025-01.validated_rth_rows")
-    _expect(january.get("full_ordinary_sessions"), 20, "2025-01.full_ordinary_sessions")
-    _expect(january.get("incomplete_ordinary_sessions"), 0, "2025-01.incomplete_ordinary_sessions")
-    _expect(january.get("swing_rth_half_session_195m_bars"), 40, "2025-01.swing_rth_half_session_195m_bars")
-    _expect(january.get("position_swing_rth_full_session_1d_bars"), 20, "2025-01.position_swing_rth_full_session_1d_bars")
-    _expect(january.get("rth_reconciliation_status"), RTH_SOURCE_ROWS_RECONCILED, "2025-01.rth_reconciliation_status")
+    checks = {
+        "2025-01.normalized_source_rows": (january.get("normalized_source_rows"), 1277),
+        "2025-01.extended_hours_rows": (january.get("extended_hours_rows"), 757),
+        "2025-01.expected_rth_rows": (january.get("expected_rth_rows"), 520),
+        "2025-01.validated_rth_rows": (january.get("validated_rth_rows"), 520),
+        "2025-01.full_ordinary_sessions": (january.get("full_ordinary_sessions"), 20),
+        "2025-01.incomplete_ordinary_sessions": (january.get("incomplete_ordinary_sessions"), 0),
+        "2025-01.swing_rth_half_session_195m_bars": (january.get("swing_rth_half_session_195m_bars"), 40),
+        "2025-01.position_swing_rth_full_session_1d_bars": (january.get("position_swing_rth_full_session_1d_bars"), 20),
+        "2025-01.rth_reconciliation_status": (january.get("rth_reconciliation_status"), RTH_SOURCE_ROWS_RECONCILED),
+    }
+    mismatches = [field for field, (actual, expected) in checks.items() if actual != expected]
+    if mismatches and candidate.get("candidate_status") not in {
+        ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH,
+        ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE,
+    }:
+        raise AcquisitionGenerationError(f"{mismatches[0]} mismatch")
 
 
 def validate_acquisition_generation_candidate_v1(candidate: dict[str, Any]) -> dict[str, Any]:
@@ -938,12 +1114,30 @@ def validate_acquisition_generation_candidate_v1(candidate: dict[str, Any]) -> d
     if candidate.get("candidate_status") not in {
         ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW,
         ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION,
+        ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE,
+        ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH,
     }:
         raise AcquisitionGenerationError("candidate_status mismatch")
     if candidate.get("freeze_status") == ACQUISITION_GENERATION_FROZEN:
         raise AcquisitionGenerationError("freeze_status must not be ACQUISITION_GENERATION_FROZEN")
-    _expect_true(candidate.get("created_offline"), "created_offline")
-    _expect_false(candidate.get("provider_requests_made"), "provider_requests_made")
+    if type(candidate.get("created_offline")) is not bool:
+        raise AcquisitionGenerationError("created_offline must be boolean")
+    if type(candidate.get("provider_requests_made")) is not bool:
+        raise AcquisitionGenerationError("provider_requests_made must be boolean")
+    if type(candidate.get("provider_response_injected")) is not bool:
+        raise AcquisitionGenerationError("provider_response_injected must be boolean")
+    provider_mode = candidate.get("provider_request_mode")
+    if provider_mode == PROVIDER_REQUEST_MODE_LIVE:
+        _expect_true(candidate.get("provider_requests_made"), "provider_requests_made")
+        _expect_false(candidate.get("provider_response_injected"), "provider_response_injected")
+    elif provider_mode == PROVIDER_REQUEST_MODE_FAKE_TRANSPORT:
+        _expect_false(candidate.get("provider_requests_made"), "provider_requests_made")
+        _expect_true(candidate.get("provider_response_injected"), "provider_response_injected")
+    elif provider_mode is None:
+        _expect_false(candidate.get("provider_requests_made"), "provider_requests_made")
+        _expect_false(candidate.get("provider_response_injected"), "provider_response_injected")
+    else:
+        raise AcquisitionGenerationError("provider_request_mode mismatch")
     _expect_false(candidate.get("acquisition_generation_freeze"), "acquisition_generation_freeze")
     for field in ("canonical_eligibility", "registry_eligibility", "strategy_runtime_migration", "automatic_stitching"):
         _expect_false(candidate.get(field), field)
@@ -980,6 +1174,12 @@ def validate_acquisition_generation_candidate_v1(candidate: dict[str, Any]) -> d
                 raise AcquisitionGenerationError(f"{field} missing")
     if candidate.get("failed_chunk_count", 0) > 0 and candidate.get("acquisition_generation_complete") is True:
         raise AcquisitionGenerationError("failed chunks cannot be complete")
+    if candidate.get("candidate_status") == ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW:
+        _expect_true(candidate.get("acquisition_generation_complete"), "acquisition_generation_complete")
+    if candidate.get("candidate_status") == ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE:
+        _expect_false(candidate.get("acquisition_generation_complete"), "acquisition_generation_complete")
+    if candidate.get("candidate_status") == ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH:
+        _expect_false(candidate.get("acquisition_generation_complete"), "acquisition_generation_complete")
     _validate_january_2025_cross_check(candidate)
     _expect(candidate.get("remaining_roadmap"), REMAINING_ROADMAP_AFTER_ACQUISITION_GENERATION_CANDIDATE, "remaining_roadmap")
     digest = candidate.get("acquisition_generation_candidate_semantic_digest")
@@ -1002,7 +1202,7 @@ def validate_acquisition_generation_candidate_v1(candidate: dict[str, Any]) -> d
         "normalized_source_row_count": candidate.get("normalized_source_row_count"),
         "rth_row_count": candidate.get("rth_row_count"),
         "extended_hours_row_count": candidate.get("extended_hours_row_count"),
-        "provider_requests_made": False,
+        "provider_requests_made": candidate.get("provider_requests_made"),
         "acquisition_generation_freeze": False,
         "canonical_eligibility": False,
         "registry_eligibility": False,
@@ -1120,6 +1320,149 @@ def validate_acquisition_generation_monthly_live_smoke_v1(smoke: dict[str, Any])
         "canonical_eligibility": False,
         "registry_eligibility": False,
         "strategy_runtime_migration": False,
+    }
+
+
+def _monthly_reconciliation_status_summary(candidate: dict[str, Any]) -> dict[str, int]:
+    summary: dict[str, int] = {}
+    for item in candidate.get("monthly_reconciliation") or []:
+        status = str(item.get("rth_reconciliation_status"))
+        summary[status] = summary.get(status, 0) + 1
+    return dict(sorted(summary.items()))
+
+
+def _january_2025_cross_check_result(candidate: dict[str, Any]) -> str:
+    summary = _january_2025_summary(candidate.get("monthly_reconciliation") or [])
+    if summary is None:
+        return "NOT_PRESENT"
+    return "PASSED" if _january_cross_check_passed(summary) else "FAILED"
+
+
+def build_acquisition_generation_live_status_markdown_v1(candidate: dict[str, Any]) -> str:
+    """Render a sanitized full acquisition generation status document."""
+    validate_acquisition_generation_candidate_v1(candidate)
+    endpoint = PROVIDER_ENDPOINT_MASSIVE_CUSTOM_BARS
+    boundary = candidate["authority_boundary"]
+    bindings = candidate["authority_bindings"]
+    status_summary = _monthly_reconciliation_status_summary(candidate)
+    cross_check = _january_2025_cross_check_result(candidate)
+    lines = [
+        "# MarketFlow Acquisition Live Generation 2022-2025 Status",
+        "",
+        "## Scope",
+        f"- Artifact kind: `{candidate['artifact_kind']}`",
+        f"- Candidate status: `{candidate['candidate_status']}`",
+        f"- Endpoint used: `{endpoint}`",
+        f"- Request mode: `{candidate.get('provider_request_mode')}`",
+        f"- Ticker: `{candidate['provider_query_identifier']}`",
+        "- Range: `2022-01-01` through `2025-12-31`",
+        "- Interval: `15-minute`",
+        "- Adjusted: `true`",
+        "- Sort: `asc`",
+        "- Chunking: `MONTHLY`",
+        "- Source timestamps: `aggregate-window starts`",
+        "- Source timezone: `America/New_York`",
+        "- Canonical storage timezone: `UTC`",
+        "",
+        "## Chunk Results",
+        f"- Expected chunk count: `{candidate['chunk_count_expected']}`",
+        f"- Completed chunk count: `{candidate['chunk_count_completed']}`",
+        f"- Failed chunk count: `{candidate['failed_chunk_count']}`",
+        f"- Total provider raw rows: `{sum(record.get('raw_row_count') or 0 for record in candidate.get('provider_chunk_records') or [])}`",
+        f"- Total normalized source rows: `{candidate.get('normalized_source_row_count')}`",
+        f"- Total RTH rows: `{candidate.get('rth_row_count')}`",
+        f"- Total extended-hours rows: `{candidate.get('extended_hours_row_count')}`",
+        f"- Total out-of-calendar/unknown rows: `{(candidate.get('out_of_calendar_range_row_count') or 0) + (candidate.get('unknown_session_row_count') or 0)}`",
+        f"- Monthly reconciliation status summary: `{json.dumps(status_summary, sort_keys=True, separators=(',', ':'))}`",
+        f"- 2025-01 cross-check result: `{cross_check}`",
+        "",
+        "## Chunk Manifest",
+        "| chunk_id | month | from | to | status | raw_rows | normalized_rows | rth_rows | extended_hours_rows | out_or_unknown_rows | raw_response_digest | normalized_rows_digest | monthly_reconciliation_digest | warnings | errors |",
+        "| --- | --- | --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- |",
+    ]
+    for record in candidate.get("provider_chunk_records") or []:
+        out_or_unknown = (record.get("out_of_calendar_range_row_count") or 0) + (record.get("unknown_session_row_count") or 0)
+        warnings = ",".join(record.get("warnings") or [])
+        errors = ",".join(record.get("errors") or [])
+        lines.append(
+            "| "
+            f"{record.get('chunk_id')} | "
+            f"{record.get('month')} | "
+            f"{record.get('from')} | "
+            f"{record.get('to')} | "
+            f"{record.get('provider_response_status')} | "
+            f"{record.get('raw_row_count')} | "
+            f"{record.get('normalized_row_count')} | "
+            f"{record.get('rth_row_count')} | "
+            f"{record.get('extended_hours_row_count')} | "
+            f"{out_or_unknown} | "
+            f"{record.get('raw_response_digest')} | "
+            f"{record.get('normalized_rows_digest')} | "
+            f"{record.get('monthly_reconciliation_digest')} | "
+            f"{warnings} | "
+            f"{errors} |"
+        )
+    lines.extend(
+        [
+            "",
+        "## Digests",
+        f"- Chunk manifest digest: `{candidate.get('chunk_manifest_digest')}`",
+        f"- Provider raw response digest: `{candidate.get('provider_raw_response_digest')}`",
+        f"- Normalized source rows digest: `{candidate.get('normalized_source_rows_digest')}`",
+        f"- Monthly reconciliation digest: `{candidate.get('monthly_reconciliation_digest')}`",
+        f"- Acquisition generation receipt digest: `{candidate.get('acquisition_generation_receipt_digest')}`",
+        f"- Acquisition generation candidate digest: `{candidate.get('acquisition_generation_candidate_semantic_digest')}`",
+        "",
+        "## Authority Bindings",
+        f"- Identity frozen digest: `{bindings['identity_segment_frozen_digest']}`",
+        f"- Calendar frozen digest: `{bindings['exchange_calendar_frozen_digest']}`",
+        f"- Schedule digest: `{bindings['schedule_semantic_digest']}`",
+        f"- Split-event audit frozen digest: `{bindings['split_event_audit_frozen_digest']}`",
+        f"- Dividend-event audit frozen digest: `{bindings['dividend_event_audit_frozen_digest']}`",
+        f"- Acquisition contract digest: `{bindings['acquisition_contract_digest']}`",
+        "",
+        "## Dividend Implication",
+        f"- In-range dividends found: `{candidate['in_range_dividends_found']}`",
+        f"- In-range dividend count: `{candidate['in_range_dividend_count']}`",
+        f"- Implication: `{candidate['in_range_dividend_implication']}`",
+        "",
+        "## Authority Boundary",
+        f"- identity_segment_frozen: `{boundary['identity_segment_frozen']}`",
+        f"- calendar_operator_frozen: `{boundary['calendar_operator_frozen']}`",
+        f"- split_event_audit_frozen: `{boundary['split_event_audit_frozen']}`",
+        f"- dividend_event_audit_frozen: `{boundary['dividend_event_audit_frozen']}`",
+        f"- acquisition_generation_freeze: `{boundary['acquisition_generation_freeze']}`",
+        f"- canonical_eligibility: `{boundary['canonical_eligibility']}`",
+        f"- registry_eligibility: `{boundary['registry_eligibility']}`",
+        f"- strategy_runtime_migration: `{boundary['strategy_runtime_migration']}`",
+        f"- automatic_stitching: `{boundary['automatic_stitching']}`",
+        f"- predictive_usefulness: `{boundary['predictive_usefulness']}`",
+        f"- profitability: `{boundary['profitability']}`",
+        "",
+        "## Safety Confirmations",
+        "- API key stored: `False`",
+        "- Raw provider payload stored in this document: `False`",
+        "- Full generated bars stored in this document: `False`",
+        "- No acquisition-generation freeze was created.",
+        "- No canonical, registry, runtime, predictive, or profitability approval occurred.",
+        "",
+        "## Next Task Recommendation",
+        "- Build an operator review package for the acquisition generation candidate before any freeze ceremony.",
+        "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def write_acquisition_generation_live_status_v1(path: str | Path, *, candidate: dict[str, Any]) -> dict[str, Any]:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    text = build_acquisition_generation_live_status_markdown_v1(candidate)
+    output_path.write_text(text, encoding="utf-8")
+    return {
+        "path": str(output_path),
+        "filename": output_path.name,
+        "status_document_digest": sha256_bytes(text.encode("utf-8")),
     }
 
 

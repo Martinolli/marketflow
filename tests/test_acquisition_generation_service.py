@@ -114,6 +114,28 @@ def _monthly_smoke(api_key: str = "fake-live-smoke-key") -> dict:
     )
 
 
+def _full_live_candidate_with_transport(transport, api_key: str = "fake-full-live-key") -> dict:
+    return acquisition.build_acquisition_generation_live_candidate_v1(
+        api_key=api_key,
+        transport=transport,
+        provider_request_timestamp_utc="2026-08-07T00:00:00Z",
+    )
+
+
+def _transport_from_monthly_bodies(monthly_bodies: dict[str, bytes], calls: list[str] | None = None):
+    def transport(request: dict) -> bytes:
+        if calls is not None:
+            calls.append(request["provider_endpoint_path"])
+        month = str(request["provider_query_start"])[:7]
+        return monthly_bodies[month]
+
+    return transport
+
+
+def _default_monthly_bodies() -> dict[str, bytes]:
+    return {item["month"]: item["response"] for item in _provider_responses()}
+
+
 def _recompute_digest(candidate: dict) -> None:
     candidate["acquisition_generation_candidate_semantic_digest"] = acquisition.acquisition_generation_candidate_semantic_digest(candidate)
 
@@ -267,6 +289,24 @@ def test_candidate_status_is_ready_for_completed_fake_generation():
     assert candidate["failed_chunk_count"] == 0
 
 
+def test_full_fake_live_orchestration_runs_all_48_monthly_chunks():
+    calls: list[str] = []
+    candidate = _full_live_candidate_with_transport(_transport_from_monthly_bodies(_default_monthly_bodies(), calls))
+
+    assert len(calls) == 48
+    assert calls[0] == "/v2/aggs/ticker/AAPL/range/15/minute/2022-01-01/2022-01-31"
+    assert calls[-1] == "/v2/aggs/ticker/AAPL/range/15/minute/2025-12-01/2025-12-31"
+    assert candidate["candidate_status"] == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
+    assert candidate["provider_request_mode"] == "FAKE_TRANSPORT_PROVIDER_RESPONSE_INJECTION"
+    assert candidate["provider_requests_made"] is False
+    assert candidate["provider_response_injected"] is True
+    assert candidate["chunk_count_completed"] == 48
+    assert candidate["failed_chunk_count"] == 0
+    assert len(candidate["provider_chunk_records"]) == 48
+    assert all("raw_row_count" in record for record in candidate["provider_chunk_records"])
+    assert all("monthly_reconciliation_digest" in record for record in candidate["provider_chunk_records"])
+
+
 def test_candidate_without_provider_responses_requires_live_execution_without_freeze():
     candidate = acquisition.build_acquisition_generation_candidate_v1()
 
@@ -275,6 +315,36 @@ def test_candidate_without_provider_responses_requires_live_execution_without_fr
     assert candidate["provider_requests_made"] is False
     assert candidate["acquisition_generation_complete"] is False
     assert candidate["acquisition_generation_freeze"] is False
+
+
+def test_live_generation_records_failed_chunk_without_claiming_complete():
+    bodies = _default_monthly_bodies()
+
+    def transport(request: dict) -> bytes:
+        if request["provider_query_start"].startswith("2022-02"):
+            raise acquisition.AcquisitionGenerationError("synthetic provider failure")
+        return bodies[str(request["provider_query_start"])[:7]]
+
+    candidate = _full_live_candidate_with_transport(transport)
+    validation = acquisition.validate_acquisition_generation_candidate_v1(candidate)
+
+    assert candidate["candidate_status"] == "ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE"
+    assert candidate["acquisition_generation_complete"] is False
+    assert candidate["chunk_count_completed"] == 47
+    assert candidate["failed_chunk_count"] == 1
+    assert candidate["failed_chunks"][0]["chunk_id"] == "AAPL-2022-02"
+    assert validation["candidate_status"] == "ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE"
+
+
+def test_2025_01_cross_check_mismatch_prevents_ready_status():
+    bodies = _default_monthly_bodies()
+    bodies["2025-01"] = _body([_epoch_ms("2025-01-02", "09:30")])
+
+    candidate = _full_live_candidate_with_transport(_transport_from_monthly_bodies(bodies))
+
+    assert candidate["candidate_status"] == "ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH"
+    assert candidate["acquisition_generation_complete"] is False
+    acquisition.validate_acquisition_generation_candidate_v1(candidate)
 
 
 def test_candidate_does_not_set_freeze_canonical_registry_or_runtime_eligibility():
@@ -299,6 +369,26 @@ def test_validator_accepts_valid_fake_completed_candidate():
     assert receipt["chunk_count_completed"] == 48
     assert receipt["failed_chunk_count"] == 0
     assert receipt["provider_requests_made"] is False
+
+
+def test_validator_accepts_provider_backed_completed_candidate_without_freeze():
+    candidate = acquisition.build_acquisition_generation_candidate_v1(
+        provider_responses=[deepcopy(item) for item in _provider_responses()],
+        provider_request_mode="LIVE_PROVIDER_REQUEST",
+        provider_requests_made=True,
+        provider_response_injected=False,
+        created_offline=False,
+        provider_request_timestamp_utc="2026-08-07T00:00:00Z",
+    )
+    receipt = acquisition.validate_acquisition_generation_candidate_v1(candidate)
+
+    assert receipt["candidate_status"] == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
+    assert receipt["provider_requests_made"] is True
+    assert candidate["provider_response_injected"] is False
+    assert candidate["acquisition_generation_freeze"] is False
+    assert candidate["canonical_eligibility"] is False
+    assert candidate["registry_eligibility"] is False
+    assert candidate["strategy_runtime_migration"] is False
 
 
 @pytest.mark.parametrize(
@@ -464,8 +554,14 @@ def test_service_exports_acquisition_generation_functions_and_constants():
     assert services.ARTIFACT_KIND_ACQUISITION_GENERATION_CANDIDATE == "ACQUISITION_GENERATION_CANDIDATE"
     assert services.ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE == "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE"
     assert services.ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
+    assert services.ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE == "ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE"
+    assert services.ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH == "ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH"
+    assert services.LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED == "LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED"
+    assert services.LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY == "LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY"
     assert services.ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
     assert services.build_acquisition_generation_candidate_v1 is acquisition.build_acquisition_generation_candidate_v1
+    assert services.build_acquisition_generation_live_candidate_v1 is acquisition.build_acquisition_generation_live_candidate_v1
+    assert services.build_acquisition_generation_live_status_markdown_v1 is acquisition.build_acquisition_generation_live_status_markdown_v1
     assert services.build_acquisition_generation_monthly_live_smoke_v1 is acquisition.build_acquisition_generation_monthly_live_smoke_v1
     assert services.build_acquisition_month_chunks_v1 is acquisition.build_acquisition_month_chunks_v1
     assert services.build_massive_custom_bars_request_v1 is acquisition.build_massive_custom_bars_request_v1
@@ -473,6 +569,7 @@ def test_service_exports_acquisition_generation_functions_and_constants():
     assert services.validate_acquisition_generation_candidate_v1 is acquisition.validate_acquisition_generation_candidate_v1
     assert services.validate_acquisition_generation_monthly_live_smoke_v1 is acquisition.validate_acquisition_generation_monthly_live_smoke_v1
     assert services.write_acquisition_generation_candidate_v1 is acquisition.write_acquisition_generation_candidate_v1
+    assert services.write_acquisition_generation_live_status_v1 is acquisition.write_acquisition_generation_live_status_v1
     assert services.write_acquisition_generation_monthly_live_smoke_status_v1 is acquisition.write_acquisition_generation_monthly_live_smoke_status_v1
 
 
@@ -605,6 +702,29 @@ def test_monthly_live_smoke_status_doc_contains_no_api_key_or_raw_payload(tmp_pa
     assert secret not in written
     assert '"results"' not in text
     assert "Raw provider payload stored in this document: `False`" in text
+    assert "No acquisition-generation freeze was created." in text
+    assert "No canonical, registry, runtime, predictive, or profitability approval occurred." in text
+
+
+def test_full_live_status_doc_contains_required_sanitized_summary(tmp_path: Path):
+    secret = "secret-full-live-value"
+    candidate = _full_live_candidate_with_transport(_transport_from_monthly_bodies(_default_monthly_bodies()), api_key=secret)
+    text = acquisition.build_acquisition_generation_live_status_markdown_v1(candidate)
+    result = acquisition.write_acquisition_generation_live_status_v1(
+        tmp_path / "MARKETFLOW_ACQUISITION_LIVE_GENERATION_2022_2025_STATUS.md",
+        candidate=candidate,
+    )
+    written = Path(result["path"]).read_text(encoding="utf-8")
+
+    assert secret not in repr(candidate)
+    assert secret not in text
+    assert secret not in written
+    assert '"results"' not in text
+    assert "Endpoint used: `/v2/aggs/ticker/{stocksTicker}/range/{multiplier}/{timespan}/{from}/{to}`" in text
+    assert "Expected chunk count: `48`" in text
+    assert "Completed chunk count: `48`" in text
+    assert "2025-01 cross-check result: `PASSED`" in text
+    assert "API key stored: `False`" in text
     assert "No acquisition-generation freeze was created." in text
     assert "No canonical, registry, runtime, predictive, or profitability approval occurred." in text
 
