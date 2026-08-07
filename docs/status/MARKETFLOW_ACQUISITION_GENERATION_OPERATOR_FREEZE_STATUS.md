@@ -77,6 +77,8 @@
 - profitability: `not accepted`
 
 ## Remaining Roadmap
+Next roadmap step started: SWING Canonical Dataset Candidate v1.
+
 1. SWING canonical dataset candidate.
 2. SWING canonical dataset operator review/freeze.
 3. SWING registry approval.
