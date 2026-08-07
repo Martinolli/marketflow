@@ -62,5 +62,12 @@
 - No canonical, registry, runtime, predictive, or profitability approval occurred.
 - No full 48-month acquisition rerun was performed.
 
+## Follow-On Acquisition Generation Operator Review
+- Review package artifact: `ACQUISITION_GENERATION_CANDIDATE_REVIEW_PACKAGE`
+- Review package status: `ACQUISITION_GENERATION_CANDIDATE_REVIEW_PACKAGE_READY`
+- Status document: `docs/status/MARKETFLOW_ACQUISITION_GENERATION_OPERATOR_REVIEW_PACKAGE_STATUS.md`
+- Acquisition review is now source-bound to the full live acquisition candidate digests and targeted per-session triage digests.
+- Acquisition generation freeze remains future work.
+
 ## Next Task Recommendation
 - Acquisition operator review may proceed after human review of targeted triage evidence.

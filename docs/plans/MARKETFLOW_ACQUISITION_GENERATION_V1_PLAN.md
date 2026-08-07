@@ -1,6 +1,6 @@
 # MarketFlow Acquisition Generation Candidate v1 Plan
 
-Status: CANDIDATE SERVICE IMPLEMENTED / FAKE-TRANSPORT FIXTURE VALIDATED / NO FREEZE
+Status: LIVE GENERATION COMPLETED / TARGETED TRIAGE COMPLETED / OPERATOR REVIEW PACKAGE IMPLEMENTED / NO FREEZE
 
 ## Purpose
 
@@ -146,7 +146,56 @@ Deterministic fake-transport candidate evidence:
 - acquisition generation receipt digest:
   `573e071ca9084e46555773e6ca74a0b1b9ac5909f6faed5c10067dc25b6fe80e`
 
-No live full generation was run for this plan status.
+That fixture evidence remains test evidence only. The recorded live generation
+evidence below supersedes it for operator review.
+
+Recorded full live 2022-2025 acquisition evidence:
+
+- acquisition candidate digest:
+  `5b1f7507c4549b0cd590737e37571cd0ff18f5710c5bfb853bd04aeec6b3f1cb`
+- chunk manifest digest:
+  `8a4bf37f501fb7da5ea23e04d5ebe90da2cdfda1bf9e06e55e4c459be53fa374`
+- provider raw response digest:
+  `aea820006bb458b9e51a1cda23ae24be02f476aafb36bec6c65d3740812d06c7`
+- normalized source rows digest:
+  `0844164e1056732b0a887f19e569312cebab51e2e9c3db787415b4f56d533bdc`
+- monthly reconciliation digest:
+  `d34effcf3129d630f14c61f5d0621aa0d89cdc51471f65f3d5effabeb42f16a4`
+- acquisition receipt digest:
+  `63b1934fbaf4b146fadcfbb5cb4649e18b1e91d8d304cf3afdee71220d005eed`
+
+The full live generation completed `48` of `48` chunks with `0` failed chunks.
+It produced `63804` raw rows, `63804` normalized rows, `25970` RTH rows,
+`37834` extended-hours rows, and `0` out-of-calendar/unknown rows.
+
+## Targeted Per-Session Triage
+
+The targeted per-session diagnostic rerun completed the 9 previously
+non-reconciled months and found all target sessions reconciled at session
+level:
+
+- acquisition operator review status: `READY_AFTER_TRIAGE`
+- all monthly mismatches explained: `true`
+- mismatch explanation: `EXPLAINED_BY_SPECIAL_SESSION_EXPECTATION`
+- per-session issue summary: `{"RECONCILED":188}`
+- per-session severity summary: `{"INFO":188}`
+- targeted diagnostic receipt digest:
+  `82ec97bbc5eba73a275cc8221bb4a59235ed093a6e6dbe14058eac26980d26c8`
+
+## Operator Review Package
+
+Acquisition Generation Operator Review Package v1 is implemented as an
+offline, digest-bound review layer:
+
+- artifact kind: `ACQUISITION_GENERATION_CANDIDATE_REVIEW_PACKAGE`
+- review status: `ACQUISITION_GENERATION_CANDIDATE_REVIEW_PACKAGE_READY`
+- provider requests made in review: `false`
+- review package status:
+  `docs/status/MARKETFLOW_ACQUISITION_GENERATION_OPERATOR_REVIEW_PACKAGE_STATUS.md`
+
+The review package makes the candidate ready for human operator assessment,
+but it does not authorize software freeze, canonical eligibility, registry
+eligibility, or runtime migration.
 
 ## Dividend Implication
 
@@ -178,8 +227,13 @@ This candidate does not:
 
 ## Next Tasks
 
-1. Full live acquisition smoke/generation.
-2. Acquisition generation operator review package.
-3. Acquisition generation freeze.
-4. SWING canonical dataset candidate.
+1. Digest-bound acquisition generation operator freeze ceremony.
+2. SWING canonical dataset candidate.
+3. SWING canonical dataset operator review/freeze.
+4. SWING registry approval.
 5. POSITION_SWING canonical dataset candidate.
+6. POSITION_SWING canonical dataset operator review/freeze.
+7. POSITION_SWING registry approval.
+8. Normal runtime migration.
+9. Applicability/research campaign.
+10. Predictive and profitability evaluation.
