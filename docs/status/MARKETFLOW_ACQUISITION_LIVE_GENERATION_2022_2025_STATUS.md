@@ -120,5 +120,10 @@
 - No acquisition-generation freeze was created.
 - No canonical, registry, runtime, predictive, or profitability approval occurred.
 
+## Follow-On Triage
+- Acquisition monthly reconciliation triage task: `COMPLETED`
+- Reconciliation triage status document: `docs/status/MARKETFLOW_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_STATUS.md`
+- Acquisition operator review remains blocked until the 9 `RTH_SOURCE_ROWS_NOT_RECONCILED` months are explained or accepted through a separate review path.
+
 ## Next Task Recommendation
-- Build an operator review package for the acquisition generation candidate before any freeze ceremony.
+- Build a per-session reconciliation diagnostic for the 9 non-reconciled months before any acquisition operator review or freeze ceremony.

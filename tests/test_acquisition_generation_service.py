@@ -145,6 +145,36 @@ def _recompute_smoke_digest(smoke: dict) -> None:
     smoke["acquisition_monthly_smoke_candidate_digest"] = acquisition.acquisition_monthly_smoke_candidate_digest_v1(smoke)
 
 
+def _triage_row(
+    month: str,
+    *,
+    status: str = "RTH_SOURCE_ROWS_RECONCILED",
+    normalized_rows: int = 1280,
+    rth_rows: int = 520,
+    expected_rth_rows: int = 520,
+    extended_rows: int = 760,
+    incomplete_sessions: int = 0,
+) -> dict:
+    full_sessions = expected_rth_rows // 26
+    return {
+        "month": month,
+        "rth_reconciliation_status": status,
+        "normalized_source_rows": normalized_rows,
+        "rth_rows": rth_rows,
+        "extended_hours_rows": extended_rows,
+        "expected_rth_rows": expected_rth_rows,
+        "validated_rth_rows": rth_rows,
+        "full_ordinary_sessions": full_sessions,
+        "incomplete_ordinary_sessions": incomplete_sessions,
+        "swing_rth_half_session_195m_bars": full_sessions * 2,
+        "position_swing_rth_full_session_1d_bars": full_sessions,
+    }
+
+
+def _recompute_triage_digest(triage: dict) -> None:
+    triage["triage_semantic_digest"] = acquisition.acquisition_monthly_reconciliation_triage_semantic_digest_v1(triage)
+
+
 def test_request_metadata_builds_without_api_key_leakage():
     request = acquisition.build_massive_custom_bars_request_v1(ticker="AAPL", start_date="2022-01-01", end_date="2022-01-31", api_key="secret")
 
@@ -553,24 +583,32 @@ def test_service_exports_acquisition_generation_functions_and_constants():
 
     assert services.ARTIFACT_KIND_ACQUISITION_GENERATION_CANDIDATE == "ACQUISITION_GENERATION_CANDIDATE"
     assert services.ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE == "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE"
+    assert services.ARTIFACT_KIND_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE == "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE"
     assert services.ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
     assert services.ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE == "ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE"
     assert services.ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH == "ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH"
+    assert services.ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY == "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY"
     assert services.LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED == "LIVE_ACQUISITION_GENERATION_BLOCKED_GATE_NOT_ENABLED"
     assert services.LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY == "LIVE_ACQUISITION_GENERATION_BLOCKED_MISSING_API_KEY"
     assert services.ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW == "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
     assert services.build_acquisition_generation_candidate_v1 is acquisition.build_acquisition_generation_candidate_v1
     assert services.build_acquisition_generation_live_candidate_v1 is acquisition.build_acquisition_generation_live_candidate_v1
     assert services.build_acquisition_generation_live_status_markdown_v1 is acquisition.build_acquisition_generation_live_status_markdown_v1
+    assert services.build_acquisition_monthly_reconciliation_triage_v1 is acquisition.build_acquisition_monthly_reconciliation_triage_v1
+    assert services.build_acquisition_monthly_reconciliation_triage_markdown_v1 is acquisition.build_acquisition_monthly_reconciliation_triage_markdown_v1
     assert services.build_acquisition_generation_monthly_live_smoke_v1 is acquisition.build_acquisition_generation_monthly_live_smoke_v1
     assert services.build_acquisition_month_chunks_v1 is acquisition.build_acquisition_month_chunks_v1
     assert services.build_massive_custom_bars_request_v1 is acquisition.build_massive_custom_bars_request_v1
     assert services.build_massive_custom_bars_live_request_v1 is acquisition_adapter.build_massive_custom_bars_live_request_v1
     assert services.validate_acquisition_generation_candidate_v1 is acquisition.validate_acquisition_generation_candidate_v1
     assert services.validate_acquisition_generation_monthly_live_smoke_v1 is acquisition.validate_acquisition_generation_monthly_live_smoke_v1
+    assert services.validate_acquisition_monthly_reconciliation_triage_v1 is acquisition.validate_acquisition_monthly_reconciliation_triage_v1
     assert services.write_acquisition_generation_candidate_v1 is acquisition.write_acquisition_generation_candidate_v1
     assert services.write_acquisition_generation_live_status_v1 is acquisition.write_acquisition_generation_live_status_v1
+    assert services.write_acquisition_monthly_reconciliation_triage_status_v1 is acquisition.write_acquisition_monthly_reconciliation_triage_status_v1
     assert services.write_acquisition_generation_monthly_live_smoke_status_v1 is acquisition.write_acquisition_generation_monthly_live_smoke_status_v1
+    assert services.classify_monthly_reconciliation_issue_v1 is acquisition.classify_monthly_reconciliation_issue_v1
+    assert services.parse_acquisition_live_status_chunk_manifest_v1 is acquisition.parse_acquisition_live_status_chunk_manifest_v1
 
 
 def test_direct_live_request_builder_sanitizes_api_key():
@@ -727,6 +765,177 @@ def test_full_live_status_doc_contains_required_sanitized_summary(tmp_path: Path
     assert "API key stored: `False`" in text
     assert "No acquisition-generation freeze was created." in text
     assert "No canonical, registry, runtime, predictive, or profitability approval occurred." in text
+
+
+def test_triage_identifies_reconciled_months():
+    row = acquisition.classify_monthly_reconciliation_issue_v1(_triage_row("2025-01", normalized_rows=1277, extended_rows=757))
+
+    assert row["issue_category"] == "RECONCILED"
+    assert row["issue_severity"] == "INFO"
+    assert row["requires_operator_review"] is False
+
+
+def test_triage_identifies_non_reconciled_months_and_delta():
+    row = acquisition.classify_monthly_reconciliation_issue_v1(
+        _triage_row(
+            "2024-11",
+            status="RTH_SOURCE_ROWS_NOT_RECONCILED",
+            rth_rows=508,
+            expected_rth_rows=520,
+            incomplete_sessions=1,
+        )
+    )
+
+    assert row["issue_category"] == "MISSING_PROVIDER_ROWS"
+    assert row["issue_severity"] == "HIGH"
+    assert row["rth_row_delta"] == -12
+    assert row["requires_provider_recheck"] is True
+
+
+def test_triage_computes_39_9_summary_from_committed_status_fixture():
+    status_text = (REPO_ROOT / "docs" / "status" / "MARKETFLOW_ACQUISITION_LIVE_GENERATION_2022_2025_STATUS.md").read_text(encoding="utf-8")
+    rows = acquisition.parse_acquisition_live_status_chunk_manifest_v1(status_text)
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1(rows)
+
+    assert triage["total_months"] == 48
+    assert triage["reconciled_months"] == 39
+    assert triage["not_reconciled_months"] == 9
+    assert triage["non_reconciled_months"] == [
+        "2022-11",
+        "2023-07",
+        "2023-11",
+        "2024-07",
+        "2024-11",
+        "2024-12",
+        "2025-07",
+        "2025-11",
+        "2025-12",
+    ]
+
+
+def test_non_reconciled_unknown_detail_months_are_high_severity():
+    status_text = (REPO_ROOT / "docs" / "status" / "MARKETFLOW_ACQUISITION_LIVE_GENERATION_2022_2025_STATUS.md").read_text(encoding="utf-8")
+    rows = acquisition.parse_acquisition_live_status_chunk_manifest_v1(status_text)
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1(rows)
+    unresolved = [row for row in triage["triage_rows"] if row["reconciliation_status"] == "RTH_SOURCE_ROWS_NOT_RECONCILED"]
+
+    assert len(unresolved) == 9
+    assert {row["issue_category"] for row in unresolved} == {"INSUFFICIENT_DETAIL"}
+    assert {row["issue_severity"] for row in unresolved} == {"HIGH"}
+
+
+def test_2025_01_reconciled_fixture_is_info_and_not_blocker():
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1(
+        [_triage_row("2025-01", normalized_rows=1277, extended_rows=757)]
+    )
+    row = triage["triage_rows"][0]
+
+    assert triage["accepted_2025_01_cross_check_status"] == "PASSED"
+    assert row["issue_category"] == "RECONCILED"
+    assert row["issue_severity"] == "INFO"
+    assert triage["blocker_count"] == 0
+
+
+def test_2025_01_mismatch_becomes_blocker():
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1(
+        [
+            _triage_row(
+                "2025-01",
+                status="RTH_SOURCE_ROWS_NOT_RECONCILED",
+                normalized_rows=1276,
+                rth_rows=519,
+                expected_rth_rows=520,
+                extended_rows=757,
+                incomplete_sessions=1,
+            )
+        ]
+    )
+
+    assert triage["accepted_2025_01_cross_check_status"] == "FAILED"
+    assert triage["blocker_count"] == 1
+    assert triage["triage_rows"][0]["issue_severity"] == "BLOCKER"
+
+
+def test_triage_with_unresolved_non_reconciled_months_blocks_acquisition_review():
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1(
+        [
+            _triage_row("2024-10"),
+            _triage_row(
+                "2024-11",
+                status="RTH_SOURCE_ROWS_NOT_RECONCILED",
+                rth_rows=508,
+                expected_rth_rows=520,
+                incomplete_sessions=1,
+            ),
+        ]
+    )
+
+    assert triage["ready_for_acquisition_review"] is False
+    assert triage["operator_review_required"] is True
+    assert triage["triage_status"] == "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_BLOCKS_ACQUISITION_REVIEW"
+
+
+def test_triage_with_all_months_reconciled_allows_acquisition_review():
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1(
+        [_triage_row("2024-10"), _triage_row("2024-12", expected_rth_rows=520, rth_rows=520)]
+    )
+
+    assert triage["ready_for_acquisition_review"] is True
+    assert triage["operator_review_required"] is False
+    assert triage["triage_status"] == "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY"
+
+
+def test_triage_preserves_no_freeze_canonical_registry_or_runtime_authority():
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1([_triage_row("2025-01")])
+
+    assert triage["acquisition_generation_freeze"] is False
+    assert triage["canonical_eligibility"] is False
+    assert triage["registry_eligibility"] is False
+    assert triage["strategy_runtime_migration"] is False
+    assert triage["authority_boundary"]["acquisition_generation_freeze"] is False
+
+
+def test_triage_validator_rejects_wrong_source_acquisition_candidate_digest():
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1([_triage_row("2025-01")])
+    triage["source_acquisition_candidate_digest"] = "0" * 64
+    _recompute_triage_digest(triage)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match="source_acquisition_candidate_digest"):
+        acquisition.validate_acquisition_monthly_reconciliation_triage_v1(triage)
+
+
+@pytest.mark.parametrize(
+    "field",
+    [
+        "acquisition_generation_freeze",
+        "canonical_eligibility",
+        "registry_eligibility",
+        "strategy_runtime_migration",
+    ],
+)
+def test_triage_validator_rejects_disallowed_authority_flags_true(field: str):
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1([_triage_row("2025-01")])
+    triage[field] = True
+    _recompute_triage_digest(triage)
+
+    with pytest.raises(acquisition.AcquisitionGenerationError, match=field):
+        acquisition.validate_acquisition_monthly_reconciliation_triage_v1(triage)
+
+
+def test_triage_status_doc_contains_non_reconciled_month_summary(tmp_path: Path):
+    status_text = (REPO_ROOT / "docs" / "status" / "MARKETFLOW_ACQUISITION_LIVE_GENERATION_2022_2025_STATUS.md").read_text(encoding="utf-8")
+    rows = acquisition.parse_acquisition_live_status_chunk_manifest_v1(status_text)
+    triage = acquisition.build_acquisition_monthly_reconciliation_triage_v1(rows)
+    text = acquisition.build_acquisition_monthly_reconciliation_triage_markdown_v1(triage)
+    result = acquisition.write_acquisition_monthly_reconciliation_triage_status_v1(tmp_path / "triage.md", triage=triage)
+    written = Path(result["path"]).read_text(encoding="utf-8")
+
+    assert "Non-reconciled months: `9`" in text
+    assert "2022-11, 2023-07, 2023-11, 2024-07, 2024-11, 2024-12, 2025-07, 2025-11, 2025-12" in text
+    assert "Acquisition operator review: `BLOCKED`" in text
+    assert "No provider refresh was performed." in text
+    assert '"results"' not in written
+    assert "API_KEY" not in written
 
 
 @pytest.mark.skipif(

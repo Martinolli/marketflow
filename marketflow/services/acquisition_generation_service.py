@@ -20,12 +20,18 @@ from marketflow.services import exchange_calendar_evidence_service as calendar_s
 
 ARTIFACT_KIND_ACQUISITION_GENERATION_CANDIDATE = "ACQUISITION_GENERATION_CANDIDATE"
 ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE = "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE"
+ARTIFACT_KIND_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE = "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE"
 SCHEMA_VERSION_ACQUISITION_GENERATION_CANDIDATE_V1 = "acquisition_generation_candidate_v1"
 SCHEMA_VERSION_ACQUISITION_MONTHLY_LIVE_SMOKE_V1 = "acquisition_monthly_live_smoke_candidate_v1"
+SCHEMA_VERSION_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_V1 = "acquisition_monthly_reconciliation_triage_v1"
 ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW = "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
 ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION = "ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION"
 ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE = "ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE"
 ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH = "ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH"
+ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY = "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY"
+ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_BLOCKS_ACQUISITION_REVIEW = (
+    "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_BLOCKS_ACQUISITION_REVIEW"
+)
 ACQUISITION_GENERATION_FROZEN = "ACQUISITION_GENERATION_FROZEN"
 ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW = "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
 ACQUISITION_MONTHLY_LIVE_SMOKE_RECONCILIATION_MISMATCH = "ACQUISITION_MONTHLY_LIVE_SMOKE_RECONCILIATION_MISMATCH"
@@ -49,6 +55,15 @@ OUT_OF_CALENDAR_RANGE = "OUT_OF_CALENDAR_RANGE"
 UNKNOWN = "UNKNOWN"
 RTH_SOURCE_ROWS_RECONCILED = "RTH_SOURCE_ROWS_RECONCILED"
 RTH_SOURCE_ROWS_NOT_RECONCILED = "RTH_SOURCE_ROWS_NOT_RECONCILED"
+ISSUE_CATEGORY_RECONCILED = "RECONCILED"
+ISSUE_CATEGORY_RTH_ROW_COUNT_MISMATCH = "RTH_ROW_COUNT_MISMATCH"
+ISSUE_CATEGORY_MISSING_PROVIDER_ROWS = "MISSING_PROVIDER_ROWS"
+ISSUE_CATEGORY_EXTRA_PROVIDER_ROWS = "EXTRA_PROVIDER_ROWS"
+ISSUE_CATEGORY_INSUFFICIENT_DETAIL = "INSUFFICIENT_DETAIL"
+ISSUE_CATEGORY_UNKNOWN = "UNKNOWN"
+SEVERITY_INFO = "INFO"
+SEVERITY_HIGH = "HIGH"
+SEVERITY_BLOCKER = "BLOCKER"
 
 EXPECTED_IDENTITY_SEGMENT_FROZEN_DIGEST = dividend_freeze.dividend.EXPECTED_IDENTITY_SEGMENT_FROZEN_DIGEST
 EXPECTED_EXCHANGE_CALENDAR_FROZEN_DIGEST = dividend_freeze.dividend.EXPECTED_EXCHANGE_CALENDAR_FROZEN_DIGEST
@@ -56,6 +71,8 @@ EXPECTED_SCHEDULE_SEMANTIC_DIGEST = dividend_freeze.dividend.EXPECTED_SCHEDULE_S
 EXPECTED_SPLIT_EVENT_AUDIT_FROZEN_DIGEST = dividend_freeze.dividend.EXPECTED_SPLIT_EVENT_AUDIT_FROZEN_DIGEST
 EXPECTED_DIVIDEND_EVENT_AUDIT_FROZEN_DIGEST = "0ef4e69954d67a5df8a246f623b2904651d579e5ebbe620a9647e16b42b95141"
 EXPECTED_ACQUISITION_CONTRACT_DIGEST = dividend_freeze.dividend.EXPECTED_ACQUISITION_CONTRACT_DIGEST
+EXPECTED_FULL_LIVE_ACQUISITION_CANDIDATE_DIGEST = "5b1f7507c4549b0cd590737e37571cd0ff18f5710c5bfb853bd04aeec6b3f1cb"
+EXPECTED_FULL_LIVE_MONTHLY_RECONCILIATION_DIGEST = "d34effcf3129d630f14c61f5d0621aa0d89cdc51471f65f3d5effabeb42f16a4"
 EXPECTED_IN_RANGE_DIVIDEND_IMPLICATION = dividend_freeze.EXPECTED_IN_RANGE_DIVIDEND_IMPLICATION
 PREDICTIVE_USEFULNESS_NOT_ACCEPTED = dividend_freeze.dividend.PREDICTIVE_USEFULNESS_NOT_ACCEPTED
 PROFITABILITY_NOT_ACCEPTED = dividend_freeze.dividend.PROFITABILITY_NOT_ACCEPTED
@@ -1458,6 +1475,423 @@ def write_acquisition_generation_live_status_v1(path: str | Path, *, candidate: 
     output_path = Path(path)
     output_path.parent.mkdir(parents=True, exist_ok=True)
     text = build_acquisition_generation_live_status_markdown_v1(candidate)
+    output_path.write_text(text, encoding="utf-8")
+    return {
+        "path": str(output_path),
+        "filename": output_path.name,
+        "status_document_digest": sha256_bytes(text.encode("utf-8")),
+    }
+
+
+def _int_or_none(value: Any) -> int | None:
+    if value is None or value == "":
+        return None
+    if type(value) is int:
+        return value
+    if type(value) is str and value.strip().lstrip("-").isdigit():
+        return int(value.strip())
+    return None
+
+
+def _calendar_expectation_for_month(month: str) -> dict[str, int]:
+    schedule = calendar_service.build_exchange_calendar_schedule_rows_v1()
+    full_sessions = [row for row in schedule if row["session_date"].startswith(month) and row.get("is_full_session") is True]
+    expected_rth_rows = len(full_sessions) * 26
+    return {
+        "expected_rth_rows": expected_rth_rows,
+        "full_ordinary_sessions": len(full_sessions),
+        "swing_rth_half_session_195m_bars": len(full_sessions) * 2,
+        "position_swing_rth_full_session_1d_bars": len(full_sessions),
+    }
+
+
+def _is_reconciled_status(status: Any) -> bool:
+    return status == RTH_SOURCE_ROWS_RECONCILED
+
+
+def _row_status(row: Mapping[str, Any]) -> str:
+    status = row.get("reconciliation_status") or row.get("rth_reconciliation_status")
+    if isinstance(status, str):
+        return status
+    errors = row.get("errors")
+    if isinstance(errors, list) and RTH_SOURCE_ROWS_NOT_RECONCILED in errors:
+        return RTH_SOURCE_ROWS_NOT_RECONCILED
+    if isinstance(errors, str) and RTH_SOURCE_ROWS_NOT_RECONCILED in errors:
+        return RTH_SOURCE_ROWS_NOT_RECONCILED
+    return RTH_SOURCE_ROWS_RECONCILED
+
+
+def _row_number(row: Mapping[str, Any], *names: str) -> int | None:
+    for name in names:
+        value = _int_or_none(row.get(name))
+        if value is not None:
+            return value
+    return None
+
+
+def _triage_digest_payload(triage: dict[str, Any]) -> dict[str, Any]:
+    payload = deepcopy(triage)
+    payload.pop("triage_semantic_digest", None)
+    return payload
+
+
+def acquisition_monthly_reconciliation_triage_semantic_digest_v1(triage: dict[str, Any]) -> str:
+    return semantic_digest(_triage_digest_payload(triage))
+
+
+def classify_monthly_reconciliation_issue_v1(monthly_row: dict[str, Any]) -> dict[str, Any]:
+    """Classify one monthly reconciliation row without inferring a root cause."""
+    if not isinstance(monthly_row, dict):
+        raise AcquisitionGenerationError("monthly reconciliation row must be a JSON object")
+    month = monthly_row.get("month")
+    if type(month) is not str or len(month) != 7:
+        raise AcquisitionGenerationError("month must be YYYY-MM")
+    status = _row_status(monthly_row)
+    normalized_rows = _row_number(monthly_row, "normalized_source_rows", "normalized_row_count")
+    rth_rows = _row_number(monthly_row, "rth_rows", "rth_row_count")
+    extended_rows = _row_number(monthly_row, "extended_hours_rows", "extended_hours_row_count")
+    expected_rth = _row_number(monthly_row, "expected_rth_rows")
+    validated_rth = _row_number(monthly_row, "validated_rth_rows", "rth_rows", "rth_row_count")
+    full_sessions = _row_number(monthly_row, "full_ordinary_sessions")
+    incomplete_sessions = _row_number(monthly_row, "incomplete_ordinary_sessions")
+    swing_bars = _row_number(monthly_row, "swing_rth_half_session_195m_bars")
+    position_bars = _row_number(monthly_row, "position_swing_rth_full_session_1d_bars")
+    delta = None if expected_rth is None or validated_rth is None else validated_rth - expected_rth
+    detail_level = monthly_row.get("detail_level")
+
+    if _is_reconciled_status(status):
+        issue_category = ISSUE_CATEGORY_RECONCILED
+        issue_severity = SEVERITY_INFO
+        triage_reason = "Monthly RTH row count reconciles against the available calendar expectation."
+        requires_operator_review = False
+        requires_provider_recheck = False
+        requires_calendar_logic_review = False
+        requires_algorithm_review = False
+    elif month == "2025-01":
+        issue_category = ISSUE_CATEGORY_RTH_ROW_COUNT_MISMATCH
+        issue_severity = SEVERITY_BLOCKER
+        triage_reason = "Accepted 2025-01 cross-check is not reconciled; acquisition review is blocked."
+        requires_operator_review = True
+        requires_provider_recheck = True
+        requires_calendar_logic_review = True
+        requires_algorithm_review = True
+    elif detail_level == "STATUS_DOC_CHUNK_MANIFEST_ONLY" or incomplete_sessions is None:
+        issue_category = ISSUE_CATEGORY_INSUFFICIENT_DETAIL
+        issue_severity = SEVERITY_HIGH
+        triage_reason = "The committed status document identifies a monthly RTH mismatch but lacks per-session detail for root-cause classification."
+        requires_operator_review = True
+        requires_provider_recheck = True
+        requires_calendar_logic_review = True
+        requires_algorithm_review = True
+    elif delta is not None and delta < 0:
+        issue_category = ISSUE_CATEGORY_MISSING_PROVIDER_ROWS
+        issue_severity = SEVERITY_HIGH
+        triage_reason = "Validated RTH rows are below expected RTH rows; per-session evidence is required before assigning a root cause."
+        requires_operator_review = True
+        requires_provider_recheck = True
+        requires_calendar_logic_review = True
+        requires_algorithm_review = True
+    elif delta is not None and delta > 0:
+        issue_category = ISSUE_CATEGORY_EXTRA_PROVIDER_ROWS
+        issue_severity = SEVERITY_HIGH
+        triage_reason = "Validated RTH rows are above expected RTH rows; calendar and classification logic need review."
+        requires_operator_review = True
+        requires_provider_recheck = True
+        requires_calendar_logic_review = True
+        requires_algorithm_review = True
+    else:
+        issue_category = ISSUE_CATEGORY_RTH_ROW_COUNT_MISMATCH if delta == 0 else ISSUE_CATEGORY_UNKNOWN
+        issue_severity = SEVERITY_HIGH
+        triage_reason = "Monthly RTH reconciliation did not pass and available detail is insufficient for a narrower classification."
+        requires_operator_review = True
+        requires_provider_recheck = True
+        requires_calendar_logic_review = True
+        requires_algorithm_review = True
+
+    return {
+        "month": month,
+        "reconciliation_status": status,
+        "normalized_source_rows": normalized_rows,
+        "rth_rows": rth_rows,
+        "extended_hours_rows": extended_rows,
+        "expected_rth_rows": expected_rth,
+        "validated_rth_rows": validated_rth,
+        "rth_row_delta": delta,
+        "full_ordinary_sessions": full_sessions,
+        "incomplete_ordinary_sessions": incomplete_sessions,
+        "swing_rth_half_session_195m_bars": swing_bars,
+        "position_swing_rth_full_session_1d_bars": position_bars,
+        "issue_category": issue_category,
+        "issue_severity": issue_severity,
+        "triage_reason": triage_reason,
+        "requires_operator_review": requires_operator_review,
+        "requires_provider_recheck": requires_provider_recheck,
+        "requires_calendar_logic_review": requires_calendar_logic_review,
+        "requires_algorithm_review": requires_algorithm_review,
+    }
+
+
+def _count_by(rows: list[dict[str, Any]], field: str) -> dict[str, int]:
+    counts: dict[str, int] = {}
+    for row in rows:
+        key = str(row.get(field))
+        counts[key] = counts.get(key, 0) + 1
+    return dict(sorted(counts.items()))
+
+
+def _january_cross_check_status_from_triage_rows(rows: list[dict[str, Any]]) -> str:
+    january = next((row for row in rows if row.get("month") == "2025-01"), None)
+    if january is None:
+        return "NOT_PRESENT"
+    if january.get("issue_severity") == SEVERITY_BLOCKER:
+        return "FAILED"
+    if january.get("reconciliation_status") == RTH_SOURCE_ROWS_RECONCILED:
+        return "PASSED"
+    return "FAILED"
+
+
+def build_acquisition_monthly_reconciliation_triage_v1(
+    monthly_rows: list[dict[str, Any]],
+    *,
+    source_acquisition_candidate_digest: str = EXPECTED_FULL_LIVE_ACQUISITION_CANDIDATE_DIGEST,
+    source_monthly_reconciliation_digest: str = EXPECTED_FULL_LIVE_MONTHLY_RECONCILIATION_DIGEST,
+) -> dict[str, Any]:
+    """Build a conservative monthly reconciliation triage artifact."""
+    if not isinstance(monthly_rows, list):
+        raise AcquisitionGenerationError("monthly_rows must be a list")
+    triage_rows = [classify_monthly_reconciliation_issue_v1(row) for row in monthly_rows]
+    triage_rows.sort(key=lambda row: row["month"])
+    total_months = len(triage_rows)
+    reconciled_months = sum(1 for row in triage_rows if row["reconciliation_status"] == RTH_SOURCE_ROWS_RECONCILED)
+    not_reconciled_months = total_months - reconciled_months
+    blocker_count = sum(1 for row in triage_rows if row["issue_severity"] == SEVERITY_BLOCKER)
+    high_count = sum(1 for row in triage_rows if row["issue_severity"] == SEVERITY_HIGH)
+    ready_for_acquisition_review = not_reconciled_months == 0 and blocker_count == 0
+    triage = {
+        "artifact_kind": ARTIFACT_KIND_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE,
+        "schema_version": SCHEMA_VERSION_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_V1,
+        "triage_status": (
+            ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY
+            if ready_for_acquisition_review
+            else ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_BLOCKS_ACQUISITION_REVIEW
+        ),
+        "source_acquisition_candidate_digest": source_acquisition_candidate_digest,
+        "source_monthly_reconciliation_digest": source_monthly_reconciliation_digest,
+        "total_months": total_months,
+        "reconciled_months": reconciled_months,
+        "not_reconciled_months": not_reconciled_months,
+        "blocker_count": blocker_count,
+        "high_count": high_count,
+        "issue_category_summary": _count_by(triage_rows, "issue_category"),
+        "issue_severity_summary": _count_by(triage_rows, "issue_severity"),
+        "non_reconciled_months": [row["month"] for row in triage_rows if row["reconciliation_status"] != RTH_SOURCE_ROWS_RECONCILED],
+        "accepted_2025_01_cross_check_status": _january_cross_check_status_from_triage_rows(triage_rows),
+        "ready_for_acquisition_review": ready_for_acquisition_review,
+        "operator_review_required": not ready_for_acquisition_review,
+        "acquisition_generation_freeze": False,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "strategy_runtime_migration": False,
+        "automatic_stitching": False,
+        "predictive_usefulness": PREDICTIVE_USEFULNESS_NOT_ACCEPTED,
+        "profitability": PROFITABILITY_NOT_ACCEPTED,
+        "triage_rows": triage_rows,
+        "authority_boundary": _authority_boundary(),
+    }
+    triage["triage_semantic_digest"] = acquisition_monthly_reconciliation_triage_semantic_digest_v1(triage)
+    validate_acquisition_monthly_reconciliation_triage_v1(triage)
+    return triage
+
+
+def validate_acquisition_monthly_reconciliation_triage_v1(triage: dict[str, Any]) -> dict[str, Any]:
+    """Validate monthly reconciliation triage and reject premature authority claims."""
+    if not isinstance(triage, dict):
+        raise AcquisitionGenerationError("triage must be a JSON object")
+    _expect(triage.get("artifact_kind"), ARTIFACT_KIND_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE, "artifact_kind")
+    _expect(triage.get("schema_version"), SCHEMA_VERSION_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_V1, "schema_version")
+    if triage.get("triage_status") not in {
+        ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY,
+        ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_BLOCKS_ACQUISITION_REVIEW,
+    }:
+        raise AcquisitionGenerationError("triage_status mismatch")
+    _expect(
+        triage.get("source_acquisition_candidate_digest"),
+        EXPECTED_FULL_LIVE_ACQUISITION_CANDIDATE_DIGEST,
+        "source_acquisition_candidate_digest",
+    )
+    _expect(
+        triage.get("source_monthly_reconciliation_digest"),
+        EXPECTED_FULL_LIVE_MONTHLY_RECONCILIATION_DIGEST,
+        "source_monthly_reconciliation_digest",
+    )
+    for field in ("acquisition_generation_freeze", "canonical_eligibility", "registry_eligibility", "strategy_runtime_migration", "automatic_stitching"):
+        _expect_false(triage.get(field), field)
+    rows = triage.get("triage_rows")
+    if not isinstance(rows, list):
+        raise AcquisitionGenerationError("triage_rows must be a list")
+    _expect(triage.get("total_months"), len(rows), "total_months")
+    reconciled = sum(1 for row in rows if row.get("reconciliation_status") == RTH_SOURCE_ROWS_RECONCILED)
+    _expect(triage.get("reconciled_months"), reconciled, "reconciled_months")
+    _expect(triage.get("not_reconciled_months"), len(rows) - reconciled, "not_reconciled_months")
+    _expect(triage.get("blocker_count"), sum(1 for row in rows if row.get("issue_severity") == SEVERITY_BLOCKER), "blocker_count")
+    _expect(triage.get("high_count"), sum(1 for row in rows if row.get("issue_severity") == SEVERITY_HIGH), "high_count")
+    if triage.get("not_reconciled_months", 0) > 0:
+        _expect_false(triage.get("ready_for_acquisition_review"), "ready_for_acquisition_review")
+    digest = triage.get("triage_semantic_digest")
+    if not isinstance(digest, str) or len(digest) != 64:
+        raise AcquisitionGenerationError("triage_semantic_digest missing")
+    _expect(digest, acquisition_monthly_reconciliation_triage_semantic_digest_v1(triage), "triage_semantic_digest")
+    return {
+        "status": "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_VALID",
+        "artifact_kind": ARTIFACT_KIND_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE,
+        "triage_status": triage["triage_status"],
+        "total_months": triage["total_months"],
+        "reconciled_months": triage["reconciled_months"],
+        "not_reconciled_months": triage["not_reconciled_months"],
+        "ready_for_acquisition_review": triage["ready_for_acquisition_review"],
+        "triage_semantic_digest": digest,
+        "acquisition_generation_freeze": False,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "strategy_runtime_migration": False,
+    }
+
+
+def _parse_markdown_table_row(line: str) -> list[str]:
+    return [part.strip() for part in line.strip().strip("|").split("|")]
+
+
+def parse_acquisition_live_status_chunk_manifest_v1(status_markdown: str) -> list[dict[str, Any]]:
+    """Parse the sanitized live-generation chunk manifest table from Markdown."""
+    rows: list[dict[str, Any]] = []
+    in_table = False
+    headers: list[str] = []
+    for line in status_markdown.splitlines():
+        if line.startswith("| chunk_id | month |"):
+            headers = _parse_markdown_table_row(line)
+            in_table = True
+            continue
+        if not in_table:
+            continue
+        if line.startswith("| ---"):
+            continue
+        if not line.startswith("| "):
+            break
+        values = _parse_markdown_table_row(line)
+        if len(values) != len(headers):
+            raise AcquisitionGenerationError("chunk manifest table row does not match header")
+        record = dict(zip(headers, values, strict=True))
+        month = record["month"]
+        calendar = _calendar_expectation_for_month(month)
+        rth_rows = _int_or_none(record["rth_rows"])
+        errors = [item for item in record["errors"].split(",") if item] if record["errors"] else []
+        status = RTH_SOURCE_ROWS_NOT_RECONCILED if RTH_SOURCE_ROWS_NOT_RECONCILED in errors else RTH_SOURCE_ROWS_RECONCILED
+        rows.append(
+            {
+                "month": month,
+                "reconciliation_status": status,
+                "normalized_source_rows": _int_or_none(record["normalized_rows"]),
+                "rth_rows": rth_rows,
+                "extended_hours_rows": _int_or_none(record["extended_hours_rows"]),
+                "expected_rth_rows": calendar["expected_rth_rows"],
+                "validated_rth_rows": rth_rows,
+                "full_ordinary_sessions": calendar["full_ordinary_sessions"],
+                "incomplete_ordinary_sessions": None,
+                "swing_rth_half_session_195m_bars": calendar["swing_rth_half_session_195m_bars"],
+                "position_swing_rth_full_session_1d_bars": calendar["position_swing_rth_full_session_1d_bars"],
+                "detail_level": "STATUS_DOC_CHUNK_MANIFEST_ONLY",
+                "source_chunk_id": record["chunk_id"],
+                "warnings": [item for item in record["warnings"].split(",") if item] if record["warnings"] else [],
+                "errors": errors,
+            }
+        )
+    if not rows:
+        raise AcquisitionGenerationError("chunk manifest table not found")
+    return rows
+
+
+def build_acquisition_monthly_reconciliation_triage_markdown_v1(triage: dict[str, Any]) -> str:
+    """Render a sanitized monthly reconciliation triage status document."""
+    validate_acquisition_monthly_reconciliation_triage_v1(triage)
+    boundary = triage["authority_boundary"]
+    lines = [
+        "# MarketFlow Acquisition Monthly Reconciliation Triage Status",
+        "",
+        "## Scope",
+        f"- Artifact kind: `{triage['artifact_kind']}`",
+        f"- Triage status: `{triage['triage_status']}`",
+        f"- Source acquisition candidate digest: `{triage['source_acquisition_candidate_digest']}`",
+        f"- Source monthly reconciliation digest: `{triage['source_monthly_reconciliation_digest']}`",
+        f"- Total months: `{triage['total_months']}`",
+        f"- Reconciled months: `{triage['reconciled_months']}`",
+        f"- Non-reconciled months: `{triage['not_reconciled_months']}`",
+        f"- Non-reconciled month list: `{', '.join(triage['non_reconciled_months'])}`",
+        f"- Issue category summary: `{json.dumps(triage['issue_category_summary'], sort_keys=True, separators=(',', ':'))}`",
+        f"- Issue severity summary: `{json.dumps(triage['issue_severity_summary'], sort_keys=True, separators=(',', ':'))}`",
+        f"- 2025-01 cross-check status: `{triage['accepted_2025_01_cross_check_status']}`",
+        f"- Acquisition operator review: `{'ALLOWED' if triage['ready_for_acquisition_review'] else 'BLOCKED'}`",
+        "",
+        "## Triage Table",
+        "| month | status | normalized_rows | rth_rows | extended_hours_rows | expected_rth_rows | validated_rth_rows | rth_delta | full_sessions | incomplete_sessions | swing_bars | position_bars | category | severity | operator_review | provider_recheck | calendar_review | algorithm_review | reason |",
+        "| --- | --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |",
+    ]
+    for row in triage["triage_rows"]:
+        lines.append(
+            "| "
+            f"{row['month']} | "
+            f"{row['reconciliation_status']} | "
+            f"{row['normalized_source_rows']} | "
+            f"{row['rth_rows']} | "
+            f"{row['extended_hours_rows']} | "
+            f"{row['expected_rth_rows']} | "
+            f"{row['validated_rth_rows']} | "
+            f"{row['rth_row_delta']} | "
+            f"{row['full_ordinary_sessions']} | "
+            f"{row['incomplete_ordinary_sessions']} | "
+            f"{row['swing_rth_half_session_195m_bars']} | "
+            f"{row['position_swing_rth_full_session_1d_bars']} | "
+            f"{row['issue_category']} | "
+            f"{row['issue_severity']} | "
+            f"{row['requires_operator_review']} | "
+            f"{row['requires_provider_recheck']} | "
+            f"{row['requires_calendar_logic_review']} | "
+            f"{row['requires_algorithm_review']} | "
+            f"{row['triage_reason']} |"
+        )
+    lines.extend(
+        [
+            "",
+            "## Authority Boundary",
+            f"- identity_segment_frozen: `{boundary['identity_segment_frozen']}`",
+            f"- calendar_operator_frozen: `{boundary['calendar_operator_frozen']}`",
+            f"- split_event_audit_frozen: `{boundary['split_event_audit_frozen']}`",
+            f"- dividend_event_audit_frozen: `{boundary['dividend_event_audit_frozen']}`",
+            f"- acquisition_generation_freeze: `{boundary['acquisition_generation_freeze']}`",
+            f"- canonical_eligibility: `{boundary['canonical_eligibility']}`",
+            f"- registry_eligibility: `{boundary['registry_eligibility']}`",
+            f"- strategy_runtime_migration: `{boundary['strategy_runtime_migration']}`",
+            f"- automatic_stitching: `{boundary['automatic_stitching']}`",
+            f"- predictive_usefulness: `{boundary['predictive_usefulness']}`",
+            f"- profitability: `{boundary['profitability']}`",
+            "",
+            "## Non-Goals",
+            "- No provider refresh was performed.",
+            "- No API key, raw provider payload, generated bars, personal, broker, or tax data is included.",
+            "- No acquisition-generation freeze was created.",
+            "- No canonical, registry, runtime, predictive, or profitability approval occurred.",
+            "",
+            "## Next Task Recommendation",
+            "- Build a per-session reconciliation diagnostic from ignored local runtime artifacts or a separately gated rerun before acquisition operator review.",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def write_acquisition_monthly_reconciliation_triage_status_v1(path: str | Path, *, triage: dict[str, Any]) -> dict[str, Any]:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    text = build_acquisition_monthly_reconciliation_triage_markdown_v1(triage)
     output_path.write_text(text, encoding="utf-8")
     return {
         "path": str(output_path),
