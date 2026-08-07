@@ -85,5 +85,11 @@
 - No acquisition-generation freeze was created.
 - No canonical, registry, runtime, predictive, or profitability approval occurred.
 
+## Follow-On Per-Session Diagnostics
+- Per-session diagnostics status: `ACQUISITION_PER_SESSION_DIAGNOSTICS_BLOCKED_MISSING_ROW_LEVEL_DATA`
+- Status document: `docs/status/MARKETFLOW_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS_STATUS.md`
+- Blocked reason: `ROW_LEVEL_NORMALIZED_SOURCE_DATA_NOT_AVAILABLE`
+- Acquisition review remains blocked until row-level per-session evidence is generated and reviewed.
+
 ## Next Task Recommendation
 - Build a per-session reconciliation diagnostic from ignored local runtime artifacts or a separately gated rerun before acquisition operator review.

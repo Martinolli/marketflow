@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import csv
 from copy import deepcopy
 from datetime import UTC, date, datetime, time, timedelta
 from decimal import Decimal
@@ -21,9 +22,11 @@ from marketflow.services import exchange_calendar_evidence_service as calendar_s
 ARTIFACT_KIND_ACQUISITION_GENERATION_CANDIDATE = "ACQUISITION_GENERATION_CANDIDATE"
 ARTIFACT_KIND_ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE = "ACQUISITION_MONTHLY_LIVE_SMOKE_CANDIDATE"
 ARTIFACT_KIND_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE = "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE"
+ARTIFACT_KIND_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS = "ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS"
 SCHEMA_VERSION_ACQUISITION_GENERATION_CANDIDATE_V1 = "acquisition_generation_candidate_v1"
 SCHEMA_VERSION_ACQUISITION_MONTHLY_LIVE_SMOKE_V1 = "acquisition_monthly_live_smoke_candidate_v1"
 SCHEMA_VERSION_ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_V1 = "acquisition_monthly_reconciliation_triage_v1"
+SCHEMA_VERSION_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS_V1 = "acquisition_per_session_reconciliation_diagnostics_v1"
 ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW = "ACQUISITION_GENERATION_READY_FOR_OPERATOR_REVIEW"
 ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION = "ACQUISITION_GENERATION_REQUIRES_LIVE_PROVIDER_EXECUTION"
 ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE = "ACQUISITION_GENERATION_PROVIDER_CHUNKS_INCOMPLETE"
@@ -31,6 +34,13 @@ ACQUISITION_GENERATION_2025_01_CROSS_CHECK_MISMATCH = "ACQUISITION_GENERATION_20
 ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY = "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_READY"
 ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_BLOCKS_ACQUISITION_REVIEW = (
     "ACQUISITION_MONTHLY_RECONCILIATION_TRIAGE_BLOCKS_ACQUISITION_REVIEW"
+)
+ACQUISITION_PER_SESSION_DIAGNOSTICS_COMPLETE = "ACQUISITION_PER_SESSION_DIAGNOSTICS_COMPLETE"
+ACQUISITION_PER_SESSION_DIAGNOSTICS_BLOCKED_MISSING_ROW_LEVEL_DATA = (
+    "ACQUISITION_PER_SESSION_DIAGNOSTICS_BLOCKED_MISSING_ROW_LEVEL_DATA"
+)
+ACQUISITION_PER_SESSION_DIAGNOSTICS_REQUIRES_OPERATOR_REVIEW = (
+    "ACQUISITION_PER_SESSION_DIAGNOSTICS_REQUIRES_OPERATOR_REVIEW"
 )
 ACQUISITION_GENERATION_FROZEN = "ACQUISITION_GENERATION_FROZEN"
 ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW = "ACQUISITION_MONTHLY_LIVE_SMOKE_READY_FOR_OPERATOR_REVIEW"
@@ -60,6 +70,10 @@ ISSUE_CATEGORY_RTH_ROW_COUNT_MISMATCH = "RTH_ROW_COUNT_MISMATCH"
 ISSUE_CATEGORY_MISSING_PROVIDER_ROWS = "MISSING_PROVIDER_ROWS"
 ISSUE_CATEGORY_EXTRA_PROVIDER_ROWS = "EXTRA_PROVIDER_ROWS"
 ISSUE_CATEGORY_INSUFFICIENT_DETAIL = "INSUFFICIENT_DETAIL"
+ISSUE_CATEGORY_MISSING_RTH_BARS = "MISSING_RTH_BARS"
+ISSUE_CATEGORY_EXTRA_RTH_BARS = "EXTRA_RTH_BARS"
+ISSUE_CATEGORY_INSUFFICIENT_ROW_LEVEL_DETAIL = "INSUFFICIENT_ROW_LEVEL_DETAIL"
+ISSUE_CATEGORY_CALENDAR_SESSION_DURATION_REVIEW_REQUIRED = "CALENDAR_SESSION_DURATION_REVIEW_REQUIRED"
 ISSUE_CATEGORY_UNKNOWN = "UNKNOWN"
 SEVERITY_INFO = "INFO"
 SEVERITY_HIGH = "HIGH"
@@ -102,6 +116,36 @@ REMAINING_ROADMAP_AFTER_ACQUISITION_GENERATION_CANDIDATE = [
     "Acquisition generation freeze.",
     "SWING canonical dataset candidate.",
     "POSITION_SWING canonical dataset candidate.",
+]
+
+DEFAULT_PER_SESSION_DIAGNOSTIC_TARGET_MONTHS = [
+    "2022-11",
+    "2023-07",
+    "2023-11",
+    "2024-07",
+    "2024-11",
+    "2024-12",
+    "2025-07",
+    "2025-11",
+    "2025-12",
+]
+
+PER_SESSION_RECONCILIATION_CSV_COLUMNS = [
+    "session_date",
+    "month",
+    "session_type",
+    "expected_15m_bars",
+    "observed_15m_bars",
+    "rth_row_delta",
+    "missing_count",
+    "extra_count",
+    "first_observed_rth_timestamp_utc",
+    "last_observed_rth_timestamp_utc",
+    "provider_chunk_id",
+    "provider_chunk_month",
+    "issue_category",
+    "issue_severity",
+    "notes",
 ]
 
 
@@ -1754,6 +1798,538 @@ def validate_acquisition_monthly_reconciliation_triage_v1(triage: dict[str, Any]
         "canonical_eligibility": False,
         "registry_eligibility": False,
         "strategy_runtime_migration": False,
+    }
+
+
+def _per_session_diagnostics_payload(diagnostics: dict[str, Any]) -> dict[str, Any]:
+    payload = deepcopy(diagnostics)
+    payload.pop("per_session_diagnostics_semantic_digest", None)
+    return payload
+
+
+def acquisition_per_session_reconciliation_diagnostics_semantic_digest_v1(diagnostics: dict[str, Any]) -> str:
+    return semantic_digest(_per_session_diagnostics_payload(diagnostics))
+
+
+def _normalize_target_months(target_months: list[str] | tuple[str, ...] | None) -> list[str]:
+    months = list(target_months) if target_months is not None else list(DEFAULT_PER_SESSION_DIAGNOSTIC_TARGET_MONTHS)
+    for month in months:
+        if type(month) is not str or len(month) != 7 or month[4] != "-":
+            raise AcquisitionGenerationError("target_months must contain YYYY-MM strings")
+    return sorted(months)
+
+
+def _session_rows_for_months(
+    target_months: list[str],
+    *,
+    schedule_rows: list[dict[str, Any]] | None,
+) -> list[dict[str, Any]]:
+    schedule = schedule_rows if schedule_rows is not None else calendar_service.build_exchange_calendar_schedule_rows_v1()
+    target_set = set(target_months)
+    return [row for row in schedule if row["session_date"][:7] in target_set]
+
+
+def _timestamp_utc_or_none(row: Mapping[str, Any]) -> datetime | None:
+    value = row.get("timestamp_utc")
+    if not isinstance(value, str):
+        return None
+    try:
+        return _parse_utc(value)
+    except ValueError:
+        return None
+
+
+def _iso_utc(value: datetime | None) -> str | None:
+    if value is None:
+        return None
+    return value.astimezone(UTC).replace(microsecond=0).isoformat().replace("+00:00", "Z")
+
+
+def classify_session_reconciliation_issue_v1(session_row: dict[str, Any]) -> dict[str, Any]:
+    """Classify one session diagnostic row without assigning unverifiable root cause."""
+    if not isinstance(session_row, dict):
+        raise AcquisitionGenerationError("session reconciliation row must be a JSON object")
+    month = session_row.get("month")
+    if type(month) is not str or len(month) != 7:
+        raise AcquisitionGenerationError("month must be YYYY-MM")
+    expected = _int_or_none(session_row.get("expected_15m_bars"))
+    observed = _int_or_none(session_row.get("observed_15m_bars"))
+    if observed is None:
+        raise AcquisitionGenerationError("observed_15m_bars is required")
+    if expected is None:
+        delta = None
+        issue_category = ISSUE_CATEGORY_CALENDAR_SESSION_DURATION_REVIEW_REQUIRED
+        issue_severity = SEVERITY_HIGH
+        notes = "Calendar session duration is not divisible by the 15-minute source interval."
+        requires_provider_recheck = False
+        requires_calendar_logic_review = True
+        requires_timezone_review = True
+        requires_algorithm_review = True
+    else:
+        delta = observed - expected
+        if delta == 0:
+            issue_category = ISSUE_CATEGORY_RECONCILED
+            issue_severity = SEVERITY_INFO
+            notes = "Session RTH row count reconciles against the calendar open-close window."
+            requires_provider_recheck = False
+            requires_calendar_logic_review = False
+            requires_timezone_review = False
+            requires_algorithm_review = False
+        elif delta < 0:
+            issue_category = ISSUE_CATEGORY_MISSING_RTH_BARS
+            issue_severity = SEVERITY_BLOCKER if month == "2025-01" else SEVERITY_HIGH
+            notes = "Observed RTH bars are below the calendar-derived session expectation."
+            requires_provider_recheck = True
+            requires_calendar_logic_review = False
+            requires_timezone_review = True
+            requires_algorithm_review = True
+        else:
+            issue_category = ISSUE_CATEGORY_EXTRA_RTH_BARS
+            issue_severity = SEVERITY_BLOCKER if month == "2025-01" else SEVERITY_HIGH
+            notes = "Observed RTH bars exceed the calendar-derived session expectation."
+            requires_provider_recheck = True
+            requires_calendar_logic_review = True
+            requires_timezone_review = True
+            requires_algorithm_review = True
+
+    result = deepcopy(session_row)
+    result.update(
+        {
+            "rth_row_delta": delta,
+            "missing_count": abs(delta) if delta is not None and delta < 0 else 0,
+            "extra_count": delta if delta is not None and delta > 0 else 0,
+            "issue_category": issue_category,
+            "issue_severity": issue_severity,
+            "requires_operator_review": issue_severity != SEVERITY_INFO,
+            "requires_provider_recheck": requires_provider_recheck,
+            "requires_calendar_logic_review": requires_calendar_logic_review,
+            "requires_timezone_review": requires_timezone_review,
+            "requires_algorithm_review": requires_algorithm_review,
+            "notes": notes,
+        }
+    )
+    return result
+
+
+def build_per_session_reconciliation_rows_v1(
+    normalized_rows: list[dict[str, Any]],
+    *,
+    target_months: list[str] | tuple[str, ...] | None = None,
+    schedule_rows: list[dict[str, Any]] | None = None,
+) -> list[dict[str, Any]]:
+    """Build session-level RTH reconciliation diagnostics from normalized source rows."""
+    if not isinstance(normalized_rows, list):
+        raise AcquisitionGenerationError("normalized_rows must be a list")
+    months = _normalize_target_months(target_months)
+    schedule = _session_rows_for_months(months, schedule_rows=schedule_rows)
+    timestamped_rows: list[tuple[datetime, dict[str, Any]]] = []
+    for row in normalized_rows:
+        if not isinstance(row, dict):
+            raise AcquisitionGenerationError("normalized_rows must contain JSON objects")
+        timestamp = _timestamp_utc_or_none(row)
+        if timestamp is not None:
+            timestamped_rows.append((timestamp, row))
+
+    diagnostics: list[dict[str, Any]] = []
+    for session in schedule:
+        open_utc = _parse_utc(session["market_open_utc"])
+        close_utc = _parse_utc(session["market_close_utc"])
+        session_rows = [(timestamp, row) for timestamp, row in timestamped_rows if open_utc <= timestamp < close_utc]
+        session_rows.sort(key=lambda item: item[0])
+        observed = len(session_rows)
+        session_minutes = _int_or_none(session.get("session_minutes"))
+        expected = None if session_minutes is None or session_minutes % 15 != 0 else session_minutes // 15
+        chunk_ids = sorted({str(row.get("source_chunk_id")) for _, row in session_rows if row.get("source_chunk_id")})
+        source_months = sorted({str(row.get("source_month")) for _, row in session_rows if row.get("source_month")})
+        session_type = "FULL" if session.get("is_full_session") is True else "HALF" if session.get("is_half_session") is True else "SPECIAL"
+        base = {
+            "session_date": session["session_date"],
+            "month": session["session_date"][:7],
+            "session_type": session_type,
+            "market_open_utc": session["market_open_utc"],
+            "market_close_utc": session["market_close_utc"],
+            "session_minutes": session_minutes,
+            "expected_15m_bars": expected,
+            "observed_15m_bars": observed,
+            "first_observed_rth_timestamp_utc": _iso_utc(session_rows[0][0]) if session_rows else None,
+            "last_observed_rth_timestamp_utc": _iso_utc(session_rows[-1][0]) if session_rows else None,
+            "provider_chunk_id": ",".join(chunk_ids) if chunk_ids else f"AAPL-{session['session_date'][:7]}",
+            "provider_chunk_month": ",".join(source_months) if source_months else session["session_date"][:7],
+        }
+        diagnostics.append(classify_session_reconciliation_issue_v1(base))
+    diagnostics.sort(key=lambda row: row["session_date"])
+    return diagnostics
+
+
+def _per_session_status_from_rows(rows: list[dict[str, Any]]) -> str:
+    if any(row.get("issue_severity") == SEVERITY_BLOCKER for row in rows):
+        return ACQUISITION_PER_SESSION_DIAGNOSTICS_REQUIRES_OPERATOR_REVIEW
+    if any(row.get("issue_severity") == SEVERITY_HIGH for row in rows):
+        return ACQUISITION_PER_SESSION_DIAGNOSTICS_REQUIRES_OPERATOR_REVIEW
+    return ACQUISITION_PER_SESSION_DIAGNOSTICS_COMPLETE
+
+
+def _january_cross_check_status_from_session_rows(rows: list[dict[str, Any]], target_months: list[str]) -> str:
+    january = [row for row in rows if row.get("month") == "2025-01"]
+    if not january:
+        return "PASSED_FROM_MONTHLY_TRIAGE" if "2025-01" not in target_months else "NOT_PRESENT"
+    if any(row.get("issue_severity") == SEVERITY_BLOCKER for row in january):
+        return "FAILED"
+    if all(row.get("issue_category") == ISSUE_CATEGORY_RECONCILED for row in january):
+        return "PASSED"
+    return "FAILED"
+
+
+def _blocked_per_session_diagnostics(
+    *,
+    target_months: list[str],
+    source_acquisition_candidate_digest: str,
+    source_monthly_reconciliation_digest: str,
+) -> dict[str, Any]:
+    diagnostics = {
+        "artifact_kind": ARTIFACT_KIND_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS,
+        "schema_version": SCHEMA_VERSION_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS_V1,
+        "diagnostics_status": ACQUISITION_PER_SESSION_DIAGNOSTICS_BLOCKED_MISSING_ROW_LEVEL_DATA,
+        "source_acquisition_candidate_digest": source_acquisition_candidate_digest,
+        "source_monthly_reconciliation_digest": source_monthly_reconciliation_digest,
+        "target_months": target_months,
+        "target_month_count": len(target_months),
+        "row_level_source_available": False,
+        "session_diagnostics_available": False,
+        "blocked_reason": "ROW_LEVEL_NORMALIZED_SOURCE_DATA_NOT_AVAILABLE",
+        "instrumentation_added_for_future_generation_runs": True,
+        "total_sessions_evaluated": 0,
+        "reconciled_sessions": 0,
+        "non_reconciled_sessions": 0,
+        "missing_bar_sessions": 0,
+        "extra_bar_sessions": 0,
+        "calendar_duration_review_sessions": 0,
+        "blocker_count": 0,
+        "high_count": 0,
+        "issue_category_summary": {},
+        "issue_severity_summary": {},
+        "session_diagnostics": [],
+        "accepted_2025_01_cross_check_status": "PASSED_FROM_MONTHLY_TRIAGE",
+        "ready_for_acquisition_review": False,
+        "operator_review_required": True,
+        "provider_requests_made": False,
+        "provider_refresh_performed": False,
+        "full_rerun_performed": False,
+        "acquisition_generation_freeze": False,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "strategy_runtime_migration": False,
+        "automatic_stitching": False,
+        "predictive_usefulness": PREDICTIVE_USEFULNESS_NOT_ACCEPTED,
+        "profitability": PROFITABILITY_NOT_ACCEPTED,
+        "authority_boundary": _authority_boundary(),
+        "next_required_task": "Run a separately gated generation that emits row-level per-session reconciliation diagnostics.",
+    }
+    diagnostics["per_session_diagnostics_semantic_digest"] = acquisition_per_session_reconciliation_diagnostics_semantic_digest_v1(
+        diagnostics
+    )
+    return diagnostics
+
+
+def build_acquisition_per_session_reconciliation_diagnostics_v1(
+    normalized_rows: list[dict[str, Any]] | None = None,
+    *,
+    target_months: list[str] | tuple[str, ...] | None = None,
+    schedule_rows: list[dict[str, Any]] | None = None,
+    source_acquisition_candidate_digest: str = EXPECTED_FULL_LIVE_ACQUISITION_CANDIDATE_DIGEST,
+    source_monthly_reconciliation_digest: str = EXPECTED_FULL_LIVE_MONTHLY_RECONCILIATION_DIGEST,
+) -> dict[str, Any]:
+    """Build per-session reconciliation diagnostics, or a blocked artifact when rows are unavailable."""
+    months = _normalize_target_months(target_months)
+    if normalized_rows is None:
+        diagnostics = _blocked_per_session_diagnostics(
+            target_months=months,
+            source_acquisition_candidate_digest=source_acquisition_candidate_digest,
+            source_monthly_reconciliation_digest=source_monthly_reconciliation_digest,
+        )
+        validate_acquisition_per_session_reconciliation_diagnostics_v1(diagnostics)
+        return diagnostics
+
+    session_rows = build_per_session_reconciliation_rows_v1(
+        normalized_rows,
+        target_months=months,
+        schedule_rows=schedule_rows,
+    )
+    status = _per_session_status_from_rows(session_rows)
+    total_sessions = len(session_rows)
+    non_reconciled = [row for row in session_rows if row["issue_category"] != ISSUE_CATEGORY_RECONCILED]
+    ready_for_review = status == ACQUISITION_PER_SESSION_DIAGNOSTICS_COMPLETE
+    diagnostics = {
+        "artifact_kind": ARTIFACT_KIND_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS,
+        "schema_version": SCHEMA_VERSION_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS_V1,
+        "diagnostics_status": status,
+        "source_acquisition_candidate_digest": source_acquisition_candidate_digest,
+        "source_monthly_reconciliation_digest": source_monthly_reconciliation_digest,
+        "target_months": months,
+        "target_month_count": len(months),
+        "row_level_source_available": True,
+        "session_diagnostics_available": True,
+        "blocked_reason": None,
+        "instrumentation_added_for_future_generation_runs": True,
+        "total_sessions_evaluated": total_sessions,
+        "reconciled_sessions": total_sessions - len(non_reconciled),
+        "non_reconciled_sessions": len(non_reconciled),
+        "missing_bar_sessions": sum(1 for row in session_rows if row["issue_category"] == ISSUE_CATEGORY_MISSING_RTH_BARS),
+        "extra_bar_sessions": sum(1 for row in session_rows if row["issue_category"] == ISSUE_CATEGORY_EXTRA_RTH_BARS),
+        "calendar_duration_review_sessions": sum(
+            1 for row in session_rows if row["issue_category"] == ISSUE_CATEGORY_CALENDAR_SESSION_DURATION_REVIEW_REQUIRED
+        ),
+        "blocker_count": sum(1 for row in session_rows if row["issue_severity"] == SEVERITY_BLOCKER),
+        "high_count": sum(1 for row in session_rows if row["issue_severity"] == SEVERITY_HIGH),
+        "issue_category_summary": _count_by(session_rows, "issue_category"),
+        "issue_severity_summary": _count_by(session_rows, "issue_severity"),
+        "session_diagnostics": session_rows,
+        "accepted_2025_01_cross_check_status": _january_cross_check_status_from_session_rows(session_rows, months),
+        "ready_for_acquisition_review": ready_for_review,
+        "operator_review_required": not ready_for_review,
+        "provider_requests_made": False,
+        "provider_refresh_performed": False,
+        "full_rerun_performed": False,
+        "acquisition_generation_freeze": False,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "strategy_runtime_migration": False,
+        "automatic_stitching": False,
+        "predictive_usefulness": PREDICTIVE_USEFULNESS_NOT_ACCEPTED,
+        "profitability": PROFITABILITY_NOT_ACCEPTED,
+        "authority_boundary": _authority_boundary(),
+        "next_required_task": "Operator review of unreconciled per-session diagnostics before any acquisition freeze.",
+    }
+    diagnostics["per_session_diagnostics_semantic_digest"] = acquisition_per_session_reconciliation_diagnostics_semantic_digest_v1(
+        diagnostics
+    )
+    validate_acquisition_per_session_reconciliation_diagnostics_v1(diagnostics)
+    return diagnostics
+
+
+def validate_acquisition_per_session_reconciliation_diagnostics_v1(diagnostics: dict[str, Any]) -> dict[str, Any]:
+    """Validate per-session diagnostics and reject premature authority claims."""
+    if not isinstance(diagnostics, dict):
+        raise AcquisitionGenerationError("per-session diagnostics must be a JSON object")
+    _expect(diagnostics.get("artifact_kind"), ARTIFACT_KIND_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS, "artifact_kind")
+    _expect(
+        diagnostics.get("schema_version"),
+        SCHEMA_VERSION_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS_V1,
+        "schema_version",
+    )
+    if diagnostics.get("diagnostics_status") not in {
+        ACQUISITION_PER_SESSION_DIAGNOSTICS_COMPLETE,
+        ACQUISITION_PER_SESSION_DIAGNOSTICS_BLOCKED_MISSING_ROW_LEVEL_DATA,
+        ACQUISITION_PER_SESSION_DIAGNOSTICS_REQUIRES_OPERATOR_REVIEW,
+    }:
+        raise AcquisitionGenerationError("diagnostics_status mismatch")
+    _expect(
+        diagnostics.get("source_acquisition_candidate_digest"),
+        EXPECTED_FULL_LIVE_ACQUISITION_CANDIDATE_DIGEST,
+        "source_acquisition_candidate_digest",
+    )
+    _expect(
+        diagnostics.get("source_monthly_reconciliation_digest"),
+        EXPECTED_FULL_LIVE_MONTHLY_RECONCILIATION_DIGEST,
+        "source_monthly_reconciliation_digest",
+    )
+    for field in (
+        "provider_requests_made",
+        "provider_refresh_performed",
+        "full_rerun_performed",
+        "acquisition_generation_freeze",
+        "canonical_eligibility",
+        "registry_eligibility",
+        "strategy_runtime_migration",
+        "automatic_stitching",
+    ):
+        _expect_false(diagnostics.get(field), field)
+    _expect(diagnostics.get("predictive_usefulness"), PREDICTIVE_USEFULNESS_NOT_ACCEPTED, "predictive_usefulness")
+    _expect(diagnostics.get("profitability"), PROFITABILITY_NOT_ACCEPTED, "profitability")
+    _expect(diagnostics.get("authority_boundary"), _authority_boundary(), "authority_boundary")
+    target_months = diagnostics.get("target_months")
+    if not isinstance(target_months, list):
+        raise AcquisitionGenerationError("target_months must be a list")
+    _expect(diagnostics.get("target_month_count"), len(target_months), "target_month_count")
+    rows = diagnostics.get("session_diagnostics")
+    if not isinstance(rows, list):
+        raise AcquisitionGenerationError("session_diagnostics must be a list")
+    _expect(diagnostics.get("total_sessions_evaluated"), len(rows), "total_sessions_evaluated")
+    reconciled = sum(1 for row in rows if row.get("issue_category") == ISSUE_CATEGORY_RECONCILED)
+    _expect(diagnostics.get("reconciled_sessions"), reconciled, "reconciled_sessions")
+    _expect(diagnostics.get("non_reconciled_sessions"), len(rows) - reconciled, "non_reconciled_sessions")
+    _expect(diagnostics.get("blocker_count"), sum(1 for row in rows if row.get("issue_severity") == SEVERITY_BLOCKER), "blocker_count")
+    _expect(diagnostics.get("high_count"), sum(1 for row in rows if row.get("issue_severity") == SEVERITY_HIGH), "high_count")
+    if diagnostics.get("diagnostics_status") == ACQUISITION_PER_SESSION_DIAGNOSTICS_BLOCKED_MISSING_ROW_LEVEL_DATA:
+        _expect_false(diagnostics.get("row_level_source_available"), "row_level_source_available")
+        _expect_false(diagnostics.get("session_diagnostics_available"), "session_diagnostics_available")
+        _expect(diagnostics.get("blocked_reason"), "ROW_LEVEL_NORMALIZED_SOURCE_DATA_NOT_AVAILABLE", "blocked_reason")
+        _expect_false(diagnostics.get("ready_for_acquisition_review"), "ready_for_acquisition_review")
+        _expect_true(diagnostics.get("operator_review_required"), "operator_review_required")
+    elif diagnostics.get("diagnostics_status") == ACQUISITION_PER_SESSION_DIAGNOSTICS_COMPLETE:
+        _expect_true(diagnostics.get("row_level_source_available"), "row_level_source_available")
+        _expect_true(diagnostics.get("session_diagnostics_available"), "session_diagnostics_available")
+        _expect_true(diagnostics.get("ready_for_acquisition_review"), "ready_for_acquisition_review")
+    elif diagnostics.get("non_reconciled_sessions", 0) > 0 or diagnostics.get("blocker_count", 0) > 0:
+        _expect_false(diagnostics.get("ready_for_acquisition_review"), "ready_for_acquisition_review")
+        _expect_true(diagnostics.get("operator_review_required"), "operator_review_required")
+    digest = diagnostics.get("per_session_diagnostics_semantic_digest")
+    if not isinstance(digest, str) or len(digest) != 64:
+        raise AcquisitionGenerationError("per_session_diagnostics_semantic_digest missing")
+    _expect(
+        digest,
+        acquisition_per_session_reconciliation_diagnostics_semantic_digest_v1(diagnostics),
+        "per_session_diagnostics_semantic_digest",
+    )
+    return {
+        "status": "ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS_VALID",
+        "artifact_kind": ARTIFACT_KIND_ACQUISITION_PER_SESSION_RECONCILIATION_DIAGNOSTICS,
+        "diagnostics_status": diagnostics["diagnostics_status"],
+        "target_month_count": diagnostics["target_month_count"],
+        "total_sessions_evaluated": diagnostics["total_sessions_evaluated"],
+        "non_reconciled_sessions": diagnostics["non_reconciled_sessions"],
+        "ready_for_acquisition_review": diagnostics["ready_for_acquisition_review"],
+        "per_session_diagnostics_semantic_digest": digest,
+        "acquisition_generation_freeze": False,
+        "canonical_eligibility": False,
+        "registry_eligibility": False,
+        "strategy_runtime_migration": False,
+    }
+
+
+def write_per_session_reconciliation_csv_v1(path: str | Path, session_rows: list[dict[str, Any]]) -> dict[str, Any]:
+    """Write compact session diagnostics without raw OHLCV/provider payload fields."""
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    with output_path.open("w", encoding="utf-8", newline="") as handle:
+        writer = csv.DictWriter(handle, fieldnames=PER_SESSION_RECONCILIATION_CSV_COLUMNS, extrasaction="ignore")
+        writer.writeheader()
+        for row in session_rows:
+            writer.writerow(row)
+    data = output_path.read_bytes()
+    return {
+        "path": str(output_path),
+        "filename": output_path.name,
+        "row_count": len(session_rows),
+        "csv_sha256": sha256_bytes(data),
+    }
+
+
+def build_acquisition_per_session_reconciliation_diagnostics_markdown_v1(diagnostics: dict[str, Any]) -> str:
+    """Render a sanitized per-session reconciliation diagnostics status document."""
+    validate_acquisition_per_session_reconciliation_diagnostics_v1(diagnostics)
+    boundary = diagnostics["authority_boundary"]
+    lines = [
+        "# MarketFlow Acquisition Per-Session Reconciliation Diagnostics Status",
+        "",
+        "## Scope",
+        f"- Artifact kind: `{diagnostics['artifact_kind']}`",
+        f"- Diagnostics status: `{diagnostics['diagnostics_status']}`",
+        f"- Source acquisition candidate digest: `{diagnostics['source_acquisition_candidate_digest']}`",
+        f"- Source monthly reconciliation digest: `{diagnostics['source_monthly_reconciliation_digest']}`",
+        f"- Target month count: `{diagnostics['target_month_count']}`",
+        f"- Target months: `{', '.join(diagnostics['target_months'])}`",
+        f"- Row-level source available: `{diagnostics['row_level_source_available']}`",
+        f"- Session diagnostics available: `{diagnostics['session_diagnostics_available']}`",
+        f"- Blocked reason: `{diagnostics['blocked_reason']}`",
+        f"- Instrumentation added for future generation runs: `{diagnostics['instrumentation_added_for_future_generation_runs']}`",
+        f"- 2025-01 cross-check status: `{diagnostics['accepted_2025_01_cross_check_status']}`",
+        f"- Acquisition operator review: `{'ALLOWED' if diagnostics['ready_for_acquisition_review'] else 'BLOCKED'}`",
+        "",
+        "## Session Summary",
+        f"- Total sessions evaluated: `{diagnostics['total_sessions_evaluated']}`",
+        f"- Reconciled sessions: `{diagnostics['reconciled_sessions']}`",
+        f"- Non-reconciled sessions: `{diagnostics['non_reconciled_sessions']}`",
+        f"- Missing-bar sessions: `{diagnostics['missing_bar_sessions']}`",
+        f"- Extra-bar sessions: `{diagnostics['extra_bar_sessions']}`",
+        f"- Calendar-duration review sessions: `{diagnostics['calendar_duration_review_sessions']}`",
+        f"- Blocker count: `{diagnostics['blocker_count']}`",
+        f"- High count: `{diagnostics['high_count']}`",
+        f"- Issue category summary: `{json.dumps(diagnostics['issue_category_summary'], sort_keys=True, separators=(',', ':'))}`",
+        f"- Issue severity summary: `{json.dumps(diagnostics['issue_severity_summary'], sort_keys=True, separators=(',', ':'))}`",
+    ]
+    if diagnostics["session_diagnostics"]:
+        lines.extend(
+            [
+                "",
+                "## Session Diagnostics",
+                "| session_date | month | session_type | expected_15m_bars | observed_15m_bars | delta | missing | extra | first_observed_rth_timestamp_utc | last_observed_rth_timestamp_utc | provider_chunk_id | provider_chunk_month | category | severity | notes |",
+                "| --- | --- | --- | ---: | ---: | ---: | ---: | ---: | --- | --- | --- | --- | --- | --- | --- |",
+            ]
+        )
+        for row in diagnostics["session_diagnostics"]:
+            lines.append(
+                "| "
+                f"{row['session_date']} | "
+                f"{row['month']} | "
+                f"{row['session_type']} | "
+                f"{row['expected_15m_bars']} | "
+                f"{row['observed_15m_bars']} | "
+                f"{row['rth_row_delta']} | "
+                f"{row['missing_count']} | "
+                f"{row['extra_count']} | "
+                f"{row['first_observed_rth_timestamp_utc']} | "
+                f"{row['last_observed_rth_timestamp_utc']} | "
+                f"{row['provider_chunk_id']} | "
+                f"{row['provider_chunk_month']} | "
+                f"{row['issue_category']} | "
+                f"{row['issue_severity']} | "
+                f"{row['notes']} |"
+            )
+    else:
+        lines.extend(
+            [
+                "",
+                "## Blocked Detail",
+                "- Row-level normalized source artifacts for the target months were not available in the local ignored runtime artifacts.",
+                "- No per-session rows were fabricated from monthly totals.",
+                "- Acquisition review remains blocked until row-level per-session diagnostics can be generated and reviewed.",
+            ]
+        )
+    lines.extend(
+        [
+            "",
+            "## Authority Boundary",
+            f"- identity_segment_frozen: `{boundary['identity_segment_frozen']}`",
+            f"- calendar_operator_frozen: `{boundary['calendar_operator_frozen']}`",
+            f"- split_event_audit_frozen: `{boundary['split_event_audit_frozen']}`",
+            f"- dividend_event_audit_frozen: `{boundary['dividend_event_audit_frozen']}`",
+            f"- acquisition_generation_freeze: `{boundary['acquisition_generation_freeze']}`",
+            f"- canonical_eligibility: `{boundary['canonical_eligibility']}`",
+            f"- registry_eligibility: `{boundary['registry_eligibility']}`",
+            f"- strategy_runtime_migration: `{boundary['strategy_runtime_migration']}`",
+            f"- automatic_stitching: `{boundary['automatic_stitching']}`",
+            f"- predictive_usefulness: `{boundary['predictive_usefulness']}`",
+            f"- profitability: `{boundary['profitability']}`",
+            "",
+            "## Non-Goals",
+            "- No provider refresh was performed.",
+            "- No full acquisition generation rerun was performed.",
+            "- No API key, raw provider payload, generated bars, personal, broker, or tax data is included.",
+            "- No acquisition-generation freeze was created.",
+            "- No canonical, registry, runtime, predictive, or profitability approval occurred.",
+            "",
+            "## Next Task Recommendation",
+            f"- {diagnostics['next_required_task']}",
+            "",
+        ]
+    )
+    return "\n".join(lines)
+
+
+def write_acquisition_per_session_reconciliation_diagnostics_status_v1(
+    path: str | Path,
+    *,
+    diagnostics: dict[str, Any],
+) -> dict[str, Any]:
+    output_path = Path(path)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    text = build_acquisition_per_session_reconciliation_diagnostics_markdown_v1(diagnostics)
+    output_path.write_text(text, encoding="utf-8")
+    return {
+        "path": str(output_path),
+        "filename": output_path.name,
+        "status_document_digest": sha256_bytes(text.encode("utf-8")),
     }
 
 
