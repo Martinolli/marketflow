@@ -42,6 +42,16 @@
 - Planned outputs remain research-only and not created in this task.
 - Future outputs: research campaign run manifest, dataset load report, schema validation report, compatibility matrix, failure inventory, operator review summary.
 
+## Follow-On Execution Candidate
+- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_CANDIDATE`
+- Candidate status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_READY_FOR_OPERATOR_REVIEW`
+- Campaign execution request ID: `AAPL_RESEARCH_APPLICABILITY_EXECUTION_2022_2025_V1`
+- Candidate digest: `d5d19a5b32b55b24f00568e021790c082a39f147618032702d2ecdcec62c0b27`
+- Campaign execution authorized: `False`
+- Campaign execution performed: `False`
+- Campaign results generated: `False`
+- Runtime activation remains future work: `True`
+
 ## Future Execution Gates
 - `research_campaign_plan_operator_review`
 - `research_campaign_execution_approval`
@@ -97,4 +107,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step
-- Research-only applicability campaign execution candidate.
+- Research applicability campaign execution candidate operator review.

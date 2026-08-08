@@ -44,6 +44,18 @@
 - Campaign execution remains future work: `True`
 - Runtime activation remains future work: `True`
 
+## Execution Candidate
+- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_CANDIDATE`
+- Candidate status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_READY_FOR_OPERATOR_REVIEW`
+- Schema version: `research_applicability_campaign_execution_candidate_v1`
+- Campaign execution request ID: `AAPL_RESEARCH_APPLICABILITY_EXECUTION_2022_2025_V1`
+- Candidate digest: `d5d19a5b32b55b24f00568e021790c082a39f147618032702d2ecdcec62c0b27`
+- Execution candidate implemented: `True`
+- Campaign execution authorized: `False`
+- Campaign execution performed: `False`
+- Campaign results generated: `False`
+- Runtime activation remains future work: `True`
+
 ## Campaign Scope
 - Campaign name: `AAPL_SWING_POSITION_SWING_RESEARCH_APPLICABILITY_V1`
 - Ticker universe: `AAPL`
@@ -76,14 +88,22 @@
 - `research_campaign_run_manifest`: planned only, not created.
 - `dataset_load_report`: planned only, not created.
 - `schema_validation_report`: planned only, not created.
-- `compatibility_matrix`: planned only, not created.
-- `failure_inventory`: planned only, not created.
+- `bar_count_consistency_report`: planned only, not created.
+- `date_range_coverage_report`: planned only, not created.
+- `null_field_summary_report`: planned only, not created.
+- `ohlc_consistency_report`: planned only, not created.
+- `volume_consistency_report`: planned only, not created.
+- `indicator_calculation_report`: planned only, not created.
+- `module_compatibility_matrix`: planned only, not created.
+- `failure_reason_inventory`: planned only, not created.
 - `operator_review_summary`: planned only, not created.
 
 ## Future Gates
-- `research_campaign_plan_operator_review`
-- `research_campaign_execution_approval`
-- `read_only_execution_environment_confirmation`
+- `campaign_execution_candidate_operator_review`
+- `campaign_execution_operator_approval`
+- `read_only_environment_confirmation`
+- `dataset_files_still_digest_verified`
+- `no_provider_refresh_confirmation`
 - `no_broker_execution_confirmation`
 - `no_paper_trading_confirmation`
 - `no_runtime_default_change_confirmation`
@@ -110,9 +130,8 @@
 - No predictive-usefulness or profitability acceptance.
 
 ## Next Tasks
-1. Research-only applicability campaign execution candidate.
-2. Research-only applicability campaign execution operator review.
-3. Research-only applicability campaign execution, if approved.
-4. Predictive usefulness review.
-5. Profitability review.
-6. Runtime migration approval ceremony, if ever authorized.
+1. Research applicability campaign execution candidate operator review.
+2. Research-only applicability campaign execution, if approved.
+3. Predictive usefulness review.
+4. Profitability review.
+5. Runtime migration approval ceremony, if ever authorized.
