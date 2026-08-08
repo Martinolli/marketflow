@@ -1,31 +1,29 @@
-# MarketFlow POSITION_SWING Registry Operator Review Package Status
+# MarketFlow POSITION_SWING Registry Approval Status
 
 ## Purpose
-- Branch: `feature/position-swing-registry-operator-review-package-v1`
-- Base commit: `29746b4f987012c7ec73d34c792a29f714e3ce98`
+- Branch: `feature/position-swing-registry-approval-ceremony-v1`
+- Base commit: `83ab4b1f239df3f6bdcab2ce365308feb450a8df`
 - Implementation commit: the commit containing this document.
-- Purpose: create an offline, digest-bound operator review package for the POSITION_SWING registry approval candidate.
-- This status document does not create POSITION_SWING registry approval, registry eligibility, registry activation, or Strategy runtime migration.
+- Purpose: create a guarded offline approval ceremony for the POSITION_SWING research registry entry.
+- This status document does not authorize Strategy runtime use, broker/trading use, predictive usefulness, or profitability.
 
-## Review Package
-- Artifact kind: `POSITION_SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE`
-- Review status: `POSITION_SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE_READY`
-- Schema version: `position_swing_registry_approval_candidate_review_v1`
-- Review package digest: `db8dc9c15d9ed5a1edd2756fc5e5d1a5cfe157eac0e2ac36dbb2cc0faefe233e`
-- Binding mode: `POSITION_SWING_REGISTRY_CANDIDATE_STATUS_BINDING`
-- Operator decision required: `True`
-- Operator decision: `None`
-
-## Reviewed Registry Candidate
-- Registry candidate artifact kind: `POSITION_SWING_REGISTRY_APPROVAL_CANDIDATE`
-- Registry candidate status: `POSITION_SWING_REGISTRY_APPROVAL_READY_FOR_OPERATOR_REVIEW`
-- Registry candidate digest: `3987efa860732c113a1f5037ef0ccca9b261f10b7602b52b6866bf7f4a8a3511`
-- Proposed registry key: `AAPL:POSITION_SWING:RTH_FULL_SESSION_1D:2022-01-01:2025-12-31:v1`
+## Approved Registry Entry
+- Artifact kind: `POSITION_SWING_REGISTRY_APPROVED`
+- Approval status: `POSITION_SWING_REGISTRY_APPROVED`
+- Schema version: `position_swing_registry_approval_v1`
+- Registry approval digest: `8eefcbc1e14b2e199dadd8dcf461cbff56513f10758b6b59ca8cf176512d2e8e`
+- Registry key: `AAPL:POSITION_SWING:RTH_FULL_SESSION_1D:2022-01-01:2025-12-31:v1`
 - Registry scope: `RESEARCH_DATASET`
-- Runtime use: `NOT_AUTHORIZED`
-- Strategy use: `NOT_AUTHORIZED`
-- Registry activation: `False`
-- Candidate checklist: `40 total / 40 passed / 0 failed / 0 blockers`
+- POSITION_SWING registry approval created: `True`
+- POSITION_SWING registry eligibility: `True`
+- POSITION_SWING registry activation: `True`
+
+## Source Registry Review Package
+- Source review package kind: `POSITION_SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE`
+- Source review status: `POSITION_SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE_READY`
+- Source registry review package digest: `db8dc9c15d9ed5a1edd2756fc5e5d1a5cfe157eac0e2ac36dbb2cc0faefe233e`
+- Source registry candidate digest: `3987efa860732c113a1f5037ef0ccca9b261f10b7602b52b6866bf7f4a8a3511`
+- Source review checklist: `34 total / 34 passed / 0 failed / 0 blockers`
 
 ## Frozen POSITION_SWING Dataset Evidence
 - POSITION_SWING canonical dataset frozen: `True`
@@ -65,37 +63,20 @@
 - Implication: `ACQUISITION_GENERATION_MUST_ACCOUNT_FOR_ADJUSTED_DATA_AND_DIVIDEND_POLICY`
 - Source adjusted data used: `True`
 
-## Checklist Summary
-- Total checks: `34`
-- Passed checks: `34`
+## Approval Checklist Summary
+- Total checks: `40`
+- Passed checks: `40`
 - Failed checks: `0`
 - Blocker count: `0`
-- Ready for operator registry assessment: `True`
-- Operator decision required before registry approval: `True`
-- Software registry approval authorized: `False`
+- POSITION_SWING registry approval authorized by operator: `True`
 - Runtime migration authorized: `False`
+- Strategy use authorized: `False`
 
-## Follow-On Approval Ceremony
-- Follow-on artifact kind: `POSITION_SWING_REGISTRY_APPROVED`
-- Follow-on approval status: `POSITION_SWING_REGISTRY_APPROVED`
-- Follow-on branch: `feature/position-swing-registry-approval-ceremony-v1`
-- Follow-on base commit: `83ab4b1f239df3f6bdcab2ce365308feb450a8df`
-- Registry approval digest: `8eefcbc1e14b2e199dadd8dcf461cbff56513f10758b6b59ca8cf176512d2e8e`
-- Approval checklist: `40 total / 40 passed / 0 failed / 0 blockers`
-- The registry review package remains the source evidence for the approval ceremony.
-- The approval ceremony does not authorize Strategy runtime use, broker/trading use, predictive usefulness, or profitability.
-
-## Registry Boundary
-- position_swing_registry_approval_created: `False`
-- position_swing_registry_eligibility: `False`
-- position_swing_registry_activation: `False`
-- registry_eligibility: `False`
-- canonical_eligibility: `False`
-- registry_activation: `False`
-- strategy_runtime_migration: `False`
-- automatic_stitching: `False`
+## Runtime Boundary
 - runtime_use: `NOT_AUTHORIZED`
 - strategy_use: `NOT_AUTHORIZED`
+- strategy_runtime_migration: `False`
+- automatic_stitching: `False`
 - predictive_usefulness: `not accepted`
 - profitability: `not accepted`
 
@@ -110,19 +91,20 @@
 - swing_registry_eligibility: `True`
 - swing_registry_activation: `True`
 - position_swing_canonical_dataset_frozen: `True`
-- provider_requests_made_in_review: `False`
+- position_swing_registry_approval_created: `True`
+- position_swing_registry_eligibility: `True`
+- position_swing_registry_activation: `True`
 - created_offline: `True`
+- provider_requests_made_in_approval: `False`
 
 ## Non-Goals
 - No Massive.com / Polygon provider request was made.
 - No acquisition rows or POSITION_SWING bars were regenerated.
 - No identity, calendar, split, dividend, acquisition, SWING, or POSITION_SWING evidence was refreshed.
 - No generated dataset, manifest, or raw OHLCV rows are committed.
-- No `POSITION_SWING_REGISTRY_APPROVED` artifact or status was created.
-- No `REGISTRY_ELIGIBLE` artifact or status was created.
-- No `STRATEGY_RUNTIME_MIGRATION` artifact or status was created.
-- No POSITION_SWING registry eligibility or active registry entry was created.
 - No Strategy runtime migration occurred.
+- No POSITION_SWING runtime-default source was selected.
+- No broker/trading authorization occurred.
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step

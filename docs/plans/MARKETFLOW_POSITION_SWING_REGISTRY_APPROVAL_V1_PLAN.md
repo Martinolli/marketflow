@@ -2,8 +2,8 @@
 
 ## Purpose
 - Move the frozen POSITION_SWING canonical dataset toward registry approval through a controlled candidate, operator review package, and explicit approval ceremony.
-- Preserve research-only scope until a separate operator approval ceremony is completed.
-- Keep runtime use, Strategy use, broker/trading use, predictive usefulness, and profitability outside this candidate.
+- Preserve research-only scope after the operator approval ceremony.
+- Keep runtime use, Strategy use, broker/trading use, predictive usefulness, and profitability outside this approval.
 
 ## Prerequisite POSITION_SWING Frozen Dataset
 - Required artifact kind: `POSITION_SWING_CANONICAL_DATASET_FROZEN`
@@ -31,6 +31,18 @@
 - Software registry approval authorized: `False`
 - Runtime migration authorized: `False`
 
+## Approval Ceremony Status
+- Artifact kind: `POSITION_SWING_REGISTRY_APPROVED`
+- Approval status: `POSITION_SWING_REGISTRY_APPROVED`
+- Registry approval digest: `8eefcbc1e14b2e199dadd8dcf461cbff56513f10758b6b59ca8cf176512d2e8e`
+- Checklist result: `40` passed / `0` failed / `0` blockers.
+- POSITION_SWING registry approval created: `True`
+- POSITION_SWING registry eligibility: `True`
+- POSITION_SWING registry activation: `True`
+- Runtime use: `NOT_AUTHORIZED`
+- Strategy use: `NOT_AUTHORIZED`
+- Strategy runtime migration: `False`
+
 ## Proposed Registry Entry
 - Proposed registry key: `AAPL:POSITION_SWING:RTH_FULL_SESSION_1D:2022-01-01:2025-12-31:v1`
 - Proposed registry scope: `RESEARCH_DATASET`
@@ -43,15 +55,15 @@
 ## Required Sequence
 1. POSITION_SWING registry approval candidate. `DONE`
 2. POSITION_SWING registry operator review package. `DONE`
-3. POSITION_SWING registry approval ceremony. `FUTURE`
+3. POSITION_SWING registry approval ceremony. `DONE`
 4. Normal runtime migration planning. `FUTURE`
 
 ## Authority Boundary
 - position_swing_canonical_dataset_frozen: `True`
-- position_swing_registry_approval_created: `False`
-- position_swing_registry_eligibility: `False`
-- position_swing_registry_activation: `False`
-- registry_eligibility: `False`
+- position_swing_registry_approval_created: `True`
+- position_swing_registry_eligibility: `True`
+- position_swing_registry_activation: `True`
+- registry_scope: `RESEARCH_DATASET`
 - strategy_runtime_migration: `False`
 - runtime_use: `NOT_AUTHORIZED`
 - strategy_use: `NOT_AUTHORIZED`
@@ -65,16 +77,19 @@
 - Do not regenerate acquisition rows.
 - Do not regenerate POSITION_SWING bars.
 - Do not refresh identity, calendar, split, dividend, acquisition, SWING, or POSITION_SWING evidence.
-- Do not create `POSITION_SWING_REGISTRY_APPROVED`.
-- Do not approve registry/runtime eligibility.
-- Do not activate the registry entry.
+- Do not approve runtime eligibility.
 - Do not mark POSITION_SWING as runtime-default or production Strategy input.
 - Do not modify Strategy runtime behavior.
 - Do not accept predictive usefulness or profitability.
 - Do not commit generated dataset CSVs or manifests.
 
+## Research Registry State
+- SWING research registry approval: `True`
+- POSITION_SWING research registry approval: `True`
+- Both approved registry entries remain `RESEARCH_DATASET` scope.
+- Neither approved registry entry authorizes runtime Strategy use.
+
 ## Next Tasks
-1. Digest-bound POSITION_SWING registry approval ceremony.
-2. Normal runtime migration planning.
-3. Applicability/research campaign.
-4. Predictive and profitability evaluation.
+1. Normal runtime migration planning.
+2. Applicability/research campaign.
+3. Predictive and profitability evaluation.
