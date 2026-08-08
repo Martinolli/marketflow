@@ -72,6 +72,16 @@
 - Runtime migration authorized: `False`
 - Strategy use authorized: `False`
 
+## Follow-On Runtime Migration Planning
+- Follow-on artifact kind: `RUNTIME_MIGRATION_PLAN_CANDIDATE`
+- Follow-on plan status: `RUNTIME_MIGRATION_PLAN_READY_FOR_OPERATOR_REVIEW`
+- Follow-on branch: `feature/runtime-migration-planning-v1`
+- Follow-on base commit: `7736d486d0bee974f7fa478ac9e03c1b80bea0f2`
+- Runtime migration plan candidate digest: `f1b7b1456b69774c6e19fa81cf11a319ff5b9c2a9cc75410b7873ed9417e68a5`
+- Plan checklist: `24 total / 24 passed / 0 failed / 0 blockers`
+- The POSITION_SWING registry approval remains research-scope only.
+- Runtime, Strategy, paper trading, and broker execution use remain `NOT_AUTHORIZED`.
+
 ## Runtime Boundary
 - runtime_use: `NOT_AUTHORIZED`
 - strategy_use: `NOT_AUTHORIZED`
@@ -108,4 +118,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step
-- Normal runtime migration planning remains future work.
+- Runtime migration operator review package remains future work.
