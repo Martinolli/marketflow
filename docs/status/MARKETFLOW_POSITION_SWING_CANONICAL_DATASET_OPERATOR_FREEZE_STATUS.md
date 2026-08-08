@@ -70,6 +70,15 @@
 - Registry approval authorized: `False`
 - Runtime migration authorized: `False`
 
+## Follow-On Registry Candidate
+- Artifact kind: `POSITION_SWING_REGISTRY_APPROVAL_CANDIDATE`
+- Candidate status: `POSITION_SWING_REGISTRY_APPROVAL_READY_FOR_OPERATOR_REVIEW`
+- Proposed registry key: `AAPL:POSITION_SWING:RTH_FULL_SESSION_1D:2022-01-01:2025-12-31:v1`
+- Candidate digest: `3987efa860732c113a1f5037ef0ccca9b261f10b7602b52b6866bf7f4a8a3511`
+- Checklist result: `40` passed / `0` failed / `0` blockers.
+- The POSITION_SWING frozen dataset remains source evidence for the registry approval candidate.
+- The follow-on candidate did not create POSITION_SWING registry approval, registry eligibility, registry activation, runtime authorization, Strategy use authorization, predictive-usefulness acceptance, or profitability acceptance.
+
 ## Authority Boundary
 - identity_segment_frozen: `True`
 - calendar_operator_frozen: `True`
@@ -101,4 +110,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step
-- POSITION_SWING registry approval candidate.
+- POSITION_SWING registry operator review package.
