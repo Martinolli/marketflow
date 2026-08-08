@@ -68,22 +68,28 @@
 - The review package verifies the ignored local SWING candidate, dataset, and manifest when available.
 - The review package is ready for operator assessment but does not authorize a SWING freeze, registry approval, runtime migration, predictive acceptance, or profitability acceptance.
 
+## Operator Freeze Status
+- Current local freeze status: `SWING_CANONICAL_DATASET_FROZEN`
+- Frozen artifact kind: `SWING_CANONICAL_DATASET_FROZEN`
+- Frozen semantic digest from deterministic test attestation: `03ce2ae41bf433fce1fd228a8ce03d6adf8591bc5f1eafaf3577e728fdc6402e`
+- The freeze ceremony binds the accepted SWING review package, candidate digest, dataset rows digest, dataset manifest digest, source rows digest, materialization receipt digest, and frozen authority digests.
+- The freeze ceremony requires explicit non-secret operator attestation and sets `swing_canonical_dataset_frozen = true`.
+- Registry approval remains future work; the freeze ceremony does not authorize registry eligibility, Strategy runtime migration, predictive acceptance, or profitability acceptance.
+
 ## Non-Goals
 - Do not call Massive.com / Polygon.
 - Do not fetch provider data.
 - Do not regenerate acquisition bars.
 - Do not refresh identity, calendar, split, or dividend evidence.
-- Do not create `SWING_CANONICAL_DATASET_FROZEN`.
 - Do not set `REGISTRY_ELIGIBLE` or `CANONICAL_DATASET_APPROVED`.
 - Do not modify Strategy runtime behavior.
 - Do not accept predictive usefulness or profitability.
 
 ## Next Tasks
-1. SWING canonical dataset freeze.
-2. SWING registry approval.
-3. POSITION_SWING canonical dataset candidate.
-4. POSITION_SWING canonical dataset operator review/freeze.
-5. POSITION_SWING registry approval.
-6. Normal runtime migration.
-7. Applicability/research campaign.
-8. Predictive and profitability evaluation.
+1. SWING registry approval.
+2. POSITION_SWING canonical dataset candidate.
+3. POSITION_SWING canonical dataset operator review/freeze.
+4. POSITION_SWING registry approval.
+5. Normal runtime migration.
+6. Applicability/research campaign.
+7. Predictive and profitability evaluation.
