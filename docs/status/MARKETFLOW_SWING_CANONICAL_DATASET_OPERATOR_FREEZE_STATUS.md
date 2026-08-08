@@ -74,6 +74,15 @@
 - Registry approval authorized: `False`
 - Runtime migration authorized: `False`
 
+## Follow-On Registry Candidate
+- Follow-on branch: `feature/swing-registry-approval-candidate-v1`
+- Follow-on artifact kind: `SWING_REGISTRY_APPROVAL_CANDIDATE`
+- Follow-on candidate status: `SWING_REGISTRY_APPROVAL_READY_FOR_OPERATOR_REVIEW`
+- Follow-on candidate digest: `24dae427c76154ac86f96ce523a793db18b6de592ead261af9e08cf9287e1503`
+- Proposed registry key: `AAPL:SWING:RTH_HALF_SESSION_195M:2022-01-01:2025-12-31:v1`
+- The frozen SWING dataset remains source evidence for the registry approval candidate.
+- The registry candidate does not create SWING registry approval, registry eligibility, or Strategy runtime migration.
+
 ## Authority Boundary
 - identity_segment_frozen: `True`
 - calendar_operator_frozen: `True`
