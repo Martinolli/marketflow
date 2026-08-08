@@ -24,6 +24,16 @@
 - Runtime touchpoint inventory complete: `False`
 - Runtime readiness established: `False`
 
+## Operator Review Package
+- Artifact kind: `RUNTIME_MIGRATION_PLAN_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `RUNTIME_MIGRATION_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package digest: `1d856db1e388e48948155739810baa5f140e2bec5318c80c3f4381d4d759d2e4`
+- Reviewed plan digest: `f1b7b1456b69774c6e19fa81cf11a319ff5b9c2a9cc75410b7873ed9417e68a5`
+- Review checklist result: `29` passed / `0` failed / `0` blockers.
+- Runtime migration authorized: `False`
+- Runtime activation authorized: `False`
+- Separate future runtime migration approval ceremony required: `True`
+
 ## Read-Only First Principle
 - migration_scope: `READ_ONLY_RESEARCH_DATASET_DISCOVERY`
 - runtime_activation_scope: `NONE`
@@ -96,7 +106,10 @@
 - Do not claim predictive usefulness or profitability.
 
 ## Next Tasks
-1. Runtime migration operator review package.
-2. Read-only registry discovery candidate.
-3. Dataset availability verification.
-4. Research-only applicability campaign plan.
+1. Read-only registry discovery candidate.
+2. Dataset file availability verification.
+3. Research-only applicability campaign plan.
+4. Research-only applicability campaign execution.
+5. Predictive usefulness review.
+6. Profitability review.
+7. Separate runtime migration approval ceremony, if ever authorized.
