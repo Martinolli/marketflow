@@ -59,5 +59,16 @@
 - No raw/generated OHLCV rows are included in this document.
 - No API key, personal, broker, or tax information is included in this document.
 
+## SWING Candidate Rerun Follow-Up
+- SWING candidate rerun completed: `True`
+- SWING candidate status: `SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW`
+- Materialized rows used as source for SWING derivation: `True`
+- SWING source rows path: `.marketflow/frozen_acquisition_sources/AAPL/2022_2025/AAPL_15m_adjusted_2022_2025_normalized_source_rows.csv`
+- SWING dataset profile: `SWING`
+- SWING dataset bar rule: `RTH_HALF_SESSION_195M`
+- SWING bar count: `1988`
+- SWING candidate digest: `1bb6e2d7354c30c88e55738e0c549769d9daae678b47899a776de337571cf671`
+- No SWING canonical freeze, registry approval, or strategy runtime migration occurred.
+
 ## Next Task Recommendation
-- SWING candidate should be rerun using verified materialized frozen source rows.
+- Prepare the SWING operator review package before any later SWING canonical dataset freeze ceremony.

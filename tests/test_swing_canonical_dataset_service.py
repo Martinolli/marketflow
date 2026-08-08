@@ -83,6 +83,62 @@ def test_candidate_builds_offline_without_provider_calls(monkeypatch: pytest.Mon
     assert candidate["provider_requests_made"] is False
 
 
+def test_candidate_builds_from_verified_materialized_source_rows(monkeypatch: pytest.MonkeyPatch):
+    rows, schedule = _january_2025_source_rows()
+    source_path = ".marketflow/frozen_acquisition_sources/AAPL/2022_2025/AAPL_15m_adjusted_2022_2025_normalized_source_rows.csv"
+
+    monkeypatch.setattr(swing.calendar_service, "build_exchange_calendar_schedule_rows_v1", lambda: schedule)
+    monkeypatch.setattr(
+        swing.acquisition,
+        "normalized_source_rows_digest_v1",
+        lambda _rows: swing.EXPECTED_NORMALIZED_SOURCE_ROWS_DIGEST,
+    )
+    monkeypatch.setattr(
+        swing.source_rows_materialization,
+        "locate_frozen_acquisition_source_rows_v1",
+        lambda **_kwargs: {
+            "digest_match": True,
+            "output_rows_path": source_path,
+            "actual_normalized_source_rows_digest": swing.EXPECTED_NORMALIZED_SOURCE_ROWS_DIGEST,
+            "materialization_receipt_digest": swing.EXPECTED_MATERIALIZATION_RECEIPT_DIGEST,
+            "row_count": len(rows),
+            "rth_row_count": len(rows),
+            "extended_hours_row_count": 0,
+            "unknown_row_count": 0,
+            "out_of_calendar_row_count": 0,
+        },
+    )
+    monkeypatch.setattr(
+        swing.source_rows_materialization,
+        "read_materialized_frozen_acquisition_source_rows_v1",
+        lambda _path: rows,
+    )
+
+    candidate = swing.build_swing_canonical_dataset_candidate_from_local_artifact_v1()
+
+    assert candidate["candidate_status"] == swing.SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW
+    assert candidate["source_row_artifact_path"] == source_path
+    assert candidate["source_row_digest_matched"] is True
+    assert candidate["materialization_receipt_digest"] == swing.EXPECTED_MATERIALIZATION_RECEIPT_DIGEST
+
+
+def test_source_row_digest_is_verified_before_generation(monkeypatch: pytest.MonkeyPatch):
+    rows, _schedule = _january_2025_source_rows()
+
+    def fail_generation(*_args, **_kwargs):  # pragma: no cover
+        raise AssertionError("SWING bars must not be generated before digest verification")
+
+    monkeypatch.setattr(swing, "build_swing_bars_from_normalized_source_rows_v1", fail_generation)
+
+    candidate = swing.build_swing_canonical_dataset_candidate_v1(
+        source_rows=rows,
+        source_rows_digest="0" * 64,
+    )
+
+    assert candidate["candidate_status"] == swing.SWING_CANONICAL_DATASET_SOURCE_ROWS_DIGEST_MISMATCH
+    assert candidate["dataset_rows"] == []
+
+
 def test_artifact_kind_is_swing_candidate():
     assert _ready_candidate()["artifact_kind"] == "SWING_CANONICAL_DATASET_CANDIDATE"
 
@@ -93,6 +149,10 @@ def test_candidate_binds_acquisition_frozen_digest():
 
 def test_candidate_binds_normalized_source_rows_digest():
     assert _ready_candidate()["normalized_source_rows_digest"] == swing.EXPECTED_NORMALIZED_SOURCE_ROWS_DIGEST
+
+
+def test_candidate_status_becomes_ready_for_operator_review():
+    assert _ready_candidate()["candidate_status"] == swing.SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW
 
 
 def test_candidate_keeps_canonical_dataset_frozen_false():
@@ -123,6 +183,14 @@ def test_each_swing_bar_uses_13_source_rows():
     result = swing.build_swing_bars_from_normalized_source_rows_v1(_full_session_rows(session), schedule_rows=[session])
 
     assert [row["source_row_count"] for row in result["dataset_rows"]] == [13, 13]
+
+
+def test_swing_bar_records_source_session_and_timeframe():
+    session = _january_2025_schedule()[0]
+    result = swing.build_swing_bars_from_normalized_source_rows_v1(_full_session_rows(session), schedule_rows=[session])
+
+    assert result["dataset_rows"][0]["source_session_date"] == session["session_date"]
+    assert result["dataset_rows"][0]["source_timeframe"] == "15m"
 
 
 def test_ohlc_aggregation_is_correct():
@@ -200,12 +268,32 @@ def test_special_session_exclusion_inventory_is_populated():
     assert result["special_session_exclusion_inventory"][0]["exclusion_reason"] == swing._special_session_policy()["special_session_exclusion_reason"]
 
 
+def test_special_session_rows_excluded_are_counted():
+    special = {
+        "session_date": "2025-01-02",
+        "market_open_utc": "2025-01-02T14:30:00Z",
+        "market_close_utc": "2025-01-02T18:00:00Z",
+        "market_open_local": "2025-01-02T09:30:00-05:00",
+        "market_close_local": "2025-01-02T13:00:00-05:00",
+        "session_minutes": 210,
+        "is_full_session": False,
+        "is_half_session": True,
+    }
+    result = swing.build_swing_bars_from_normalized_source_rows_v1(_full_session_rows(special)[:14], schedule_rows=[special])
+
+    assert result["special_session_rows_excluded"] == 14
+
+
 def test_2025_01_fixture_with_20_full_sessions_produces_40_swing_bars():
     assert _ready_candidate()["2025_01_swing_cross_check"]["actual_swing_bars"] == 40
 
 
 def test_dataset_digest_is_deterministic():
     assert _ready_candidate()["dataset_rows_digest"] == _ready_candidate()["dataset_rows_digest"]
+
+
+def test_manifest_digest_is_deterministic():
+    assert _ready_candidate()["dataset_manifest_digest"] == _ready_candidate()["dataset_manifest_digest"]
 
 
 def test_candidate_digest_is_deterministic():
@@ -217,6 +305,30 @@ def test_validator_accepts_valid_ready_candidate():
 
     assert validation["candidate_status"] == swing.SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW
     assert validation["failed_checks"] == 0
+
+
+def test_validator_rejects_wrong_materialization_receipt_digest():
+    candidate = _ready_candidate()
+    candidate["materialization_receipt_digest"] = "0" * 64
+
+    with pytest.raises(swing.SwingCanonicalDatasetError, match="materialization_receipt_digest"):
+        swing.validate_swing_canonical_dataset_candidate_v1(candidate)
+
+
+def test_validator_rejects_missing_dataset_digest_in_ready_candidate():
+    candidate = _ready_candidate()
+    candidate["dataset_rows_digest"] = None
+
+    with pytest.raises(swing.SwingCanonicalDatasetError, match="dataset_rows_digest missing"):
+        swing.validate_swing_canonical_dataset_candidate_v1(candidate)
+
+
+def test_validator_rejects_ready_candidate_with_source_row_digest_mismatch():
+    candidate = _ready_candidate()
+    candidate["actual_normalized_source_rows_digest"] = "0" * 64
+
+    with pytest.raises(swing.SwingCanonicalDatasetError, match="actual_normalized_source_rows_digest"):
+        swing.validate_swing_canonical_dataset_candidate_v1(candidate)
 
 
 @pytest.mark.parametrize(

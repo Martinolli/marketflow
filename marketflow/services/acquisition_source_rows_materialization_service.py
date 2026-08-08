@@ -348,6 +348,12 @@ def validate_materialized_frozen_acquisition_source_rows_v1(
     }
 
 
+def read_materialized_frozen_acquisition_source_rows_v1(rows_path: str | Path) -> list[dict[str, Any]]:
+    """Read materialized normalized acquisition source rows from CSV or JSON."""
+    path = Path(rows_path)
+    return _read_rows_csv(path) if path.suffix.lower() == ".csv" else _read_rows_json(path)
+
+
 def _read_rows_json(path: Path) -> list[dict[str, Any]]:
     payload = json.loads(path.read_text(encoding="utf-8"))
     if isinstance(payload, dict) and isinstance(payload.get("rows"), list):

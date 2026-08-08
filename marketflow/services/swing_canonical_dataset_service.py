@@ -14,6 +14,7 @@ from zoneinfo import ZoneInfo
 from marketflow.historical_data.artifacts import canonical_json_bytes, semantic_digest, sha256_bytes
 from marketflow.services import acquisition_generation_operator_freeze_service as acquisition_freeze
 from marketflow.services import acquisition_generation_service as acquisition
+from marketflow.services import acquisition_source_rows_materialization_service as source_rows_materialization
 from marketflow.services import exchange_calendar_evidence_service as calendar_service
 
 
@@ -21,6 +22,7 @@ ARTIFACT_KIND_SWING_CANONICAL_DATASET_CANDIDATE = "SWING_CANONICAL_DATASET_CANDI
 SCHEMA_VERSION_SWING_CANONICAL_DATASET_CANDIDATE_V1 = "swing_canonical_dataset_candidate_v1"
 SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW = "SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW"
 SWING_CANONICAL_DATASET_REQUIRES_FROZEN_ACQUISITION_ROWS = "SWING_CANONICAL_DATASET_REQUIRES_FROZEN_ACQUISITION_ROWS"
+SWING_CANONICAL_DATASET_SOURCE_ROWS_DIGEST_MISMATCH = "SWING_CANONICAL_DATASET_SOURCE_ROWS_DIGEST_MISMATCH"
 
 DATASET_PROFILE_SWING = "SWING"
 DATASET_BAR_RULE_RTH_HALF_SESSION_195M = "RTH_HALF_SESSION_195M"
@@ -38,10 +40,12 @@ EXPECTED_MONTHLY_RECONCILIATION_DIGEST = acquisition_freeze.EXPECTED_MONTHLY_REC
 EXPECTED_ACQUISITION_RECEIPT_DIGEST = acquisition_freeze.EXPECTED_ACQUISITION_RECEIPT_DIGEST
 EXPECTED_TARGETED_DIAGNOSTIC_RECEIPT_DIGEST = acquisition_freeze.EXPECTED_TARGETED_DIAGNOSTIC_RECEIPT_DIGEST
 EXPECTED_PER_SESSION_DIAGNOSTICS_DIGEST = acquisition_freeze.EXPECTED_PER_SESSION_DIAGNOSTICS_DIGEST
+EXPECTED_MATERIALIZATION_RECEIPT_DIGEST = "d331e52034dc8ab47df225347243df370063fc25b18338b49b42d038810dfd54"
 
 SOURCE_ROWS_ARTIFACT_KIND = "FROZEN_ACQUISITION_NORMALIZED_SOURCE_ROWS"
 SOURCE_ROWS_SCHEMA_VERSION = "frozen_acquisition_normalized_source_rows_v1"
-DEFAULT_SOURCE_ROWS_SEARCH_ROOT = Path(".marketflow") / "acquisition_generation"
+DEFAULT_SOURCE_ROWS_SEARCH_ROOT = source_rows_materialization.DEFAULT_OUTPUT_ROOT
+DEFAULT_SWING_CANDIDATE_OUTPUT_ROOT = Path(".marketflow") / "canonical_candidates" / "AAPL" / "SWING"
 
 PASS = "PASS"
 FAIL = "FAIL"
@@ -166,8 +170,43 @@ def read_frozen_acquisition_normalized_source_rows_artifact_v1(path: str | Path)
     return payload
 
 
+def _materialization_receipt_digest_for_rows_path(rows_path: str | Path) -> str:
+    path = Path(rows_path)
+    manifest_path = path.with_name(source_rows_materialization.DEFAULT_MANIFEST_FILENAME)
+    if manifest_path.exists():
+        payload = json.loads(manifest_path.read_text(encoding="utf-8"))
+        digest = payload.get("materialization_receipt_digest")
+        if isinstance(digest, str) and len(digest) == 64:
+            return digest
+    return EXPECTED_MATERIALIZATION_RECEIPT_DIGEST
+
+
 def find_verified_frozen_acquisition_source_rows_v1(search_root: str | Path = DEFAULT_SOURCE_ROWS_SEARCH_ROOT) -> dict[str, Any] | None:
     """Find a local ignored source-row artifact matching the frozen normalized row digest."""
+    try:
+        materialization = source_rows_materialization.locate_frozen_acquisition_source_rows_v1(
+            search_root=search_root,
+            expected_normalized_source_rows_digest=EXPECTED_NORMALIZED_SOURCE_ROWS_DIGEST,
+        )
+    except (OSError, json.JSONDecodeError, source_rows_materialization.AcquisitionSourceRowsMaterializationError):
+        materialization = None
+    if materialization and materialization.get("digest_match") is True and materialization.get("output_rows_path"):
+        rows = source_rows_materialization.read_materialized_frozen_acquisition_source_rows_v1(
+            materialization["output_rows_path"]
+        )
+        materialization_receipt_digest = _materialization_receipt_digest_for_rows_path(materialization["output_rows_path"])
+        return {
+            "path": materialization["output_rows_path"],
+            "rows": rows,
+            "normalized_source_rows_digest": materialization["actual_normalized_source_rows_digest"],
+            "materialization_receipt_digest": materialization_receipt_digest,
+            "row_count": materialization.get("row_count"),
+            "rth_row_count": materialization.get("rth_row_count"),
+            "extended_hours_row_count": materialization.get("extended_hours_row_count"),
+            "unknown_row_count": materialization.get("unknown_row_count"),
+            "out_of_calendar_row_count": materialization.get("out_of_calendar_row_count"),
+        }
+
     root = Path(search_root)
     if not root.exists():
         return None
@@ -179,6 +218,37 @@ def find_verified_frozen_acquisition_source_rows_v1(search_root: str | Path = DE
         if payload.get("normalized_source_rows_digest") == EXPECTED_NORMALIZED_SOURCE_ROWS_DIGEST:
             payload["path"] = str(path)
             return payload
+    return None
+
+
+def _candidate_source_row_paths(root: Path) -> list[Path]:
+    if root.is_file():
+        return [root]
+    if not root.exists():
+        return []
+    paths: list[Path] = []
+    for pattern in ("*normalized_source_rows.csv", "*normalized_source_rows.json", "*source_rows.csv", "*source_rows.json"):
+        paths.extend(root.rglob(pattern))
+    return sorted(set(paths))
+
+
+def find_mismatched_frozen_acquisition_source_rows_v1(
+    search_root: str | Path = DEFAULT_SOURCE_ROWS_SEARCH_ROOT,
+) -> dict[str, Any] | None:
+    """Find a local source-row artifact that can be read but fails the frozen digest."""
+    root = Path(search_root)
+    for path in _candidate_source_row_paths(root):
+        try:
+            rows = source_rows_materialization.read_materialized_frozen_acquisition_source_rows_v1(path)
+        except (OSError, json.JSONDecodeError, source_rows_materialization.AcquisitionSourceRowsMaterializationError):
+            continue
+        actual_digest = acquisition.normalized_source_rows_digest_v1(rows)
+        if actual_digest != EXPECTED_NORMALIZED_SOURCE_ROWS_DIGEST:
+            return {
+                "path": str(path),
+                "rows": rows,
+                "normalized_source_rows_digest": actual_digest,
+            }
     return None
 
 
@@ -205,6 +275,7 @@ def _authority_bindings() -> dict[str, Any]:
         "acquisition_receipt_digest": EXPECTED_ACQUISITION_RECEIPT_DIGEST,
         "targeted_diagnostic_receipt_digest": EXPECTED_TARGETED_DIAGNOSTIC_RECEIPT_DIGEST,
         "per_session_diagnostics_digest": EXPECTED_PER_SESSION_DIAGNOSTICS_DIGEST,
+        "materialization_receipt_digest": EXPECTED_MATERIALIZATION_RECEIPT_DIGEST,
     }
 
 
@@ -309,6 +380,8 @@ def _bar_from_rows(
         "source_row_count": len(rows),
         "source_first_timestamp_utc": first["timestamp_utc"],
         "source_last_timestamp_utc": last["timestamp_utc"],
+        "source_session_date": session["session_date"],
+        "source_timeframe": "15m",
     }
 
 
@@ -382,6 +455,7 @@ def build_swing_bars_from_normalized_source_rows_v1(
         full_sessions_used += 1
 
     consumed = sum(row["source_row_count"] for row in bars)
+    special_session_rows_excluded = sum(item["observed_rth_rows"] for item in special_exclusions)
     january_bars = [bar for bar in bars if bar["session_date"].startswith("2025-01")]
     return {
         "dataset_rows": bars,
@@ -392,6 +466,7 @@ def build_swing_bars_from_normalized_source_rows_v1(
         "special_session_exclusion_inventory": special_exclusions,
         "special_session_count": sum(1 for row in schedule if row.get("is_full_session") is not True),
         "special_session_exclusion_count": len(special_exclusions),
+        "special_session_rows_excluded": special_session_rows_excluded,
         "invalid_sessions": invalid_sessions,
         "2025_01_swing_cross_check": {
             "expected_full_ordinary_sessions": 20,
@@ -456,17 +531,21 @@ def _base_candidate() -> dict[str, Any]:
         "source_row_digest_matched": False,
         "source_row_digest_verification_mode": "MISSING_SOURCE_ROW_ARTIFACT",
         "source_row_artifact_path": None,
+        "actual_normalized_source_rows_digest": None,
         "swing_bar_count": 0,
         "source_rth_rows_consumed": 0,
         "source_rth_rows_excluded": 25970,
         "full_sessions_used": 0,
         "special_sessions_excluded": 0,
+        "special_session_rows_excluded": 0,
         "invalid_sessions": [],
         "first_bar_timestamp_utc": None,
         "last_bar_timestamp_utc": None,
         "dataset_rows_digest": None,
         "dataset_manifest_digest": None,
         "candidate_receipt_digest": None,
+        "ignored_output_dataset_path": str(DEFAULT_SWING_CANDIDATE_OUTPUT_ROOT / "AAPL_SWING_RTH_HALF_SESSION_195M_2022_2025.csv"),
+        "ignored_output_manifest_path": str(DEFAULT_SWING_CANDIDATE_OUTPUT_ROOT / "AAPL_SWING_RTH_HALF_SESSION_195M_2022_2025_manifest.json"),
         "dataset_rows": [],
         "dataset_manifest": None,
         "2025_01_swing_cross_check": {
@@ -485,6 +564,7 @@ def build_swing_canonical_dataset_candidate_v1(
     source_rows: list[dict[str, Any]] | None = None,
     source_rows_digest: str | None = None,
     source_row_artifact_path: str | None = None,
+    materialization_receipt_digest: str | None = None,
     fixture_mode: bool = False,
     schedule_rows: list[dict[str, Any]] | None = None,
 ) -> dict[str, Any]:
@@ -498,6 +578,7 @@ def build_swing_canonical_dataset_candidate_v1(
             derived = build_swing_bars_from_normalized_source_rows_v1(source_rows, schedule_rows=schedule_rows)
             rows = derived["dataset_rows"]
             manifest = _dataset_manifest(candidate, rows)
+            supplied_receipt = materialization_receipt_digest or EXPECTED_MATERIALIZATION_RECEIPT_DIGEST
             candidate.update(
                 {
                     "candidate_status": SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW,
@@ -505,6 +586,8 @@ def build_swing_canonical_dataset_candidate_v1(
                     "source_row_digest_matched": True,
                     "source_row_digest_verification_mode": "MATCHED_FROZEN_DIGEST" if digest_matched else "TEST_FIXTURE_SOURCE_ROWS",
                     "source_row_artifact_path": source_row_artifact_path,
+                    "actual_normalized_source_rows_digest": actual_digest if digest_matched else source_rows_digest,
+                    "materialization_receipt_digest": supplied_receipt,
                     "swing_bar_count": len(rows),
                     "source_rth_rows_consumed": derived["source_rth_rows_consumed"],
                     "source_rth_rows_excluded": derived["source_rth_rows_excluded"],
@@ -512,6 +595,7 @@ def build_swing_canonical_dataset_candidate_v1(
                     "special_sessions_excluded": derived["special_session_exclusion_count"],
                     "special_session_count": derived["special_session_count"],
                     "special_session_exclusion_count": derived["special_session_exclusion_count"],
+                    "special_session_rows_excluded": derived["special_session_rows_excluded"],
                     "special_session_exclusion_inventory": derived["special_session_exclusion_inventory"],
                     "invalid_sessions": derived["invalid_sessions"],
                     "first_bar_timestamp_utc": rows[0]["bar_start_utc"] if rows else None,
@@ -527,10 +611,12 @@ def build_swing_canonical_dataset_candidate_v1(
         else:
             candidate.update(
                 {
+                    "candidate_status": SWING_CANONICAL_DATASET_SOURCE_ROWS_DIGEST_MISMATCH,
                     "source_row_artifact_available": True,
                     "source_row_digest_matched": False,
                     "source_row_digest_verification_mode": "SOURCE_ROWS_DIGEST_MISMATCH",
                     "source_row_artifact_path": source_row_artifact_path,
+                    "actual_normalized_source_rows_digest": actual_digest,
                 }
             )
     candidate["candidate_receipt_digest"] = candidate_receipt_digest_v1(candidate)
@@ -545,11 +631,19 @@ def build_swing_canonical_dataset_candidate_from_local_artifact_v1(
     """Build from a verified ignored source-row artifact, or fail closed as blocked."""
     payload = find_verified_frozen_acquisition_source_rows_v1(search_root)
     if payload is None:
+        mismatched = find_mismatched_frozen_acquisition_source_rows_v1(search_root)
+        if mismatched is not None:
+            return build_swing_canonical_dataset_candidate_v1(
+                source_rows=mismatched["rows"],
+                source_rows_digest=mismatched["normalized_source_rows_digest"],
+                source_row_artifact_path=mismatched["path"],
+            )
         return build_swing_canonical_dataset_candidate_v1()
     return build_swing_canonical_dataset_candidate_v1(
         source_rows=payload["rows"],
         source_rows_digest=payload["normalized_source_rows_digest"],
         source_row_artifact_path=payload["path"],
+        materialization_receipt_digest=payload.get("materialization_receipt_digest"),
     )
 
 
@@ -588,8 +682,11 @@ def validate_swing_canonical_dataset_candidate_v1(candidate: dict[str, Any]) -> 
     if candidate.get("candidate_status") not in {
         SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW,
         SWING_CANONICAL_DATASET_REQUIRES_FROZEN_ACQUISITION_ROWS,
+        SWING_CANONICAL_DATASET_SOURCE_ROWS_DIGEST_MISMATCH,
     }:
         raise SwingCanonicalDatasetError("candidate_status mismatch")
+    if candidate.get("candidate_status") != SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW and candidate.get("dataset_rows"):
+        raise SwingCanonicalDatasetError("candidate_status not ready when dataset generated")
     for field in ("created_offline", "identity_segment_frozen", "calendar_operator_frozen", "split_event_audit_frozen", "dividend_event_audit_frozen", "acquisition_generation_freeze"):
         _expect_true(candidate.get(field), field)
     for field in ("provider_requests_made", "canonical_dataset_frozen", "canonical_eligibility", "registry_eligibility", "strategy_runtime_migration"):
@@ -610,6 +707,8 @@ def validate_swing_canonical_dataset_candidate_v1(candidate: dict[str, Any]) -> 
     if candidate.get("source_rth_rows_consumed", 0) > candidate.get("source_rth_rows_total", 0):
         raise SwingCanonicalDatasetError("source_rth_rows_consumed exceeds source_rth_rows_total")
     if candidate["candidate_status"] == SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW:
+        _expect(candidate.get("source_row_digest_matched"), True, "source_row_digest_matched")
+        _expect(candidate.get("actual_normalized_source_rows_digest"), EXPECTED_NORMALIZED_SOURCE_ROWS_DIGEST, "actual_normalized_source_rows_digest")
         for field in ("dataset_rows_digest", "dataset_manifest_digest", "candidate_receipt_digest"):
             if not isinstance(candidate.get(field), str) or len(candidate[field]) != 64:
                 raise SwingCanonicalDatasetError(f"{field} missing")
@@ -668,12 +767,15 @@ def build_swing_canonical_dataset_candidate_markdown_v1(candidate: dict[str, Any
         f"- Dataset profile: `{candidate['dataset_profile']}`",
         f"- Dataset bar rule: `{candidate['dataset_bar_rule']}`",
         f"- Candidate digest: `{candidate['swing_candidate_semantic_digest']}`",
+        f"- Candidate receipt digest: `{candidate['candidate_receipt_digest']}`",
         "",
         "## Source Rows",
         f"- Source row data available: `{candidate['source_row_artifact_available']}`",
         f"- Source row digest matched: `{candidate['source_row_digest_matched']}`",
         f"- Source row digest verification mode: `{candidate['source_row_digest_verification_mode']}`",
+        f"- Source rows path: `{candidate['source_row_artifact_path']}`",
         f"- Normalized source rows digest: `{candidate['normalized_source_rows_digest']}`",
+        f"- Actual normalized source rows digest: `{candidate['actual_normalized_source_rows_digest']}`",
         f"- Source rows: `{candidate['source_rows_total']} total / {candidate['source_rth_rows_total']} RTH / {candidate['source_extended_hours_rows_total']} extended-hours / {candidate['source_unknown_rows_total']} unknown`",
         "",
         "## Frozen Acquisition Binding",
@@ -681,6 +783,7 @@ def build_swing_canonical_dataset_candidate_markdown_v1(candidate: dict[str, Any
         f"- Acquisition candidate digest: `{candidate['acquisition_candidate_digest']}`",
         f"- Monthly reconciliation digest: `{candidate['monthly_reconciliation_digest']}`",
         f"- Acquisition receipt digest: `{candidate['acquisition_receipt_digest']}`",
+        f"- Materialization receipt digest: `{candidate['materialization_receipt_digest']}`",
         "",
         "## SWING Dataset Summary",
         f"- SWING bar count: `{candidate['swing_bar_count']}`",
@@ -688,8 +791,12 @@ def build_swing_canonical_dataset_candidate_markdown_v1(candidate: dict[str, Any
         f"- Source RTH rows excluded: `{candidate['source_rth_rows_excluded']}`",
         f"- Full sessions used: `{candidate['full_sessions_used']}`",
         f"- Special sessions excluded: `{candidate['special_sessions_excluded']}`",
+        f"- Special session rows excluded: `{candidate['special_session_rows_excluded']}`",
         f"- Invalid sessions: `{len(candidate['invalid_sessions'])}`",
         f"- Dataset digest: `{candidate['dataset_rows_digest']}`",
+        f"- Dataset manifest digest: `{candidate['dataset_manifest_digest']}`",
+        f"- Ignored dataset output path: `{candidate['ignored_output_dataset_path']}`",
+        f"- Ignored manifest output path: `{candidate['ignored_output_manifest_path']}`",
         "",
         "## 2025-01 SWING Cross-Check",
         f"- Expected SWING bars: `{cross_check['expected_swing_bars']}`",

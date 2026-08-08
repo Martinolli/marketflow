@@ -12,6 +12,9 @@
 - Source ticker: `AAPL`
 - Source rows: `63804 total / 25970 RTH / 37834 extended-hours / 0 unknown`
 - Calendar binding: frozen `XNAS -> XNYS` schedule
+- Source row materialization completed: `ACQUISITION_FROZEN_SOURCE_ROWS_MATERIALIZED`
+- Materialized source rows path: `.marketflow/frozen_acquisition_sources/AAPL/2022_2025/AAPL_15m_adjusted_2022_2025_normalized_source_rows.csv`
+- Materialization receipt digest: `d331e52034dc8ab47df225347243df370063fc25b18338b49b42d038810dfd54`
 
 ## SWING Bar Rule
 - Dataset profile: `SWING`
@@ -51,9 +54,11 @@
 - The candidate may report this cross-check as passed only when verified row-level source data is available or fixture-derived in tests.
 
 ## Candidate-Only Status
-- Current local status: `SWING_CANONICAL_DATASET_REQUIRES_FROZEN_ACQUISITION_ROWS`
-- Reason: no local ignored source-row artifact matched the frozen normalized source rows digest.
-- Writer support exists for future ignored `.marketflow` persistence of the required normalized source-row artifact and generated SWING dataset outputs.
+- Current local status: `SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW`
+- The candidate rerun used the verified materialized frozen source rows and did not call Massive.com / Polygon.
+- Generated SWING dataset output is ignored under `.marketflow/canonical_candidates/AAPL/SWING/`.
+- Special sessions remain excluded under the conservative full-ordinary-session-only policy and are recorded in the exclusion inventory.
+- This ready candidate is not a canonical dataset freeze, registry approval, runtime migration, predictive-usefulness acceptance, or profitability acceptance.
 
 ## Non-Goals
 - Do not call Massive.com / Polygon.
