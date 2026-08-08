@@ -66,6 +66,18 @@
 - Campaign execution remains future work: `True`
 - Runtime activation remains future work: `True`
 
+## Execution Approval Ceremony
+- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_APPROVED`
+- Approval status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_APPROVED`
+- Schema version: `research_applicability_campaign_execution_approval_v1`
+- Approval digest: `5d6655341899e765b22a6a38a50f2405473a3ec704a3c67209eca45b114cdf37`
+- Execution candidate reviewed: `True`
+- Execution approval ceremony implemented: `True`
+- Campaign execution authorized: `True`
+- Campaign execution performed: `False`
+- Campaign results generated: `False`
+- Runtime activation remains future work: `True`
+
 ## Campaign Scope
 - Campaign name: `AAPL_SWING_POSITION_SWING_RESEARCH_APPLICABILITY_V1`
 - Ticker universe: `AAPL`
@@ -140,9 +152,8 @@
 - No predictive-usefulness or profitability acceptance.
 
 ## Next Tasks
-1. Research-only applicability campaign execution approval ceremony.
-2. Research-only applicability campaign execution, if approved.
-3. Campaign result operator review.
-4. Predictive usefulness review.
-5. Profitability review.
-6. Runtime migration approval ceremony, if ever authorized.
+1. Research-only applicability campaign execution.
+2. Campaign result operator review.
+3. Predictive usefulness review.
+4. Profitability review.
+5. Runtime migration approval ceremony, if ever authorized.

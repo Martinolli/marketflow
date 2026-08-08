@@ -17,6 +17,18 @@
 - Provider requests made in review: `False`
 - Operator decision required before campaign execution: `True`
 
+## Follow-On Execution Approval Ceremony
+- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_APPROVED`
+- Approval status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_APPROVED`
+- Schema version: `research_applicability_campaign_execution_approval_v1`
+- Approval digest: `5d6655341899e765b22a6a38a50f2405473a3ec704a3c67209eca45b114cdf37`
+- Approval ceremony implemented: `True`
+- Review package remains source evidence for approval: `True`
+- Campaign execution authorized: `True`
+- Campaign execution performed: `False`
+- Campaign results generated: `False`
+- Runtime activation remains future work: `True`
+
 ## Reviewed Execution Candidate
 - Reviewed execution candidate kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_CANDIDATE`
 - Reviewed execution candidate status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_READY_FOR_OPERATOR_REVIEW`
@@ -130,4 +142,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step
-- Research-only applicability campaign execution approval ceremony.
+- Research-only applicability campaign execution.
