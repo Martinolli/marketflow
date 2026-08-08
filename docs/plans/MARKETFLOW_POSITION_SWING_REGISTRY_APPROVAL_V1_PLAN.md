@@ -21,6 +21,16 @@
 - Checklist result: `40` passed / `0` failed / `0` blockers.
 - Binding mode: `POSITION_SWING_FROZEN_STATUS_BINDING`
 
+## Operator Review Package Status
+- Artifact kind: `POSITION_SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `POSITION_SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package digest: `db8dc9c15d9ed5a1edd2756fc5e5d1a5cfe157eac0e2ac36dbb2cc0faefe233e`
+- Checklist result: `34` passed / `0` failed / `0` blockers.
+- Binding mode: `POSITION_SWING_REGISTRY_CANDIDATE_STATUS_BINDING`
+- Operator decision required before registry approval: `True`
+- Software registry approval authorized: `False`
+- Runtime migration authorized: `False`
+
 ## Proposed Registry Entry
 - Proposed registry key: `AAPL:POSITION_SWING:RTH_FULL_SESSION_1D:2022-01-01:2025-12-31:v1`
 - Proposed registry scope: `RESEARCH_DATASET`
@@ -31,10 +41,10 @@
 - Requires registry approval ceremony: `True`
 
 ## Required Sequence
-1. POSITION_SWING registry approval candidate.
-2. POSITION_SWING registry operator review package.
-3. POSITION_SWING registry approval ceremony.
-4. Normal runtime migration planning.
+1. POSITION_SWING registry approval candidate. `DONE`
+2. POSITION_SWING registry operator review package. `DONE`
+3. POSITION_SWING registry approval ceremony. `FUTURE`
+4. Normal runtime migration planning. `FUTURE`
 
 ## Authority Boundary
 - position_swing_canonical_dataset_frozen: `True`
@@ -64,6 +74,7 @@
 - Do not commit generated dataset CSVs or manifests.
 
 ## Next Tasks
-1. POSITION_SWING registry operator review package.
-2. POSITION_SWING registry approval ceremony.
-3. Normal runtime migration planning.
+1. Digest-bound POSITION_SWING registry approval ceremony.
+2. Normal runtime migration planning.
+3. Applicability/research campaign.
+4. Predictive and profitability evaluation.
