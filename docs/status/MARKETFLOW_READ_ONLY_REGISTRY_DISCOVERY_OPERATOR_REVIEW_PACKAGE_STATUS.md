@@ -73,6 +73,22 @@
 - Runtime migration authorized: `False`
 - Runtime activation authorized: `False`
 
+## Follow-On Dataset File Availability Verification
+- Artifact kind: `DATASET_FILE_AVAILABILITY_VERIFICATION_PACKAGE`
+- Package status: `DATASET_FILE_AVAILABILITY_VERIFICATION_READY_FOR_OPERATOR_REVIEW`
+- Package digest: `8ba7db3aa50eb858f7eebb10eb6ee1a554a97b43a789c93460ff276cadc96751`
+- Verification entry count: `2`
+- Dataset files available: `2`
+- Manifest files available: `2`
+- Dataset digests verified: `2`
+- Manifest digests verified: `2`
+- Missing files: `0`
+- Digest mismatches: `0`
+- Ready for research campaign planning: `True`
+- Discovery review remains source evidence for verification: `True`
+- Runtime migration authorized: `False`
+- Runtime activation authorized: `False`
+
 ## Authority Boundary
 - No `RUNTIME_MIGRATION_APPROVED` artifact or status is created.
 - No `RUNTIME_MIGRATION_ACTIVE` artifact or status is created.
@@ -89,4 +105,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Task Recommendation
-- Dataset file availability verification package.
+- Dataset file availability verification operator review package.
