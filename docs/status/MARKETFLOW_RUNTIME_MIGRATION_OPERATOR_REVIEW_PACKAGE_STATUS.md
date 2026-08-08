@@ -86,6 +86,19 @@
 - Runtime migration authorized: `False`
 - Runtime activation authorized: `False`
 
+## Follow-On Read-Only Registry Discovery Candidate
+- Artifact kind: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE`
+- Candidate status: `READ_ONLY_REGISTRY_DISCOVERY_READY_FOR_OPERATOR_REVIEW`
+- Candidate digest: `b2c46f880b3764e31d159f4c344004dbb104a3a1129e97499aafc0a7b6ef8bc1`
+- Registry entry count: `2`
+- Available dataset file count: `2`
+- Available manifest file count: `2`
+- Verified dataset digest count: `2`
+- Verified manifest digest count: `2`
+- Missing file count: `0`
+- Runtime migration authorized: `False`
+- Runtime activation authorized: `False`
+
 ## Remaining Required Tasks
 1. Read-only registry discovery candidate.
 2. Dataset file availability verification.
