@@ -65,6 +65,17 @@
 - Runtime migration authorized: `False`
 - Runtime activation authorized: `False`
 
+## Follow-On Research Applicability Campaign Plan
+- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_PLAN_CANDIDATE`
+- Plan status: `RESEARCH_APPLICABILITY_CAMPAIGN_PLAN_READY_FOR_OPERATOR_REVIEW`
+- Plan digest: `b376bce431248be913dfe5c534535104a1663a5491a16560c9989681c323b97e`
+- File availability review remains source evidence for campaign planning: `True`
+- Dataset file availability verification review package digest: `1002c6f19bc57a6537dc71b8a830517de90fbfd89774797a3dd1e9232531ecff`
+- Campaign execution performed: `False`
+- Campaign execution authorized: `False`
+- Runtime migration authorized: `False`
+- Runtime activation authorized: `False`
+
 ## Authority Boundary
 - No `RUNTIME_MIGRATION_APPROVED` artifact or status is created.
 - No `RUNTIME_MIGRATION_ACTIVE` artifact or status is created.
@@ -83,4 +94,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step
-- Research-only applicability campaign plan.
+- Research applicability campaign plan operator review package.
