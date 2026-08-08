@@ -74,6 +74,18 @@
 - Software runtime migration authorized: `False`
 - Software strategy use authorized: `False`
 
+## Follow-On POSITION_SWING Candidate
+- Follow-on artifact kind: `POSITION_SWING_CANONICAL_DATASET_CANDIDATE`
+- Follow-on candidate status: `POSITION_SWING_CANONICAL_DATASET_READY_FOR_OPERATOR_REVIEW`
+- Follow-on branch: `feature/position-swing-canonical-dataset-candidate-v1`
+- Follow-on base commit: `42d994158c0ffb82c097cf9b008ec6b7e598960b`
+- POSITION_SWING candidate digest: `ed16a41304a4d3838f495124a9d491e834eba0dd4a1ff8009e456963ecc2c916`
+- POSITION_SWING dataset rows digest: `163d26fb50bbc0defb0f0602922fb672a6b404d43d920c9f018053fec2862ab3`
+- POSITION_SWING dataset manifest digest: `720c7314ba86b20fde05c16f69870a4cfd218eb6c317ff592efd5fd1885776ba`
+- POSITION_SWING bar count: `994`
+- The SWING registry approval remains limited to research scope and is not runtime authorized.
+- The POSITION_SWING candidate does not create a canonical freeze, registry approval, runtime authorization, Strategy authorization, predictive acceptance, or profitability acceptance.
+
 ## Non-Goals
 - No Massive.com / Polygon provider request was made.
 - No acquisition rows or SWING bars were regenerated.
@@ -83,7 +95,7 @@
 - No runtime or strategy use was authorized.
 - No broker/trading use was authorized.
 - No predictive-usefulness or profitability acceptance occurred.
-- No POSITION_SWING dataset was created.
+- No POSITION_SWING canonical freeze, registry approval, or runtime migration was created.
 
 ## Next Step
-- POSITION_SWING canonical dataset candidate remains the next required task.
+- POSITION_SWING operator review package remains the next required task.
