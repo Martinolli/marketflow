@@ -60,6 +60,14 @@
 - Special sessions remain excluded under the conservative full-ordinary-session-only policy and are recorded in the exclusion inventory.
 - This ready candidate is not a canonical dataset freeze, registry approval, runtime migration, predictive-usefulness acceptance, or profitability acceptance.
 
+## Operator Review Package Status
+- Current local review package status: `SWING_CANONICAL_DATASET_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package artifact kind: `SWING_CANONICAL_DATASET_CANDIDATE_REVIEW_PACKAGE`
+- Review package digest: `1fe4efabfef575956cd4578da5ae060655e420062bf40b24b83cd0d4643bf98d`
+- The review package binds the SWING candidate digest, dataset rows digest, dataset manifest digest, source rows digest, materialization receipt digest, and frozen authority digests.
+- The review package verifies the ignored local SWING candidate, dataset, and manifest when available.
+- The review package is ready for operator assessment but does not authorize a SWING freeze, registry approval, runtime migration, predictive acceptance, or profitability acceptance.
+
 ## Non-Goals
 - Do not call Massive.com / Polygon.
 - Do not fetch provider data.
@@ -71,7 +79,11 @@
 - Do not accept predictive usefulness or profitability.
 
 ## Next Tasks
-1. SWING operator review package.
-2. SWING canonical dataset freeze.
-3. SWING registry approval.
-4. POSITION_SWING canonical dataset candidate.
+1. SWING canonical dataset freeze.
+2. SWING registry approval.
+3. POSITION_SWING canonical dataset candidate.
+4. POSITION_SWING canonical dataset operator review/freeze.
+5. POSITION_SWING registry approval.
+6. Normal runtime migration.
+7. Applicability/research campaign.
+8. Predictive and profitability evaluation.
