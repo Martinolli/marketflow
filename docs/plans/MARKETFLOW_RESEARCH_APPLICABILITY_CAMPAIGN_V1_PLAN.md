@@ -32,6 +32,17 @@
 - Created offline: `True`
 - Campaign execution performed: `False`
 - Campaign execution authorized: `False`
+- Campaign plan completed: `True`
+
+## Operator Review Package
+- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_PLAN_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `RESEARCH_APPLICABILITY_CAMPAIGN_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`
+- Schema version: `research_applicability_campaign_plan_candidate_review_v1`
+- Review package digest: `e908ef36dc38879ff59a72c2b7260497dfd2e75b1582806ece0b8852416ed01d`
+- Operator review package implemented: `True`
+- Campaign plan remains source evidence for review: `True`
+- Campaign execution remains future work: `True`
+- Runtime activation remains future work: `True`
 
 ## Campaign Scope
 - Campaign name: `AAPL_SWING_POSITION_SWING_RESEARCH_APPLICABILITY_V1`
@@ -99,8 +110,9 @@
 - No predictive-usefulness or profitability acceptance.
 
 ## Next Tasks
-1. Research applicability campaign plan operator review package.
-2. Research-only applicability campaign execution candidate.
-3. Predictive usefulness review.
-4. Profitability review.
-5. Runtime migration approval ceremony, if ever authorized.
+1. Research-only applicability campaign execution candidate.
+2. Research-only applicability campaign execution operator review.
+3. Research-only applicability campaign execution, if approved.
+4. Predictive usefulness review.
+5. Profitability review.
+6. Runtime migration approval ceremony, if ever authorized.

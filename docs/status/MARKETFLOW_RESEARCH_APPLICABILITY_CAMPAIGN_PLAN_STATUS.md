@@ -89,6 +89,17 @@
 - Runtime migration authorized: `False`
 - Runtime activation authorized: `False`
 
+## Follow-On Operator Review Package
+- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_PLAN_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `RESEARCH_APPLICABILITY_CAMPAIGN_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package digest: `e908ef36dc38879ff59a72c2b7260497dfd2e75b1582806ece0b8852416ed01d`
+- Campaign plan remains source evidence for review: `True`
+- Reviewed campaign plan digest: `b376bce431248be913dfe5c534535104a1663a5491a16560c9989681c323b97e`
+- Campaign execution authorized: `False`
+- Campaign execution performed: `False`
+- Runtime migration authorized: `False`
+- Runtime activation authorized: `False`
+
 ## Non-Goals
 - No Massive.com / Polygon provider request was made.
 - No acquisition rows, SWING bars, or POSITION_SWING bars were regenerated.
@@ -100,4 +111,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Task Recommendation
-- Research applicability campaign plan operator review package.
+- Research-only applicability campaign execution candidate.
