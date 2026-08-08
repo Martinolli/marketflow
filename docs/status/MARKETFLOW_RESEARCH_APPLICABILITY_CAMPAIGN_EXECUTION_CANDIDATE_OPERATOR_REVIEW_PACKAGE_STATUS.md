@@ -1,53 +1,46 @@
-# MarketFlow Research Applicability Campaign Execution Candidate Status
+# MarketFlow Research Applicability Campaign Execution Candidate Operator Review Package Status
 
 ## Purpose
-- Branch: `feature/research-applicability-campaign-execution-candidate-v1`
-- Base commit: `6feca65eb7366c3e11cf0034062b30e3e5098d56`
+- Branch: `feature/research-applicability-campaign-execution-candidate-review-v1`
+- Base commit: `90c1c5cf6ec8da89b1a6babf0dee7decf31a0893`
 - Implementation commit: the commit containing this document.
-- Purpose: create an offline, digest-bound candidate package for a future research-only applicability campaign execution.
-- This candidate does not authorize or perform campaign execution, walk-forward validation, strategy scoring, runtime migration, paper trading, or broker execution.
+- Purpose: create an offline, digest-bound operator review package for the research-only applicability campaign execution candidate.
+- This review package does not authorize or perform campaign execution, walk-forward validation, strategy scoring, runtime migration, paper trading, or broker execution.
 
-## Execution Candidate
-- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_CANDIDATE`
-- Candidate status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_READY_FOR_OPERATOR_REVIEW`
-- Schema version: `research_applicability_campaign_execution_candidate_v1`
-- Campaign execution request ID: `AAPL_RESEARCH_APPLICABILITY_EXECUTION_2022_2025_V1`
-- Candidate digest: `d5d19a5b32b55b24f00568e021790c082a39f147618032702d2ecdcec62c0b27`
-- Created offline: `True`
-- Provider requests made: `False`
-- Campaign execution authorized: `False`
-- Campaign execution performed: `False`
-- Campaign results generated: `False`
-
-## Follow-On Operator Review Package
+## Review Package
 - Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_CANDIDATE_REVIEW_PACKAGE`
 - Review status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_CANDIDATE_REVIEW_PACKAGE_READY`
 - Schema version: `research_applicability_campaign_execution_candidate_review_v1`
 - Review package digest: `9ab7e374c2cedd5b6dec8d674984cb6ddf44c18bf4c5abb744db54641c64ee60`
-- Operator review package implemented: `True`
-- Execution candidate remains source evidence for review: `True`
-- Campaign execution authorized: `False`
-- Campaign execution performed: `False`
-- Campaign results generated: `False`
-- Runtime activation remains future work: `True`
+- Binding mode: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_CANDIDATE_STATUS_BINDING`
+- Created offline: `True`
+- Provider requests made in review: `False`
+- Operator decision required before campaign execution: `True`
+
+## Reviewed Execution Candidate
+- Reviewed execution candidate kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_CANDIDATE`
+- Reviewed execution candidate status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_READY_FOR_OPERATOR_REVIEW`
+- Reviewed execution candidate digest: `d5d19a5b32b55b24f00568e021790c082a39f147618032702d2ecdcec62c0b27`
+- Reviewed execution request ID: `AAPL_RESEARCH_APPLICABILITY_EXECUTION_2022_2025_V1`
+- Reviewed candidate checklist: `33` passed / `0` failed / `0` blockers.
+- Campaign scope: `RESEARCH_ONLY`
+- Ticker universe: `AAPL`
+- Dataset profiles: `SWING`, `POSITION_SWING`
+- Campaign range: `2022-01-01` through `2025-12-31`
+- Planned output count: `12`
+- Planned outputs status: `PLANNED_NOT_GENERATED`
+- Planned outputs label: `RESEARCH_ONLY_NON_ACTIONABLE`
 
 ## Bound Source Evidence
 - Research campaign plan digest: `b376bce431248be913dfe5c534535104a1663a5491a16560c9989681c323b97e`
 - Research campaign plan review package digest: `e908ef36dc38879ff59a72c2b7260497dfd2e75b1582806ece0b8852416ed01d`
-- Dataset file availability verification package digest: `8ba7db3aa50eb858f7eebb10eb6ee1a554a97b43a789c93460ff276cadc96751`
 - Dataset file availability verification review package digest: `1002c6f19bc57a6537dc71b8a830517de90fbfd89774797a3dd1e9232531ecff`
-- Read-only discovery candidate digest: `b2c46f880b3764e31d159f4c344004dbb104a3a1129e97499aafc0a7b6ef8bc1`
 - Read-only discovery review package digest: `299eb78d52e598e690db501b10ea88390ff6848a217640022e56251c41584021`
-- Runtime migration plan digest: `f1b7b1456b69774c6e19fa81cf11a319ff5b9c2a9cc75410b7873ed9417e68a5`
 - Runtime migration review package digest: `1d856db1e388e48948155739810baa5f140e2bec5318c80c3f4381d4d759d2e4`
 - SWING registry approval digest: `ee3f6b193a6480fb6391fd97b096dda8fc699d65e43a179c77bba8798f887761`
 - POSITION_SWING registry approval digest: `8eefcbc1e14b2e199dadd8dcf461cbff56513f10758b6b59ca8cf176512d2e8e`
 
-## Campaign Execution Request
-- Campaign scope: `RESEARCH_ONLY`
-- Ticker universe: `AAPL`
-- Dataset profiles: `SWING`, `POSITION_SWING`
-- Date range: `2022-01-01` through `2025-12-31`
+## Execution Request Scope
 - Execution mode: `READ_ONLY_OFFLINE_RESEARCH`
 - Runtime mode: `NOT_RUNTIME`
 - Strategy mode: `NOT_STRATEGY_INPUT`
@@ -65,7 +58,6 @@
   - Strategy use: `NOT_AUTHORIZED`
 
 ## Planned Outputs
-- Planned output root: `.marketflow/research_applicability_campaigns/AAPL/2022_2025/`
 - `research_campaign_run_manifest`: `PLANNED_NOT_GENERATED`
 - `dataset_load_report`: `PLANNED_NOT_GENERATED`
 - `schema_validation_report`: `PLANNED_NOT_GENERATED`
@@ -103,6 +95,9 @@
 - Operator approval required before campaign execution.
 
 ## Runtime Boundary
+- campaign_execution_authorized: `False`
+- campaign_execution_performed: `False`
+- campaign_results_generated: `False`
 - runtime_migration_approved: `False`
 - runtime_migration_active: `False`
 - strategy_runtime_migration: `False`
@@ -115,13 +110,12 @@
 - profitability: `not accepted`
 
 ## Checklist Summary
-- Total checks: `33`
-- Passed checks: `33`
+- Total checks: `40`
+- Passed checks: `40`
 - Failed checks: `0`
 - Blocker count: `0`
-- Ready for operator review: `True`
+- Ready for operator assessment: `True`
 - Campaign execution authorized: `False`
-- Campaign execution performed: `False`
 - Runtime migration authorized: `False`
 - Runtime activation authorized: `False`
 
