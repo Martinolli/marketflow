@@ -69,6 +69,16 @@
 - Software registry approval authorized: `False`
 - Runtime migration authorized: `False`
 
+## Follow-On Approval Ceremony
+- Follow-on artifact kind: `SWING_REGISTRY_APPROVED`
+- Follow-on approval status: `SWING_REGISTRY_APPROVED`
+- Follow-on branch: `feature/swing-registry-approval-ceremony-v1`
+- Follow-on base commit: `e5e770f0c1586610d103c4aa7cacaa2b3965edae`
+- Registry approval digest: `ee3f6b193a6480fb6391fd97b096dda8fc699d65e43a179c77bba8798f887761`
+- Approval checklist: `39 total / 39 passed / 0 failed / 0 blockers`
+- The registry review package remains the source evidence for the approval ceremony.
+- The approval ceremony does not authorize Strategy runtime use, broker/trading use, predictive usefulness, or profitability.
+
 ## Registry Boundary
 - registry_approval_created: `False`
 - registry_eligibility: `False`
@@ -102,4 +112,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step
-- Digest-bound SWING registry approval ceremony remains the next required task.
+- POSITION_SWING canonical dataset candidate remains the next required task after the approval ceremony.

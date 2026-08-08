@@ -1,8 +1,8 @@
 # MarketFlow SWING Registry Approval v1 Plan
 
 ## Purpose
-- Create a candidate-only registry approval path for the frozen AAPL SWING canonical dataset.
-- Preserve the authority boundary: the candidate does not approve registry eligibility, activate a registry entry, migrate runtime behavior, or accept predictive usefulness/profitability.
+- Create a guarded registry approval path for the frozen AAPL SWING canonical dataset.
+- Preserve the authority boundary: registry approval is limited to the `RESEARCH_DATASET` entry and does not migrate runtime behavior, authorize Strategy use, or accept predictive usefulness/profitability.
 
 ## Prerequisite SWING Frozen Dataset
 - Required frozen artifact: `SWING_CANONICAL_DATASET_FROZEN`
@@ -17,7 +17,7 @@
 ## Candidate / Review / Approval Sequence
 1. `SWING_REGISTRY_APPROVAL_CANDIDATE` - completed.
 2. `SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE` - implemented.
-3. SWING registry approval ceremony - future work.
+3. `SWING_REGISTRY_APPROVED` - implemented.
 
 ## Registry Candidate Scope
 - Registry candidate profile: `SWING`
@@ -32,11 +32,11 @@
 - Proposed registry activation: `False`
 
 ## Runtime Boundary
-- Runtime use is not authorized by the candidate.
-- Strategy use is not authorized by the candidate.
+- Runtime use is not authorized by the candidate, review package, or approval artifact.
+- Strategy use is not authorized by the candidate, review package, or approval artifact.
 - Strategy runtime migration remains `False`.
-- Registry eligibility remains `False`.
-- Canonical eligibility remains `False`.
+- Registry eligibility is approved only for the `RESEARCH_DATASET` registry entry.
+- Registry activation is approved only for the `RESEARCH_DATASET` registry entry.
 - Predictive usefulness remains `not accepted`.
 - Profitability remains `not accepted`.
 
@@ -57,8 +57,26 @@
 - Ready for operator registry assessment: `True`
 - Software registry approval authorized: `False`
 - Runtime migration authorized: `False`
-- Registry approval ceremony remains future work.
+- Registry approval ceremony is implemented in the follow-on approval artifact.
 - Strategy runtime migration remains future work.
+
+## Current Approval Status
+- Artifact kind: `SWING_REGISTRY_APPROVED`
+- Approval status: `SWING_REGISTRY_APPROVED`
+- Registry approval digest: `ee3f6b193a6480fb6391fd97b096dda8fc699d65e43a179c77bba8798f887761`
+- Registry approval created: `True`
+- Registry eligibility: `True`
+- Registry activation: `True`
+- Registry scope: `RESEARCH_DATASET`
+- Runtime use: `NOT_AUTHORIZED`
+- Strategy use: `NOT_AUTHORIZED`
+- Strategy runtime migration: `False`
+- Predictive usefulness: `not accepted`
+- Profitability: `not accepted`
+- Checklist: `39 total / 39 passed / 0 failed / 0 blockers`
+- Runtime migration remains future work.
+- Strategy use remains not authorized.
+- POSITION_SWING canonical dataset candidate is next.
 
 ## Non-Goals
 - Do not call Massive.com / Polygon.
@@ -66,17 +84,14 @@
 - Do not regenerate acquisition rows.
 - Do not regenerate SWING bars.
 - Do not refresh identity, calendar, split, dividend, acquisition, or SWING evidence.
-- Do not create `SWING_REGISTRY_APPROVED`.
-- Do not set `REGISTRY_ELIGIBLE`.
-- Do not create an active registry entry.
+- Do not authorize runtime or strategy use.
 - Do not modify Strategy runtime behavior.
 - Do not accept predictive usefulness or profitability.
 
 ## Next Tasks
-1. Digest-bound SWING registry approval ceremony.
-2. POSITION_SWING canonical dataset candidate.
-3. POSITION_SWING canonical dataset operator review/freeze.
-4. POSITION_SWING registry approval chain.
-5. Normal runtime migration.
-6. Applicability/research campaign.
-7. Predictive and profitability evaluation.
+1. POSITION_SWING canonical dataset candidate.
+2. POSITION_SWING canonical dataset operator review/freeze.
+3. POSITION_SWING registry approval chain.
+4. Normal runtime migration.
+5. Applicability/research campaign.
+6. Predictive and profitability evaluation.
