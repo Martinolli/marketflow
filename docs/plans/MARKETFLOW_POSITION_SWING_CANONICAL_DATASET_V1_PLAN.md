@@ -60,6 +60,15 @@
 - Special sessions excluded: `9`
 - Special-session rows excluded: `126`
 
+## Operator Review Package Status
+- Artifact kind: `POSITION_SWING_CANONICAL_DATASET_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `POSITION_SWING_CANONICAL_DATASET_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package digest: `142d35d8b622e2f2db77fa07f48d3bf307126d5b25c6c0a72086d6d7ce4de8ea`
+- Checklist result: `38` passed / `0` failed / `0` blockers.
+- The candidate was generated from verified frozen acquisition source rows and remains the source evidence for the operator review package.
+- The review package is an offline assessment artifact only; POSITION_SWING freeze remains future work.
+- POSITION_SWING registry approval remains future work.
+
 ## Candidate-Only Boundary
 - position_swing_canonical_dataset_frozen: `False`
 - canonical_eligibility: `False`
@@ -84,7 +93,10 @@
 - Do not commit generated dataset CSVs or manifests.
 
 ## Next Tasks
-1. POSITION_SWING operator review package.
-2. POSITION_SWING canonical dataset freeze.
-3. POSITION_SWING registry approval candidate/review/ceremony.
-4. Runtime migration planning.
+1. Digest-bound POSITION_SWING canonical dataset operator freeze ceremony.
+2. POSITION_SWING registry approval candidate.
+3. POSITION_SWING registry operator review package.
+4. POSITION_SWING registry approval ceremony.
+5. Normal runtime migration planning.
+6. Applicability/research campaign.
+7. Predictive and profitability evaluation.

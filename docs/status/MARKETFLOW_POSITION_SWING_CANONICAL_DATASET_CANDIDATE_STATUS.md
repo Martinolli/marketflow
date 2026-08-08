@@ -67,6 +67,14 @@
 - Ignored candidate output path: `.marketflow\canonical_candidates\AAPL\POSITION_SWING\AAPL_POSITION_SWING_RTH_FULL_SESSION_1D_2022_2025_candidate.json`
 - Raw OHLCV rows are not included in this status document.
 
+## Follow-On Operator Review Package
+- Artifact kind: `POSITION_SWING_CANONICAL_DATASET_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `POSITION_SWING_CANONICAL_DATASET_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package digest: `142d35d8b622e2f2db77fa07f48d3bf307126d5b25c6c0a72086d6d7ce4de8ea`
+- Checklist result: `38` passed / `0` failed / `0` blockers.
+- The POSITION_SWING candidate remains the source evidence for the review package.
+- The follow-on review package did not create a POSITION_SWING canonical dataset freeze, registry approval, registry eligibility, runtime authorization, or predictive/profitability acceptance.
+
 ## Authority Bindings
 - Identity frozen digest: `57a698979e827d7c95737c12ad3435563486e44559a7f1ddd49c94006d27d24e`
 - Calendar frozen digest: `25258b528e45a7f36d1cf96a4a40a8f2c89243c69d034f480dd10c4464d847a6`
@@ -103,4 +111,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Task Recommendation
-- POSITION_SWING operator review package.
+- Digest-bound POSITION_SWING canonical dataset operator freeze ceremony.
