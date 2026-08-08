@@ -1,27 +1,29 @@
-# MarketFlow Read-Only Registry Discovery Status
+# MarketFlow Read-Only Registry Discovery Operator Review Package Status
 
 ## Purpose
-- Branch: `feature/read-only-registry-discovery-candidate-v1`
-- Base commit: `93d0cdece58b0fe08807d86979158e6aa9c9d5a9`
+- Branch: `feature/read-only-registry-discovery-operator-review-package-v1`
+- Base commit: `0cb937420c1f8413f0d86ff751a859b30b11f917`
 - Implementation commit: the commit containing this document.
-- Purpose: create an offline read-only discovery candidate for approved research registry datasets.
-- This status document does not approve or activate runtime migration.
+- Purpose: create an offline, digest-bound operator review package for the read-only registry discovery candidate.
+- This review package does not approve or activate runtime migration.
 
-## Discovery Candidate
-- Artifact kind: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE`
-- Candidate status: `READ_ONLY_REGISTRY_DISCOVERY_READY_FOR_OPERATOR_REVIEW`
-- Schema version: `read_only_registry_discovery_candidate_v1`
-- Candidate digest: `b2c46f880b3764e31d159f4c344004dbb104a3a1129e97499aafc0a7b6ef8bc1`
+## Review Package
+- Artifact kind: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE_REVIEW_PACKAGE_READY`
+- Schema version: `read_only_registry_discovery_candidate_review_v1`
+- Review package digest: `299eb78d52e598e690db501b10ea88390ff6848a217640022e56251c41584021`
+- Binding mode: `READ_ONLY_REGISTRY_DISCOVERY_STATUS_BINDING`
 - Created offline: `True`
-- Provider requests made: `False`
-- Read-only discovery: `True`
-- Operator review required: `True`
+- Provider requests made in review: `False`
+- Operator decision required before next gate: `True`
 
-## Runtime Review Evidence
-- Runtime migration plan digest: `f1b7b1456b69774c6e19fa81cf11a319ff5b9c2a9cc75410b7873ed9417e68a5`
-- Runtime migration review package digest: `1d856db1e388e48948155739810baa5f140e2bec5318c80c3f4381d4d759d2e4`
+## Reviewed Discovery Candidate
+- Reviewed discovery candidate kind: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE`
+- Reviewed discovery candidate status: `READ_ONLY_REGISTRY_DISCOVERY_READY_FOR_OPERATOR_REVIEW`
+- Reviewed discovery candidate digest: `b2c46f880b3764e31d159f4c344004dbb104a3a1129e97499aafc0a7b6ef8bc1`
+- Reviewed discovery checklist: `21` passed / `0` failed / `0` blockers.
 
-## Registry Entries Discovered
+## Registry Entries Reviewed
 - SWING registry key: `AAPL:SWING:RTH_HALF_SESSION_195M:2022-01-01:2025-12-31:v1`
 - SWING registry approval digest: `ee3f6b193a6480fb6391fd97b096dda8fc699d65e43a179c77bba8798f887761`
 - SWING registry scope: `RESEARCH_DATASET`
@@ -34,22 +36,23 @@
 - POSITION_SWING Strategy use: `NOT_AUTHORIZED`
 - Registry entry count: `2`
 
-## Dataset File Availability Summary
-- SWING dataset file status: `AVAILABLE_DIGEST_VERIFIED`
-- SWING manifest file status: `AVAILABLE_DIGEST_VERIFIED`
-- SWING dataset digest verified: `True`
-- SWING manifest digest verified: `True`
-- POSITION_SWING dataset file status: `AVAILABLE_DIGEST_VERIFIED`
-- POSITION_SWING manifest file status: `AVAILABLE_DIGEST_VERIFIED`
-- POSITION_SWING dataset digest verified: `True`
-- POSITION_SWING manifest digest verified: `True`
+## Dataset Availability And Digest Verification
 - Available dataset file count: `2`
 - Available manifest file count: `2`
 - Verified dataset digest count: `2`
 - Verified manifest digest count: `2`
 - Missing file count: `0`
+- SWING dataset file status: `AVAILABLE_DIGEST_VERIFIED`
+- SWING manifest file status: `AVAILABLE_DIGEST_VERIFIED`
+- POSITION_SWING dataset file status: `AVAILABLE_DIGEST_VERIFIED`
+- POSITION_SWING manifest file status: `AVAILABLE_DIGEST_VERIFIED`
+
+## Runtime Migration Evidence
+- Runtime migration plan digest: `f1b7b1456b69774c6e19fa81cf11a319ff5b9c2a9cc75410b7873ed9417e68a5`
+- Runtime migration review package digest: `1d856db1e388e48948155739810baa5f140e2bec5318c80c3f4381d4d759d2e4`
 
 ## Runtime Boundary
+- read_only_discovery: `True`
 - runtime_migration_approved: `False`
 - runtime_migration_active: `False`
 - strategy_runtime_migration: `False`
@@ -62,21 +65,11 @@
 - profitability: `not accepted`
 
 ## Checklist Summary
-- Total checks: `21`
-- Passed checks: `21`
+- Total checks: `33`
+- Passed checks: `33`
 - Failed checks: `0`
 - Blocker count: `0`
-- Ready for operator review: `True`
-- Runtime migration authorized: `False`
-- Software runtime activation authorized: `False`
-
-## Follow-On Operator Review Package
-- Artifact kind: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE_REVIEW_PACKAGE`
-- Review status: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE_REVIEW_PACKAGE_READY`
-- Review package digest: `299eb78d52e598e690db501b10ea88390ff6848a217640022e56251c41584021`
-- Reviewed discovery candidate digest: `b2c46f880b3764e31d159f4c344004dbb104a3a1129e97499aafc0a7b6ef8bc1`
-- Review checklist: `33` passed / `0` failed / `0` blockers.
-- Discovery candidate remains source evidence for review: `True`
+- Ready for operator assessment: `True`
 - Runtime migration authorized: `False`
 - Runtime activation authorized: `False`
 
@@ -85,7 +78,7 @@
 - No `RUNTIME_MIGRATION_ACTIVE` artifact or status is created.
 - No `STRATEGY_RUNTIME_MIGRATION` artifact or status is created.
 - Runtime, Strategy, paper trading, and broker execution use remain `NOT_AUTHORIZED`.
-- This discovery candidate is evidence for operator assessment only.
+- This review package is evidence for operator assessment only.
 
 ## Non-Goals
 - No Massive.com / Polygon provider request was made.

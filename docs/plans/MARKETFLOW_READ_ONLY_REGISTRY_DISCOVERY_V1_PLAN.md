@@ -24,6 +24,17 @@
 - Registry entry count: `2`
 - Discovery does not expose registry datasets as runtime defaults.
 
+## Operator Review Package
+- Artifact kind: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `READ_ONLY_REGISTRY_DISCOVERY_CANDIDATE_REVIEW_PACKAGE_READY`
+- Schema version: `read_only_registry_discovery_candidate_review_v1`
+- Review package digest: `299eb78d52e598e690db501b10ea88390ff6848a217640022e56251c41584021`
+- Reviewed discovery candidate digest: `b2c46f880b3764e31d159f4c344004dbb104a3a1129e97499aafc0a7b6ef8bc1`
+- Review checklist result: `33` passed / `0` failed / `0` blockers.
+- Runtime migration authorized: `False`
+- Runtime activation authorized: `False`
+- Separate future runtime migration approval ceremony required: `True`
+
 ## Local Dataset And Manifest Availability
 - SWING dataset path: `.marketflow/canonical_candidates/AAPL/SWING/AAPL_SWING_RTH_HALF_SESSION_195M_2022_2025.csv`
 - SWING dataset file status: `AVAILABLE_DIGEST_VERIFIED`
@@ -63,6 +74,9 @@
 - Do not claim predictive usefulness or profitability.
 
 ## Next Tasks
-1. Read-only registry discovery operator review package.
-2. Dataset file availability verification.
-3. Research-only applicability campaign plan.
+1. Dataset file availability verification package.
+2. Research-only applicability campaign plan.
+3. Research-only applicability campaign execution.
+4. Predictive usefulness review.
+5. Profitability review.
+6. Separate runtime migration approval ceremony, if ever authorized.
