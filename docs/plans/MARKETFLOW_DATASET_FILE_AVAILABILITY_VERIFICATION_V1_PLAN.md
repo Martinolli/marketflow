@@ -20,6 +20,16 @@
 - Verification entry count: `2`
 - Ready for research campaign planning: `True`
 - Ready for runtime migration: `False`
+- Verification package completed: `True`
+
+## Operator Review Package
+- Artifact kind: `DATASET_FILE_AVAILABILITY_VERIFICATION_REVIEW_PACKAGE`
+- Review status: `DATASET_FILE_AVAILABILITY_VERIFICATION_REVIEW_PACKAGE_READY`
+- Schema version: `dataset_file_availability_verification_review_v1`
+- Review package digest: `1002c6f19bc57a6537dc71b8a830517de90fbfd89774797a3dd1e9232531ecff`
+- Operator review package implemented: `True`
+- Verification package remains source evidence for review: `True`
+- Runtime activation remains future work: `True`
 
 ## Dataset File Existence Verification
 - SWING dataset path: `.marketflow/canonical_candidates/AAPL/SWING/AAPL_SWING_RTH_HALF_SESSION_195M_2022_2025.csv`
@@ -71,6 +81,8 @@
 - Do not claim predictive usefulness or profitability.
 
 ## Next Tasks
-1. Dataset file availability verification operator review package.
-2. Research-only applicability campaign plan.
-3. Research-only applicability campaign execution.
+1. Research-only applicability campaign plan.
+2. Research-only applicability campaign execution.
+3. Predictive usefulness review.
+4. Profitability review.
+5. Separate runtime migration approval ceremony, if ever authorized.

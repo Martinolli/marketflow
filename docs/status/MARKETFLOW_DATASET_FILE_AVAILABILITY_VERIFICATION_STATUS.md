@@ -71,6 +71,16 @@
 - Runtime migration authorized: `False`
 - Software runtime activation authorized: `False`
 
+## Follow-On Operator Review Package
+- Artifact kind: `DATASET_FILE_AVAILABILITY_VERIFICATION_REVIEW_PACKAGE`
+- Review status: `DATASET_FILE_AVAILABILITY_VERIFICATION_REVIEW_PACKAGE_READY`
+- Review package digest: `1002c6f19bc57a6537dc71b8a830517de90fbfd89774797a3dd1e9232531ecff`
+- Verification package remains source evidence for review: `True`
+- Reviewed verification package digest: `8ba7db3aa50eb858f7eebb10eb6ee1a554a97b43a789c93460ff276cadc96751`
+- Ready for research campaign planning: `True`
+- Runtime migration authorized: `False`
+- Runtime activation authorized: `False`
+
 ## Authority Boundary
 - No `RUNTIME_MIGRATION_APPROVED` artifact or status is created.
 - No `RUNTIME_MIGRATION_ACTIVE` artifact or status is created.
@@ -87,4 +97,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Task Recommendation
-- Dataset file availability verification operator review package.
+- Research-only applicability campaign plan.
