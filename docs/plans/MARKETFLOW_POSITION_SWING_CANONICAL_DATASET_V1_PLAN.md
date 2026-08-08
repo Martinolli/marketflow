@@ -66,13 +66,23 @@
 - Review package digest: `142d35d8b622e2f2db77fa07f48d3bf307126d5b25c6c0a72086d6d7ce4de8ea`
 - Checklist result: `38` passed / `0` failed / `0` blockers.
 - The candidate was generated from verified frozen acquisition source rows and remains the source evidence for the operator review package.
-- The review package is an offline assessment artifact only; POSITION_SWING freeze remains future work.
-- POSITION_SWING registry approval remains future work.
+- The review package is an offline assessment artifact only and remains source evidence for the POSITION_SWING freeze.
 
-## Candidate-Only Boundary
-- position_swing_canonical_dataset_frozen: `False`
+## Operator Freeze Status
+- Artifact kind: `POSITION_SWING_CANONICAL_DATASET_FROZEN`
+- Freeze status: `POSITION_SWING_CANONICAL_DATASET_FROZEN`
+- Frozen semantic digest: `d95b61fd857eec3271fd6172225ad2efc9cafc78726b55eef666f05d183147f8`
+- Checklist result: `55` passed / `0` failed / `0` blockers.
+- POSITION_SWING canonical dataset frozen: `True`
+- POSITION_SWING registry approval remains future work.
+- Runtime migration remains future work.
+
+## Current Authority Boundary
+- position_swing_canonical_dataset_frozen: `True`
 - canonical_eligibility: `False`
 - registry_eligibility: `False`
+- position_swing_registry_approval_created: `False`
+- position_swing_registry_eligibility: `False`
 - strategy_runtime_migration: `False`
 - runtime_use: `NOT_AUTHORIZED`
 - strategy_use: `NOT_AUTHORIZED`
@@ -85,7 +95,6 @@
 - Do not fetch provider data.
 - Do not regenerate acquisition rows.
 - Do not refresh identity, calendar, split, dividend, acquisition, SWING, or registry evidence.
-- Do not create `POSITION_SWING_CANONICAL_DATASET_FROZEN`.
 - Do not create `POSITION_SWING_REGISTRY_APPROVED`.
 - Do not approve registry/runtime eligibility.
 - Do not modify Strategy runtime behavior.
@@ -93,10 +102,9 @@
 - Do not commit generated dataset CSVs or manifests.
 
 ## Next Tasks
-1. Digest-bound POSITION_SWING canonical dataset operator freeze ceremony.
-2. POSITION_SWING registry approval candidate.
-3. POSITION_SWING registry operator review package.
-4. POSITION_SWING registry approval ceremony.
-5. Normal runtime migration planning.
-6. Applicability/research campaign.
-7. Predictive and profitability evaluation.
+1. POSITION_SWING registry approval candidate.
+2. POSITION_SWING registry operator review package.
+3. POSITION_SWING registry approval ceremony.
+4. Normal runtime migration planning.
+5. Applicability/research campaign.
+6. Predictive and profitability evaluation.
