@@ -15,9 +15,9 @@
 - Materialization receipt digest: `d331e52034dc8ab47df225347243df370063fc25b18338b49b42d038810dfd54`
 
 ## Candidate / Review / Approval Sequence
-1. `SWING_REGISTRY_APPROVAL_CANDIDATE`
-2. SWING registry operator review package.
-3. SWING registry approval ceremony.
+1. `SWING_REGISTRY_APPROVAL_CANDIDATE` - completed.
+2. `SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE` - implemented.
+3. SWING registry approval ceremony - future work.
 
 ## Registry Candidate Scope
 - Registry candidate profile: `SWING`
@@ -49,6 +49,17 @@
 - Software registry approval: `False`
 - Runtime migration authorized: `False`
 
+## Current Review Package Status
+- Artifact kind: `SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package digest: `ab433bb2c4b58cdd3a6ae287640877a1a8e443a631ebc479bf765f7a8d2b6f9e`
+- Checklist: `32 total / 32 passed / 0 failed / 0 blockers`
+- Ready for operator registry assessment: `True`
+- Software registry approval authorized: `False`
+- Runtime migration authorized: `False`
+- Registry approval ceremony remains future work.
+- Strategy runtime migration remains future work.
+
 ## Non-Goals
 - Do not call Massive.com / Polygon.
 - Do not fetch provider data.
@@ -62,6 +73,10 @@
 - Do not accept predictive usefulness or profitability.
 
 ## Next Tasks
-1. SWING registry operator review package.
-2. SWING registry approval ceremony.
-3. POSITION_SWING canonical dataset candidate.
+1. Digest-bound SWING registry approval ceremony.
+2. POSITION_SWING canonical dataset candidate.
+3. POSITION_SWING canonical dataset operator review/freeze.
+4. POSITION_SWING registry approval chain.
+5. Normal runtime migration.
+6. Applicability/research campaign.
+7. Predictive and profitability evaluation.

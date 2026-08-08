@@ -79,6 +79,16 @@
 - Software registry approval: `False`
 - Runtime migration authorized: `False`
 
+## Follow-On Review Package
+- Follow-on artifact kind: `SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE`
+- Follow-on review status: `SWING_REGISTRY_APPROVAL_CANDIDATE_REVIEW_PACKAGE_READY`
+- Follow-on branch: `feature/swing-registry-operator-review-package-v1`
+- Follow-on base commit: `a64ca9374991641b5218afac963c436dae6024a2`
+- Review package digest: `ab433bb2c4b58cdd3a6ae287640877a1a8e443a631ebc479bf765f7a8d2b6f9e`
+- Review package checklist: `32 total / 32 passed / 0 failed / 0 blockers`
+- The registry candidate remains the source evidence for the review package.
+- The review package does not create registry approval, registry eligibility, registry activation, or Strategy runtime migration.
+
 ## Authority Boundary
 - identity_segment_frozen: `True`
 - calendar_operator_frozen: `True`
@@ -105,4 +115,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step
-- SWING registry operator review package remains the next required task before any registry approval ceremony.
+- Digest-bound SWING registry approval ceremony remains the next required task after the operator review package.
