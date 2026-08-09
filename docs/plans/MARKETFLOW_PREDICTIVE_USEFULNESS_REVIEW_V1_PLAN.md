@@ -53,7 +53,15 @@
 - Any future runtime migration remains a separate approval ceremony and is not implied by predictive planning.
 
 ## Next Tasks
-1. Predictive usefulness review candidate operator review package.
-2. Predictive experiment plan candidate.
-3. Walk-forward experiment plan.
-4. Predictive usefulness review after experiments.
+1. Predictive usefulness review candidate completed.
+2. Predictive usefulness review candidate operator review package implemented.
+3. Predictive experiment plan candidate remains future work.
+4. Walk-forward experiment plan remains future work.
+5. Predictive usefulness review after experiments remains future work.
+6. Runtime activation remains future work and is not authorized.
+
+## Current Acceptance Boundary
+- Predictive usefulness remains `not accepted`.
+- Profitability remains `not accepted`.
+- Predictive experiment planning remains future work.
+- Runtime migration and runtime activation remain future work.
