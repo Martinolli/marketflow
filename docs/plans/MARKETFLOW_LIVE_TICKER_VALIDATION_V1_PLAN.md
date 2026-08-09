@@ -1,9 +1,9 @@
 # MarketFlow Live Ticker Validation v1 Plan
 
 ## Purpose
-- Define an offline, digest-bound candidate/request package for future live ticker validation of the approved expanded ticker universe.
-- Preserve the approval boundary: ticker universe selection is approved only for future validation and authority-chain planning.
-- This plan does not authorize provider requests, perform live ticker validation, create ticker authority, authorize acquisition, generate datasets, execute predictive evidence, or activate runtime behavior.
+- Define and track the digest-bound candidate, approval, and read-only live execution path for ticker validation of the approved expanded ticker universe.
+- Preserve the approval boundary: ticker universe selection is approved only for validation and authority-chain planning.
+- The completed read-only live validation run does not create ticker authority, authorize acquisition, generate datasets, execute predictive evidence, or activate runtime behavior.
 
 ## Source Ticker Universe Approval
 - Source approval artifact kind: `TICKER_UNIVERSE_SELECTION_APPROVED`
@@ -29,8 +29,8 @@
 - Live ticker validation approval scope: `READ_ONLY_PROVIDER_TICKER_VALIDATION_ONLY`
 - Live ticker validation approval digest: `2bf668bb4aae3756652ee5eea790b76d1ba73bdd7723efc1c31227c5c3e897e4`
 - Live ticker validation execution implemented: `True`
-- Live ticker validation execution local status: `LIVE_TICKER_VALIDATION_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`
-- Live ticker validation performed by local provider run: `False`
+- Live ticker validation execution local status: `LIVE_TICKER_VALIDATION_PERFORMED_READ_ONLY`
+- Live ticker validation performed by local provider run: `True`
 - Live validation results review remains future work: `True`
 - Per-ticker authority chain remains future work: `True`
 - Predictive usefulness remains not accepted: `True`
@@ -39,10 +39,11 @@
 - Approved expanded ticker count: `12`
 - Validation target count: `12`
 - Validation targets: `MSFT`, `NVDA`, `AMZN`, `GOOGL`, `META`, `TSLA`, `JPM`, `XOM`, `JNJ`, `WMT`, `CAT`, `LMT`
-- Target status: `APPROVED_FOR_FUTURE_VALIDATION_ONLY`
-- Provider request status: `NOT_REQUESTED`
-- Live validation status: `NOT_PERFORMED`
-- Listing, security type, exchange, active, delisting, tradability, corporate-action data availability, and historical aggregate data availability statuses remain `NOT_VERIFIED`.
+- Target status: `VALIDATED_READ_ONLY_BY_SELECTED_PROVIDER_ENDPOINT`
+- Provider request status: `PROVIDER_RESPONSE_AVAILABLE`
+- Live validation status: `VALIDATED_READ_ONLY`
+- Listing, security type, exchange, active, delisting, tradability, and provider symbol mapping statuses are `VALIDATED_READ_ONLY`.
+- Corporate-action data availability and historical aggregate data availability statuses are `NOT_EVALUATED_BY_SELECTED_ENDPOINT`.
 
 ## Planned Validation Checks
 - `ticker_symbol_recognized_by_provider`
@@ -56,7 +57,8 @@
 - `dividend_data_availability_check`
 - `data_range_coverage_feasibility_check`
 - `provider_symbol_mapping_consistency_check`
-- Each check requires future provider interaction, was not performed in this task, and requires operator approval before execution.
+- The gated live run performed selected read-only validation checks supported by `/v3/reference/tickers/{ticker}`.
+- Corporate-action endpoint availability, split data availability, dividend data availability, historical aggregate availability, and data range coverage checks remain not evaluated by the selected endpoint and require separate future authority before execution.
 
 ## Provider Request Policy
 - future_provider_request_policy_status: `PLANNED_REQUIRES_SEPARATE_APPROVAL`
@@ -68,20 +70,19 @@
 ## No API Key Storage Policy
 - api_key_handling: `DO_NOT_STORE_KEYS_OR_PRINT_KEYS`
 - The candidate records no secrets, API keys, tokens, request headers, or environment values.
-- Future validation approval must confirm key handling before any live provider transport is enabled.
+- Any future validation approval must confirm key handling before live provider transport is enabled.
 
 ## Raw Payload Non-Commit Policy
 - raw_payload_policy: `DO_NOT_COMMIT_RAW_PROVIDER_PAYLOADS`
-- Future live validation results must use sanitized status artifacts.
+- Live validation results must use sanitized status artifacts.
 - Raw provider payloads must not become tracked source files.
 
 ## Non-Goals
 - No provider requests made during candidate operator review.
 - No provider requests made during approval.
-- No live provider transport.
-- No live ticker validation execution.
-- No live validation results artifact.
-- No current listing status, security type, exchange, active, delisting, tradability, corporate-action, or aggregate availability verification.
+- Live provider transport was enabled only during the explicit gated read-only execution.
+- Sanitized live ticker validation outputs were created under ignored `.marketflow` runtime output.
+- The live run created no ticker authority, acquisition approval, canonical dataset authority, predictive acceptance, profitability acceptance, or runtime approval.
 - No new ticker authority.
 - No acquisition authorization.
 - No dataset generation authorization.
@@ -92,20 +93,19 @@
 
 ## Guardrails
 - Default tests remain deterministic and offline.
-- Provider requests remain `False`.
-- Provider request authorization is limited to future read-only ticker validation.
-- Live provider transport remains disabled.
-- Approved tickers remain validation targets only until a separate execution step performs validation under the approval scope.
-- Validation results, when later authorized, must not imply acquisition authority, canonical dataset authority, registry authority, predictive usefulness acceptance, profitability acceptance, or runtime activation.
+- Provider requests were made only in the explicitly gated live execution path.
+- Provider request authorization was limited to read-only ticker validation.
+- Live provider transport completed under explicit gate and API key availability.
+- Approved tickers remain validation targets only; validated read-only results do not create per-ticker authority.
+- Sanitized validation results review must not imply acquisition authority, canonical dataset authority, registry authority, predictive usefulness acceptance, profitability acceptance, or runtime activation.
 - Runtime, strategy, paper trading, broker execution, and automatic stitching remain unauthorized.
 - Provider request execution requires an explicit live gate and API key.
-- Live ticker validation execution service is implemented, with local provider execution blocked when the gate or API key is unavailable.
+- Live ticker validation execution completed under explicit gate and API key availability; results review remains a separate future step.
 - Per-ticker authority chain remains future work.
 - Predictive usefulness remains not accepted.
 - Profitability remains not accepted.
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Live ticker validation execution under the read-only provider validation approval scope.
-2. Sanitized live ticker validation results review.
-3. Per-ticker identity/corporate-action/acquisition authority chain only after validation.
+1. Sanitized live ticker validation results review.
+2. Per-ticker identity/corporate-action/acquisition authority chain only after validation.

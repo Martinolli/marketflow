@@ -64,10 +64,11 @@
 
 ## Follow-On Execution Implementation
 - Live ticker validation execution service implemented: `True`
-- Follow-on execution branch: `feature/live-ticker-validation-execution-v1`
+- Follow-on execution branch: `feature/live-ticker-validation-execution-live-run-v1`
 - Approval remains the source evidence for execution: `2bf668bb4aae3756652ee5eea790b76d1ba73bdd7723efc1c31227c5c3e897e4`
 - Provider requests are only made during the gated execution service path.
-- Local live execution status: `LIVE_TICKER_VALIDATION_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`
+- Local live execution status: `LIVE_TICKER_VALIDATION_PERFORMED_READ_ONLY`
+- Local live execution digest: `96cdb4e97ea6255ddd04bd578a893a28c7a689b5e6d8247f9a26c341226d1ace`
 - No new ticker authority, acquisition authority, or dataset generation authorization is created by the execution implementation.
 
 ## New Ticker Authority Boundary

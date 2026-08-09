@@ -1,15 +1,15 @@
 # MarketFlow Live Ticker Validation Execution Status
 
 ## Branch And Commit
-- Branch: `feature/live-ticker-validation-execution-v1`
-- Base commit: `b57bce943703fe8d74ad83718a7f1c9365dccbfd`
+- Branch: `feature/live-ticker-validation-execution-live-run-v1`
+- Base commit: `f49cd58a595d6811dca67dbd4459627b5b3c231b`
 - Implementation commit: the commit containing this document.
 
 ## Execution Artifact
-- Artifact kind: `LIVE_TICKER_VALIDATION_BLOCKED`
-- Execution status: `LIVE_TICKER_VALIDATION_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`
+- Artifact kind: `LIVE_TICKER_VALIDATION_PERFORMED`
+- Execution status: `LIVE_TICKER_VALIDATION_PERFORMED_READ_ONLY`
 - Schema version: `live_ticker_validation_performed_v1`
-- Execution digest: `NOT_CREATED`
+- Execution digest: `96cdb4e97ea6255ddd04bd578a893a28c7a689b5e6d8247f9a26c341226d1ace`
 - Approval digest: `2bf668bb4aae3756652ee5eea790b76d1ba73bdd7723efc1c31227c5c3e897e4`
 - Validation scope: `READ_ONLY_PROVIDER_TICKER_VALIDATION_ONLY`
 
@@ -23,30 +23,53 @@
 - Validation targets: `MSFT`, `NVDA`, `AMZN`, `GOOGL`, `META`, `TSLA`, `JPM`, `XOM`, `JNJ`, `WMT`, `CAT`, `LMT`
 
 ## Provider Request Summary
-- Provider request count: `0`
-- Successful provider response count: `0`
+- Provider request count: `12`
+- Successful provider response count: `12`
 - Failed provider response count: `0`
-- Failure count: `1`
-- Warning count: `0`
-- Blocker reason: live gate and API key were not available in the local environment.
+- Validated read-only result count: `12`
+- Validation failed count: `0`
+- Not evaluated count: `24`
+- Failure count: `0`
+- Warning count: `24`
+- Provider requests were made only through the explicit gated execution service path.
+
+## Per-Ticker Sanitized Summary
+- `MSFT`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `NVDA`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `AMZN`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `GOOGL`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `META`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `TSLA`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `JPM`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `XOM`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `JNJ`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `WMT`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `CAT`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
+- `LMT`: provider response available; live validation `VALIDATED_READ_ONLY`; listing, security type, exchange, active, delisting, tradability, and provider symbol mapping `VALIDATED_READ_ONLY`; corporate-action data availability and historical aggregate data availability `NOT_EVALUATED_BY_SELECTED_ENDPOINT`; failure reason `None`.
 
 ## Generated Outputs
 - Generated output root: `.marketflow/live_ticker_validation/expanded_universe_v1`
-- Generated output count: `0`
-- Output digest manifest summary: `NOT_CREATED`
+- Generated output count: `6`
+- `live_ticker_validation_run_manifest.json`: `615af7ec5f525961ddd2b33e6e1dca92e78fa40f3c8d4944fcd252bc31ba0ce0`
+- `ticker_validation_results.json`: `8860ebbd6165cfd95f7a75076c1ee6bf0fee476e5c01354fd40f4b0dfb0c38ec`
+- `provider_request_receipts_sanitized.json`: `9644b6754a60a7f7da5e23f0f112b063ab6ae3c656442a320824f0ca602bc8ab`
+- `validation_summary.json`: `13d39fa36ed117aa2f138181e91db3f841c8f74ca8016689d89250985b55b3a0`
+- `validation_failure_reason_inventory.json`: `ead2b32430f88ca7fccf515d58b7057f39c061273adf2479714169b8ef3c5ceb`
+- `operator_review_summary.json`: `3c5a93d0f1fd75105111e6f236e470543498d5a23de0ac723d239e6e00ad691b`
 
 ## API Key / Raw Payload Boundary
 - raw_provider_payloads_committed: `False`
 - api_keys_stored_or_printed: `False`
 - API keys, authorization headers, environment values, and raw provider payloads are not included in this status document.
+- Generated outputs remain under ignored `.marketflow` runtime output and are not source files.
 
 ## Authority Boundaries
 - provider_request_authorized: `True`
-- provider_requests_made: `False`
-- live_provider_transport_enabled: `False`
+- provider_requests_made: `True`
+- live_provider_transport_enabled: `True`
 - live_ticker_validation_authorized: `True`
-- live_ticker_validation_performed: `False`
-- live_validation_results_created: `False`
+- live_ticker_validation_performed: `True`
+- live_validation_results_created: `True`
 - new_ticker_authority_created: `False`
 - new_ticker_acquisition_authorized: `False`
 - dataset_generation_authorized: `False`
@@ -77,7 +100,6 @@
 - automatic_stitching: `False`
 
 ## Non-Goals
-- No provider request was made in the local blocked run.
 - No raw provider payload was stored or committed.
 - No API key was printed or stored.
 - No new ticker authority or acquisition authority was created.
@@ -90,4 +112,4 @@
 - No runtime migration, runtime activation, paper trading, or broker execution was authorized.
 
 ## Next Task
-1. Live ticker validation results operator review package after an explicitly gated provider run creates sanitized validation results.
+1. Sanitized live ticker validation results operator review package.
