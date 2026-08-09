@@ -15,6 +15,18 @@
 - Operator review required: `True`
 - Validation execution requires operator approval: `True`
 
+## Operator Review Package
+- Review package artifact kind: `LIVE_TICKER_VALIDATION_CANDIDATE_REVIEW_PACKAGE`
+- Review package status: `LIVE_TICKER_VALIDATION_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package schema version: `live_ticker_validation_candidate_review_v1`
+- Review package digest: `c38b723df9a66e94ff82696cf8c88aa5008e915e7fc42b2a8a760ea61623b3fc`
+- Operator decision required: `True`
+- Operator decision: `None`
+- ready_for_operator_assessment: `True`
+- ready_for_live_ticker_validation_approval: `False`
+- The review package binds this candidate for operator assessment only.
+- It does not authorize provider requests, perform live validation, create ticker authority, authorize acquisition, generate datasets, accept predictive usefulness, accept profitability, or activate runtime use.
+
 ## Source Ticker Universe Approval
 - Ticker universe selection approval digest: `e0b56da411ada20f40fbefdcf74c1cce75ca86d13931471f518ef970db23188c`
 - Ticker universe selection approval scope: `TICKER_UNIVERSE_APPROVED_FOR_FUTURE_VALIDATION_AND_AUTHORITY_CHAIN_PLANNING_ONLY`
