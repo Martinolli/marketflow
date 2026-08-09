@@ -101,5 +101,14 @@
 - Runtime migration authorized: `False`
 - Software runtime activation authorized: `False`
 
+## Follow-On Approval Ceremony
+- Follow-on branch: `feature/predictive-experiment-execution-approval-v1`
+- Follow-on artifact kind: `PREDICTIVE_EXPERIMENT_EXECUTION_APPROVED`
+- Follow-on approval status: `PREDICTIVE_EXPERIMENT_EXECUTION_APPROVED`
+- Follow-on approval digest: `d1578a7858da3686d7322f4405e8c5f8075fdb32efa4f77bdae6af2242f4f4be`
+- The review package digest remains the source evidence for the approval ceremony.
+- The approval may set `predictive_experiment_execution_authorized` to `True`.
+- The approval does not prove predictive experiment execution, walk-forward validation, labels, feature matrices, strategy scoring, trade recommendations, predictive usefulness acceptance, profitability acceptance, runtime migration, paper trading, or broker execution.
+
 ## Next Task
-- Predictive experiment execution approval ceremony.
+- Predictive experiment execution, still research-only and non-actionable.
