@@ -123,4 +123,8 @@
 - No runtime migration was recommended, approved, activated, or made default.
 
 ## Next Task
-- Predictive usefulness acceptance candidate, only if the operator elects to proceed in a separate authority step.
+- Predictive usefulness acceptance readiness candidate implemented on branch `feature/predictive-usefulness-acceptance-readiness-candidate-v1`.
+- Readiness candidate digest: `c6562d04616327bd1b293f36f9f80aa0c0713a02508e4f558803d0c528fd768e`.
+- Assessment review remains source evidence.
+- Predictive usefulness remains `not accepted`.
+- Predictive usefulness acceptance candidate may be created only if the operator approves readiness later in a separate authority step.
