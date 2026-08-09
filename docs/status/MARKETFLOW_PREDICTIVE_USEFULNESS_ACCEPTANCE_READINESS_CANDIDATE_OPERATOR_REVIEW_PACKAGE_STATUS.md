@@ -1,49 +1,42 @@
-# MarketFlow Predictive Usefulness Acceptance Readiness Candidate Status
+# MarketFlow Predictive Usefulness Acceptance Readiness Candidate Operator Review Package Status
 
 ## Branch And Commit
-- Branch: `feature/predictive-usefulness-acceptance-readiness-candidate-v1`
-- Base commit: `0c1987a823db27c55f696b3f8f23ce3f6e12a184`
+- Branch: `feature/predictive-usefulness-acceptance-readiness-candidate-review-v1`
+- Base commit: `2afa741714f4bc027e9ae68f76b4505e6dab5ddb`
 - Implementation commit: the commit containing this document.
 
-## Candidate Artifact
-- Artifact kind: `PREDICTIVE_USEFULNESS_ACCEPTANCE_READINESS_CANDIDATE`
-- Candidate status: `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_REQUIRES_ADDITIONAL_EVIDENCE`
-- Schema version: `predictive_usefulness_acceptance_readiness_candidate_v1`
-- Candidate digest: `c6562d04616327bd1b293f36f9f80aa0c0713a02508e4f558803d0c528fd768e`
+## Review Artifact
+- Artifact kind: `PREDICTIVE_USEFULNESS_ACCEPTANCE_READINESS_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `PREDICTIVE_USEFULNESS_ACCEPTANCE_READINESS_CANDIDATE_REVIEW_PACKAGE_READY`
+- Schema version: `predictive_usefulness_acceptance_readiness_candidate_review_v1`
+- Review package digest: `17c43213689f45e7af9641354cae0e145bb71091d092b4abc856004ab9d7ba57`
 
-## Source Assessment Evidence
+## Reviewed Readiness Candidate
+- Candidate kind: `PREDICTIVE_USEFULNESS_ACCEPTANCE_READINESS_CANDIDATE`
+- Candidate status: `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_REQUIRES_ADDITIONAL_EVIDENCE`
+- Candidate digest: `c6562d04616327bd1b293f36f9f80aa0c0713a02508e4f558803d0c528fd768e`
+- Candidate checklist total: `47`
+- Candidate checklist passed: `47`
+- Candidate checklist failed: `0`
+- Candidate blocker count: `0`
+
+## Source Evidence Bound
 - Predictive usefulness assessment candidate review package digest: `b73bcd2f6004a457112688cfa8ff487b266a1b74ea3135d2be7f68c1fb3aadd5`
 - Predictive usefulness assessment candidate digest: `b98c8fc1a6d64ddb1d3da313659b4e2105702e7d33550840cc00cb0008105598`
 - Predictive experiment results review package digest: `281e2f0ce4f6050b4788188202003605af95af104b887374484bb1f46ce2b804`
 - Predictive experiment execution digest: `f165b6a066e81e8d5f6c4de2a5603e0dc74aa29ea90dc19cc887b3474bfd32b0`
 - Predictive experiment execution approval digest: `d1578a7858da3686d7322f4405e8c5f8075fdb32efa4f77bdae6af2242f4f4be`
-- Predictive experiment execution request ID: `AAPL_PREDICTIVE_EXPERIMENT_EXECUTION_2022_2025_V1`
 - Predictive experiment plan digest: `2d338822163dd25f262a32940153ff9842bb7e3213372ad09ce705bbfddede71`
-- Predictive experiment plan review digest: `e71197fb6838e2caa99d1cffa3c6bd8847d3170d6f842ea921e5345dac349180`
+- Predictive experiment plan review package digest: `e71197fb6838e2caa99d1cffa3c6bd8847d3170d6f842ea921e5345dac349180`
 - Swing registry approval digest: `ee3f6b193a6480fb6391fd97b096dda8fc699d65e43a179c77bba8798f887761`
 - Position swing registry approval digest: `8eefcbc1e14b2e199dadd8dcf461cbff56513f10758b6b59ca8cf176512d2e8e`
-
-## Current Evidence Summary
-- Output count: `13`
-- All outputs research-only non-actionable: `True`
-- Metrics label: `RESEARCH_ONLY_NOT_PERFORMANCE_ACCEPTANCE`
-- Labels generated: `True`
-- Feature matrices generated: `True`
-- Walk-forward result generated: `True`
-- Out-of-sample result generated: `True`
-- Baseline result count: `8`
-- Metric result count: `8`
-- Failure count status: `UNAVAILABLE_IN_SOURCE_REPORTS`
-- Warning count status: `UNAVAILABLE_IN_SOURCE_REPORTS`
 
 ## Readiness Classification
 - acceptance_readiness_state: `NOT_READY_REQUIRES_ADDITIONAL_EVIDENCE`
 - acceptance_readiness_reason: `CURRENT_EVIDENCE_IS_RESEARCH_ONLY_AND_LIMITED`
 - predictive_evidence_available_for_review: `True`
 - predictive_evidence_sufficient_for_acceptance: `False`
-- predictive_usefulness_acceptance_ready: `False`
-- predictive_usefulness_acceptance_recommended: `False`
-- predictive_usefulness_acceptance_candidate_created: `False`
+- ready_for_acceptance_candidate: `False`
 
 ## Reasons Acceptance Is Not Ready
 - `single_ticker_scope`
@@ -89,7 +82,7 @@
 - profitability_acceptance_recommended: `False`
 
 ## Runtime Boundary
-- provider_requests_made: `False`
+- provider_requests_made_in_review: `False`
 - experiment_reexecution_performed: `False`
 - walk_forward_rerun_performed: `False`
 - label_regeneration_performed: `False`
@@ -107,11 +100,11 @@
 - automatic_stitching: `False`
 
 ## Checklist Summary
-- Total checks: `47`
-- Passed checks: `47`
+- Total checks: `49`
+- Passed checks: `49`
 - Failed checks: `0`
 - Blocker count: `0`
-- ready_for_operator_review: `True`
+- ready_for_operator_assessment: `True`
 - ready_for_acceptance_candidate: `False`
 
 ## Guardrails
@@ -126,15 +119,5 @@
 - No runtime migration was recommended, approved, activated, or made default.
 
 ## Next Task Recommendation
-- Predictive usefulness acceptance readiness candidate operator review package.
 - Additional predictive evidence plan candidate.
 - Predictive usefulness acceptance candidate only if the operator approves readiness later.
-
-## Follow-On Operator Review Package
-- Predictive usefulness acceptance readiness candidate operator review package implemented on branch `feature/predictive-usefulness-acceptance-readiness-candidate-review-v1`.
-- Review artifact: `PREDICTIVE_USEFULNESS_ACCEPTANCE_READINESS_CANDIDATE_REVIEW_PACKAGE`.
-- Review status: `PREDICTIVE_USEFULNESS_ACCEPTANCE_READINESS_CANDIDATE_REVIEW_PACKAGE_READY`.
-- Review package digest: `17c43213689f45e7af9641354cae0e145bb71091d092b4abc856004ab9d7ba57`.
-- The readiness candidate remains source evidence for the review package.
-- Predictive usefulness remains not accepted.
-- Predictive usefulness acceptance candidate remains not created.
