@@ -105,3 +105,14 @@
 4. Per-ticker canonical dataset and registry authority chain.
 5. Dataset file availability verification for approved tickers.
 6. Separate research campaign and predictive evidence authority chain.
+
+## Follow-On Live Ticker Validation Candidate Status
+- Follow-on live ticker validation candidate implemented on branch `feature/live-ticker-validation-candidate-v1`.
+- Follow-on candidate artifact kind: `LIVE_TICKER_VALIDATION_CANDIDATE`.
+- Follow-on candidate status: `LIVE_TICKER_VALIDATION_READY_FOR_OPERATOR_REVIEW`.
+- Follow-on candidate digest: `7d4bd0b944cce2fd6be6e242683befba3ea432ddfec079eeac129722942587e7`.
+- This approval remains source evidence for the validation candidate.
+- Live validation remains not authorized and not performed.
+- Provider requests remain not made.
+- Live provider transport remains disabled.
+- New ticker authority and acquisition remain not created or authorized.
