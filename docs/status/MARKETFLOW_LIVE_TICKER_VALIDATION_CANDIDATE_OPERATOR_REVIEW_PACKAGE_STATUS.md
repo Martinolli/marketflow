@@ -109,9 +109,19 @@
 - runtime_migration_authorized: `False`
 - software_runtime_activation_authorized: `False`
 
+## Follow-On Approval Ceremony
+- Follow-on live ticker validation approval ceremony implemented: `True`
+- Follow-on approval artifact kind: `LIVE_TICKER_VALIDATION_APPROVED`
+- Follow-on approval status: `LIVE_TICKER_VALIDATION_APPROVED`
+- Follow-on approval scope: `READ_ONLY_PROVIDER_TICKER_VALIDATION_ONLY`
+- Follow-on approval digest: `2bf668bb4aae3756652ee5eea790b76d1ba73bdd7723efc1c31227c5c3e897e4`
+- This review package remains source evidence for the approval ceremony.
+- Provider requests remain not made in approval: `True`
+- Live validation remains not performed: `True`
+- New ticker authority remains not created: `True`
+- New ticker acquisition remains not authorized: `True`
+
 ## Next Task Recommendation
-1. Operator assessment of this review package.
-2. Live ticker validation approval ceremony.
-3. Live ticker validation execution only after separate approval.
-4. Sanitized live validation results review.
-5. Per-ticker identity, corporate-action, and acquisition authority chain only after validation.
+1. Live ticker validation execution only under the approval scope.
+2. Sanitized live validation results review.
+3. Per-ticker identity, corporate-action, and acquisition authority chain only after validation.
