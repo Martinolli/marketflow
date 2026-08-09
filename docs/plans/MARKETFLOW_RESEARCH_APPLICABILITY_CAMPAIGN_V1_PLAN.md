@@ -3,7 +3,8 @@
 ## Purpose
 - Create an offline, digest-bound plan for a future research-only applicability campaign.
 - Use only the research-registry-approved SWING and POSITION_SWING datasets for AAPL.
-- Keep the campaign unexecuted until a later operator approval gate.
+- Keep the campaign unexecuted until the operator approval gate is completed.
+- Record the approved research-only execution separately from any result review, predictive review, profitability review, or runtime activation.
 - Preserve runtime, Strategy, paper trading, broker execution, predictive-usefulness, and profitability boundaries.
 
 ## Prerequisite Research Dataset Approvals
@@ -78,6 +79,25 @@
 - Campaign results generated: `False`
 - Runtime activation remains future work: `True`
 
+## Research-Only Execution
+- Artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTED`
+- Execution status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTED_RESEARCH_ONLY`
+- Schema version: `research_applicability_campaign_executed_v1`
+- Execution digest: `f3793401f2ad1b4f3df8b5d130bdb78629941422eaa753943abd43cf2be96f1c`
+- Execution approval completed: `True`
+- Research-only execution implemented: `True`
+- Campaign execution authorized: `True`
+- Campaign execution performed: `True`
+- Campaign results generated: `True`
+- Provider requests made: `False`
+- Runtime migration approved: `False`
+- Runtime migration active: `False`
+- Strategy runtime migration: `False`
+- Runtime activation remains future work: `True`
+- Result operator review remains future work: `True`
+- Predictive usefulness review remains future work: `True`
+- Profitability review remains future work: `True`
+
 ## Campaign Scope
 - Campaign name: `AAPL_SWING_POSITION_SWING_RESEARCH_APPLICABILITY_V1`
 - Ticker universe: `AAPL`
@@ -107,18 +127,18 @@
 - `failure_reason_inventory`
 
 ## Planned Outputs
-- `research_campaign_run_manifest`: planned only, not created.
-- `dataset_load_report`: planned only, not created.
-- `schema_validation_report`: planned only, not created.
-- `bar_count_consistency_report`: planned only, not created.
-- `date_range_coverage_report`: planned only, not created.
-- `null_field_summary_report`: planned only, not created.
-- `ohlc_consistency_report`: planned only, not created.
-- `volume_consistency_report`: planned only, not created.
-- `indicator_calculation_report`: planned only, not created.
-- `module_compatibility_matrix`: planned only, not created.
-- `failure_reason_inventory`: planned only, not created.
-- `operator_review_summary`: planned only, not created.
+- `research_campaign_run_manifest`: generated under ignored `.marketflow/...`.
+- `dataset_load_report`: generated under ignored `.marketflow/...`.
+- `schema_validation_report`: generated under ignored `.marketflow/...`.
+- `bar_count_consistency_report`: generated under ignored `.marketflow/...`.
+- `date_range_coverage_report`: generated under ignored `.marketflow/...`.
+- `null_field_summary_report`: generated under ignored `.marketflow/...`.
+- `ohlc_consistency_report`: generated under ignored `.marketflow/...`.
+- `volume_consistency_report`: generated under ignored `.marketflow/...`.
+- `indicator_calculation_report`: generated under ignored `.marketflow/...`.
+- `module_compatibility_matrix`: generated under ignored `.marketflow/...`.
+- `failure_reason_inventory`: generated under ignored `.marketflow/...`.
+- `operator_review_summary`: generated under ignored `.marketflow/...`.
 
 ## Future Gates
 - `campaign_execution_candidate_operator_review`
@@ -143,17 +163,15 @@
 - Operator approval required before campaign execution.
 
 ## Non-Goals
-- No campaign execution.
 - No walk-forward validation run.
 - No strategy scoring run.
 - No provider request.
-- No generated research campaign outputs.
+- No generated research campaign outputs are committed as source files.
 - No runtime migration approval or activation.
 - No predictive-usefulness or profitability acceptance.
 
 ## Next Tasks
-1. Research-only applicability campaign execution.
-2. Campaign result operator review.
-3. Predictive usefulness review.
-4. Profitability review.
-5. Runtime migration approval ceremony, if ever authorized.
+1. Research applicability campaign execution results operator review package.
+2. Predictive usefulness review.
+3. Profitability review.
+4. Runtime migration approval ceremony, if ever authorized.

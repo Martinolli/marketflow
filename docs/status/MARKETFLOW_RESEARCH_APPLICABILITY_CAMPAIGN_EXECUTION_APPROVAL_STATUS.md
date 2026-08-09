@@ -64,6 +64,13 @@
 - planned_outputs_status: `PLANNED_NOT_GENERATED`
 - planned_outputs_label: `RESEARCH_ONLY_NON_ACTIONABLE`
 
+## Follow-On Research Campaign Execution
+- Follow-on research-only campaign execution implemented: `True`
+- Follow-on execution artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTED`
+- Follow-on execution status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTED_RESEARCH_ONLY`
+- The approval digest remains source evidence for the follow-on execution.
+- This approval document remains an approval record only; it does not become runtime migration evidence.
+
 ## Runtime Boundary
 - runtime_migration_approved: `False`
 - runtime_migration_active: `False`
@@ -100,4 +107,4 @@
 - No predictive-usefulness or profitability acceptance occurred.
 
 ## Next Step
-- Research-only applicability campaign execution.
+- Research applicability campaign execution results operator review package.
