@@ -31,8 +31,13 @@
 - Live ticker validation execution implemented: `True`
 - Live ticker validation execution local status: `LIVE_TICKER_VALIDATION_PERFORMED_READ_ONLY`
 - Live ticker validation performed by local provider run: `True`
-- Live validation results review remains future work: `True`
+- Live ticker validation execution completed: `True`
+- Live ticker validation results review implemented: `True`
+- Live ticker validation results review status: `LIVE_TICKER_VALIDATION_RESULTS_REVIEW_PACKAGE_READY`
+- Live ticker validation results review package digest: `ebaa8b85894ec0eb6b29571c4f473d21b346d86e092a4e68158a401cb9ff7033`
 - Per-ticker authority chain remains future work: `True`
+- Per-ticker identity authority candidate remains future work: `True`
+- Corporate-action/acquisition/dataset chain remains future work: `True`
 - Predictive usefulness remains not accepted: `True`
 - Profitability remains not accepted: `True`
 - Runtime activation remains future and separate: `True`
@@ -107,5 +112,6 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Sanitized live ticker validation results review.
-2. Per-ticker identity/corporate-action/acquisition authority chain only after validation.
+1. Operator decision on the sanitized live ticker validation results review package.
+2. Per-ticker identity authority candidate only after results review.
+3. Per-ticker corporate-action/acquisition/dataset authority chain only after separately authorized candidates.
