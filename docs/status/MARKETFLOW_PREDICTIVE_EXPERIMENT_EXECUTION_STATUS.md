@@ -87,6 +87,17 @@
 - Results review remains a separate future task.
 - Runtime migration and runtime activation remain future, separate authorization paths.
 
+## Follow-On Results Review Status
+- The execution artifact remains the source evidence for the follow-on results review.
+- Follow-on results review implemented on branch `feature/predictive-experiment-execution-results-review-v1`.
+- Follow-on results review artifact kind: `PREDICTIVE_EXPERIMENT_EXECUTION_RESULTS_REVIEW_PACKAGE`.
+- Follow-on results review status: `PREDICTIVE_EXPERIMENT_EXECUTION_RESULTS_REVIEW_PACKAGE_READY`.
+- Follow-on results review digest: `281e2f0ce4f6050b4788188202003605af95af104b887374484bb1f46ce2b804`.
+- Follow-on results review did not rerun the predictive experiment or regenerate outputs.
+- Predictive usefulness remains `not accepted`.
+- Profitability remains `not accepted`.
+- Runtime use, Strategy use, paper trading, and broker execution remain `NOT_AUTHORIZED`.
+
 ## Non-Goals
 - No provider request was made.
 - No strategy scoring was performed.

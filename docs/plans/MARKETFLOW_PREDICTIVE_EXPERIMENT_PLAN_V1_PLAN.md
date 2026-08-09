@@ -65,6 +65,16 @@
 - Profitability remains `not accepted`.
 - Runtime activation remains future work and is not approved.
 
+## Predictive Experiment Execution Results Review
+- Artifact kind: `PREDICTIVE_EXPERIMENT_EXECUTION_RESULTS_REVIEW_PACKAGE`
+- Status: `PREDICTIVE_EXPERIMENT_EXECUTION_RESULTS_REVIEW_PACKAGE_READY`
+- Review package digest: `281e2f0ce4f6050b4788188202003605af95af104b887374484bb1f46ce2b804`
+- Execution results review implemented on branch `feature/predictive-experiment-execution-results-review-v1`.
+- The review inspected the ignored generated outputs under `.marketflow/predictive_experiments/AAPL/2022_2025` without rerunning the predictive experiment.
+- Predictive usefulness assessment remains future work.
+- Profitability remains `not accepted`.
+- Runtime activation remains future work and is not approved.
+
 ## Research-Only Predictive Experiment Design
 - Ticker universe is limited to `AAPL`.
 - Dataset profiles are limited to `SWING / RTH_HALF_SESSION_195M` and `POSITION_SWING / RTH_FULL_SESSION_1D`.
@@ -126,7 +136,6 @@
 - Runtime activation remains future work and is not approved by this candidate.
 
 ## Next Tasks
-1. Predictive experiment results review.
-2. Predictive usefulness review after experiment results.
-3. Profitability review after predictive usefulness review.
-4. Separate runtime migration approval ceremony, if ever authorized.
+1. Predictive usefulness assessment candidate.
+2. Profitability review after predictive usefulness assessment.
+3. Separate runtime migration approval ceremony, if ever authorized.
