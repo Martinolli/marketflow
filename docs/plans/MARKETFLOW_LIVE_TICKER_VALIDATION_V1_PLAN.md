@@ -28,6 +28,14 @@
 - Live ticker validation approval status: `LIVE_TICKER_VALIDATION_APPROVED`
 - Live ticker validation approval scope: `READ_ONLY_PROVIDER_TICKER_VALIDATION_ONLY`
 - Live ticker validation approval digest: `2bf668bb4aae3756652ee5eea790b76d1ba73bdd7723efc1c31227c5c3e897e4`
+- Live ticker validation execution implemented: `True`
+- Live ticker validation execution local status: `LIVE_TICKER_VALIDATION_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`
+- Live ticker validation performed by local provider run: `False`
+- Live validation results review remains future work: `True`
+- Per-ticker authority chain remains future work: `True`
+- Predictive usefulness remains not accepted: `True`
+- Profitability remains not accepted: `True`
+- Runtime activation remains future and separate: `True`
 - Approved expanded ticker count: `12`
 - Validation target count: `12`
 - Validation targets: `MSFT`, `NVDA`, `AMZN`, `GOOGL`, `META`, `TSLA`, `JPM`, `XOM`, `JNJ`, `WMT`, `CAT`, `LMT`
@@ -90,8 +98,8 @@
 - Approved tickers remain validation targets only until a separate execution step performs validation under the approval scope.
 - Validation results, when later authorized, must not imply acquisition authority, canonical dataset authority, registry authority, predictive usefulness acceptance, profitability acceptance, or runtime activation.
 - Runtime, strategy, paper trading, broker execution, and automatic stitching remain unauthorized.
-- Provider request execution remains future work.
-- Live ticker validation execution remains future work.
+- Provider request execution requires an explicit live gate and API key.
+- Live ticker validation execution service is implemented, with local provider execution blocked when the gate or API key is unavailable.
 - Per-ticker authority chain remains future work.
 - Predictive usefulness remains not accepted.
 - Profitability remains not accepted.
