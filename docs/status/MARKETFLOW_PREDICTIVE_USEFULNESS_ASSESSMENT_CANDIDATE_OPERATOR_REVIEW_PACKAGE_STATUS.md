@@ -1,25 +1,31 @@
-# MarketFlow Predictive Usefulness Assessment Candidate Status
+# MarketFlow Predictive Usefulness Assessment Candidate Operator Review Package Status
 
 ## Branch And Commit
-- Branch: `feature/predictive-usefulness-assessment-candidate-v1`
-- Base commit: `b4c124bf1e17a6baab5a6a6c756fb2668d04b9fe`
+- Branch: `feature/predictive-usefulness-assessment-candidate-review-v1`
+- Base commit: `51ef4be85b39a63decee2cb8301f977069b3127f`
 - Implementation commit: the commit containing this document.
 
-## Assessment Artifact
-- Artifact kind: `PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE`
-- Assessment status: `PREDICTIVE_USEFULNESS_ASSESSMENT_READY_FOR_OPERATOR_REVIEW`
-- Schema version: `predictive_usefulness_assessment_candidate_v1`
-- Assessment candidate digest: `b98c8fc1a6d64ddb1d3da313659b4e2105702e7d33550840cc00cb0008105598`
+## Review Artifact
+- Artifact kind: `PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE_READY`
+- Schema version: `predictive_usefulness_assessment_candidate_review_v1`
+- Review package digest: `b73bcd2f6004a457112688cfa8ff487b266a1b74ea3135d2be7f68c1fb3aadd5`
 
-## Source Predictive Experiment Results
-- Results review package digest: `281e2f0ce4f6050b4788188202003605af95af104b887374484bb1f46ce2b804`
+## Reviewed Predictive Usefulness Assessment Candidate
+- Reviewed candidate kind: `PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE`
+- Reviewed candidate status: `PREDICTIVE_USEFULNESS_ASSESSMENT_READY_FOR_OPERATOR_REVIEW`
+- Reviewed candidate digest: `b98c8fc1a6d64ddb1d3da313659b4e2105702e7d33550840cc00cb0008105598`
+- Binding mode: `PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_STATUS_BINDING`
+
+## Source Evidence
+- Predictive experiment results review package digest: `281e2f0ce4f6050b4788188202003605af95af104b887374484bb1f46ce2b804`
 - Predictive experiment execution digest: `f165b6a066e81e8d5f6c4de2a5603e0dc74aa29ea90dc19cc887b3474bfd32b0`
 - Predictive experiment execution approval digest: `d1578a7858da3686d7322f4405e8c5f8075fdb32efa4f77bdae6af2242f4f4be`
 - Predictive experiment execution request ID: `AAPL_PREDICTIVE_EXPERIMENT_EXECUTION_2022_2025_V1`
 - Predictive experiment plan digest: `2d338822163dd25f262a32940153ff9842bb7e3213372ad09ce705bbfddede71`
 - Predictive experiment plan review digest: `e71197fb6838e2caa99d1cffa3c6bd8847d3170d6f842ea921e5345dac349180`
-- Predictive usefulness review candidate digest: `e5724cc5eb106b2aa24c68e80bb24835b293fe50009a4eb01b21154553bc79b6`
-- Predictive usefulness review candidate review digest: `f124ee8e7e6b72f9d8f5f2a495bb0afa09ef02e4d8a6a03e795a04de4276efe2`
+- Prior predictive usefulness review candidate digest: `e5724cc5eb106b2aa24c68e80bb24835b293fe50009a4eb01b21154553bc79b6`
+- Prior predictive usefulness review candidate review digest: `f124ee8e7e6b72f9d8f5f2a495bb0afa09ef02e4d8a6a03e795a04de4276efe2`
 - Swing registry approval digest: `ee3f6b193a6480fb6391fd97b096dda8fc699d65e43a179c77bba8798f887761`
 - Position swing registry approval digest: `8eefcbc1e14b2e199dadd8dcf461cbff56513f10758b6b59ca8cf176512d2e8e`
 
@@ -30,15 +36,13 @@
 - Labels generated: `True`
 - Feature matrices generated: `True`
 - Walk-forward result generated: `True`
-- Walk-forward summary status: `SIMPLIFIED_CHRONOLOGICAL_RESEARCH_SPLIT`
 - Out-of-sample result generated: `True`
-- Out-of-sample summary status: `CHRONOLOGICAL_OOS_RESEARCH_SPLIT`
 - Baseline result count: `8`
 - Metric result count: `8`
 - Failure count status: `UNAVAILABLE_IN_SOURCE_REPORTS`
 - Warning count status: `UNAVAILABLE_IN_SOURCE_REPORTS`
 
-## Assessment Classification
+## Evidence Classification
 - data_quality_evidence_status: `PASS`
 - dataset_digest_evidence_status: `PASS`
 - label_generation_evidence_status: `PASS`
@@ -51,7 +55,7 @@
 - failure_warning_count_status: `UNAVAILABLE_IN_SOURCE_REPORTS`
 - predictive_usefulness_assessment_state: `EVIDENCE_AVAILABLE_FOR_OPERATOR_ASSESSMENT`
 
-## Limitations
+## Assessment Limitations
 - `single_ticker_scope`
 - `single_asset_class_scope_if_applicable`
 - `research_only_outputs`
@@ -82,7 +86,7 @@
 - profitability_acceptance_recommended: `False`
 
 ## Runtime Boundary
-- provider_requests_made: `False`
+- provider_requests_made_in_review: `False`
 - experiment_reexecution_performed: `False`
 - walk_forward_rerun_performed: `False`
 - label_regeneration_performed: `False`
@@ -99,19 +103,13 @@
 - broker_execution: `NOT_AUTHORIZED`
 - automatic_stitching: `False`
 
-## Assessment Summary
-- ready_for_operator_review: `True`
-- ready_for_predictive_usefulness_acceptance_candidate: `False`
-- predictive_usefulness_accepted: `False`
-- profitability_accepted: `False`
-- runtime_migration_authorized: `False`
-- software_runtime_activation_authorized: `False`
-
 ## Checklist Summary
-- Total checks: `45`
-- Passed checks: `45`
+- Total checks: `48`
+- Passed checks: `48`
 - Failed checks: `0`
 - Blocker count: `0`
+- ready_for_operator_assessment: `True`
+- ready_for_predictive_usefulness_acceptance_candidate: `False`
 
 ## Guardrails
 - No Massive.com / Polygon provider request was made.
@@ -124,11 +122,5 @@
 - No predictive-usefulness or profitability acceptance occurred.
 - No runtime migration was recommended, approved, activated, or made default.
 
-## Follow-On Operator Review Package
-- Predictive usefulness assessment candidate operator review package implemented on branch `feature/predictive-usefulness-assessment-candidate-review-v1`.
-- Review artifact kind: `PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE`
-- Review status: `PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE_READY`
-- Review package digest: `b73bcd2f6004a457112688cfa8ff487b266a1b74ea3135d2be7f68c1fb3aadd5`
-- This assessment candidate remains source evidence.
-- Predictive usefulness remains `not accepted`.
-- Profitability and runtime migration remain not accepted or not authorized.
+## Next Task
+- Predictive usefulness acceptance candidate, only if the operator elects to proceed in a separate authority step.
