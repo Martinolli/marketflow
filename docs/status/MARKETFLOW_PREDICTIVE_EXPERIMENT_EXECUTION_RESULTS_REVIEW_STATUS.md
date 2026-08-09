@@ -96,4 +96,6 @@
 - No runtime migration was recommended, approved, activated, or made default.
 
 ## Next Task
-- Predictive usefulness assessment candidate.
+- Predictive usefulness assessment candidate: completed on branch `feature/predictive-usefulness-assessment-candidate-v1`.
+- Assessment candidate digest: `b98c8fc1a6d64ddb1d3da313659b4e2105702e7d33550840cc00cb0008105598`.
+- Predictive usefulness, profitability, runtime migration, paper trading, and broker execution remain not accepted or not authorized.
