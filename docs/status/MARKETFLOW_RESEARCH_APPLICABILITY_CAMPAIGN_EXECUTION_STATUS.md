@@ -70,6 +70,13 @@
 - No predictive-usefulness acceptance was created.
 - No profitability acceptance was created.
 
+## Follow-On Results Review
+- Follow-on execution results review implemented: `True`
+- Follow-on review artifact kind: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_RESULTS_REVIEW_PACKAGE`
+- Follow-on review status: `RESEARCH_APPLICABILITY_CAMPAIGN_EXECUTION_RESULTS_REVIEW_PACKAGE_READY`
+- Execution artifact remains source evidence for results review.
+- The results review does not accept predictive usefulness, profitability, or runtime activation.
+
 ## Non-Goals
 - No Massive.com / Polygon provider request was made.
 - No acquisition rows, SWING bars, or POSITION_SWING bars were regenerated.
@@ -80,4 +87,4 @@
 - No runtime migration or runtime activation was approved.
 
 ## Next Task
-- Research applicability campaign execution results operator review package.
+- Predictive usefulness review candidate.
