@@ -45,12 +45,25 @@
 - Checklist summary: `73` passed, `0` failed, `0` blockers.
 - The execution approval ceremony is implemented.
 - `predictive_experiment_execution_authorized` is `True` for a future research-only, non-actionable execution.
-- Predictive experiment execution remains future work and has not been performed.
-- Walk-forward validation, out-of-sample evaluation, label generation, feature matrix generation, strategy scoring, and trade recommendation generation remain `False`.
+- Predictive experiment execution approval is completed.
+- The approval digest remains the source evidence for execution.
 - Predictive usefulness remains `not accepted`.
 - Profitability remains `not accepted`.
 - Runtime use, Strategy use, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - Runtime migration remains not recommended, not approved, and inactive.
+
+## Predictive Experiment Execution
+- Artifact kind: `PREDICTIVE_EXPERIMENT_EXECUTED`
+- Status: `PREDICTIVE_EXPERIMENT_EXECUTED_RESEARCH_ONLY`
+- Execution digest: `f165b6a066e81e8d5f6c4de2a5603e0dc74aa29ea90dc19cc887b3474bfd32b0`
+- Execution implemented on branch `feature/predictive-experiment-execution-v1`.
+- Generated outputs are ignored artifacts under `.marketflow/predictive_experiments/AAPL/2022_2025`.
+- `predictive_experiment_executed`, `walk_forward_validation_performed`, `out_of_sample_evaluation_performed`, `label_generation_performed`, and `feature_matrix_generation_performed` are `True` only for this research-only execution artifact.
+- Strategy scoring and trade recommendation generation remain `False`.
+- Provider requests made remain `False`.
+- Predictive usefulness remains `not accepted`.
+- Profitability remains `not accepted`.
+- Runtime activation remains future work and is not approved.
 
 ## Research-Only Predictive Experiment Design
 - Ticker universe is limited to `AAPL`.
@@ -104,7 +117,7 @@
 
 ## Guardrails
 - Default tests remain deterministic and offline.
-- Experiment execution requires the implemented approval ceremony artifact before a future research-only run.
+- Experiment execution required the implemented approval ceremony artifact before the research-only run.
 - Outputs from future execution must be labeled `RESEARCH_ONLY_NON_ACTIONABLE`.
 - Predictive usefulness and profitability review remain separate future tasks after experiment results exist.
 - Predictive usefulness remains not accepted.
@@ -113,7 +126,7 @@
 - Runtime activation remains future work and is not approved by this candidate.
 
 ## Next Tasks
-1. Predictive experiment execution.
-2. Predictive experiment results review.
-3. Predictive usefulness review after experiment results.
-4. Profitability review after predictive usefulness review.
+1. Predictive experiment results review.
+2. Predictive usefulness review after experiment results.
+3. Profitability review after predictive usefulness review.
+4. Separate runtime migration approval ceremony, if ever authorized.

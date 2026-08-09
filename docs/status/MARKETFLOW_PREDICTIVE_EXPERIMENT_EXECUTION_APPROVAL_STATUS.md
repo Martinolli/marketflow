@@ -86,5 +86,16 @@
 - No predictive usefulness or profitability acceptance was granted.
 - No runtime migration was recommended, approved, activated, or made default.
 
+## Follow-On Execution Status
+- The approval digest remains the source evidence for the follow-on execution ceremony.
+- Follow-on execution implemented on branch `feature/predictive-experiment-execution-v1`.
+- Follow-on execution artifact kind: `PREDICTIVE_EXPERIMENT_EXECUTED`.
+- Follow-on execution status: `PREDICTIVE_EXPERIMENT_EXECUTED_RESEARCH_ONLY`.
+- Follow-on execution digest: `f165b6a066e81e8d5f6c4de2a5603e0dc74aa29ea90dc19cc887b3474bfd32b0`.
+- Follow-on outputs are ignored generated artifacts under `.marketflow/predictive_experiments/AAPL/2022_2025`.
+- Predictive usefulness remains `not accepted`.
+- Profitability remains `not accepted`.
+- Runtime use, Strategy use, paper trading, and broker execution remain `NOT_AUTHORIZED`.
+
 ## Next Task
-- Predictive experiment execution, still research-only and non-actionable.
+- Predictive experiment results review, still research-only and non-actionable.
