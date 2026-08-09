@@ -117,3 +117,12 @@
 2. Ticker universe selection approval ceremony only if the operator approves.
 3. Live ticker validation candidate only after selection approval.
 4. Per-ticker authority chain only after validation and approval.
+
+## Follow-On Approval Ceremony Status
+- Follow-on approval implemented on branch `feature/ticker-universe-selection-approval-v1`.
+- Follow-on approval artifact kind: `TICKER_UNIVERSE_SELECTION_APPROVED`.
+- Follow-on approval status: `TICKER_UNIVERSE_SELECTION_APPROVED`.
+- Follow-on approval scope: `TICKER_UNIVERSE_APPROVED_FOR_FUTURE_VALIDATION_AND_AUTHORITY_CHAIN_PLANNING_ONLY`.
+- Follow-on approved expanded ticker universe: `MSFT`, `NVDA`, `AMZN`, `GOOGL`, `META`, `TSLA`, `JPM`, `XOM`, `JNJ`, `WMT`, `CAT`, `LMT`.
+- Follow-on deterministic test-attestation approval digest: `e0b56da411ada20f40fbefdcf74c1cce75ca86d13931471f518ef970db23188c`.
+- The review package itself still performed no live ticker validation, no authority creation, no acquisition authorization, no dataset generation authorization, no predictive execution, and no runtime activation.

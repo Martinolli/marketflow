@@ -1,9 +1,9 @@
 # MarketFlow Ticker Universe Selection v1 Plan
 
 ## Purpose
-- Define an offline, digest-bound candidate ticker universe for operator review.
+- Define an offline, digest-bound candidate ticker universe for operator review and approval.
 - Preserve the current research-only boundary while planning future evidence expansion beyond the existing AAPL baseline.
-- This plan does not approve a ticker universe, validate live tickers, create authority, acquire data, execute predictive evidence, or activate runtime behavior.
+- The approval ceremony approves only the ticker universe selection for future validation and authority-chain planning; it does not validate live tickers, create authority, acquire data, execute predictive evidence, or activate runtime behavior.
 
 ## Source Scope Expansion Evidence
 - Scope expansion review package digest: `c94fd093f1e221e9dca127e44a3a788880602c570e9051b6e19666f1db142156`
@@ -31,6 +31,16 @@
 - Security type, exchange listing, identity segment, corporate action, acquisition, canonical dataset, registry, and file availability validation per ticker.
 - Separate multi-ticker research campaign and predictive experiment authority after validation and approval.
 
+## Approved Ticker Universe Selection
+- Ticker universe selection approval implemented: `True`
+- Approval artifact kind: `TICKER_UNIVERSE_SELECTION_APPROVED`
+- Approval status: `TICKER_UNIVERSE_SELECTION_APPROVED`
+- Approval scope: `TICKER_UNIVERSE_APPROVED_FOR_FUTURE_VALIDATION_AND_AUTHORITY_CHAIN_PLANNING_ONLY`
+- Deterministic test-attestation approval digest: `e0b56da411ada20f40fbefdcf74c1cce75ca86d13931471f518ef970db23188c`
+- Approved expanded ticker universe: `MSFT`, `NVDA`, `AMZN`, `GOOGL`, `META`, `TSLA`, `JPM`, `XOM`, `JNJ`, `WMT`, `CAT`, `LMT`
+- Approved expanded ticker count: `12`
+- Live ticker validation remains unauthorized and not performed.
+
 ## Per-Ticker Authority Chain Required
 - Identity segment candidate/review/freeze.
 - Exchange calendar candidate/review/freeze or approved calendar reuse.
@@ -49,8 +59,6 @@
 - Acceptance readiness reassessment.
 
 ## Non-Goals
-- No ticker universe approval.
-- No expanded ticker universe approval.
 - No live ticker validation.
 - No new ticker authority.
 - No acquisition authorization.
@@ -64,22 +72,23 @@
 ## Guardrails
 - Default tests remain deterministic and offline.
 - Provider requests must remain `False`.
-- Proposed tickers remain unvalidated until a future explicitly authorized validation task.
-- Approved expanded ticker universe remains empty.
+- Approved tickers remain unvalidated until a future explicitly authorized validation task.
+- Approved expanded ticker universe is valid only for future validation and authority-chain planning.
 - Runtime, strategy, paper trading, broker execution, and automatic stitching remain unauthorized.
 
 ## Next Tasks
-1. Operator assessment of the ticker universe selection candidate review package.
-2. Ticker universe selection approval ceremony only if operator approves.
-3. Live ticker validation candidate only after selection approval.
-4. Per-ticker authority chain only after validation and approval.
+1. Live ticker validation candidate and approval.
+2. Per-ticker authority chain only after validation and approval.
+3. Dataset generation authorization only after per-ticker authority is bound.
+4. Multi-ticker research campaign and predictive experiment authority only after validation, dataset authority, and operator approval.
 
 ## Current Review Package State
 - Ticker universe selection candidate completed: `True`
 - Ticker universe selection candidate digest: `6baeb13550814f8c0d3d0a815a797e2f7b46552fa2fa5aa3aa950a7f6d5fce01`
 - Operator review package implemented: `True`
 - Operator review package digest: `df63f64a3b145740a650ecf7db703356f3ee24e0dbdfdc4ac27a1812b75dcf4a`
-- Ticker universe approval remains future work.
+- Ticker universe approval implemented: `True`
+- Ticker universe approval scope: `TICKER_UNIVERSE_APPROVED_FOR_FUTURE_VALIDATION_AND_AUTHORITY_CHAIN_PLANNING_ONLY`
 - Live ticker validation remains future work.
 - Per-ticker authority chain remains future work.
 - Predictive usefulness remains `not accepted`.
