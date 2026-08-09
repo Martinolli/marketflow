@@ -110,4 +110,8 @@
 - No runtime migration or runtime activation was approved.
 
 ## Next Task
-- Predictive experiment plan candidate.
+- Predictive experiment plan candidate implemented on branch `feature/predictive-experiment-plan-candidate-v1`.
+- The predictive usefulness review candidate operator review package remains source evidence for future review.
+- Predictive experiment planning remains source evidence only until an operator review package and execution approval ceremony exist.
+- Predictive usefulness remains `not accepted`.
+- Profitability remains `not accepted`.
