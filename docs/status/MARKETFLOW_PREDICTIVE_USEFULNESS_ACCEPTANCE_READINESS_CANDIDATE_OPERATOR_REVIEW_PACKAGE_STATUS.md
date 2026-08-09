@@ -121,3 +121,11 @@
 ## Next Task Recommendation
 - Additional predictive evidence plan candidate.
 - Predictive usefulness acceptance candidate only if the operator approves readiness later.
+
+## Follow-On Additional Predictive Evidence Plan
+- Additional predictive evidence plan candidate implemented on branch `feature/additional-predictive-evidence-plan-candidate-v1`.
+- Plan artifact: `ADDITIONAL_PREDICTIVE_EVIDENCE_PLAN_CANDIDATE`.
+- Plan status: `ADDITIONAL_PREDICTIVE_EVIDENCE_PLAN_READY_FOR_OPERATOR_REVIEW`.
+- Plan candidate digest: `af23d2de4b77470f5d60622704312eee28fb857ebd9dfe81c1b288932cd6430f`.
+- The readiness review remains source evidence.
+- Predictive usefulness remains not accepted.
