@@ -14,6 +14,15 @@
 - Operator decision required: `True`
 - Operator decision: `null`
 
+## Follow-On Predictive Evidence Scope Expansion Plan Candidate
+- Artifact kind: `PREDICTIVE_EVIDENCE_SCOPE_EXPANSION_PLAN_CANDIDATE`
+- Candidate status: `PREDICTIVE_EVIDENCE_SCOPE_EXPANSION_PLAN_READY_FOR_OPERATOR_REVIEW`
+- Candidate digest: `daddabc04829ac2379c4439220d018d8b3b3403c35edb469e95e7b24ea6bd13f`
+- Scope expansion objective: `EXPAND_PREDICTIVE_EVIDENCE_BEYOND_SINGLE_TICKER_AAPL`
+- Additional predictive evidence plan review remains source evidence.
+- Additional predictive evidence execution remains not authorized and not performed.
+- Predictive usefulness remains not accepted.
+
 ## Reviewed Additional Predictive Evidence Plan Candidate
 - Candidate kind: `ADDITIONAL_PREDICTIVE_EVIDENCE_PLAN_CANDIDATE`
 - Candidate status: `ADDITIONAL_PREDICTIVE_EVIDENCE_PLAN_READY_FOR_OPERATOR_REVIEW`
@@ -160,6 +169,8 @@
 - No runtime migration, paper trading, or broker execution was authorized.
 
 ## Next Task Recommendation
-- Operator assessment of the additional predictive evidence plan candidate review package.
-- Additional predictive evidence execution candidate only after explicit operator review and approval.
-- Predictive usefulness acceptance candidate only if future additional evidence later supports it.
+1. Predictive evidence scope expansion plan candidate operator review package.
+2. Ticker universe selection candidate.
+3. Ticker universe selection operator review.
+4. Per-ticker authority chain, if approved.
+5. Additional predictive evidence execution only after new evidence exists.
