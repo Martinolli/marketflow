@@ -10,7 +10,16 @@
 - Predictive usefulness review candidate review package digest: `f124ee8e7e6b72f9d8f5f2a495bb0afa09ef02e4d8a6a03e795a04de4276efe2`
 - Campaign results review digest: `c0421913adbd4a0a02bb1d062a0ef1efd4081c4e1656a46073f4e45fdfd4408b`
 - Campaign execution digest: `f3793401f2ad1b4f3df8b5d130bdb78629941422eaa753943abd43cf2be96f1c`
+- Predictive experiment plan candidate digest: `2d338822163dd25f262a32940153ff9842bb7e3213372ad09ce705bbfddede71`
+- Predictive experiment plan candidate operator review package digest: `e71197fb6838e2caa99d1cffa3c6bd8847d3170d6f842ea921e5345dac349180`
 - Dataset registry approvals remain research dataset authorities only.
+
+## Operator Review Package
+- Artifact kind: `PREDICTIVE_EXPERIMENT_PLAN_CANDIDATE_REVIEW_PACKAGE`
+- Status: `PREDICTIVE_EXPERIMENT_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`
+- Checklist summary: `46` passed, `0` failed, `0` blockers.
+- The package is ready for operator assessment and for a future predictive experiment execution candidate.
+- The package does not authorize predictive experiment execution.
 
 ## Research-Only Predictive Experiment Design
 - Ticker universe is limited to `AAPL`.
@@ -70,8 +79,7 @@
 - Runtime activation remains explicitly unauthorized.
 
 ## Next Tasks
-1. Predictive experiment plan candidate operator review package.
-2. Predictive experiment execution candidate.
-3. Predictive experiment execution approval ceremony.
-4. Predictive experiment execution.
-5. Predictive usefulness review after experiment results.
+1. Predictive experiment execution candidate.
+2. Predictive experiment execution approval ceremony.
+3. Predictive experiment execution.
+4. Predictive usefulness review after experiment results.

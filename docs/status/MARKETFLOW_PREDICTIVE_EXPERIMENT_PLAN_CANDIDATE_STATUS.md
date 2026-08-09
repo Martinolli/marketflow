@@ -11,6 +11,18 @@
 - Schema version: `predictive_experiment_plan_candidate_v1`
 - Plan digest: `2d338822163dd25f262a32940153ff9842bb7e3213372ad09ce705bbfddede71`
 
+## Operator Review Package
+- Artifact kind: `PREDICTIVE_EXPERIMENT_PLAN_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `PREDICTIVE_EXPERIMENT_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`
+- Review package digest: `e71197fb6838e2caa99d1cffa3c6bd8847d3170d6f842ea921e5345dac349180`
+- Ready for operator assessment: `True`
+- Ready for predictive experiment execution candidate: `True`
+- Predictive experiment execution authorized: `False`
+- Predictive usefulness accepted: `False`
+- Profitability accepted: `False`
+- Runtime migration authorized: `False`
+- Software runtime activation authorized: `False`
+
 ## Source Evidence
 - Predictive usefulness review candidate digest: `e5724cc5eb106b2aa24c68e80bb24835b293fe50009a4eb01b21154553bc79b6`
 - Predictive usefulness review candidate review package digest: `f124ee8e7e6b72f9d8f5f2a495bb0afa09ef02e4d8a6a03e795a04de4276efe2`
@@ -119,4 +131,4 @@
 - Runtime activation authorized: `False`
 
 ## Next Task
-- Predictive experiment plan candidate operator review package.
+- Predictive experiment execution candidate.
