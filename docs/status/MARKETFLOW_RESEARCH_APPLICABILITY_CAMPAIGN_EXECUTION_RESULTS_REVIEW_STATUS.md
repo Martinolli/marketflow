@@ -88,4 +88,8 @@
 - No runtime migration or runtime activation was approved.
 
 ## Next Step
-- Predictive usefulness review candidate.
+- Predictive usefulness review candidate implemented on branch `feature/predictive-usefulness-review-candidate-v1`.
+- The results review remains source evidence for the follow-on candidate.
+- Bound results review digest: `c0421913adbd4a0a02bb1d062a0ef1efd4081c4e1656a46073f4e45fdfd4408b`
+- Predictive usefulness remains `not accepted`.
+- Profitability remains `not accepted`.
