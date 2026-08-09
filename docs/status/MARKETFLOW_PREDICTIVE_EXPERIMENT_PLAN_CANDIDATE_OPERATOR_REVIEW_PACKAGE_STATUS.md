@@ -76,5 +76,14 @@
 - Runtime migration authorized: `False`
 - Software runtime activation authorized: `False`
 
+## Follow-On Execution Candidate
+- Follow-on artifact kind: `PREDICTIVE_EXPERIMENT_EXECUTION_CANDIDATE`
+- Follow-on status: `PREDICTIVE_EXPERIMENT_EXECUTION_READY_FOR_OPERATOR_REVIEW`
+- Follow-on execution candidate digest: `36d724706fe3ea43592eb4589ffae3370f15dd4393d3226fbf9c9155f02561da`
+- Follow-on execution request ID: `AAPL_PREDICTIVE_EXPERIMENT_EXECUTION_2022_2025_V1`
+- This plan review package remains source evidence for the execution candidate.
+- Predictive experiment execution remains not authorized.
+- Predictive experiment execution remains not performed.
+
 ## Next Task
-- Predictive experiment execution candidate.
+- Predictive experiment execution candidate operator review package.

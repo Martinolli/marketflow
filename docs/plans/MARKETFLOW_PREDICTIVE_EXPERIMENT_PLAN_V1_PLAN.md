@@ -12,6 +12,7 @@
 - Campaign execution digest: `f3793401f2ad1b4f3df8b5d130bdb78629941422eaa753943abd43cf2be96f1c`
 - Predictive experiment plan candidate digest: `2d338822163dd25f262a32940153ff9842bb7e3213372ad09ce705bbfddede71`
 - Predictive experiment plan candidate operator review package digest: `e71197fb6838e2caa99d1cffa3c6bd8847d3170d6f842ea921e5345dac349180`
+- Predictive experiment execution candidate digest: `36d724706fe3ea43592eb4589ffae3370f15dd4393d3226fbf9c9155f02561da`
 - Dataset registry approvals remain research dataset authorities only.
 
 ## Operator Review Package
@@ -20,6 +21,14 @@
 - Checklist summary: `46` passed, `0` failed, `0` blockers.
 - The package is ready for operator assessment and for a future predictive experiment execution candidate.
 - The package does not authorize predictive experiment execution.
+
+## Execution Candidate
+- Artifact kind: `PREDICTIVE_EXPERIMENT_EXECUTION_CANDIDATE`
+- Status: `PREDICTIVE_EXPERIMENT_EXECUTION_READY_FOR_OPERATOR_REVIEW`
+- Execution request ID: `AAPL_PREDICTIVE_EXPERIMENT_EXECUTION_2022_2025_V1`
+- Checklist summary: `51` passed, `0` failed, `0` blockers.
+- The execution candidate defines a future offline research experiment request only.
+- Predictive experiment execution remains future work and is not authorized.
 
 ## Research-Only Predictive Experiment Design
 - Ticker universe is limited to `AAPL`.
@@ -76,10 +85,13 @@
 - Experiment execution requires a separate operator review package and approval ceremony.
 - Outputs from future execution must be labeled `RESEARCH_ONLY_NON_ACTIONABLE`.
 - Predictive usefulness and profitability review remain separate future tasks after experiment results exist.
+- Predictive usefulness remains not accepted.
+- Profitability remains not accepted.
 - Runtime activation remains explicitly unauthorized.
+- Runtime activation remains future work and is not approved by this candidate.
 
 ## Next Tasks
-1. Predictive experiment execution candidate.
+1. Predictive experiment execution candidate operator review package.
 2. Predictive experiment execution approval ceremony.
 3. Predictive experiment execution.
 4. Predictive usefulness review after experiment results.
