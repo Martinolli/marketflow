@@ -155,3 +155,11 @@
 
 ## Next Task Recommendation
 1. Operator decision on the sanitized live ticker validation results review package before any per-ticker identity or corporate-action authority candidate.
+
+## Downstream Offline Plan Candidate
+- Downstream branch: `feature/expanded-universe-per-ticker-identity-authority-plan-candidate-v1`
+- Downstream base commit: `0608c8ad553c0e4167a08f7f13d58371e8bfb598`
+- Downstream artifact kind: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE`
+- Downstream status: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_READY_FOR_OPERATOR_REVIEW`
+- Downstream plan candidate digest: `210b0a534589a8021f4dcd23eca835bc4cc7b3e0f72b6d3916ee7f5693861981`
+- Downstream scope: offline planning only; no identity authority candidate, identity freeze, corporate-action authority, acquisition authorization, dataset generation, predictive/profitability acceptance, runtime migration, broker execution, or trade recommendation is created.
