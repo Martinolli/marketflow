@@ -122,7 +122,9 @@
 ## Implementation Status
 - Identity authority plan candidate completed: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE`.
 - Operator review package implemented: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE`.
-- Per-ticker identity authority candidate remains future work.
+- Plan candidate reviewed through the plan candidate operator review package.
+- Identity authority candidate implemented: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_CANDIDATE`.
+- Identity authority candidate operator review package remains future work.
 - Identity freeze remains future work.
 - Corporate-action chain remains future work.
 - Acquisition and dataset chains remain future work.

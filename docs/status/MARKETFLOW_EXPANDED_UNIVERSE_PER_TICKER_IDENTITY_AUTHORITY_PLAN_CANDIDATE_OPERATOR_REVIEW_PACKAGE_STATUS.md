@@ -14,6 +14,16 @@
 - Operator decision required: `True`
 - Operator decision: `null`
 
+## Follow-On Identity Authority Candidate
+- Follow-on candidate implemented on branch: `feature/expanded-universe-per-ticker-identity-authority-candidate-v1`
+- Candidate artifact kind: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_CANDIDATE`
+- Candidate status: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_READY_FOR_OPERATOR_REVIEW`
+- Candidate digest: `0cb27ba65d1dfc57c73f716fdae9bc6baf803770ec11a8ea5868728f58711d3c`
+- This plan review remains source evidence for the candidate.
+- The identity candidate is candidate-only and not frozen.
+- Identity authority remains not created.
+- Corporate-action authority, acquisition, and dataset generation remain not authorized.
+
 ## Reviewed Plan Candidate
 - Candidate kind: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE`
 - Candidate status: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_READY_FOR_OPERATOR_REVIEW`
