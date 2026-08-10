@@ -14,6 +14,15 @@
 - Created offline: `True`
 - Registry inventory approved by operator: `True`
 
+## Follow-On Corporate-Action Authority Plan Candidate
+- Follow-on artifact kind: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE`
+- Follow-on candidate status: `CORPORATE_ACTION_AUTHORITY_PLAN_READY_FOR_OPERATOR_REVIEW`
+- Follow-on candidate digest: `3ab988e647eebf01ea489dd3e9da2a1edf7b9c8a50b26a54995d39cc3115753a`
+- Registry inventory approval remains source evidence for corporate-action planning.
+- Corporate-action authority remains not created.
+- Acquisition authority remains not authorized.
+- Dataset generation remains not authorized.
+
 ## Source Registry Inventory Review Package
 - Review package digest: `d35861b3bb19d361241df0e6ba080306e647116cf5b12815ce1ddf2fb48cf51c`
 - Source registry inventory candidate digest: `459f20151cf531b32de91defb7d0a676b20ad68a13b4f391840a0e1db921ea34`
@@ -128,6 +137,7 @@
 - No runtime migration, runtime activation, paper trading, broker execution, automatic stitching, or trade recommendation was authorized.
 
 ## Next Task
-1. Corporate-action authority plan candidate.
-2. Split/dividend authority chains only after the corporate-action authority plan gate.
-3. Acquisition and dataset chains only after the required identity and corporate-action authority gates.
+1. Corporate-action authority plan candidate operator review package.
+2. Corporate-action authority plan approval ceremony, if required.
+3. Split/dividend authority chains only after the corporate-action authority plan gate.
+4. Acquisition and dataset chains only after the required identity and corporate-action authority gates.
