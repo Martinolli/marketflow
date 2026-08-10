@@ -118,3 +118,14 @@
 ## Operator Review Outcome Needed
 - The next allowable step is operator review of the `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE` artifact.
 - A later per-ticker identity authority candidate remains a separate artifact and requires separate operator approval.
+
+## Implementation Status
+- Identity authority plan candidate completed: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE`.
+- Operator review package implemented: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE`.
+- Per-ticker identity authority candidate remains future work.
+- Identity freeze remains future work.
+- Corporate-action chain remains future work.
+- Acquisition and dataset chains remain future work.
+- Predictive usefulness remains not accepted.
+- Profitability remains not accepted.
+- Runtime activation remains future and separate.
