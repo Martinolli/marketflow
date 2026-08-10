@@ -3,6 +3,7 @@
 ## Purpose
 - Create an offline, digest-bound candidate inventory of the frozen expanded-universe identity authority.
 - The inventory candidate supports operator review before any registry inventory approval.
+- The operator review package summarizes the candidate for assessment without approving registry inventory.
 - This plan is research-only and non-actionable.
 
 ## Source Frozen Identity Authority
@@ -29,7 +30,7 @@
 - Keep each entry scoped to `IDENTITY_AUTHORITY_ONLY`.
 
 ## Future Corporate-Action Authority Chain
-1. Post-identity-freeze registry inventory candidate operator review package.
+1. Post-identity-freeze registry inventory candidate operator review package. `COMPLETED`
 2. Post-identity-freeze registry inventory approval, if required.
 3. Corporate-action authority plan candidate.
 4. Split event authority candidate/review/freeze per ticker.
@@ -73,15 +74,20 @@
 - Post-identity-freeze registry inventory candidate implemented: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE`.
 - Candidate status: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_READY_FOR_OPERATOR_REVIEW`.
 - Candidate digest: `459f20151cf531b32de91defb7d0a676b20ad68a13b4f391840a0e1db921ea34`.
+- Post-identity-freeze registry inventory candidate operator review package implemented: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE_REVIEW_PACKAGE`.
+- Review package status: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE_REVIEW_PACKAGE_READY`.
+- Review package digest: `d35861b3bb19d361241df0e6ba080306e647116cf5b12815ce1ddf2fb48cf51c`.
+- Review package ready for operator assessment: `True`.
 - Registry inventory approval remains future work.
-- Corporate-action chain remains future work.
+- Corporate-action authority plan remains future work.
+- Split/dividend authority chains remain future work.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
 - Profitability remains not accepted.
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Post-identity-freeze registry inventory candidate operator review package.
-2. Post-identity-freeze registry inventory approval, if required.
-3. Corporate-action authority plan candidate.
-4. Split/dividend authority chain after registry inventory review.
+1. Post-identity-freeze registry inventory approval, if required.
+2. Corporate-action authority plan candidate.
+3. Split/dividend authority chain after registry inventory review.
+4. Acquisition and dataset authority chains only after the required identity and corporate-action authority gates.

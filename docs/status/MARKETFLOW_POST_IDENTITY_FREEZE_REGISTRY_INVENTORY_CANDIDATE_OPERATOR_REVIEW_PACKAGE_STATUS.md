@@ -1,40 +1,30 @@
-# MarketFlow Post-Identity-Freeze Registry Inventory Candidate Status
+# MarketFlow Post-Identity-Freeze Registry Inventory Candidate Operator Review Package Status
 
 ## Branch And Commit
-- Branch: `feature/post-identity-freeze-registry-inventory-candidate-v1`
-- Base commit: `281c0b8a4b396eaaa9eee9f203798786b7c0bae3`
+- Branch: `feature/post-identity-freeze-registry-inventory-candidate-review-v1`
+- Base commit: `e606b9cc782f1efd01c63604503623bb7aaf3c03`
 - Implementation commit: the commit containing this document.
 
-## Candidate Artifact
-- Artifact kind: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE`
-- Candidate status: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_READY_FOR_OPERATOR_REVIEW`
-- Schema version: `post_identity_freeze_registry_inventory_candidate_v1`
-- Candidate digest: `459f20151cf531b32de91defb7d0a676b20ad68a13b4f391840a0e1db921ea34`
+## Review Artifact
+- Artifact kind: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE_REVIEW_PACKAGE_READY`
+- Schema version: `post_identity_freeze_registry_inventory_candidate_review_v1`
+- Review package digest: `d35861b3bb19d361241df0e6ba080306e647116cf5b12815ce1ddf2fb48cf51c`
 - Created offline: `True`
 - Operator review required: `True`
-- Registry inventory approval status: `NOT_APPROVED`
 
-## Follow-On Operator Review Package
-- Review package artifact kind: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE_REVIEW_PACKAGE`
-- Review package status: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE_REVIEW_PACKAGE_READY`
-- Review package digest: `d35861b3bb19d361241df0e6ba080306e647116cf5b12815ce1ddf2fb48cf51c`
+## Reviewed Post-Identity-Freeze Registry Inventory Candidate
+- Candidate kind: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE`
+- Candidate status: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_READY_FOR_OPERATOR_REVIEW`
 - Reviewed candidate digest: `459f20151cf531b32de91defb7d0a676b20ad68a13b4f391840a0e1db921ea34`
-- Review package created offline: `True`
-- Review package ready for operator assessment: `True`
-- Registry inventory approval remains: `NOT_APPROVED`
-- Corporate-action authority remains: `NOT_CREATED`
-- Acquisition authority remains: `NOT_AUTHORIZED`
-- Dataset generation remains: `NOT_AUTHORIZED`
+- Reviewed candidate checklist: `72 total / 72 passed / 0 failed / 0 blockers`
 
 ## Source Identity Freeze
 - Identity authority freeze digest: `55e33f7a0e7db13d289c76c53bead4edd319143d26d3082fbc7b24b61d60eb30`
 - Identity authority candidate review package digest: `31f010bb328dd71f578ea5c99cc1cb54332a6840d9693b373b73ac688ee118eb`
 - Identity authority candidate digest: `0cb27ba65d1dfc57c73f716fdae9bc6baf803770ec11a8ea5868728f58711d3c`
 - Identity authority plan candidate review package digest: `85094dd59296b9d47c2dc456f1dfff5dd463e34db566d36bbca1852114c7ce61`
-- Identity authority plan candidate digest: `210b0a534589a8021f4dcd23eca835bc4cc7b3e0f72b6d3916ee7f5693861981`
 - Live ticker validation results review package digest: `ebaa8b85894ec0eb6b29571c4f473d21b346d86e092a4e68158a401cb9ff7033`
-- Live ticker validation execution digest: `96cdb4e97ea6255ddd04bd578a893a28c7a689b5e6d8247f9a26c341226d1ace`
-- Live ticker validation approval digest: `2bf668bb4aae3756652ee5eea790b76d1ba73bdd7723efc1c31227c5c3e897e4`
 - Ticker universe selection approval digest: `e0b56da411ada20f40fbefdcf74c1cce75ca86d13931471f518ef970db23188c`
 
 ## Target Universe
@@ -47,14 +37,14 @@
 - `registry_inventory_mode`: `CANDIDATE_ONLY_NOT_APPROVED`
 - `registry_inventory_approval_status`: `NOT_APPROVED`
 
-## Per-Ticker Registry Inventory Summary
+## Per-Ticker Registry Inventory Review Summary
 - Per-ticker registry inventory entries: `12`
-- Each entry has identity freeze status `FROZEN`.
-- Each entry has identity authority scope `IDENTITY_AUTHORITY_ONLY`.
-- Each entry has registry inventory status `INVENTORY_CANDIDATE_READY_FOR_OPERATOR_REVIEW`.
-- Each entry binds source per-ticker identity freeze, candidate, and review digests.
-- Each entry includes deterministic `per_ticker_registry_inventory_digest`.
-- Each entry keeps corporate-action authority, acquisition authority, dataset generation, runtime, strategy, paper trading, and broker execution closed.
+- Per-ticker registry inventory review entries: `12`
+- Each review entry has status `READY_FOR_OPERATOR_ASSESSMENT`.
+- Each review entry remains frozen identity only: `IDENTITY_AUTHORITY_ONLY`.
+- Each review entry binds source per-ticker identity freeze, candidate, review, and inventory digests.
+- Each review entry includes deterministic `per_ticker_registry_inventory_review_digest`.
+- Each review entry keeps corporate-action authority, acquisition authority, dataset generation, runtime, strategy, paper trading, and broker execution closed.
 
 ## Inventory Field Groups
 - `core_symbol_identity_fields`
@@ -78,17 +68,15 @@
   - `dataset_generation_not_authorized`
 
 ## Future Chain
-1. Post-identity-freeze registry inventory candidate operator review package. `COMPLETED`
-2. Post-identity-freeze registry inventory approval ceremony, if required.
-3. Corporate-action authority plan candidate.
-4. Split event authority candidate/review/freeze per ticker.
-5. Dividend event authority candidate/review/freeze per ticker.
-6. Acquisition generation candidate only after identity and corporate-action authority.
-7. Canonical dataset candidate only after acquisition generation freeze.
-8. Research registry approval only after canonical dataset freeze.
+1. Post-identity-freeze registry inventory approval ceremony, if required.
+2. Corporate-action authority plan candidate.
+3. Split event authority candidate/review/freeze per ticker.
+4. Dividend event authority candidate/review/freeze per ticker.
+5. Acquisition generation candidate only after identity and corporate-action authority.
+6. Canonical dataset candidate only after acquisition generation freeze.
+7. Research registry approval only after canonical dataset freeze.
 
 ## Future Gates
-- `post_identity_freeze_registry_inventory_operator_review`
 - `post_identity_freeze_registry_inventory_approval_if_required`
 - `corporate_action_authority_plan_candidate`
 - `split_event_authority_candidate`
@@ -115,11 +103,6 @@
 - `all_outputs_labeled_research_only`
 - `operator_approval_required_before_registry_inventory_approval`
 
-## Planned Outputs
-- Planned output count: `7`
-- All planned outputs remain `PLANNED_NOT_GENERATED`.
-- All planned outputs remain `RESEARCH_ONLY_NON_ACTIONABLE`.
-
 ## Corporate-Action Boundary
 - `corporate_action_authority_created`: `False`
 - `corporate_action_authority_artifact_created`: `False`
@@ -142,26 +125,16 @@
 - `additional_predictive_evidence_executed`: `False`
 - `predictive_experiment_rerun_authorized`: `False`
 - `predictive_experiment_rerun_performed`: `False`
-- `walk_forward_rerun_performed`: `False`
-- `label_regeneration_performed`: `False`
-- `feature_matrix_regeneration_performed`: `False`
 - `new_strategy_scoring_performed`: `False`
 - `trade_recommendations_generated`: `False`
 - `predictive_usefulness`: `not accepted`
-- `predictive_usefulness_acceptance_ready`: `False`
-- `predictive_usefulness_acceptance_recommended`: `False`
 - `predictive_usefulness_acceptance_candidate_created`: `False`
-- `predictive_usefulness_acceptance_artifact_created`: `False`
 - `profitability`: `not accepted`
-- `profitability_acceptance_ready`: `False`
-- `profitability_acceptance_recommended`: `False`
-- `profitability_acceptance_created`: `False`
 
 ## Runtime Boundary
 - `runtime_migration_recommended`: `False`
 - `runtime_migration_approved`: `False`
 - `runtime_migration_active`: `False`
-- `runtime_migration_approval_created`: `False`
 - `strategy_runtime_migration`: `False`
 - `runtime_use`: `NOT_AUTHORIZED`
 - `strategy_use`: `NOT_AUTHORIZED`
@@ -170,11 +143,11 @@
 - `automatic_stitching`: `False`
 
 ## Checklist Summary
-- Total checks: `72`
-- Passed checks: `72`
+- Total checks: `79`
+- Passed checks: `79`
 - Failed checks: `0`
 - Blocker count: `0`
-- Ready for operator review: `True`
+- Ready for operator assessment: `True`
 - Ready for registry inventory approval: `False`
 - Ready for corporate-action authority plan: `False`
 - Corporate-action authority authorized: `False`
@@ -189,12 +162,11 @@
 ## Guardrails
 - No Massive.com / Polygon provider request was made.
 - No live ticker validation rerun was performed.
-- No live provider transport was enabled.
-- No frozen identity authority was changed.
+- No live provider transport was enabled in review.
 - No registry inventory approval was created.
 - No corporate-action, acquisition, dataset, predictive, profitability, runtime, paper-trading, broker, or trade-recommendation authorization was created.
 
 ## Next Task Recommendation
-1. Consider a separate registry inventory approval ceremony only after operator acceptance of the review package.
+1. Consider a separate registry inventory approval ceremony only after operator acceptance of this review package.
 2. Keep corporate-action authority as a separate future plan candidate.
 3. Keep split/dividend authority, acquisition, dataset, predictive acceptance, profitability acceptance, and runtime activation as separate future gates.
