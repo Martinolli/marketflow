@@ -13,6 +13,16 @@
 - Authority scope: `IDENTITY_AUTHORITY_ONLY`
 - Created offline: `True`
 
+## Follow-On Registry Inventory Candidate
+- Follow-on candidate implemented: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_CANDIDATE`
+- Follow-on candidate status: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_READY_FOR_OPERATOR_REVIEW`
+- Follow-on candidate digest: `459f20151cf531b32de91defb7d0a676b20ad68a13b4f391840a0e1db921ea34`
+- The identity freeze remains source evidence for the registry inventory candidate.
+- The registry inventory candidate is candidate-only and not approved.
+- Corporate-action authority remains not created.
+- Acquisition and dataset generation remain not authorized.
+- Predictive usefulness, profitability, and runtime activation remain not accepted or not authorized.
+
 ## Operator Attestation
 - Operator decision: `FREEZE_EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY`
 - Required attestation phrase matched exactly.
@@ -141,6 +151,6 @@
 - No runtime migration, runtime use, strategy use, paper trading, broker execution, automatic stitching, or trade recommendation.
 
 ## Next Task Recommendation
-1. Create a post-identity-freeze registry inventory candidate.
-2. Keep corporate-action authority as a separate future candidate.
-3. Keep acquisition, dataset generation, predictive acceptance, profitability acceptance, and runtime activation as separate future gates.
+1. Create a post-identity-freeze registry inventory candidate operator review package.
+2. Consider a separate registry inventory approval ceremony only after operator review.
+3. Keep corporate-action authority, acquisition, dataset generation, predictive acceptance, profitability acceptance, and runtime activation as separate future gates.
