@@ -105,7 +105,7 @@
 
 ## Non-Goals
 - No provider call, provider refresh, provider transport enablement, or live validation rerun.
-- No identity authority candidate, identity review package, or identity freeze.
+- No identity authority freeze.
 - No split or dividend event authority.
 - No acquisition generation authority.
 - No canonical dataset generation.
@@ -116,15 +116,16 @@
 - No runtime migration, runtime use, strategy use, paper trading, broker execution, automatic stitching, or trade recommendation.
 
 ## Operator Review Outcome Needed
-- The next allowable step is operator review of the `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE` artifact.
-- A later per-ticker identity authority candidate remains a separate artifact and requires separate operator approval.
+- The next allowable step is operator assessment of the `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_CANDIDATE_REVIEW_PACKAGE` artifact.
+- A later per-ticker identity authority freeze remains a separate ceremony and requires separate operator approval.
 
 ## Implementation Status
 - Identity authority plan candidate completed: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE`.
 - Operator review package implemented: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE`.
 - Plan candidate reviewed through the plan candidate operator review package.
 - Identity authority candidate implemented: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_CANDIDATE`.
-- Identity authority candidate operator review package remains future work.
+- Identity authority candidate operator review package implemented: `EXPANDED_UNIVERSE_PER_TICKER_IDENTITY_AUTHORITY_CANDIDATE_REVIEW_PACKAGE`.
+- Identity authority candidate review package digest: `31f010bb328dd71f578ea5c99cc1cb54332a6840d9693b373b73ac688ee118eb`.
 - Identity freeze remains future work.
 - Corporate-action chain remains future work.
 - Acquisition and dataset chains remain future work.
