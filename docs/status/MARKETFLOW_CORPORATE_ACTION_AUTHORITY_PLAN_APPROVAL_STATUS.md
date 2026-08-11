@@ -116,8 +116,20 @@
 - Runtime migration authorized: `False`
 - Software runtime activation authorized: `False`
 
+## Follow-On Split Event Authority Candidate
+- Follow-on artifact implemented: `SPLIT_EVENT_AUTHORITY_CANDIDATE`
+- Follow-on candidate status: `SPLIT_EVENT_AUTHORITY_READY_FOR_OPERATOR_REVIEW`
+- Follow-on candidate digest: `7faaaaf19f0630f200c7decaafc2555ea23dab3bcfdffd17713487f33d5d8e0b`
+- Corporate-action plan approval remains source evidence for the split event authority candidate.
+- Split event authority remains not created and not frozen.
+- Split provider evidence request authorization remains `False`.
+- Split provider evidence execution remains `False`.
+- Dividend event authority remains not created.
+- Corporate-action authority remains not created.
+- Acquisition and dataset generation remain not authorized.
+
 ## Remaining Required Tasks
-1. Split event authority candidate.
+1. Split event authority candidate operator review package.
 2. Dividend event authority candidate.
 3. Combined corporate-action readiness review after split and dividend freeze.
 4. Acquisition generation chain only after corporate-action authority.
