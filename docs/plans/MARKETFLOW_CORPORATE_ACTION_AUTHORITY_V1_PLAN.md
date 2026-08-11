@@ -85,7 +85,12 @@
 - Operator review package implemented: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE`.
 - Operator review package status: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`.
 - Operator review package digest: `6d0acf97fb36e5302d62c4077ef0dd902a36dc9bf88c7f0234fef07c516bf9c1`.
-- Corporate-action authority plan approval remains future work, if required.
+- Corporate-action authority plan approval implemented: `CORPORATE_ACTION_AUTHORITY_PLAN_APPROVED`.
+- Corporate-action authority plan approval status: `CORPORATE_ACTION_AUTHORITY_PLAN_APPROVED`.
+- Corporate-action authority plan approval scope: `CORPORATE_ACTION_AUTHORITY_PLAN_APPROVAL_ONLY`.
+- Corporate-action authority plan approval digest: `bd02155f618bee231e4472049963343d57b7585920653b31aa5518e96ded0d2f`.
+- Corporate-action authority plan approval sets `ready_for_split_event_authority_candidate` to `True`.
+- Corporate-action authority plan approval sets `ready_for_dividend_event_authority_candidate` to `True`.
 - Corporate-action authority remains not created.
 - Split event authority candidate remains future work.
 - Split event authority remains not created.
@@ -97,7 +102,7 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Corporate-action authority plan approval ceremony, if required.
-2. Split event authority candidate.
-3. Dividend event authority candidate.
+1. Split event authority candidate.
+2. Dividend event authority candidate.
+3. Combined corporate-action readiness review after split and dividend freeze.
 4. Acquisition generation chain only after corporate-action authority.

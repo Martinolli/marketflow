@@ -192,8 +192,17 @@
 - Runtime migration authorized: `False`
 - Software runtime activation authorized: `False`
 
+## Follow-On Plan Approval
+- Follow-on artifact implemented: `CORPORATE_ACTION_AUTHORITY_PLAN_APPROVED`
+- Follow-on approval status: `CORPORATE_ACTION_AUTHORITY_PLAN_APPROVED`
+- Follow-on approval scope: `CORPORATE_ACTION_AUTHORITY_PLAN_APPROVAL_ONLY`
+- Follow-on approval digest: `bd02155f618bee231e4472049963343d57b7585920653b31aa5518e96ded0d2f`
+- This review package remains source evidence for the approval artifact.
+- The follow-on approval sets `ready_for_split_event_authority_candidate` and `ready_for_dividend_event_authority_candidate` to `True`.
+- The follow-on approval does not create split event authority or dividend event authority.
+- The follow-on approval does not authorize acquisition, dataset generation, runtime migration, paper trading, broker execution, or trade recommendations.
+
 ## Next Task Recommendation
-1. Corporate-action authority plan approval ceremony, if required.
-2. Split event authority candidate.
-3. Dividend event authority candidate.
-4. Acquisition generation chain only after corporate-action authority.
+1. Split event authority candidate.
+2. Dividend event authority candidate.
+3. Acquisition generation chain only after corporate-action authority.
