@@ -50,8 +50,8 @@
 2. Split provider evidence request approval ceremony, if live provider access is required.
 3. Split provider evidence execution.
 4. Split event evidence/results review package.
-5. Split event authority candidate update or discrepancy triage, if required.
-6. Split event authority freeze ceremony.
+5. Split event authority freeze ceremony.
+6. Dividend provider evidence request approval remains a separate future chain.
 
 ## No-Split / Split Absence Policy
 - Future no-split findings must come from reviewed provider evidence or an explicit no-split policy artifact.
@@ -77,7 +77,7 @@
 - No provider refresh, provider transport enablement, or live validation rerun.
 - No split provider evidence execution in the approval ceremony.
 - No split provider evidence execution unless the explicit live gate and API key are present.
-- No split event authority approval or freeze.
+- No split event authority beyond the split-only freeze ceremony.
 - No dividend event authority candidate, approval, or freeze.
 - No corporate-action authority approval.
 - No acquisition generation authority.
@@ -128,8 +128,11 @@
 - Split evidence results review status: `SPLIT_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY`.
 - Split evidence results review package digest: `98797d5bbcbd9754fe2f064a77e6acbe047d3841d82b8a38114935c734f2aac3`.
 - Split evidence supports future split authority planning but does not create split authority.
-- Split event authority remains not created.
-- Split event authority freeze remains future work.
+- Split event authority freeze ceremony implemented: `SPLIT_EVENT_AUTHORITY_FROZEN`.
+- Split event authority freeze status: `SPLIT_EVENT_AUTHORITY_FROZEN`.
+- Split event authority freeze digest: `37a06dceac17761319f9d5eb716d64dced765997b8d1e9d8a79166162bfdb303`.
+- Split event authority scope: `SPLIT_EVENT_AUTHORITY_ONLY`.
+- Split evidence results review remains source evidence for the split-only freeze.
 - Dividend event authority chain remains separate.
 - Dividend provider evidence chain remains future work.
 - Combined corporate-action readiness remains future work.
@@ -140,6 +143,7 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Split event evidence results operator review.
-2. Split event authority freeze ceremony after operator review.
-3. Dividend provider evidence request approval and execution chain.
+1. Dividend provider evidence request approval and execution chain.
+2. Dividend event authority freeze ceremony.
+3. Combined corporate-action readiness review.
+4. Acquisition and dataset chain planning after corporate-action readiness.

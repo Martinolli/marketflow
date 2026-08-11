@@ -92,8 +92,12 @@
 ## Authority Boundaries
 - split_evidence_review_supports_future_split_authority_planning: `True`
 - split_evidence_creates_split_authority: `False`
-- split_event_authority_created: `False`
-- split_event_authority_frozen: `False`
+- follow_on_split_event_authority_freeze_ceremony: `IMPLEMENTED`
+- follow_on_split_event_authority_freeze_digest: `37a06dceac17761319f9d5eb716d64dced765997b8d1e9d8a79166162bfdb303`
+- review_remains_source_evidence_for_freeze: `True`
+- split_event_authority_created_by_review: `False`
+- split_event_authority_frozen_by_review: `False`
+- split_event_authority_freeze_scope: `SPLIT_EVENT_AUTHORITY_ONLY`
 - dividend_provider_evidence_request_authorized: `False`
 - dividend_provider_evidence_executed: `False`
 - dividend_event_authority_created: `False`
@@ -130,4 +134,4 @@
 - Runtime migration authorized: `False`
 
 ## Next Task Recommendation
-1. `split_event_evidence_results_operator_review`
+1. `dividend_provider_evidence_request_approval`
