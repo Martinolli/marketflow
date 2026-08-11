@@ -75,7 +75,7 @@
 ## Non-Goals
 - No Massive.com / Polygon provider request.
 - No provider refresh, provider transport enablement, or live validation rerun.
-- No split provider evidence request approval.
+- No split provider evidence execution in the approval ceremony.
 - No split provider evidence execution.
 - No split event authority approval or freeze.
 - No dividend event authority candidate, approval, or freeze.
@@ -116,13 +116,15 @@
 - Review package digest: `5f59edb21ab0e800aa714cfca41f3fe2b155f012ea7cc6c4c4c382146303c95a`.
 - Review package checklist: `103 total / 103 passed / 0 failed / 0 blockers`.
 - Review package planned output count: `8`; all planned outputs remain `PLANNED_NOT_GENERATED` and `RESEARCH_ONLY_NON_ACTIONABLE`.
+- Split provider evidence request approval ceremony implemented: `SPLIT_EVENT_PROVIDER_EVIDENCE_REQUEST_APPROVED`.
+- Split provider evidence request approval status: `SPLIT_EVENT_PROVIDER_EVIDENCE_REQUEST_APPROVED`.
+- Split provider evidence request approval digest: `7c7e93149fe118985fc218852d79e86b31c9ee5bbd75ebacd1890a3862d573db`.
+- Split provider evidence request is authorized for future read-only evidence execution only.
 - Split event authority remains not created.
-- Split provider evidence request approval remains future work, if required.
 - Split provider evidence execution remains future work.
 - Split event evidence/results review remains future work.
 - Split event authority freeze remains future work.
-- Dividend event authority candidate remains future work.
-- Dividend event authority review/freeze remains future work.
+- Dividend event authority chain remains separate.
 - Corporate-action authority remains not created.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
@@ -130,7 +132,6 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Split provider evidence request approval, if required.
-2. Split provider evidence execution.
-3. Split event evidence review.
-4. Split event authority freeze ceremony.
+1. Split provider evidence execution.
+2. Split event evidence review.
+3. Split event authority freeze ceremony.

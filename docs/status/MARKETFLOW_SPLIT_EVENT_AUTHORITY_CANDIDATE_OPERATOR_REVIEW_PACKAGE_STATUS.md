@@ -133,3 +133,14 @@
 3. Split event evidence/results review package.
 4. Split event authority candidate update or discrepancy triage, if required.
 5. Split event authority freeze ceremony.
+
+## Follow-On Split Provider Evidence Request Approval
+- Follow-on artifact implemented: `SPLIT_EVENT_PROVIDER_EVIDENCE_REQUEST_APPROVED`.
+- Follow-on approval status: `SPLIT_EVENT_PROVIDER_EVIDENCE_REQUEST_APPROVED`.
+- Follow-on approval digest: `7c7e93149fe118985fc218852d79e86b31c9ee5bbd75ebacd1890a3862d573db`.
+- This split candidate review remains source evidence for the approval.
+- Split provider evidence request is authorized for future read-only execution only.
+- Split provider evidence execution remains future work and was not performed by the approval.
+- Split provider evidence results remain not created.
+- Split authority remains not created and not frozen.
+- Dividend provider evidence request, dividend authority, corporate-action authority, acquisition, dataset generation, predictive/profitability acceptance, runtime activation, paper trading, broker execution, and trade recommendations remain unauthorized.
