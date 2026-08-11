@@ -91,6 +91,16 @@
 - `paper_trading`: `NOT_AUTHORIZED`
 - `broker_execution`: `NOT_AUTHORIZED`
 
+## Follow-On Dividend Event Authority Candidate
+- Follow-on artifact kind: `DIVIDEND_EVENT_AUTHORITY_CANDIDATE`
+- Follow-on candidate status: `DIVIDEND_EVENT_AUTHORITY_READY_FOR_OPERATOR_REVIEW`
+- Follow-on candidate digest: `44cabaebea32b4d618d13c4e1c77190c2549b9c15c8481460ab66211d1f44097`
+- This split candidate review remains source evidence for the dividend candidate.
+- Split provider evidence request remains not authorized.
+- Split authority remains not created and not frozen.
+- Dividend authority candidate remains candidate-only.
+- Dividend authority, dividend provider evidence request approval, dividend provider evidence execution, corporate-action authority, acquisition, and dataset generation remain not authorized.
+
 ## Checklist Summary
 - Total checks: `103`
 - Passed checks: `103`
