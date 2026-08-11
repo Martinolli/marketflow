@@ -121,10 +121,11 @@
 - Split provider evidence request approval digest: `7c7e93149fe118985fc218852d79e86b31c9ee5bbd75ebacd1890a3862d573db`.
 - Split provider evidence request is authorized for future read-only evidence execution only.
 - Split provider evidence execution service implemented for gated read-only execution: `SPLIT_EVENT_PROVIDER_EVIDENCE_EXECUTED`.
-- Split provider evidence execution attempted locally and blocked: `SPLIT_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
-- Split provider evidence execution digest: `NOT_CREATED`.
+- Split provider evidence execution completed: `SPLIT_EVENT_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`.
+- Split provider evidence execution digest: `823bfb52b1623b8b9eb88b197da9b9943dfc1e14cb1d280160ba2cbe26eec4c4`.
+- Split provider evidence execution generated `6` ignored sanitized runtime outputs under `.marketflow/split_event_provider_evidence/expanded_universe_v1/`.
 - Split event authority remains not created.
-- Split event evidence/results review remains future work until a successful gated execution creates sanitized evidence results.
+- Split event evidence/results review remains future work.
 - Split event authority freeze remains future work.
 - Dividend event authority chain remains separate.
 - Corporate-action authority remains not created.
@@ -134,6 +135,5 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Correct the live gate/API-key environment, then rerun split provider evidence execution.
-2. Split event evidence/results review package if execution succeeds.
-3. Split event authority freeze ceremony after evidence review.
+1. Split event evidence/results review package.
+2. Split event authority freeze ceremony after evidence review.

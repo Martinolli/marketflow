@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 from datetime import UTC, datetime
 from typing import Any, Callable, Mapping
 from urllib.parse import parse_qsl, quote, urlencode, urlparse
@@ -174,6 +175,20 @@ def _payload_from_transport_result(result: Any) -> dict[str, Any]:
     raise SplitEventProviderAdapterError("split provider transport returned unsupported payload")
 
 
+def _deterministic_provider_json(value: Any) -> Any:
+    if isinstance(value, Mapping):
+        return {str(key): _deterministic_provider_json(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_deterministic_provider_json(item) for item in value]
+    if isinstance(value, tuple):
+        return [_deterministic_provider_json(item) for item in value]
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise SplitEventProviderAdapterError("split provider response contains non-finite number")
+        return repr(value)
+    return value
+
+
 def _validate_next_url(raw_next_url: Any, *, ticker: str, start_date: str, end_date: str) -> tuple[str, str]:
     if type(raw_next_url) is not str or not raw_next_url:
         raise SplitEventProviderAdapterError("next_url must be non-empty text")
@@ -265,7 +280,9 @@ def fetch_massive_split_events_v1(
         )
         if sanitized_continuation_url is not None:
             request["sanitized_url"] = sanitized_continuation_url
-        payload = _payload_from_transport_result(transport(request) if transport is not None else _http_transport(request, api_key=key))
+        payload = _deterministic_provider_json(
+            _payload_from_transport_result(transport(request) if transport is not None else _http_transport(request, api_key=key))
+        )
         status = payload.get("status")
         response_status = status if isinstance(status, str) else "UNKNOWN"
         page_results = payload.get("results")

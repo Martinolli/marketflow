@@ -60,12 +60,14 @@
 - Provider result authority: `SPLIT_EVENT_EVIDENCE_ONLY_NOT_SPLIT_AUTHORITY`
 
 ## Split Evidence Execution Boundary
-- `split_provider_evidence_executed`: `False`
-- `split_provider_evidence_results_created`: `False`
-- `split_provider_evidence_execution_created`: `False`
-- Follow-on execution attempted on branch `feature/split-provider-evidence-execution-v1`.
-- Follow-on execution status: `SPLIT_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
-- Approval remains source evidence for a future gated read-only execution.
+- `split_provider_evidence_executed`: `True`
+- `split_provider_evidence_results_created`: `True`
+- `split_provider_evidence_execution_created`: `True`
+- Follow-on execution completed on branch `feature/split-provider-evidence-execution-live-run-v1`.
+- Follow-on execution status: `SPLIT_EVENT_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`.
+- Follow-on execution digest: `823bfb52b1623b8b9eb88b197da9b9943dfc1e14cb1d280160ba2cbe26eec4c4`.
+- Approval remains source evidence for the gated read-only execution.
+- Provider requests are made only during gated execution.
 - No split authority or split freeze is created by the execution attempt.
 - No acquisition or dataset generation authorization is created by the execution attempt.
 
@@ -149,4 +151,4 @@
 - No corporate-action authority, acquisition authority, dataset generation, predictive acceptance, profitability acceptance, runtime activation, paper trading, broker execution, or trade recommendation was authorized.
 
 ## Next Task
-1. Correct the live gate/API-key environment, then rerun split provider evidence execution.
+1. Split event evidence/results review package.

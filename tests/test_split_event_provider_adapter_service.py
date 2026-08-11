@@ -132,6 +132,33 @@ def test_raw_response_digest_is_deterministic():
     assert len(first["provider_raw_response_digest"]) == 64
 
 
+def test_provider_float_values_are_normalized_before_digesting():
+    def fake_transport(request):
+        return _page(
+            [
+                {
+                    "execution_date": "2024-06-10",
+                    "split_from": 1.0,
+                    "split_to": 4.0,
+                    "ticker": "AAPL",
+                }
+            ]
+        )
+
+    raw = adapter.fetch_massive_split_events_v1(
+        ticker="AAPL",
+        start_date="2022-01-01",
+        end_date="2025-12-31",
+        api_key="fictional-secret-key",
+        transport=fake_transport,
+        request_timestamp_utc="2026-08-05T00:00:00Z",
+    )
+
+    assert raw["results"][0]["split_from"] == "1.0"
+    assert raw["results"][0]["split_to"] == "4.0"
+    assert len(raw["provider_raw_response_digest"]) == 64
+
+
 @pytest.mark.skipif(
     os.environ.get("MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT") != "1" or not (os.environ.get("MASSIVE_API_KEY") or os.environ.get("POLYGON_API_KEY")),
     reason="live split audit smoke requires MARKETFLOW_ENABLE_LIVE_SPLIT_AUDIT=1 and a provider API key",
