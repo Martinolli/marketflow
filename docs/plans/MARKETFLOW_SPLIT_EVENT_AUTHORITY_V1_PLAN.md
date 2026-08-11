@@ -76,7 +76,7 @@
 - No Massive.com / Polygon provider request.
 - No provider refresh, provider transport enablement, or live validation rerun.
 - No split provider evidence execution in the approval ceremony.
-- No split provider evidence execution.
+- No split provider evidence execution unless the explicit live gate and API key are present.
 - No split event authority approval or freeze.
 - No dividend event authority candidate, approval, or freeze.
 - No corporate-action authority approval.
@@ -120,9 +120,11 @@
 - Split provider evidence request approval status: `SPLIT_EVENT_PROVIDER_EVIDENCE_REQUEST_APPROVED`.
 - Split provider evidence request approval digest: `7c7e93149fe118985fc218852d79e86b31c9ee5bbd75ebacd1890a3862d573db`.
 - Split provider evidence request is authorized for future read-only evidence execution only.
+- Split provider evidence execution service implemented for gated read-only execution: `SPLIT_EVENT_PROVIDER_EVIDENCE_EXECUTED`.
+- Split provider evidence execution attempted locally and blocked: `SPLIT_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
+- Split provider evidence execution digest: `NOT_CREATED`.
 - Split event authority remains not created.
-- Split provider evidence execution remains future work.
-- Split event evidence/results review remains future work.
+- Split event evidence/results review remains future work until a successful gated execution creates sanitized evidence results.
 - Split event authority freeze remains future work.
 - Dividend event authority chain remains separate.
 - Corporate-action authority remains not created.
@@ -132,6 +134,6 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Split provider evidence execution.
-2. Split event evidence review.
-3. Split event authority freeze ceremony.
+1. Correct the live gate/API-key environment, then rerun split provider evidence execution.
+2. Split event evidence/results review package if execution succeeds.
+3. Split event authority freeze ceremony after evidence review.

@@ -63,6 +63,11 @@
 - `split_provider_evidence_executed`: `False`
 - `split_provider_evidence_results_created`: `False`
 - `split_provider_evidence_execution_created`: `False`
+- Follow-on execution attempted on branch `feature/split-provider-evidence-execution-v1`.
+- Follow-on execution status: `SPLIT_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
+- Approval remains source evidence for a future gated read-only execution.
+- No split authority or split freeze is created by the execution attempt.
+- No acquisition or dataset generation authorization is created by the execution attempt.
 
 ## Split Authority Boundary
 - `split_event_authority_candidate_created`: `True`
@@ -144,4 +149,4 @@
 - No corporate-action authority, acquisition authority, dataset generation, predictive acceptance, profitability acceptance, runtime activation, paper trading, broker execution, or trade recommendation was authorized.
 
 ## Next Task
-1. Split provider evidence execution.
+1. Correct the live gate/API-key environment, then rerun split provider evidence execution.
