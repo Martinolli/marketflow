@@ -41,6 +41,10 @@
 ## Review Boundary
 - `dividend_event_authority_candidate_created`: `True`
 - `dividend_event_authority_review_created`: `True`
+- `follow_on_dividend_provider_evidence_request_approval_ceremony`: `IMPLEMENTED`
+- `follow_on_dividend_provider_evidence_request_approval_digest`: `f2b96963ceced82579a647fa1e51ddca1dad91b3de66a35aad8fc389cdbbb2ff`
+- `dividend_review_package_remains_source_evidence_for_approval`: `True`
+- `dividend_provider_evidence_execution_remains_future_work`: `True`
 - `dividend_event_authority_created`: `False`
 - `dividend_event_authority_frozen`: `False`
 - `dividend_provider_evidence_request_authorized`: `False`
@@ -50,8 +54,9 @@
 - `dividend_provider_evidence_execution_created`: `False`
 - `split_event_authority_candidate_created`: `True`
 - `split_event_authority_review_created`: `True`
-- `split_event_authority_created`: `False`
-- `split_event_authority_frozen`: `False`
+- `split_event_authority_created_in_follow_on_chain`: `True`
+- `split_event_authority_frozen_in_follow_on_chain`: `True`
+- `split_event_authority_remains_frozen_and_unchanged`: `True`
 - `corporate_action_authority_created`: `False`
 - `acquisition_generation_authorized`: `False`
 - `canonical_dataset_authorized`: `False`
@@ -66,9 +71,8 @@
 - All planned outputs are `RESEARCH_ONLY_NON_ACTIONABLE`.
 
 ## Next Gates
-1. Dividend provider evidence request approval ceremony, if live provider access is required.
-2. Dividend provider evidence execution.
-3. Dividend event evidence/results review package.
-4. Dividend policy reconciliation review.
-5. Dividend event authority candidate update or discrepancy triage, if required.
-6. Dividend event authority freeze ceremony.
+1. Dividend provider evidence execution.
+2. Dividend event evidence/results review package.
+3. Dividend policy reconciliation review.
+4. Dividend event authority freeze ceremony.
+5. Combined corporate-action readiness review.

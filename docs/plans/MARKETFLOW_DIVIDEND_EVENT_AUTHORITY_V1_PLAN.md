@@ -19,7 +19,8 @@
 - Source review status: `SPLIT_EVENT_AUTHORITY_CANDIDATE_REVIEW_PACKAGE_READY`
 - Source review package digest: `5f59edb21ab0e800aa714cfca41f3fe2b155f012ea7cc6c4c4c382146303c95a`
 - Source split candidate digest: `7faaaaf19f0630f200c7decaafc2555ea23dab3bcfdffd17713487f33d5d8e0b`
-- Split event authority remains not created and not frozen.
+- Split event authority is now frozen in the follow-on split chain.
+- Split event authority freeze digest: `37a06dceac17761319f9d5eb716d64dced765997b8d1e9d8a79166162bfdb303`
 
 ## Target Universe
 - Target universe count: `12`
@@ -98,10 +99,10 @@
 ## Non-Goals
 - No Massive.com / Polygon provider request.
 - No provider refresh, provider transport enablement, or live validation rerun.
-- No dividend provider evidence request approval.
+- No dividend provider evidence request approval outside the guarded offline approval ceremony.
 - No dividend provider evidence execution.
 - No dividend event authority approval or freeze.
-- No split event authority approval or freeze.
+- No split event authority alteration after the split-only freeze.
 - No corporate-action authority approval.
 - No acquisition generation authority.
 - No canonical dataset generation.
@@ -141,13 +142,16 @@
 - Review package digest: `cf120d55beaa22f1fbd4f27d9a7a6539583e5cd67f3d0ffe5a186f318f27a104`.
 - Review checklist: `110 total / 110 passed / 0 failed / 0 blockers`.
 - Review planned outputs: `9`, all `PLANNED_NOT_GENERATED` and `RESEARCH_ONLY_NON_ACTIONABLE`.
+- Dividend provider evidence request approval ceremony implemented: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_REQUEST_APPROVED`.
+- Dividend provider evidence request approval status: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_REQUEST_APPROVED`.
+- Dividend provider evidence request approval digest: `f2b96963ceced82579a647fa1e51ddca1dad91b3de66a35aad8fc389cdbbb2ff`.
+- Dividend provider evidence request is authorized for future read-only evidence execution only.
 - Dividend event authority remains not created.
-- Dividend provider evidence request approval remains future work, if required.
 - Dividend provider evidence execution remains future work.
 - Dividend event evidence/results review remains future work.
 - Dividend policy reconciliation review remains future work.
 - Dividend event authority freeze remains future work.
-- Split event authority remains not created.
+- Split event authority remains frozen.
 - Corporate-action authority remains not created.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
@@ -155,9 +159,8 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Dividend event authority candidate operator review package.
-2. Dividend provider evidence request approval, if required.
-3. Dividend provider evidence execution.
-4. Dividend event evidence review.
-5. Dividend policy reconciliation review.
-6. Dividend event authority freeze ceremony.
+1. Dividend provider evidence execution.
+2. Dividend event evidence review.
+3. Dividend policy reconciliation review.
+4. Dividend event authority freeze ceremony.
+5. Combined corporate-action readiness review.
