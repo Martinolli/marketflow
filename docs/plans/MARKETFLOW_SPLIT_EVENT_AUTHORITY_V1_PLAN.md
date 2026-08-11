@@ -124,10 +124,15 @@
 - Split provider evidence execution completed: `SPLIT_EVENT_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`.
 - Split provider evidence execution digest: `823bfb52b1623b8b9eb88b197da9b9943dfc1e14cb1d280160ba2cbe26eec4c4`.
 - Split provider evidence execution generated `6` ignored sanitized runtime outputs under `.marketflow/split_event_provider_evidence/expanded_universe_v1/`.
+- Split evidence results review implemented: `SPLIT_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE`.
+- Split evidence results review status: `SPLIT_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY`.
+- Split evidence results review package digest: `98797d5bbcbd9754fe2f064a77e6acbe047d3841d82b8a38114935c734f2aac3`.
+- Split evidence supports future split authority planning but does not create split authority.
 - Split event authority remains not created.
-- Split event evidence/results review remains future work.
 - Split event authority freeze remains future work.
 - Dividend event authority chain remains separate.
+- Dividend provider evidence chain remains future work.
+- Combined corporate-action readiness remains future work.
 - Corporate-action authority remains not created.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
@@ -135,5 +140,6 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Split event evidence/results review package.
-2. Split event authority freeze ceremony after evidence review.
+1. Split event evidence results operator review.
+2. Split event authority freeze ceremony after operator review.
+3. Dividend provider evidence request approval and execution chain.

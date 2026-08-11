@@ -109,4 +109,12 @@
 - No predictive experiment rerun, strategy scoring, runtime activation, paper trading, broker execution, or trade recommendation is performed.
 
 ## Next Task
-1. `SPLIT_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE`
+1. `SPLIT_EVENT_EVIDENCE_RESULTS_OPERATOR_REVIEW`
+
+## Follow-On Split Evidence Results Review
+- Follow-on review package implemented on branch `feature/split-event-evidence-results-review-v1`.
+- Review artifact/status: `SPLIT_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE` / `SPLIT_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY`.
+- Review package digest: `98797d5bbcbd9754fe2f064a77e6acbe047d3841d82b8a38114935c734f2aac3`.
+- This execution artifact remains source evidence for review.
+- The review does not create split authority or split freeze.
+- Dividend provider evidence request, corporate-action authority, acquisition, and dataset generation remain not authorized.
