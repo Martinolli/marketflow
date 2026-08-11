@@ -1,23 +1,30 @@
-# MarketFlow Corporate-Action Authority Plan Candidate Status
+# MarketFlow Corporate-Action Authority Plan Candidate Operator Review Package Status
 
 ## Branch And Commit
-- Branch: `feature/corporate-action-authority-plan-candidate-v1`
-- Base commit: `7195bb38e5813c35c17d73c6708bb1f8bad6f280`
+- Branch: `feature/corporate-action-authority-plan-candidate-review-v1`
+- Base commit: `92708dd2d06e5241c7687153ea5c662c952ec0e4`
 - Implementation commit: the commit containing this document.
 
-## Candidate Artifact
-- Artifact kind: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE`
-- Candidate status: `CORPORATE_ACTION_AUTHORITY_PLAN_READY_FOR_OPERATOR_REVIEW`
-- Schema version: `corporate_action_authority_plan_candidate_v1`
-- Candidate digest: `3ab988e647eebf01ea489dd3e9da2a1edf7b9c8a50b26a54995d39cc3115753a`
+## Review Artifact
+- Artifact kind: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE`
+- Review status: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`
+- Schema version: `corporate_action_authority_plan_candidate_review_v1`
+- Review package digest: `6d0acf97fb36e5302d62c4077ef0dd902a36dc9bf88c7f0234fef07c516bf9c1`
 - Created offline: `True`
-- Operator review required: `True`
+- Provider requests made in review: `False`
+- Live validation rerun performed: `False`
+- Live provider transport enabled in review: `False`
+
+## Reviewed Corporate-Action Authority Plan Candidate
+- Candidate kind: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE`
+- Candidate status: `CORPORATE_ACTION_AUTHORITY_PLAN_READY_FOR_OPERATOR_REVIEW`
+- Candidate digest: `3ab988e647eebf01ea489dd3e9da2a1edf7b9c8a50b26a54995d39cc3115753a`
+- Candidate checklist: `79 total / 79 passed / 0 failed / 0 blockers`
 
 ## Source Registry Inventory Approval
 - Registry inventory approval digest: `c380dd016035289d11b79723daafc6bdec694928233ff464ec386239ea820c82`
 - Registry inventory review package digest: `d35861b3bb19d361241df0e6ba080306e647116cf5b12815ce1ddf2fb48cf51c`
 - Registry inventory candidate digest: `459f20151cf531b32de91defb7d0a676b20ad68a13b4f391840a0e1db921ea34`
-- Registry inventory approved: `True`
 
 ## Source Identity Freeze
 - Identity authority freeze digest: `55e33f7a0e7db13d289c76c53bead4edd319143d26d3082fbc7b24b61d60eb30`
@@ -26,7 +33,6 @@
 - Live ticker validation results review package digest: `ebaa8b85894ec0eb6b29571c4f473d21b346d86e092a4e68158a401cb9ff7033`
 - Live ticker validation execution digest: `96cdb4e97ea6255ddd04bd578a893a28c7a689b5e6d8247f9a26c341226d1ace`
 - Ticker universe selection approval digest: `e0b56da411ada20f40fbefdcf74c1cce75ca86d13931471f518ef970db23188c`
-- Authority scope: `IDENTITY_AUTHORITY_ONLY`
 
 ## Target Universe
 - Target universe count: `12`
@@ -38,38 +44,22 @@
 - `corporate_action_authority_plan_mode`: `CANDIDATE_ONLY_NOT_AUTHORITY`
 - `corporate_action_authority_creation_status`: `NOT_CREATED`
 
-## Per-Ticker Corporate-Action Plan Summary
+## Per-Ticker Corporate-Action Plan Review Summary
 - Per-ticker corporate-action plan entries: `12`
-- Each entry has identity authority status `FROZEN`.
-- Each entry has registry inventory status `APPROVED_FOR_FUTURE_CORPORATE_ACTION_PLANNING_ONLY`.
-- Each entry has corporate-action plan status `PLANNED_NOT_CREATED`.
-- Each entry keeps split event authority and dividend event authority `NOT_CREATED`.
-- Each entry keeps acquisition blocked until corporate-action authority is frozen.
-- Each entry includes deterministic `per_ticker_corporate_action_plan_digest`.
-- Each entry keeps runtime, strategy, paper trading, and broker execution `NOT_AUTHORIZED`.
+- Per-ticker corporate-action plan review entries: `12`
+- Each review entry has identity authority status `FROZEN`.
+- Each review entry has registry inventory status `APPROVED_FOR_FUTURE_CORPORATE_ACTION_PLANNING_ONLY`.
+- Each review entry has corporate-action plan status `PLANNED_NOT_CREATED`.
+- Each review entry has corporate-action plan review status `READY_FOR_OPERATOR_ASSESSMENT`.
+- Each review entry keeps split event authority and dividend event authority `NOT_CREATED`.
+- Each review entry includes deterministic `per_ticker_corporate_action_plan_digest` and `per_ticker_corporate_action_plan_review_digest`.
 
 ## Corporate-Action Evidence Requirements
-- Planned requirements only; no provider evidence was fetched.
-- Future unavailable fields must be marked unavailable during future candidate creation.
+- These are reviewed planned evidence requirements only.
+- This review package does not fetch provider evidence.
+- Unavailable future fields must be marked unavailable during future candidate creation.
 - No field may be fabricated.
-- Planned fields:
-  - `split_event_history`
-  - `split_ratio`
-  - `split_execution_date`
-  - `split_ex_date`
-  - `split_provider_event_id_if_available`
-  - `split_adjustment_implication`
-  - `dividend_event_history`
-  - `cash_dividend_amount`
-  - `dividend_currency`
-  - `dividend_ex_date`
-  - `dividend_record_date_if_available`
-  - `dividend_pay_date_if_available`
-  - `dividend_provider_event_id_if_available`
-  - `dividend_adjustment_implication`
-  - `corporate_action_source_endpoint`
-  - `provider_response_digest`
-  - `sanitized_event_digest`
+- Planned fields: `split_event_history`, `split_ratio`, `split_execution_date`, `split_ex_date`, `split_provider_event_id_if_available`, `split_adjustment_implication`, `dividend_event_history`, `cash_dividend_amount`, `dividend_currency`, `dividend_ex_date`, `dividend_record_date_if_available`, `dividend_pay_date_if_available`, `dividend_provider_event_id_if_available`, `dividend_adjustment_implication`, `corporate_action_source_endpoint`, `provider_response_digest`, `sanitized_event_digest`
 
 ## Future Split Event Authority Chain
 1. Split event authority candidate.
@@ -134,13 +124,15 @@
 - `operator_approval_required_before_any_provider_corporate_action_evidence_request`
 
 ## Corporate-Action Boundary
+- `corporate_action_authority_plan_review_created`: `True`
 - `corporate_action_authority_plan_approved`: `False`
 - `corporate_action_authority_created`: `False`
-- `corporate_action_authority_artifact_created`: `False`
 - `split_event_authority_candidate_created`: `False`
+- `split_event_authority_review_created`: `False`
 - `split_event_authority_created`: `False`
 - `split_event_authority_frozen`: `False`
 - `dividend_event_authority_candidate_created`: `False`
+- `dividend_event_authority_review_created`: `False`
 - `dividend_event_authority_created`: `False`
 - `dividend_event_authority_frozen`: `False`
 
@@ -181,15 +173,17 @@
 - `automatic_stitching`: `False`
 
 ## Checklist Summary
-- Total checks: `79`
-- Passed checks: `79`
+- Total checks: `91`
+- Passed checks: `91`
 - Failed checks: `0`
 - Blocker count: `0`
-- Ready for operator review: `True`
+- Ready for operator assessment: `True`
 - Ready for corporate-action authority plan approval: `False`
 - Ready for split event authority candidate: `False`
 - Ready for dividend event authority candidate: `False`
 - Corporate-action authority authorized: `False`
+- Split event authority authorized: `False`
+- Dividend event authority authorized: `False`
 - Acquisition authorized: `False`
 - Dataset generation authorized: `False`
 - Additional predictive evidence execution authorized: `False`
@@ -197,20 +191,6 @@
 - Profitability accepted: `False`
 - Runtime migration authorized: `False`
 - Software runtime activation authorized: `False`
-
-## Follow-On Operator Review Package
-- Follow-on artifact implemented: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE`
-- Follow-on status: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`
-- Review package digest: `6d0acf97fb36e5302d62c4077ef0dd902a36dc9bf88c7f0234fef07c516bf9c1`
-- Reviewed plan candidate digest: `3ab988e647eebf01ea489dd3e9da2a1edf7b9c8a50b26a54995d39cc3115753a`
-- The plan candidate remains source evidence.
-- Corporate-action authority remains not created.
-- Split event authority remains not created.
-- Dividend event authority remains not created.
-- Acquisition and dataset generation remain not authorized.
-- Predictive usefulness remains not accepted.
-- Profitability remains not accepted.
-- Runtime, strategy, paper trading, broker execution, and trade recommendations remain `NOT_AUTHORIZED`.
 
 ## Next Task Recommendation
 1. Corporate-action authority plan approval ceremony, if required.

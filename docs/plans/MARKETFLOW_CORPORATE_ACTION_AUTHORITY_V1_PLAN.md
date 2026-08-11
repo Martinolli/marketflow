@@ -82,8 +82,14 @@
 - Corporate-action authority plan candidate implemented: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE`.
 - Candidate status: `CORPORATE_ACTION_AUTHORITY_PLAN_READY_FOR_OPERATOR_REVIEW`.
 - Candidate digest: `3ab988e647eebf01ea489dd3e9da2a1edf7b9c8a50b26a54995d39cc3115753a`.
+- Operator review package implemented: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE`.
+- Operator review package status: `CORPORATE_ACTION_AUTHORITY_PLAN_CANDIDATE_REVIEW_PACKAGE_READY`.
+- Operator review package digest: `6d0acf97fb36e5302d62c4077ef0dd902a36dc9bf88c7f0234fef07c516bf9c1`.
+- Corporate-action authority plan approval remains future work, if required.
 - Corporate-action authority remains not created.
+- Split event authority candidate remains future work.
 - Split event authority remains not created.
+- Dividend event authority candidate remains future work.
 - Dividend event authority remains not created.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
@@ -91,8 +97,7 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Corporate-action authority plan candidate operator review package.
-2. Corporate-action authority plan approval ceremony, if required.
-3. Split event authority candidate.
-4. Dividend event authority candidate.
-5. Acquisition generation chain only after corporate-action authority.
+1. Corporate-action authority plan approval ceremony, if required.
+2. Split event authority candidate.
+3. Dividend event authority candidate.
+4. Acquisition generation chain only after corporate-action authority.
