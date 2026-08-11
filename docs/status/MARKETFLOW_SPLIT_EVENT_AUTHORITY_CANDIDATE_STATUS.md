@@ -197,9 +197,17 @@
 - Runtime migration authorized: `False`
 - Software runtime activation authorized: `False`
 
+## Follow-On Operator Review Package
+- Follow-on artifact kind: `SPLIT_EVENT_AUTHORITY_CANDIDATE_REVIEW_PACKAGE`
+- Follow-on review status: `SPLIT_EVENT_AUTHORITY_CANDIDATE_REVIEW_PACKAGE_READY`
+- Follow-on review package digest: `5f59edb21ab0e800aa714cfca41f3fe2b155f012ea7cc6c4c4c382146303c95a`
+- The review package binds this candidate digest: `7faaaaf19f0630f200c7decaafc2555ea23dab3bcfdffd17713487f33d5d8e0b`
+- Review package checklist: `103 total / 103 passed / 0 failed / 0 blockers`
+- Review package status only sets `split_event_authority_review_created` to `True`.
+- The candidate remains the source evidence; the review package does not create a split event authority, freeze, provider evidence request approval, provider evidence execution, dividend authority, corporate-action authority, acquisition authority, dataset authorization, predictive/profitability acceptance, or runtime activation.
+
 ## Next Task Recommendation
-1. Split event authority candidate operator review package.
-2. Split provider evidence request approval, if required.
-3. Split provider evidence execution.
-4. Split event evidence review.
-5. Split event authority freeze ceremony.
+1. Split provider evidence request approval, if required.
+2. Split provider evidence execution.
+3. Split event evidence review.
+4. Split event authority freeze ceremony.

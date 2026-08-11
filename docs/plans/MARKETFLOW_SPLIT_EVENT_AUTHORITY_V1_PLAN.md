@@ -111,10 +111,18 @@
 - Split event authority candidate implemented: `SPLIT_EVENT_AUTHORITY_CANDIDATE`.
 - Candidate status: `SPLIT_EVENT_AUTHORITY_READY_FOR_OPERATOR_REVIEW`.
 - Candidate digest: `7faaaaf19f0630f200c7decaafc2555ea23dab3bcfdffd17713487f33d5d8e0b`.
+- Split event authority candidate operator review package implemented: `SPLIT_EVENT_AUTHORITY_CANDIDATE_REVIEW_PACKAGE`.
+- Review package status: `SPLIT_EVENT_AUTHORITY_CANDIDATE_REVIEW_PACKAGE_READY`.
+- Review package digest: `5f59edb21ab0e800aa714cfca41f3fe2b155f012ea7cc6c4c4c382146303c95a`.
+- Review package checklist: `103 total / 103 passed / 0 failed / 0 blockers`.
+- Review package planned output count: `8`; all planned outputs remain `PLANNED_NOT_GENERATED` and `RESEARCH_ONLY_NON_ACTIONABLE`.
 - Split event authority remains not created.
 - Split provider evidence request approval remains future work, if required.
 - Split provider evidence execution remains future work.
+- Split event evidence/results review remains future work.
+- Split event authority freeze remains future work.
 - Dividend event authority candidate remains future work.
+- Dividend event authority review/freeze remains future work.
 - Corporate-action authority remains not created.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
@@ -122,8 +130,7 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Split event authority candidate operator review package.
-2. Split provider evidence request approval, if required.
-3. Split provider evidence execution.
-4. Split event evidence review.
-5. Split event authority freeze ceremony.
+1. Split provider evidence request approval, if required.
+2. Split provider evidence execution.
+3. Split event evidence review.
+4. Split event authority freeze ceremony.
