@@ -85,7 +85,7 @@
 2. Dividend provider evidence request approval ceremony: completed.
 3. Dividend provider evidence execution: completed read-only.
 4. Dividend event evidence/results review package: implemented and ready for operator review.
-5. Dividend policy reconciliation review.
+5. Dividend policy reconciliation review: implemented and ready for operator assessment.
 6. Dividend event authority candidate update or discrepancy triage, if required.
 7. Dividend event authority freeze ceremony.
 
@@ -161,7 +161,9 @@
 - Dividend evidence results review implemented as `DIVIDEND_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE` / `DIVIDEND_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY`.
 - Dividend evidence results review package digest: `ce32ad46c0a48be9a763ea1570aef0c9ba6b4ef3c96d1ea82f2884aaf7fd9007`.
 - The results review supports future dividend authority planning but creates no dividend authority or freeze.
-- Dividend policy reconciliation review remains future work.
+- Dividend policy reconciliation review implemented as `DIVIDEND_POLICY_RECONCILIATION_REVIEW_PACKAGE` / `DIVIDEND_POLICY_RECONCILIATION_REVIEW_PACKAGE_READY`.
+- Dividend policy reconciliation review digest: `fd671ad814765dabacb06bcd51627efe2052bf10d8d0cf40e37b862a75e02ff0`.
+- Policy reconciliation approval remains future work if required; adjusted-price, cash/special-dividend, absence, total-return, and reinvestment policies remain unapproved.
 - Dividend event authority remains not created.
 - Dividend event authority freeze remains future work.
 - Split event authority remains frozen.
@@ -172,8 +174,8 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Dividend Event Evidence Results Operator Review.
-2. Dividend policy reconciliation review.
+1. Dividend Policy Reconciliation Operator Assessment.
+2. Dividend Policy Reconciliation Approval Ceremony, if required.
 3. Dividend event authority freeze ceremony.
 4. Combined split/dividend corporate-action readiness review.
 5. Acquisition and dataset chains only after their separate authority gates.

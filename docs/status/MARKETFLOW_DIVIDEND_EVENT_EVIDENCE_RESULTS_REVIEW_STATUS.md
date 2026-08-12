@@ -135,5 +135,13 @@
 - Ready for dividend event authority freeze: `False`
 
 ## Next Task Recommendation
-1. `Dividend Event Evidence Results Operator Review`
-2. `Dividend Policy Reconciliation Review`
+1. `Dividend Policy Reconciliation Operator Assessment`
+2. `Dividend Policy Reconciliation Approval Ceremony`, if required
+
+## Follow-On Dividend Policy Reconciliation Review
+- Follow-on artifact/status: `DIVIDEND_POLICY_RECONCILIATION_REVIEW_PACKAGE` / `DIVIDEND_POLICY_RECONCILIATION_REVIEW_PACKAGE_READY`.
+- Follow-on review digest: `fd671ad814765dabacb06bcd51627efe2052bf10d8d0cf40e37b862a75e02ff0`.
+- This evidence-results review remains bound source evidence for the policy review.
+- The policy review made no provider request, performed no evidence rerun, and enabled no live transport.
+- It creates no dividend authority or freeze; split authority remains frozen and unchanged.
+- Corporate-action authority, acquisition, and dataset generation remain not authorized.
