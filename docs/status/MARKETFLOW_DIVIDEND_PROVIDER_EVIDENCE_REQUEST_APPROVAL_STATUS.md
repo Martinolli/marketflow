@@ -47,7 +47,8 @@
 - dividend_provider_evidence_request_objective: `AUTHORIZE_READ_ONLY_DIVIDEND_EVENT_PROVIDER_EVIDENCE_REQUEST_FOR_EXPANDED_UNIVERSE`
 - dividend_provider_evidence_request_scope: `READ_ONLY_DIVIDEND_EVENT_EVIDENCE_REQUESTS_ONLY`
 - dividend_provider_evidence_authority_scope: `EVIDENCE_REQUEST_ONLY_NOT_DIVIDEND_AUTHORITY`
-- dividend_provider_evidence_execution_status: `NOT_EXECUTED`
+- dividend_provider_evidence_execution_status within this approval artifact: `NOT_EXECUTED`
+- Separate follow-on execution status: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`
 
 ## Boundary Details
 - Read-only provider request boundary: future read-only dividend evidence request is approved; no request was executed in this ceremony.
@@ -86,7 +87,7 @@
 - No raw provider payload commit.
 
 ## Next Task
-1. `environment_or_api_key_correction_then_dividend_provider_evidence_execution`
+1. `Dividend Event Evidence Results Review Package v1`
 
 ## Follow-On Dividend Provider Evidence Execution
 - Follow-on execution branch: `feature/dividend-provider-evidence-execution-live-run-v1`.
@@ -98,8 +99,14 @@
 - Follow-on retry attempt status: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
 - Follow-on retry execution digest: `NOT_CREATED`.
 - Follow-on retry provider request count: `0`.
+- Successful follow-on execution branch: `feature/dividend-provider-evidence-execution-live-run-retry2-v1`.
+- Follow-on dividend provider evidence execution completed: `true`.
+- Follow-on execution artifact: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_EXECUTED`.
+- Follow-on execution status: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`.
+- Follow-on execution digest: `4759a412411f7019090bd89ebc1d44040f5b2fe895074ccc9a08c21852b009d9`.
+- Follow-on provider request count: `12`; successful responses: `12`; failed responses: `0`.
 - The approval digest `f2b96963ceced82579a647fa1e51ddca1dad91b3de66a35aad8fc389cdbbb2ff` remains source evidence for dividend provider evidence execution.
-- Provider requests are made only during the gated execution path with `MARKETFLOW_ENABLE_LIVE_DIVIDEND_PROVIDER_EVIDENCE=1` and an accepted API key source.
+- Provider requests were made only during the separately gated read-only execution path.
 - No provider request was made by the approval ceremony.
 - No dividend authority or dividend freeze is created by provider evidence execution.
 - No acquisition or dataset generation authorization is created by provider evidence execution.

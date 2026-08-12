@@ -49,7 +49,8 @@
 - No field may be fabricated.
 
 ## Dividend Provider Evidence Request Policy
-- `future_dividend_provider_request_policy_status`: `PLANNED_REQUIRES_SEPARATE_APPROVAL`
+- `dividend_provider_request_policy_status`: `APPROVED_AND_EXECUTED_READ_ONLY`
+- `dividend_provider_request_approval_digest`: `f2b96963ceced82579a647fa1e51ddca1dad91b3de66a35aad8fc389cdbbb2ff`
 - `allowed_future_request_type`: `READ_ONLY_DIVIDEND_EVENT_EVIDENCE_REQUESTS_ONLY`
 - `api_key_handling`: `DO_NOT_STORE_KEYS_OR_PRINT_KEYS`
 - `raw_payload_policy`: `DO_NOT_COMMIT_RAW_PROVIDER_PAYLOADS`
@@ -80,9 +81,9 @@
 - Dividend reinvestment and total-return assumptions are not assumed unless later authorized.
 
 ## Future Dividend Event Authority Chain
-1. Dividend event authority candidate operator review package.
-2. Dividend provider evidence request approval ceremony, if live provider access is required.
-3. Dividend provider evidence execution.
+1. Dividend event authority candidate operator review package: completed.
+2. Dividend provider evidence request approval ceremony: completed.
+3. Dividend provider evidence execution: completed read-only.
 4. Dividend event evidence/results review package.
 5. Dividend policy reconciliation review.
 6. Dividend event authority candidate update or discrepancy triage, if required.
@@ -97,10 +98,9 @@
 6. Research registry approval only after canonical dataset freeze.
 
 ## Non-Goals
-- No Massive.com / Polygon provider request.
-- No provider refresh, provider transport enablement, or live validation rerun.
+- No additional Massive.com / Polygon provider request.
+- No provider refresh, provider transport enablement, or live validation rerun during this documentation update.
 - No dividend provider evidence request approval outside the guarded offline approval ceremony.
-- No dividend provider evidence execution.
 - No dividend event authority approval or freeze.
 - No split event authority alteration after the split-only freeze.
 - No corporate-action authority approval.
@@ -155,7 +155,10 @@
 - Dividend provider evidence execution retried from base commit `bf61988ea38c63d3cc1c607c8e45c2b4acf36a87` and blocked as `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
 - Dividend provider evidence request approval completed and remains source evidence only.
 - Dividend provider evidence execution retry digest: `NOT_CREATED`.
-- Dividend evidence review remains future work only if a successful gated execution creates evidence results.
+- Dividend provider evidence execution completed on `feature/dividend-provider-evidence-execution-live-run-retry2-v1` as `DIVIDEND_EVENT_PROVIDER_EVIDENCE_EXECUTED` / `DIVIDEND_EVENT_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`.
+- Successful dividend provider evidence execution digest: `4759a412411f7019090bd89ebc1d44040f5b2fe895074ccc9a08c21852b009d9`.
+- Successful execution created `7` ignored sanitized outputs from `12` read-only provider requests: `12` successful responses and `0` failed responses.
+- Dividend evidence review remains future work through `Dividend Event Evidence Results Review Package v1`.
 - Dividend policy reconciliation review remains future work.
 - Dividend event authority remains not created.
 - Dividend event authority freeze remains future work.
@@ -167,8 +170,7 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Dividend provider evidence execution.
-2. Dividend event evidence review.
-3. Dividend policy reconciliation review.
-4. Dividend event authority freeze ceremony.
-5. Combined corporate-action readiness review.
+1. Dividend Event Evidence Results Review Package v1.
+2. Dividend policy reconciliation review.
+3. Dividend event authority freeze ceremony.
+4. Combined corporate-action readiness review.
