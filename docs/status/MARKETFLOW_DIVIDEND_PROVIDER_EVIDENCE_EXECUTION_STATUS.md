@@ -1,8 +1,8 @@
 # MarketFlow Dividend Provider Evidence Execution Status
 
 ## Branch And Commit
-- Branch: `feature/dividend-provider-evidence-execution-v1`
-- Base commit: `0ce479bc2ec161330863c018c262aeeea9cc0ac2`
+- Branch: `feature/dividend-provider-evidence-execution-live-run-v1`
+- Base commit: `85d8eb9cc405553f67d7fb7a075be20465345624`
 - Implementation commit: the commit containing this document.
 
 ## Execution Artifact
@@ -11,7 +11,7 @@
 - Execution digest: `NOT_CREATED`
 - Evidence scope: `READ_ONLY_DIVIDEND_EVENT_EVIDENCE_REQUESTS_ONLY`
 - Output label: `RESEARCH_ONLY_NON_ACTIONABLE`
-- Blocked reason: live gate/API key requirement not satisfied in this environment.
+- Blocked reason: the gated execution process did not see the live gate/API key requirement satisfied.
 
 ## Source Dividend Provider Evidence Request Approval
 - Dividend provider evidence request approval digest: `f2b96963ceced82579a647fa1e51ddca1dad91b3de66a35aad8fc389cdbbb2ff`
@@ -21,7 +21,9 @@
 - Selected provider: `Massive.com`
 - Selected endpoint: `/stocks/v1/dividends`
 - Selected endpoint mode: `CURRENT_STOCKS_V1_DIVIDENDS`
+- Live transport mode if execution is unblocked: `LIVE_HTTP_TRANSPORT_READ_ONLY`
 - Live gate required: `MARKETFLOW_ENABLE_LIVE_DIVIDEND_PROVIDER_EVIDENCE=1`
+- API key source required: `MASSIVE_API_KEY`
 
 ## Target Universe
 - Target universe count: `12`
@@ -114,4 +116,4 @@
 - No acquisition, dataset generation, registry approval, predictive acceptance, profitability acceptance, runtime migration, paper trading, broker execution, or trade recommendation.
 
 ## Next Task
-1. `environment_or_api_key_correction` before live dividend provider evidence execution, or `dividend_event_evidence_results_review_package` only after a successful gated execution.
+1. `environment_or_api_key_correction` before live dividend provider evidence execution, or `Dividend Event Evidence Results Review Package v1` only after a successful gated execution.

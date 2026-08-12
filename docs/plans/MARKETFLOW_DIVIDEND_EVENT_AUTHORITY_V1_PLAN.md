@@ -147,10 +147,11 @@
 - Dividend provider evidence request approval digest: `f2b96963ceced82579a647fa1e51ddca1dad91b3de66a35aad8fc389cdbbb2ff`.
 - Dividend provider evidence request is authorized for future read-only evidence execution only.
 - Dividend provider evidence execution service implemented: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_EXECUTED` / `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED`.
-- Dividend provider evidence execution attempted in this environment and blocked as `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
+- Dividend provider evidence execution branch created: `feature/dividend-provider-evidence-execution-live-run-v1`.
+- Dividend provider evidence execution attempted from base commit `85d8eb9cc405553f67d7fb7a075be20465345624` and blocked as `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
 - Dividend provider evidence execution digest: `NOT_CREATED`.
 - Dividend provider execution endpoint selected: `Massive.com /stocks/v1/dividends` with mode `CURRENT_STOCKS_V1_DIVIDENDS`.
-- Dividend evidence review remains future work only after successful gated execution.
+- Dividend evidence review remains future work only if a successful gated execution creates evidence results.
 - Dividend policy reconciliation review remains future work.
 - Dividend event authority remains not created.
 - Dividend event authority freeze remains future work.
