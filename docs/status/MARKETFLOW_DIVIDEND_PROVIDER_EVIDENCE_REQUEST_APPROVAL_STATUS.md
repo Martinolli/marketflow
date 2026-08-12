@@ -86,4 +86,13 @@
 - No raw provider payload commit.
 
 ## Next Task
-1. `dividend_provider_evidence_execution`
+1. `environment_or_api_key_correction_then_dividend_provider_evidence_execution`
+
+## Follow-On Dividend Provider Evidence Execution
+- Follow-on execution branch: `feature/dividend-provider-evidence-execution-v1`.
+- Follow-on execution attempt status: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
+- The approval digest `f2b96963ceced82579a647fa1e51ddca1dad91b3de66a35aad8fc389cdbbb2ff` remains source evidence for dividend provider evidence execution.
+- Provider requests are made only during the gated execution path with `MARKETFLOW_ENABLE_LIVE_DIVIDEND_PROVIDER_EVIDENCE=1` and an accepted API key source.
+- No provider request was made by the approval ceremony.
+- No dividend authority or dividend freeze is created by provider evidence execution.
+- No acquisition or dataset generation authorization is created by provider evidence execution.
