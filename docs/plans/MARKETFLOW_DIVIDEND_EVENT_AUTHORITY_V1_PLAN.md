@@ -151,6 +151,10 @@
 - Dividend provider evidence execution attempted from base commit `85d8eb9cc405553f67d7fb7a075be20465345624` and blocked as `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
 - Dividend provider evidence execution digest: `NOT_CREATED`.
 - Dividend provider execution endpoint selected: `Massive.com /stocks/v1/dividends` with mode `CURRENT_STOCKS_V1_DIVIDENDS`.
+- Dividend provider evidence execution retry branch created: `feature/dividend-provider-evidence-execution-live-run-retry-v1`.
+- Dividend provider evidence execution retried from base commit `bf61988ea38c63d3cc1c607c8e45c2b4acf36a87` and blocked as `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
+- Dividend provider evidence request approval completed and remains source evidence only.
+- Dividend provider evidence execution retry digest: `NOT_CREATED`.
 - Dividend evidence review remains future work only if a successful gated execution creates evidence results.
 - Dividend policy reconciliation review remains future work.
 - Dividend event authority remains not created.

@@ -93,6 +93,11 @@
 - Follow-on execution attempt status: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
 - Follow-on execution digest: `NOT_CREATED`.
 - Follow-on provider request count: `0`.
+- Follow-on retry branch: `feature/dividend-provider-evidence-execution-live-run-retry-v1`.
+- Follow-on dividend provider evidence execution retried: `true`.
+- Follow-on retry attempt status: `DIVIDEND_EVENT_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`.
+- Follow-on retry execution digest: `NOT_CREATED`.
+- Follow-on retry provider request count: `0`.
 - The approval digest `f2b96963ceced82579a647fa1e51ddca1dad91b3de66a35aad8fc389cdbbb2ff` remains source evidence for dividend provider evidence execution.
 - Provider requests are made only during the gated execution path with `MARKETFLOW_ENABLE_LIVE_DIVIDEND_PROVIDER_EVIDENCE=1` and an accepted API key source.
 - No provider request was made by the approval ceremony.
