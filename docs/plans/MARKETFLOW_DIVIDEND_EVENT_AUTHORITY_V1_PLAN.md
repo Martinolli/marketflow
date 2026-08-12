@@ -84,7 +84,7 @@
 1. Dividend event authority candidate operator review package: completed.
 2. Dividend provider evidence request approval ceremony: completed.
 3. Dividend provider evidence execution: completed read-only.
-4. Dividend event evidence/results review package.
+4. Dividend event evidence/results review package: implemented and ready for operator review.
 5. Dividend policy reconciliation review.
 6. Dividend event authority candidate update or discrepancy triage, if required.
 7. Dividend event authority freeze ceremony.
@@ -158,7 +158,9 @@
 - Dividend provider evidence execution completed on `feature/dividend-provider-evidence-execution-live-run-retry2-v1` as `DIVIDEND_EVENT_PROVIDER_EVIDENCE_EXECUTED` / `DIVIDEND_EVENT_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`.
 - Successful dividend provider evidence execution digest: `4759a412411f7019090bd89ebc1d44040f5b2fe895074ccc9a08c21852b009d9`.
 - Successful execution created `7` ignored sanitized outputs from `12` read-only provider requests: `12` successful responses and `0` failed responses.
-- Dividend evidence review remains future work through `Dividend Event Evidence Results Review Package v1`.
+- Dividend evidence results review implemented as `DIVIDEND_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE` / `DIVIDEND_EVENT_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY`.
+- Dividend evidence results review package digest: `ce32ad46c0a48be9a763ea1570aef0c9ba6b4ef3c96d1ea82f2884aaf7fd9007`.
+- The results review supports future dividend authority planning but creates no dividend authority or freeze.
 - Dividend policy reconciliation review remains future work.
 - Dividend event authority remains not created.
 - Dividend event authority freeze remains future work.
@@ -170,7 +172,8 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Dividend Event Evidence Results Review Package v1.
+1. Dividend Event Evidence Results Operator Review.
 2. Dividend policy reconciliation review.
 3. Dividend event authority freeze ceremony.
-4. Combined corporate-action readiness review.
+4. Combined split/dividend corporate-action readiness review.
+5. Acquisition and dataset chains only after their separate authority gates.
