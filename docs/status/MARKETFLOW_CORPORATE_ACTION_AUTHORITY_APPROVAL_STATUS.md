@@ -59,4 +59,8 @@
 - This approval does not freeze corporate-action authority and does not authorize any downstream acquisition, dataset, registry, predictive, profitability, runtime, or trading action.
 
 ## Next Task Recommendation
-1. `Acquisition Generation Chain Candidate v1` as a separate, non-authorizing candidate phase.
+1. `Acquisition Generation Chain Candidate v1` was implemented as a separate, non-authorizing candidate phase.
+2. The corporate-action authority approval remains its bound source evidence.
+3. The candidate does not authorize or execute acquisition.
+4. Dataset generation remains not authorized; no canonical dataset or registry approval was created.
+5. The next separate task is `Acquisition Generation Chain Candidate Operator Review Package v1`.
