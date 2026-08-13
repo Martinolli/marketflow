@@ -86,8 +86,9 @@
 3. Dividend provider evidence execution: completed read-only.
 4. Dividend event evidence/results review package: implemented and ready for operator review.
 5. Dividend policy reconciliation review: implemented and ready for operator assessment.
-6. Dividend event authority candidate update or discrepancy triage, if required.
-7. Dividend event authority freeze ceremony.
+6. Dividend policy reconciliation approval ceremony: implemented for future freeze input only.
+7. Dividend event authority candidate update or discrepancy triage, if required.
+8. Dividend event authority freeze ceremony.
 
 ## Future Corporate-Action Readiness Chain
 1. Split event authority evidence/review/freeze chain.
@@ -163,7 +164,10 @@
 - The results review supports future dividend authority planning but creates no dividend authority or freeze.
 - Dividend policy reconciliation review implemented as `DIVIDEND_POLICY_RECONCILIATION_REVIEW_PACKAGE` / `DIVIDEND_POLICY_RECONCILIATION_REVIEW_PACKAGE_READY`.
 - Dividend policy reconciliation review digest: `fd671ad814765dabacb06bcd51627efe2052bf10d8d0cf40e37b862a75e02ff0`.
-- Policy reconciliation approval remains future work if required; adjusted-price, cash/special-dividend, absence, total-return, and reinvestment policies remain unapproved.
+- Dividend policy reconciliation approval implemented as `DIVIDEND_POLICY_RECONCILIATION_APPROVED` with scope `DIVIDEND_POLICY_RECONCILIATION_APPROVAL_ONLY`.
+- Dividend policy reconciliation approval digest: `96f146e4ce0257c8cf84c8b6d26e620ba485a8c3c575e4335c42be36e3870d62`.
+- Adjusted-price, cash/special-dividend, and zero-row absence decisions are approved for future dividend-authority freeze input only; total return and reinvestment remain not assumed.
+- Policy approval sets readiness for a separate dividend freeze ceremony but creates no dividend authority or freeze.
 - Dividend event authority remains not created.
 - Dividend event authority freeze remains future work.
 - Split event authority remains frozen.
@@ -174,8 +178,7 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Dividend Policy Reconciliation Operator Assessment.
-2. Dividend Policy Reconciliation Approval Ceremony, if required.
-3. Dividend event authority freeze ceremony.
-4. Combined split/dividend corporate-action readiness review.
-5. Acquisition and dataset chains only after their separate authority gates.
+1. Dividend Event Authority Freeze Ceremony v1.
+2. Combined split/dividend corporate-action readiness review after the separate dividend freeze.
+3. Corporate-action authority approval only if separately required.
+4. Acquisition and dataset chains only after their separate authority gates.

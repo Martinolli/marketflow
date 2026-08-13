@@ -113,5 +113,14 @@
 - Ready for discrepancy triage: `False`; no deterministic blocker was found.
 
 ## Next Task Recommendation
-1. `Dividend Policy Reconciliation Operator Assessment`
-2. `Dividend Policy Reconciliation Approval Ceremony`, if required
+1. `Dividend Event Authority Freeze Ceremony v1`
+2. Combined split/dividend corporate-action readiness review after the separate dividend freeze
+
+## Follow-On Dividend Policy Reconciliation Approval
+- Follow-on artifact/status: `DIVIDEND_POLICY_RECONCILIATION_APPROVED` / `DIVIDEND_POLICY_RECONCILIATION_APPROVED`.
+- Approval scope: `DIVIDEND_POLICY_RECONCILIATION_APPROVAL_ONLY`.
+- Approval digest: `96f146e4ce0257c8cf84c8b6d26e620ba485a8c3c575e4335c42be36e3870d62`.
+- This review remains bound source evidence for the approval ceremony.
+- The approval marks policy decisions ready for future dividend-authority freeze input only.
+- It creates no dividend authority or freeze; split authority remains frozen and unchanged.
+- Corporate-action authority, acquisition, and dataset generation remain not authorized.
