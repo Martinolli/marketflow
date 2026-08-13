@@ -78,7 +78,7 @@
 - Acquisition provider evidence request approval ceremony implemented with scope `READ_ONLY_HISTORICAL_MARKET_DATA_ACQUISITION_REQUEST_APPROVAL_ONLY`.
 - Request approval digest: `a83acdf0c64fa8d430274350c59b547a23e7a58fb897cc33982ab0444ec0993c`.
 - Acquisition provider evidence execution completed as `ACQUISITION_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`; execution digest `decc59a4a0ae91229ed527f9fcafd54e9d5af468d057d5200a67d2167939b02b` binds `12` successful sanitized responses and `7` ignored research-only outputs.
-- Acquisition results review remains future work and is now the next separate gate.
+- Acquisition Evidence Results Review Package v1 is implemented as `ACQUISITION_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY`; digest `57c0a06ec8395b8e4edab313eb61dbcacdb950fb858491becec8526dba42f415` binds the seven verified sanitized outputs.
 - Acquisition execution and acquisition-generation approval/freeze remain future work.
 - Canonical dataset and registry chains remain future work.
 - Predictive usefulness and profitability remain not accepted.
@@ -86,9 +86,9 @@
 - Acquisition and every downstream gate remain closed.
 
 ## Next Tasks
-1. Acquisition Evidence Results Review Package v1 using the sanitized executed artifact as source evidence.
+1. Acquisition Evidence Results Operator Review and data-quality review if required.
 2. Keep acquisition-generation authorization and freeze separate from evidence-results review.
-3. Acquisition Generation Approval and Freeze ceremonies as separate gates.
+3. Acquisition Generation Approval and Freeze ceremonies remain future, separate gates.
 4. Canonical Dataset Chain Candidate v1.
 5. Registry approval only after canonical dataset freeze.
 6. Predictive usefulness/profitability acceptance and runtime activation remain future and separate.
