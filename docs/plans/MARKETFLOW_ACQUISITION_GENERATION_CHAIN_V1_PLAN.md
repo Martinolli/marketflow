@@ -73,7 +73,11 @@
 - Acquisition generation chain candidate is completed and remains source evidence.
 - Candidate operator review package implemented as `ACQUISITION_GENERATION_CHAIN_CANDIDATE_REVIEW_PACKAGE_READY`.
 - Review package digest: `4df1f99cc3902219a658cb2459353e73b3be12cba22365cfec35c2170a75af3d`.
-- Acquisition provider request approval remains future work if required.
+- Acquisition provider request approval was required and is now completed as a separate ceremony.
+- Acquisition generation chain candidate review is completed.
+- Acquisition provider evidence request approval ceremony implemented with scope `READ_ONLY_HISTORICAL_MARKET_DATA_ACQUISITION_REQUEST_APPROVAL_ONLY`.
+- Request approval digest: `a83acdf0c64fa8d430274350c59b547a23e7a58fb897cc33982ab0444ec0993c`.
+- Acquisition provider evidence execution and results review remain future work.
 - Acquisition execution and acquisition-generation approval/freeze remain future work.
 - Canonical dataset and registry chains remain future work.
 - Predictive usefulness and profitability remain not accepted.
@@ -81,9 +85,9 @@
 - Acquisition and every downstream gate remain closed.
 
 ## Next Tasks
-1. Acquisition Provider Request Approval Ceremony v1, if required.
-2. Acquisition Provider Evidence Execution v1 only after separate approval.
-3. Acquisition Results Review Package v1.
-4. Acquisition Generation Approval and Freeze ceremonies as separate gates.
-5. Canonical Dataset Chain Candidate v1.
-6. Registry approval only after canonical dataset freeze.
+1. Acquisition Provider Evidence Execution v1 under the approved request scope.
+2. Acquisition Results Review Package v1.
+3. Acquisition Generation Approval and Freeze ceremonies as separate gates.
+4. Canonical Dataset Chain Candidate v1.
+5. Registry approval only after canonical dataset freeze.
+6. Predictive usefulness/profitability acceptance and runtime activation remain future and separate.

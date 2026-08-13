@@ -63,4 +63,7 @@
 - Ready for provider-request approval, acquisition approval/freeze, or canonical-dataset candidate: all `False`.
 
 ## Next Task Recommendation
-1. `Acquisition Provider Request Approval Ceremony v1` if live access is required by policy; otherwise a separately attested `Acquisition Generation Approval Ceremony v1`.
+1. `Acquisition Provider Request Approval Ceremony v1` was implemented as a separately attested, read-only request approval.
+2. This review package remains its bound source evidence.
+3. Approval does not execute acquisition; dataset generation remains unauthorized, and no canonical dataset or registry approval was created.
+4. Next: `Acquisition Provider Evidence Execution v1` as a separate gated step.
