@@ -1,9 +1,9 @@
 # MarketFlow Corporate-Action Authority v1 Plan
 
 ## Purpose
-- Create an offline, digest-bound planning chain for future split-event and dividend-event authority.
+- Maintain an offline, digest-bound corporate-action chain across completed split/dividend event freezes and the combined readiness review.
 - Use the approved post-identity-freeze registry inventory as source evidence.
-- Keep this phase planning-only and non-actionable.
+- Keep the combined readiness phase review-only and non-authorizing.
 
 ## Source Identity Registry Inventory Approval
 - Source artifact: `POST_IDENTITY_FREEZE_REGISTRY_INVENTORY_APPROVED`
@@ -39,7 +39,7 @@
 - This plan does not fetch, reconcile, approve, or freeze dividend evidence.
 
 ## Future Corporate-Action Readiness Chain
-1. Combined corporate-action readiness review after split and dividend freeze.
+1. Combined corporate-action readiness review after split and dividend freeze: completed.
 2. Corporate-action authority approval ceremony, if required.
 3. Acquisition generation candidate only after identity and corporate-action authority.
 4. Canonical dataset candidate only after acquisition generation freeze.
@@ -49,8 +49,8 @@
 - No Massive.com / Polygon provider request.
 - No provider refresh, provider transport enablement, or live validation rerun.
 - No corporate-action authority approval.
-- No split event authority candidate, approval, or freeze.
-- No dividend event authority candidate, approval, or freeze.
+- No alteration or rerun of the completed split event authority freeze.
+- No alteration or rerun of the completed dividend event authority freeze.
 - No acquisition generation authority.
 - No canonical dataset generation.
 - No research registry approval.
@@ -91,18 +91,19 @@
 - Corporate-action authority plan approval digest: `bd02155f618bee231e4472049963343d57b7585920653b31aa5518e96ded0d2f`.
 - Corporate-action authority plan approval sets `ready_for_split_event_authority_candidate` to `True`.
 - Corporate-action authority plan approval sets `ready_for_dividend_event_authority_candidate` to `True`.
+- Split event authority freeze completed with scope `SPLIT_EVENT_AUTHORITY_ONLY` and digest `37a06dceac17761319f9d5eb716d64dced765997b8d1e9d8a79166162bfdb303`.
+- Dividend event authority freeze completed with scope `DIVIDEND_EVENT_AUTHORITY_ONLY` and digest `98b7e740b750701eb1e63e6e0ad88ffd4d665c44ece2e0e85e0a15e4a2a4d6ae`.
+- Combined split/dividend corporate-action readiness review implemented as `COMBINED_SPLIT_DIVIDEND_CORPORATE_ACTION_READINESS_REVIEW_PACKAGE` / `COMBINED_SPLIT_DIVIDEND_CORPORATE_ACTION_READINESS_REVIEW_PACKAGE_READY`.
+- Combined readiness review digest: `ee425cb1ee8b9e513d3ed4bc5ddc05ca7498a3003bc5820c5a2b5014f799d621`.
+- The review checklist passes `56 / 56` checks with `0` blockers and supports a future corporate-action approval ceremony.
 - Corporate-action authority remains not created.
-- Split event authority candidate remains future work.
-- Split event authority remains not created.
-- Dividend event authority candidate remains future work.
-- Dividend event authority remains not created.
+- Corporate-action authority approval remains future work and requires a separate operator ceremony.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
 - Profitability remains not accepted.
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Split event authority candidate.
-2. Dividend event authority candidate.
-3. Combined corporate-action readiness review after split and dividend freeze.
-4. Acquisition generation chain only after corporate-action authority.
+1. Corporate-Action Authority Approval Ceremony v1.
+2. Acquisition generation chain only after separately approved corporate-action authority.
+3. Canonical dataset and registry chains only after their separate gates.

@@ -77,10 +77,15 @@
 - Dividend event authority frozen by operator: `True`.
 - Authority scope: `DIVIDEND_EVENT_AUTHORITY_ONLY`.
 
+## Follow-On Combined Readiness Review
+- The follow-on `Combined Split/Dividend Corporate-Action Readiness Review Package v1` is implemented.
+- This dividend freeze remains bound source evidence for that review.
+- The readiness review does not create or freeze corporate-action authority.
+- Acquisition and dataset generation remain not authorized.
+
 ## Non-Goals
 - This freeze does not create combined corporate-action authority.
 - It does not authorize acquisition, dataset generation, predictive acceptance, profitability acceptance, runtime activation, paper trading, broker execution, or trade recommendations.
 
 ## Next Task Recommendation
-1. `Combined Split/Dividend Corporate-Action Readiness Review Package v1`
-2. A separate corporate-action authority ceremony only if that review supports it
+1. `Corporate-Action Authority Approval Ceremony v1`
