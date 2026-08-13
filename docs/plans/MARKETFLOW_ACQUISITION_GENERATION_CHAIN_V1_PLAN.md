@@ -70,12 +70,20 @@
 - Candidate artifact/status: `ACQUISITION_GENERATION_CHAIN_CANDIDATE` / `ACQUISITION_GENERATION_CHAIN_READY_FOR_OPERATOR_REVIEW`.
 - Candidate digest: `e0fb0b3f2ccd4bdac3d8f24a6888e8a97d5013bcc33f1dee1d49ccd59204b4ff`.
 - Checklist: `57 / 57` passing with zero blockers.
+- Acquisition generation chain candidate is completed and remains source evidence.
+- Candidate operator review package implemented as `ACQUISITION_GENERATION_CHAIN_CANDIDATE_REVIEW_PACKAGE_READY`.
+- Review package digest: `4df1f99cc3902219a658cb2459353e73b3be12cba22365cfec35c2170a75af3d`.
+- Acquisition provider request approval remains future work if required.
+- Acquisition execution and acquisition-generation approval/freeze remain future work.
+- Canonical dataset and registry chains remain future work.
+- Predictive usefulness and profitability remain not accepted.
+- Runtime activation remains future and separate.
 - Acquisition and every downstream gate remain closed.
 
 ## Next Tasks
-1. Acquisition Generation Chain Candidate Operator Review Package v1.
-2. Acquisition Provider Request Approval Ceremony v1, if required.
-3. Acquisition Provider Evidence Execution v1.
-4. Acquisition Results Review Package v1.
-5. Acquisition Generation Freeze Ceremony v1.
-6. Canonical Dataset Chain Candidate v1.
+1. Acquisition Provider Request Approval Ceremony v1, if required.
+2. Acquisition Provider Evidence Execution v1 only after separate approval.
+3. Acquisition Results Review Package v1.
+4. Acquisition Generation Approval and Freeze ceremonies as separate gates.
+5. Canonical Dataset Chain Candidate v1.
+6. Registry approval only after canonical dataset freeze.

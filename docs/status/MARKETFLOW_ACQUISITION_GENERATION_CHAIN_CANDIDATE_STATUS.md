@@ -77,4 +77,8 @@
 - Ready for provider-request approval, acquisition approval/freeze, or canonical-dataset candidate: all `False`.
 
 ## Next Task Recommendation
-1. `Acquisition Generation Chain Candidate Operator Review Package v1`.
+1. `Acquisition Generation Chain Candidate Operator Review Package v1` was implemented as a separate review-only package.
+2. This candidate remains the bound source evidence for that review.
+3. The review does not authorize or execute acquisition.
+4. Dataset generation remains not authorized; no canonical dataset or registry approval was created.
+5. Next: `Acquisition Provider Request Approval Ceremony v1` if required by policy, or a separate acquisition-generation approval ceremony.
