@@ -48,7 +48,7 @@
 ## Non-Goals
 - No Massive.com / Polygon provider request.
 - No provider refresh, provider transport enablement, or live validation rerun.
-- No corporate-action authority approval.
+- No corporate-action authority freeze; approval is limited to `CORPORATE_ACTION_AUTHORITY_ONLY`.
 - No alteration or rerun of the completed split event authority freeze.
 - No alteration or rerun of the completed dividend event authority freeze.
 - No acquisition generation authority.
@@ -96,14 +96,18 @@
 - Combined split/dividend corporate-action readiness review implemented as `COMBINED_SPLIT_DIVIDEND_CORPORATE_ACTION_READINESS_REVIEW_PACKAGE` / `COMBINED_SPLIT_DIVIDEND_CORPORATE_ACTION_READINESS_REVIEW_PACKAGE_READY`.
 - Combined readiness review digest: `ee425cb1ee8b9e513d3ed4bc5ddc05ca7498a3003bc5820c5a2b5014f799d621`.
 - The review checklist passes `56 / 56` checks with `0` blockers and supports a future corporate-action approval ceremony.
-- Corporate-action authority remains not created.
-- Corporate-action authority approval remains future work and requires a separate operator ceremony.
+- Combined split/dividend readiness review is completed and remains the approval source evidence.
+- Corporate-action authority approval ceremony implemented as `CORPORATE_ACTION_AUTHORITY_APPROVED` with scope `CORPORATE_ACTION_AUTHORITY_ONLY`.
+- Corporate-action authority is created and approved but not frozen.
+- Acquisition generation chain remains future and separate work.
+- Dataset generation chain remains future and separate work.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
 - Profitability remains not accepted.
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Corporate-Action Authority Approval Ceremony v1.
-2. Acquisition generation chain only after separately approved corporate-action authority.
+1. Acquisition Generation Chain Candidate v1.
+2. Acquisition generation operator review and approval only through separate gates.
 3. Canonical dataset and registry chains only after their separate gates.
+4. Predictive usefulness and profitability remain not accepted; runtime activation remains future and separate.

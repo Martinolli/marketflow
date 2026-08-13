@@ -82,4 +82,7 @@
 - Corporate-action authority authorized: `False`.
 
 ## Next Task Recommendation
-1. `Corporate-Action Authority Approval Ceremony v1`
+1. `Corporate-Action Authority Approval Ceremony v1` was implemented on the stacked feature branch.
+2. This readiness review remains the bound source evidence for that approval.
+3. The follow-on approval is `CORPORATE_ACTION_AUTHORITY_ONLY`; acquisition and dataset generation remain not authorized.
+4. The next separate task is `Acquisition Generation Chain Candidate v1`.
