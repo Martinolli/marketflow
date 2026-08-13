@@ -51,7 +51,8 @@
 - This artifact is request approval only; it is not provider execution, acquisition authority, acquisition-generation approval/freeze, dataset authority, predictive acceptance, or runtime/trading authority.
 
 ## Next Task
-1. `Acquisition Provider Evidence Execution v1` was implemented and attempted as a separately gated execution step.
-2. The attempt returned `ACQUISITION_PROVIDER_EVIDENCE_BLOCKED_LIVE_GATE_OR_API_KEY_MISSING`: the execution worker did not have the live gate or either allowed API key source, so provider request count remained zero and no evidence result was fabricated.
-3. This approval remains the source evidence for a future gated execution. Provider requests may be made only during that execution path.
-4. The attempted execution created no acquisition-generation authorization/execution, dataset-generation authorization, canonical dataset, registry approval, predictive acceptance, profitability acceptance, or runtime/trading authority.
+1. `Acquisition Provider Evidence Execution v1` completed as a separately gated, read-only execution step.
+2. The follow-on artifact/status is `ACQUISITION_PROVIDER_EVIDENCE_EXECUTED` / `ACQUISITION_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`, with execution digest `decc59a4a0ae91229ed527f9fcafd54e9d5af468d057d5200a67d2167939b02b`.
+3. The approved execution made `12` requests with `12` successful sanitized responses and generated `7` ignored, research-only outputs. This approval remains its bound source evidence.
+4. The execution created no acquisition-generation authorization/execution, dataset-generation authorization, canonical dataset, registry approval, predictive acceptance, profitability acceptance, or runtime/trading authority.
+5. The next task is `Acquisition Evidence Results Review Package v1`.
