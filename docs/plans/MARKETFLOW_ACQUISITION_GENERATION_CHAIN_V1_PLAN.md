@@ -77,7 +77,8 @@
 - Acquisition generation chain candidate review is completed.
 - Acquisition provider evidence request approval ceremony implemented with scope `READ_ONLY_HISTORICAL_MARKET_DATA_ACQUISITION_REQUEST_APPROVAL_ONLY`.
 - Request approval digest: `a83acdf0c64fa8d430274350c59b547a23e7a58fb897cc33982ab0444ec0993c`.
-- Acquisition provider evidence execution and results review remain future work.
+- Acquisition provider evidence execution was implemented and attempted; it is blocked because the execution worker did not have the explicit live gate or an allowed API key source. No provider request or evidence result was created.
+- Acquisition results review remains future work and may begin only after a successful gated execution.
 - Acquisition execution and acquisition-generation approval/freeze remain future work.
 - Canonical dataset and registry chains remain future work.
 - Predictive usefulness and profitability remain not accepted.
@@ -85,8 +86,8 @@
 - Acquisition and every downstream gate remain closed.
 
 ## Next Tasks
-1. Acquisition Provider Evidence Execution v1 under the approved request scope.
-2. Acquisition Results Review Package v1.
+1. Correct the acquisition provider evidence execution environment/API-key boundary, then retry v1 under the approved request scope.
+2. Acquisition Results Review Package v1 only after successful provider evidence execution.
 3. Acquisition Generation Approval and Freeze ceremonies as separate gates.
 4. Canonical Dataset Chain Candidate v1.
 5. Registry approval only after canonical dataset freeze.
