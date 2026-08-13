@@ -70,6 +70,13 @@
 - Policy reconciliation approved by operator: `True`.
 - Approval scope: `DIVIDEND_POLICY_RECONCILIATION_APPROVAL_ONLY`.
 
+## Follow-On Dividend Event Authority Freeze
+- The follow-on `Dividend Event Authority Freeze Ceremony v1` is implemented.
+- This approval remains bound source evidence for the dividend-authority-only freeze.
+- The freeze scope is `DIVIDEND_EVENT_AUTHORITY_ONLY`; it does not create combined corporate-action authority.
+- Split authority remains frozen and unchanged.
+- Corporate-action authority, acquisition, and dataset generation remain not authorized.
+
 ## Next Task Recommendation
-1. `Dividend Event Authority Freeze Ceremony v1`
-2. Combined split/dividend corporate-action readiness review only after the separate dividend freeze
+1. `Combined Split/Dividend Corporate-Action Readiness Review Package v1`
+2. A separate corporate-action authority ceremony only if that review supports it

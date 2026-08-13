@@ -88,11 +88,11 @@
 5. Dividend policy reconciliation review: implemented and ready for operator assessment.
 6. Dividend policy reconciliation approval ceremony: implemented for future freeze input only.
 7. Dividend event authority candidate update or discrepancy triage, if required.
-8. Dividend event authority freeze ceremony.
+8. Dividend event authority freeze ceremony: completed with dividend-event-only scope.
 
 ## Future Corporate-Action Readiness Chain
 1. Split event authority evidence/review/freeze chain.
-2. Combined split/dividend corporate-action readiness review.
+2. Combined split/dividend corporate-action readiness review: next separate task.
 3. Corporate-action authority approval ceremony, if required.
 4. Acquisition generation candidate only after identity and corporate-action authority.
 5. Canonical dataset candidate only after acquisition generation freeze.
@@ -102,7 +102,7 @@
 - No additional Massive.com / Polygon provider request.
 - No provider refresh, provider transport enablement, or live validation rerun during this documentation update.
 - No dividend provider evidence request approval outside the guarded offline approval ceremony.
-- No dividend event authority approval or freeze.
+- No dividend event authority beyond the separately attested, evidence-bound dividend-only freeze.
 - No split event authority alteration after the split-only freeze.
 - No corporate-action authority approval.
 - No acquisition generation authority.
@@ -168,9 +168,12 @@
 - Dividend policy reconciliation approval digest: `96f146e4ce0257c8cf84c8b6d26e620ba485a8c3c575e4335c42be36e3870d62`.
 - Adjusted-price, cash/special-dividend, and zero-row absence decisions are approved for future dividend-authority freeze input only; total return and reinvestment remain not assumed.
 - Policy approval sets readiness for a separate dividend freeze ceremony but creates no dividend authority or freeze.
-- Dividend event authority remains not created.
-- Dividend event authority freeze remains future work.
+- Dividend event authority freeze ceremony implemented as `DIVIDEND_EVENT_AUTHORITY_FROZEN` with scope `DIVIDEND_EVENT_AUTHORITY_ONLY`.
+- Dividend event authority freeze digest: `98b7e740b750701eb1e63e6e0ad88ffd4d665c44ece2e0e85e0a15e4a2a4d6ae`.
+- Dividend event authority created/frozen: `True / True` only within the dividend-event authority scope.
+- The freeze checklist passes `66 / 66` checks with `0` blockers.
 - Split event authority remains frozen.
+- Combined split/dividend corporate-action readiness remains future work.
 - Corporate-action authority remains not created.
 - Acquisition and dataset chains remain future work.
 - Predictive usefulness remains not accepted.
@@ -178,7 +181,6 @@
 - Runtime activation remains future and separate.
 
 ## Next Tasks
-1. Dividend Event Authority Freeze Ceremony v1.
-2. Combined split/dividend corporate-action readiness review after the separate dividend freeze.
-3. Corporate-action authority approval only if separately required.
-4. Acquisition and dataset chains only after their separate authority gates.
+1. Combined Split/Dividend Corporate-Action Readiness Review Package v1.
+2. Corporate-action authority approval only if separately required.
+3. Acquisition and dataset chains only after their separate authority gates.
