@@ -109,3 +109,11 @@
 ## Next Task Recommendation
 
 - `Canonical Dataset Freeze Ceremony v1`, only after the required operator review and separate authorization.
+
+## Follow-On Canonical Dataset Freeze
+
+- `Canonical Dataset Freeze Ceremony v1` is now implemented with exact non-secret operator attestation and source-digest confirmation.
+- This results review remains bound source evidence for the freeze.
+- The freeze scope is canonical-dataset-only and creates no registry approval.
+- Predictive usefulness and profitability remain not accepted.
+- Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
