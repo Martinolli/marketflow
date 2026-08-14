@@ -93,3 +93,12 @@
 ## Next Task
 
 - `Canonical Dataset Results Review Package v1` remains separate future work.
+
+## Follow-On Results Review
+
+- `Canonical Dataset Results Review Package v1` is now implemented as a separate offline, digest-bound review.
+- The generation artifact remains source evidence and was not regenerated or modified by the review.
+- The review supports a future separately authorized freeze ceremony but does not freeze the canonical dataset.
+- Registry approval remains not created.
+- Predictive usefulness and profitability remain not accepted.
+- Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
