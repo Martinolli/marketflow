@@ -93,4 +93,7 @@
 
 ## Next Task Recommendation
 
-- `Research Registry Approval Ceremony v1` remains separate future work requiring explicit operator authorization.
+- `Research Registry Approval Ceremony v1` is implemented on its stacked approval branch.
+- This review package remains bound source evidence for that ceremony.
+- Approval creates research registry approval only; predictive usefulness and profitability remain not accepted, and runtime remains not authorized.
+- `Additional Predictive Evidence Chain Candidate v1` remains separate future work.
