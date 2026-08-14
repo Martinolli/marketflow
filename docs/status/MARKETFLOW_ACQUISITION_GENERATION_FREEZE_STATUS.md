@@ -72,4 +72,6 @@
 ## Checklist Summary, Non-Goals, And Next Task
 - Total/passed/failed/blockers: `62 / 62 / 0 / 0`.
 - Non-goals remain acquisition execution, dataset generation, canonical dataset creation, registry approval, predictive or profitability acceptance, and runtime or trading activation.
-- Next recommended task: `Canonical Dataset Chain Candidate v1`, requiring a separate operator gate.
+- The follow-on Canonical Dataset Chain Candidate v1 is implemented; this acquisition-generation freeze remains its bound source evidence.
+- The candidate authorizes no dataset generation and creates no canonical dataset or registry approval.
+- Next recommended task: `Canonical Dataset Chain Candidate Operator Review Package v1`, requiring a separate operator gate.
