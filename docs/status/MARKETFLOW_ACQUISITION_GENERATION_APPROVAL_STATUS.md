@@ -69,4 +69,6 @@
 ## Checklist Summary, Non-Goals, And Next Task
 - Total/passed/failed/blockers: `62 / 62 / 0 / 0`.
 - Non-goals remain acquisition execution, acquisition freeze, dataset generation, canonical dataset creation, registry approval, predictive or profitability acceptance, and runtime or trading activation.
-- Next recommended task: `Acquisition Generation Freeze Ceremony v1`.
+- The follow-on Acquisition Generation Freeze Ceremony v1 is implemented; this approval remains its bound source evidence.
+- The freeze does not create dataset-generation authority, a canonical dataset, or registry approval.
+- Next recommended task after the separate freeze gate: `Canonical Dataset Chain Candidate v1`.

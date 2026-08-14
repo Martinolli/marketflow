@@ -81,15 +81,16 @@
 - Acquisition Evidence Results Review Package v1 is implemented as `ACQUISITION_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY`; digest `57c0a06ec8395b8e4edab313eb61dbcacdb950fb858491becec8526dba42f415` binds the seven verified sanitized outputs.
 - Acquisition Evidence Results Review Package v1 is completed and remains bound source evidence.
 - Acquisition Generation Approval Ceremony v1 is implemented as `ACQUISITION_GENERATION_APPROVED` with scope `ACQUISITION_GENERATION_APPROVAL_ONLY`.
-- Acquisition-generation freeze remains future work; approval did not execute or freeze generation.
-- Dataset generation, canonical dataset, and registry chains remain future work.
+- Acquisition generation approval is completed and remains bound source evidence.
+- Acquisition Generation Freeze Ceremony v1 is implemented as `ACQUISITION_GENERATION_FROZEN` with scope `ACQUISITION_GENERATION_FREEZE_ONLY`.
+- Canonical Dataset Chain Candidate v1, canonical dataset freeze, and registry approval remain future work under separate gates.
 - Predictive usefulness and profitability remain not accepted.
 - Runtime activation remains future and separate.
-- Acquisition generation is approved only for future freeze input; every downstream dataset, registry, predictive, runtime, and trading gate remains closed.
+- Acquisition generation is frozen only for future canonical-dataset-chain input; every downstream dataset, registry, predictive, runtime, and trading gate remains closed.
 
 ## Next Tasks
-1. Acquisition Generation Freeze Ceremony v1 as a separate operator gate.
-2. Dataset generation only after the acquisition-generation freeze.
-3. Canonical Dataset Chain Candidate v1 and its separate operator review and freeze.
-4. Registry approval only after canonical dataset freeze.
-5. Predictive usefulness/profitability acceptance and runtime activation remain future and separate.
+1. Canonical Dataset Chain Candidate v1 as a separate operator gate.
+2. Canonical dataset operator review and freeze remain future work.
+3. Registry approval remains future work and may occur only after canonical dataset freeze.
+4. Predictive usefulness/profitability acceptance remain future and separate.
+5. Runtime activation remains future and separate.
