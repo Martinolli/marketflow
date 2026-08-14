@@ -17,6 +17,7 @@ __all__ = [
     "canonical_dataset_results_review_service",
     "canonical_dataset_freeze_service",
     "research_registry_candidate_service",
+    "research_registry_candidate_operator_review_service",
     "acquisition_evidence_results_review_service",
     "acquisition_provider_evidence_adapter_service",
     "acquisition_provider_evidence_execution_service",
@@ -656,6 +657,12 @@ __all__ = [
     "validate_research_registry_candidate_v1",
     "write_research_registry_candidate_v1",
     "build_research_registry_candidate_markdown_v1",
+    "ARTIFACT_KIND_RESEARCH_REGISTRY_CANDIDATE_REVIEW_PACKAGE",
+    "RESEARCH_REGISTRY_CANDIDATE_REVIEW_PACKAGE_READY",
+    "build_research_registry_candidate_review_package_v1",
+    "validate_research_registry_candidate_review_package_v1",
+    "write_research_registry_candidate_review_package_v1",
+    "build_research_registry_candidate_review_markdown_v1",
     "acquisition_generation_freeze_digest_v1",
     "per_ticker_acquisition_generation_freeze_digest_v1",
     "build_additional_predictive_evidence_plan_candidate_markdown_v1",
@@ -2069,6 +2076,14 @@ from marketflow.services.research_registry_candidate_service import (
     build_research_registry_candidate_v1,
     validate_research_registry_candidate_v1,
     write_research_registry_candidate_v1,
+)
+from marketflow.services.research_registry_candidate_operator_review_service import (
+    ARTIFACT_KIND_RESEARCH_REGISTRY_CANDIDATE_REVIEW_PACKAGE,
+    RESEARCH_REGISTRY_CANDIDATE_REVIEW_PACKAGE_READY,
+    build_research_registry_candidate_review_markdown_v1,
+    build_research_registry_candidate_review_package_v1,
+    validate_research_registry_candidate_review_package_v1,
+    write_research_registry_candidate_review_package_v1,
 )
 from marketflow.services.acquisition_provider_evidence_execution_service import (
     ACQUISITION_PROVIDER_EVIDENCE_BLOCKED_ENDPOINT_NOT_SELECTED,

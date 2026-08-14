@@ -90,4 +90,7 @@
 
 ## Next Task Recommendation
 
-- `Research Registry Candidate Operator Review Package v1` remains separate future work.
+- `Research Registry Candidate Operator Review Package v1` is implemented on the stacked review branch.
+- This candidate remains the source evidence for that review package.
+- The review does not create registry approval; predictive usefulness remains not accepted and runtime remains not authorized.
+- `Research Registry Approval Ceremony v1` remains separate future work.

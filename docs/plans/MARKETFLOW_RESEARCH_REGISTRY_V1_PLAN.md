@@ -65,7 +65,10 @@
 
 ## Next Tasks
 
-1. Research Registry Candidate Operator Review Package v1.
-2. Research Registry Approval Ceremony v1.
-3. Additional Predictive Evidence Chain, if required.
-4. Runtime Migration Chain, if ever separately authorized.
+1. Research Registry Candidate v1 is completed.
+2. Research Registry Candidate Operator Review Package v1 is implemented.
+3. Research Registry Approval Ceremony v1 remains future work.
+4. Additional Predictive Evidence Chain remains future work, if required.
+5. Runtime Migration Chain remains future and separate, if ever explicitly authorized.
+
+Predictive usefulness and profitability remain not accepted. Runtime activation remains unauthorized.
