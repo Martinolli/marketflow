@@ -82,4 +82,7 @@
 ## Checklist Summary And Recommendation
 - Total/passed/failed/blockers: `60 / 60 / 0 / 0`.
 - Ready for operator review / acquisition-generation approval / acquisition-generation freeze / canonical-dataset candidate: `True / True / False / False`.
-- Next recommended task: `Acquisition Evidence Results Operator Review`, followed by a separate acquisition-generation approval ceremony if required.
+- The follow-on Acquisition Generation Approval Ceremony v1 is implemented on `feature/acquisition-generation-approval-v1` with scope `ACQUISITION_GENERATION_APPROVAL_ONLY`.
+- This review remains the bound source evidence; the approval does not execute or freeze acquisition generation.
+- Dataset generation remains unauthorized, no canonical dataset was created, and no registry approval was created.
+- Next recommended task: the separate `Acquisition Generation Freeze Ceremony v1`.

@@ -79,16 +79,17 @@
 - Request approval digest: `a83acdf0c64fa8d430274350c59b547a23e7a58fb897cc33982ab0444ec0993c`.
 - Acquisition provider evidence execution completed as `ACQUISITION_PROVIDER_EVIDENCE_EXECUTED_READ_ONLY`; execution digest `decc59a4a0ae91229ed527f9fcafd54e9d5af468d057d5200a67d2167939b02b` binds `12` successful sanitized responses and `7` ignored research-only outputs.
 - Acquisition Evidence Results Review Package v1 is implemented as `ACQUISITION_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY`; digest `57c0a06ec8395b8e4edab313eb61dbcacdb950fb858491becec8526dba42f415` binds the seven verified sanitized outputs.
-- Acquisition execution and acquisition-generation approval/freeze remain future work.
-- Canonical dataset and registry chains remain future work.
+- Acquisition Evidence Results Review Package v1 is completed and remains bound source evidence.
+- Acquisition Generation Approval Ceremony v1 is implemented as `ACQUISITION_GENERATION_APPROVED` with scope `ACQUISITION_GENERATION_APPROVAL_ONLY`.
+- Acquisition-generation freeze remains future work; approval did not execute or freeze generation.
+- Dataset generation, canonical dataset, and registry chains remain future work.
 - Predictive usefulness and profitability remain not accepted.
 - Runtime activation remains future and separate.
-- Acquisition and every downstream gate remain closed.
+- Acquisition generation is approved only for future freeze input; every downstream dataset, registry, predictive, runtime, and trading gate remains closed.
 
 ## Next Tasks
-1. Acquisition Evidence Results Operator Review and data-quality review if required.
-2. Keep acquisition-generation authorization and freeze separate from evidence-results review.
-3. Acquisition Generation Approval and Freeze ceremonies remain future, separate gates.
-4. Canonical Dataset Chain Candidate v1.
-5. Registry approval only after canonical dataset freeze.
-6. Predictive usefulness/profitability acceptance and runtime activation remain future and separate.
+1. Acquisition Generation Freeze Ceremony v1 as a separate operator gate.
+2. Dataset generation only after the acquisition-generation freeze.
+3. Canonical Dataset Chain Candidate v1 and its separate operator review and freeze.
+4. Registry approval only after canonical dataset freeze.
+5. Predictive usefulness/profitability acceptance and runtime activation remain future and separate.
