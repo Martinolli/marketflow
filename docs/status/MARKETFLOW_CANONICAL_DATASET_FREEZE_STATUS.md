@@ -86,3 +86,11 @@
 ## Next Task Recommendation
 
 - `Research Registry Candidate v1` remains separate future work.
+
+## Follow-On Research Registry Candidate
+
+- `Research Registry Candidate v1` is now implemented as an offline, digest-bound proposal for future operator review.
+- The canonical dataset freeze remains immutable source evidence and was not rebuilt or modified.
+- The candidate creates no registry approval.
+- Predictive usefulness and profitability remain not accepted.
+- Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
