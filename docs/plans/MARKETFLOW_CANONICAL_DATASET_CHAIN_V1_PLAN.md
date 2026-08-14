@@ -76,7 +76,10 @@
 ## Implementation Status
 - Canonical Dataset Chain Candidate v1 is completed and remains source evidence.
 - Canonical Dataset Chain Candidate Operator Review Package v1 is completed and remains source evidence.
-- Canonical Dataset Generation Approval Ceremony v1 is implemented with scope `CANONICAL_DATASET_GENERATION_APPROVAL_ONLY`.
-- Canonical dataset generation, results review, freeze, and registry approval remain future work.
+- Canonical Dataset Generation Approval Ceremony v1 is completed with scope `CANONICAL_DATASET_GENERATION_APPROVAL_ONLY`.
+- Canonical Dataset Generation Execution v1 is implemented as a deterministic offline research-only generation.
+- Canonical Dataset Results Review Package v1 remains future work.
+- Canonical dataset freeze remains future work.
+- Registry approval remains future work.
 - Predictive usefulness and profitability remain not accepted.
 - Runtime activation remains future and separate.

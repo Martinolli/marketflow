@@ -66,3 +66,12 @@
 - Total/passed/failed/blockers: `56 / 56 / 0 / 0`.
 - Non-goals remain generation execution, canonical dataset creation/freeze, registry approval, predictive/profitability acceptance, and runtime/trading activation.
 - Next recommended task: `Canonical Dataset Generation Execution v1` under separate explicit authorization.
+
+## Follow-On Generation Execution
+
+- `Canonical Dataset Generation Execution v1` is now implemented under the separate execution branch and authorization.
+- This approval artifact remains bound source evidence for that execution.
+- Generation created a research-only canonical dataset candidate but did not freeze it.
+- Registry approval remains not created.
+- Predictive usefulness and profitability remain not accepted.
+- Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.

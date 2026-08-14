@@ -13,6 +13,7 @@ __all__ = [
     "canonical_dataset_chain_candidate_service",
     "canonical_dataset_chain_candidate_operator_review_service",
     "canonical_dataset_generation_approval_service",
+    "canonical_dataset_generation_execution_service",
     "acquisition_evidence_results_review_service",
     "acquisition_provider_evidence_adapter_service",
     "acquisition_provider_evidence_execution_service",
@@ -623,6 +624,13 @@ __all__ = [
     "build_canonical_dataset_generation_approved_v1",
     "canonical_dataset_generation_approval_digest_v1",
     "per_ticker_canonical_dataset_generation_approval_digest_v1",
+    "ARTIFACT_KIND_CANONICAL_DATASET_GENERATED",
+    "ARTIFACT_KIND_CANONICAL_DATASET_GENERATION_BLOCKED",
+    "CANONICAL_DATASET_GENERATED_RESEARCH_ONLY",
+    "CANONICAL_DATASET_GENERATION_BLOCKED_MISSING_OR_INVALID_SOURCE_EVIDENCE",
+    "execute_canonical_dataset_generation_v1",
+    "validate_canonical_dataset_generated_v1",
+    "build_canonical_dataset_generation_status_markdown_v1",
     "acquisition_generation_freeze_digest_v1",
     "per_ticker_acquisition_generation_freeze_digest_v1",
     "build_additional_predictive_evidence_plan_candidate_markdown_v1",
@@ -1999,6 +2007,15 @@ from marketflow.services.canonical_dataset_generation_approval_service import (
     per_ticker_canonical_dataset_generation_approval_digest_v1,
     validate_canonical_dataset_generation_approved_v1,
     write_canonical_dataset_generation_approved_v1,
+)
+from marketflow.services.canonical_dataset_generation_execution_service import (
+    ARTIFACT_KIND_CANONICAL_DATASET_GENERATED,
+    ARTIFACT_KIND_CANONICAL_DATASET_GENERATION_BLOCKED,
+    CANONICAL_DATASET_GENERATED_RESEARCH_ONLY,
+    CANONICAL_DATASET_GENERATION_BLOCKED_MISSING_OR_INVALID_SOURCE_EVIDENCE,
+    build_canonical_dataset_generation_status_markdown_v1,
+    execute_canonical_dataset_generation_v1,
+    validate_canonical_dataset_generated_v1,
 )
 from marketflow.services.acquisition_provider_evidence_execution_service import (
     ACQUISITION_PROVIDER_EVIDENCE_BLOCKED_ENDPOINT_NOT_SELECTED,
