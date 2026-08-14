@@ -68,9 +68,16 @@
 - `all_outputs_labeled_research_only`
 
 ## Next Tasks
-1. Canonical Dataset Chain Candidate Operator Review Package v1.
-2. Canonical Dataset Approval Ceremony v1, if required.
-3. Canonical Dataset Generation Execution v1.
-4. Canonical Dataset Results Review Package v1.
-5. Canonical Dataset Freeze Ceremony v1.
-6. Research Registry Candidate v1.
+1. Canonical Dataset Approval Ceremony v1, if required by policy.
+2. Canonical Dataset Generation Execution v1 under separate explicit authorization.
+3. Canonical Dataset Results Review Package v1.
+4. Canonical Dataset Freeze Ceremony v1.
+5. Research Registry Candidate v1.
+
+## Implementation Status
+- Canonical Dataset Chain Candidate v1 is completed and remains source evidence.
+- Canonical Dataset Chain Candidate Operator Review Package v1 is implemented and ready for operator assessment.
+- Canonical dataset approval remains future work if required by policy.
+- Canonical dataset generation, results review, freeze, and registry approval remain future work.
+- Predictive usefulness and profitability remain not accepted.
+- Runtime activation remains future and separate.

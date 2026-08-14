@@ -77,4 +77,6 @@
 - Provider requests/live transport/market-data acquisition: `False / False / False`.
 - No dataset, canonical dataset, registry approval, predictive artifact, or runtime artifact was created.
 - Total/passed/failed/blockers: `51 / 51 / 0 / 0`.
-- Next recommended task: `Canonical Dataset Chain Candidate Operator Review Package v1`.
+- The follow-on Canonical Dataset Chain Candidate Operator Review Package v1 is implemented; this candidate remains its bound source evidence.
+- Review-package creation does not authorize dataset generation and creates no canonical dataset or registry approval.
+- The next task requires a separate policy decision between an approval ceremony and separately authorized generation execution.
