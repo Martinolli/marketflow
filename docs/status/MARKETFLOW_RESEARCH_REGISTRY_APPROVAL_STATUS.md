@@ -76,4 +76,7 @@
 
 ## Next Task Recommendation
 
-- `Additional Predictive Evidence Chain Candidate v1` remains separate future work.
+- `Additional Predictive Evidence Chain Candidate v1` is implemented on its stacked follow-on branch.
+- The registry approval remains bound source evidence for that candidate.
+- The candidate does not authorize predictive execution; predictive usefulness and profitability remain `not accepted` and runtime remains `NOT_AUTHORIZED`.
+- `Additional Predictive Evidence Chain Candidate Operator Review Package v1` remains separate future work.
