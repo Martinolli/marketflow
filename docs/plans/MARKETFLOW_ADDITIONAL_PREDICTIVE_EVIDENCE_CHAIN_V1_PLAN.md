@@ -97,12 +97,13 @@ The twelve named gates in the candidate keep operator review, execution candidac
 
 - Additional Predictive Evidence Chain Candidate v1 is complete.
 - Additional Predictive Evidence Chain Candidate Operator Review Package v1 is implemented.
-- The review is non-authorizing and preserves the candidate as source evidence.
+- The chain candidate is reviewed, and the review remains digest-bound source evidence.
+- Additional Predictive Evidence Execution Candidate v1 is implemented and remains non-authorizing.
 - Profitability remains `not accepted`; runtime activation remains future and separate.
 
 ## Next Tasks
 
-1. Additional Predictive Evidence Execution Candidate v1 remains future work.
+1. Additional Predictive Evidence Execution Candidate Operator Review Package v1 remains future work.
 2. Additional Predictive Evidence Execution Approval Ceremony v1 remains future work, if required.
 3. Additional Predictive Evidence Execution v1 remains future work.
 4. Additional Predictive Evidence Results Review Package v1 remains future work.
