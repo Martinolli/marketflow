@@ -128,4 +128,8 @@
 
 ## Next Task Recommendation
 
-- `Additional Predictive Evidence Execution Candidate for Refined Evidence v1`.
+- `Additional Predictive Evidence Execution Candidate for Refined Evidence v1` is implemented as a separate offline, digest-bound planning artifact.
+- This results-review package remains the source evidence and is not rerun or replaced by the candidate.
+- The candidate does not approve, authorize, or execute additional predictive evidence.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- The next separate task is `Additional Predictive Evidence Execution Candidate for Refined Evidence Operator Review Package v1`.

@@ -23,6 +23,7 @@ __all__ = [
     "additional_predictive_evidence_chain_candidate_operator_review_service",
     "additional_predictive_evidence_execution_candidate_service",
     "additional_predictive_evidence_execution_candidate_operator_review_service",
+    "additional_predictive_evidence_execution_candidate_for_refined_evidence_service",
     "additional_predictive_evidence_execution_approval_service",
     "additional_predictive_evidence_execution_service",
     "additional_predictive_evidence_results_review_service",
@@ -2666,6 +2667,17 @@ from marketflow.services.feature_label_refinement_results_review_service import 
     feature_label_refinement_results_review_package_digest_v1,
     validate_feature_label_refinement_results_review_package_v1,
     write_feature_label_refinement_results_review_package_v1,
+)
+from marketflow.services.additional_predictive_evidence_execution_candidate_for_refined_evidence_service import (
+    ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTION_CANDIDATE_FOR_REFINED_EVIDENCE_READY_FOR_OPERATOR_REVIEW,
+    ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTION_CANDIDATE_FOR_REFINED_EVIDENCE_VALID,
+    ARTIFACT_KIND_ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTION_CANDIDATE_FOR_REFINED_EVIDENCE,
+    build_additional_predictive_evidence_execution_candidate_for_refined_evidence_markdown_v1,
+    build_additional_predictive_evidence_execution_candidate_for_refined_evidence_v1,
+    additional_predictive_evidence_execution_candidate_for_refined_evidence_digest_v1,
+    per_ticker_additional_predictive_evidence_execution_candidate_for_refined_evidence_digest_v1,
+    validate_additional_predictive_evidence_execution_candidate_for_refined_evidence_v1,
+    write_additional_predictive_evidence_execution_candidate_for_refined_evidence_v1,
 )
 from marketflow.services.predictive_usefulness_assessment_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE,
