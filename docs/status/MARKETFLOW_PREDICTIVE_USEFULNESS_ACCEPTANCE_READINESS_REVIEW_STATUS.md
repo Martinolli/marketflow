@@ -118,4 +118,7 @@
 
 ## Next Task Recommendation
 
-- `Predictive Evidence Improvement Candidate v1` or `Additional Predictive Evidence Refinement Candidate v1` may be proposed as a separate future task.
+- Follow-on `Predictive Evidence Improvement Candidate v1` is implemented on `feature/predictive-evidence-improvement-candidate-v1`.
+- This readiness review remains bound source evidence for that candidate.
+- The improvement candidate does not authorize predictive execution; predictive usefulness and profitability remain `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- `Predictive Evidence Improvement Candidate Operator Review Package v1` is the next separate task.
