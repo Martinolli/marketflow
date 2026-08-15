@@ -142,4 +142,8 @@ Output SHA-256 summary:
 
 ## Next Task Recommendation
 
-- `Additional Predictive Evidence Results Review Package v1` must review these results before any predictive-usefulness reassessment candidate can be considered.
+- `Additional Predictive Evidence Results Review Package v1` is implemented on its stacked follow-on branch.
+- The execution artifact remains the digest-bound source evidence for that review.
+- The results review supports only future reassessment planning; it does not accept predictive usefulness.
+- Profitability remains `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- `Predictive Usefulness Reassessment Candidate v1` remains future work.

@@ -25,6 +25,7 @@ __all__ = [
     "additional_predictive_evidence_execution_candidate_operator_review_service",
     "additional_predictive_evidence_execution_approval_service",
     "additional_predictive_evidence_execution_service",
+    "additional_predictive_evidence_results_review_service",
     "acquisition_evidence_results_review_service",
     "acquisition_provider_evidence_adapter_service",
     "acquisition_provider_evidence_execution_service",
@@ -2223,6 +2224,16 @@ from marketflow.services.additional_predictive_evidence_execution_service import
     build_additional_predictive_evidence_execution_status_markdown_v1,
     execute_additional_predictive_evidence_v1,
     validate_additional_predictive_evidence_executed_v1,
+)
+from marketflow.services.additional_predictive_evidence_results_review_service import (
+    ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_BLOCKED_MISSING_OR_INVALID_OUTPUTS,
+    ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_PACKAGE_READY,
+    ARTIFACT_KIND_ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_PACKAGE,
+    additional_predictive_evidence_results_review_package_digest_v1,
+    build_additional_predictive_evidence_results_review_markdown_v1,
+    build_additional_predictive_evidence_results_review_package_v1,
+    validate_additional_predictive_evidence_results_review_package_v1,
+    write_additional_predictive_evidence_results_review_package_v1,
 )
 from marketflow.services.acquisition_provider_evidence_execution_service import (
     ACQUISITION_PROVIDER_EVIDENCE_BLOCKED_ENDPOINT_NOT_SELECTED,
