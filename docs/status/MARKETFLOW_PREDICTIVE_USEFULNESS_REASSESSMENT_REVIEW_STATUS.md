@@ -112,4 +112,8 @@ Future gates are the acceptance-readiness review, conditional acceptance candida
 
 ## Next Task Recommendation
 
-- `Predictive Usefulness Acceptance Readiness Review v1` is the next separate task.
+- Follow-on `Predictive Usefulness Acceptance Readiness Review v1` is implemented on `feature/predictive-usefulness-acceptance-readiness-review-v1`.
+- This reassessment review remains bound source evidence for the follow-on readiness review.
+- The readiness review does not accept predictive usefulness and concludes `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY`.
+- Profitability remains `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- `Predictive Evidence Improvement Candidate v1` or `Additional Predictive Evidence Refinement Candidate v1` may be proposed as a separate future task.

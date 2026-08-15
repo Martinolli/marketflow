@@ -90,14 +90,16 @@ Organize the completed additional predictive evidence results review into a dete
 - Predictive Usefulness Reassessment Candidate Operator Review Package v1 is completed.
 - Predictive Usefulness Reassessment Review Package v1 is implemented and binds the candidate review as source evidence.
 - The reassessment review preserves all evidence, per-ticker counts and digests, domains, gates, controls, and planned-output boundaries.
-- It is ready only for the separate Predictive Usefulness Acceptance Readiness Review v1.
-- Predictive Usefulness Acceptance Readiness Review v1 remains future work.
-- Predictive Usefulness Acceptance Ceremony v1 remains future work only if ready.
+- Predictive Usefulness Acceptance Readiness Review v1 is implemented and completed.
+- Current readiness is `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY` because stability and baseline-outperformance consistency criteria are not met.
+- Predictive-evidence improvement or additional-evidence planning remains future work.
+- Predictive Usefulness Acceptance Candidate and Ceremony remain closed unless a future readiness rerun passes and receives separate approval.
 - Profitability remains `not accepted`; runtime activation remains future and separate.
 
 ## Next Tasks
 
-1. Predictive Usefulness Acceptance Readiness Review v1.
-2. Predictive Usefulness Acceptance Candidate v1, only if readiness supports it.
-3. Predictive Usefulness Acceptance Ceremony v1, only if ready and explicitly approved.
-4. Separate profitability and runtime-migration chains, only if later required and authorized.
+1. Predictive Evidence Improvement Candidate v1 or Additional Predictive Evidence Refinement Candidate v1, if desired.
+2. Additional evidence approval/execution/review, only if separately proposed and approved.
+3. Reassessment and acceptance-readiness reruns, only after new evidence exists.
+4. Predictive Usefulness Acceptance Candidate and Ceremony, only if readiness later passes and explicit approval is granted.
+5. Separate profitability and runtime-migration chains, only if later required and authorized.
