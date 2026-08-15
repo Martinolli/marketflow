@@ -109,7 +109,8 @@
 - Results support future reassessment planning: `True`.
 - Predictive usefulness remains `not accepted`.
 - Acceptance ready/recommended/candidate created: `False / False / False`.
-- No `PREDICTIVE_USEFULNESS_REASSESSMENT_CANDIDATE`, acceptance candidate, or acceptance artifact is created by this review.
+- This results-review artifact itself creates no reassessment candidate, acceptance candidate, or acceptance artifact.
+- A stacked follow-on `Predictive Usefulness Reassessment Candidate v1` is now implemented; it binds this review as source evidence and remains candidate-only.
 
 ## Profitability Boundary
 
@@ -153,4 +154,6 @@
 
 ## Next Task Recommendation
 
-- `Predictive Usefulness Reassessment Candidate v1` is the next possible research-governance task; it remains future work and is not created here.
+- `Predictive Usefulness Reassessment Candidate v1` is implemented on its stacked follow-on branch.
+- The candidate does not accept predictive usefulness; profitability remains `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- `Predictive Usefulness Reassessment Candidate Operator Review Package v1` remains the next separate task.
