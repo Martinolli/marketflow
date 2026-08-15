@@ -80,6 +80,7 @@ __all__ = [
     "predictive_usefulness_acceptance_readiness_review_service",
     "predictive_evidence_improvement_candidate_service",
     "predictive_evidence_improvement_candidate_operator_review_service",
+    "feature_label_refinement_plan_candidate_service",
     "predictive_usefulness_review_candidate_operator_review_service",
     "predictive_usefulness_review_candidate_service",
     "corporate_action_authority_plan_candidate_service",
@@ -2574,6 +2575,16 @@ from marketflow.services.predictive_evidence_improvement_candidate_operator_revi
     predictive_evidence_improvement_candidate_review_package_digest_v1,
     validate_predictive_evidence_improvement_candidate_review_package_v1,
     write_predictive_evidence_improvement_candidate_review_package_v1,
+)
+from marketflow.services.feature_label_refinement_plan_candidate_service import (
+    ARTIFACT_KIND_FEATURE_LABEL_REFINEMENT_PLAN_CANDIDATE,
+    FEATURE_LABEL_REFINEMENT_PLAN_READY_FOR_OPERATOR_REVIEW,
+    build_feature_label_refinement_plan_candidate_markdown_v1,
+    build_feature_label_refinement_plan_candidate_v1,
+    feature_label_refinement_plan_candidate_digest_v1,
+    per_ticker_feature_label_refinement_plan_candidate_digest_v1,
+    validate_feature_label_refinement_plan_candidate_v1,
+    write_feature_label_refinement_plan_candidate_v1,
 )
 from marketflow.services.predictive_usefulness_assessment_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE,

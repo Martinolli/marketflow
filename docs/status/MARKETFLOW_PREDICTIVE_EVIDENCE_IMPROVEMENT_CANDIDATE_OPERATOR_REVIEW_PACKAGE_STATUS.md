@@ -91,4 +91,8 @@
 
 ## Next Task Recommendation
 
-- `Feature/Label Refinement Plan Candidate v1` remains a separate future task if selected.
+- Follow-on `Feature/Label Refinement Plan Candidate v1` is implemented on `feature/feature-label-refinement-plan-candidate-v1` for operator review.
+- This review package remains the bound source evidence for that candidate.
+- The refinement plan candidate does not authorize refinement or execution.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- The next recommended task is `Feature/Label Refinement Plan Candidate Operator Review Package v1`.
