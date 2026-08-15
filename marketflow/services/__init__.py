@@ -75,6 +75,7 @@ __all__ = [
     "predictive_usefulness_assessment_candidate_operator_review_service",
     "predictive_usefulness_assessment_candidate_service",
     "predictive_usefulness_reassessment_candidate_service",
+    "predictive_usefulness_reassessment_candidate_operator_review_service",
     "predictive_usefulness_review_candidate_operator_review_service",
     "predictive_usefulness_review_candidate_service",
     "corporate_action_authority_plan_candidate_service",
@@ -2518,6 +2519,16 @@ from marketflow.services.predictive_usefulness_reassessment_candidate_service im
     predictive_usefulness_reassessment_candidate_digest_v1,
     validate_predictive_usefulness_reassessment_candidate_v1,
     write_predictive_usefulness_reassessment_candidate_v1,
+)
+from marketflow.services.predictive_usefulness_reassessment_candidate_operator_review_service import (
+    ARTIFACT_KIND_PREDICTIVE_USEFULNESS_REASSESSMENT_CANDIDATE_REVIEW_PACKAGE,
+    PREDICTIVE_USEFULNESS_REASSESSMENT_CANDIDATE_REVIEW_PACKAGE_READY,
+    build_predictive_usefulness_reassessment_candidate_review_markdown_v1,
+    build_predictive_usefulness_reassessment_candidate_review_package_v1,
+    per_ticker_predictive_usefulness_reassessment_candidate_review_digest_v1,
+    predictive_usefulness_reassessment_candidate_review_package_digest_v1,
+    validate_predictive_usefulness_reassessment_candidate_review_package_v1,
+    write_predictive_usefulness_reassessment_candidate_review_package_v1,
 )
 from marketflow.services.predictive_usefulness_assessment_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE,

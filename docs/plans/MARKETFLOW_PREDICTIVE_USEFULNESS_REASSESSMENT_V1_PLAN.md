@@ -84,9 +84,19 @@ Organize the completed additional predictive evidence results review into a dete
 - Planned review outputs remain `PLANNED_NOT_GENERATED` and `RESEARCH_ONLY_NON_ACTIONABLE`.
 - Operator review remains required before any later reassessment review or acceptance-readiness step.
 
+## Implementation Progress
+
+- Predictive Usefulness Reassessment Candidate v1 is completed.
+- Predictive Usefulness Reassessment Candidate Operator Review Package v1 is implemented.
+- The review preserves all candidate evidence, per-ticker digests, domains, gates, controls, and planned-output boundaries.
+- Predictive Usefulness Reassessment Review Package v1 remains future work.
+- Predictive Usefulness Acceptance Readiness Review v1 remains future work.
+- Predictive Usefulness Acceptance Ceremony v1 remains future work only if ready.
+- Profitability remains `not accepted`; runtime activation remains future and separate.
+
 ## Next Tasks
 
-1. Predictive Usefulness Reassessment Candidate Operator Review Package v1.
-2. Predictive Usefulness Reassessment Review Package v1.
-3. Predictive Usefulness Acceptance Readiness Review v1.
-4. Predictive Usefulness Acceptance Ceremony v1, only if ready.
+1. Predictive Usefulness Reassessment Review Package v1.
+2. Predictive Usefulness Acceptance Readiness Review v1.
+3. Predictive Usefulness Acceptance Ceremony v1, only if ready.
+4. Separate profitability and runtime-migration chains, only if later required and authorized.

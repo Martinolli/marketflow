@@ -138,4 +138,7 @@
 
 ## Next Task Recommendation
 
-- `Predictive Usefulness Reassessment Candidate Operator Review Package v1` remains the next separate task.
+- `Predictive Usefulness Reassessment Candidate Operator Review Package v1` is implemented on its stacked follow-on branch.
+- This candidate remains the immutable digest-bound source evidence for that review.
+- The review does not accept predictive usefulness; profitability remains `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- `Predictive Usefulness Reassessment Review Package v1` remains the next separate task.
