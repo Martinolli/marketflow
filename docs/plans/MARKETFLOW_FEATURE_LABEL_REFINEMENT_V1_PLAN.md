@@ -119,8 +119,15 @@ Define an offline, digest-bound, research-only candidate plan for future feature
 - Keep planned outputs `PLANNED_NOT_GENERATED` and `RESEARCH_ONLY_NON_ACTIONABLE`.
 - Fail closed on changed source evidence, missing plan sections or digests, and any downstream authority signal.
 
+## Current Progress
+
+- Feature/Label Refinement Plan Candidate v1 is completed.
+- Feature/Label Refinement Plan Candidate Operator Review Package v1 is implemented.
+- The candidate and review remain planning/review evidence only and do not authorize execution.
+- Predictive usefulness acceptance remains closed, profitability remains `not accepted`, and runtime activation remains separate future work.
+
 ## Next Tasks
 
-1. Feature/Label Refinement Plan Candidate Operator Review Package v1.
-2. Feature/Label Refinement Plan Approval Ceremony v1, if selected.
-3. Feature/Label Refinement Execution Candidate v1.
+1. Feature/Label Refinement Plan Approval Ceremony v1, if selected.
+2. Feature/Label Refinement Execution Candidate v1.
+3. Additional Predictive Evidence Execution Candidate for refined evidence remains future work.
