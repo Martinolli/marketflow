@@ -129,4 +129,7 @@ The corresponding candidate-review, reassessment-review, readiness, conditional 
 
 ## Next Task Recommendation
 
-- `Predictive Usefulness Reassessment Review Package v1` remains the next separate task.
+- Follow-on `Predictive Usefulness Reassessment Review Package v1` is implemented on `feature/predictive-usefulness-reassessment-review-v1`.
+- This candidate review remains bound source evidence for that follow-on review.
+- The reassessment review does not accept predictive usefulness; profitability remains `not accepted` and runtime remains `NOT_AUTHORIZED`.
+- `Predictive Usefulness Acceptance Readiness Review v1` is the next separate task.

@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Organize the completed additional predictive evidence results review into a deterministic, research-only candidate for future operator review. This plan does not perform the reassessment review and creates no predictive-usefulness acceptance, profitability acceptance, or runtime authority.
+Organize the completed additional predictive evidence results review into a deterministic, research-only candidate, candidate operator review, and reassessment review. The completed reassessment review creates no predictive-usefulness acceptance, profitability acceptance, or runtime authority.
 
 ## Source Additional Predictive Evidence Results Review
 
@@ -87,16 +87,17 @@ Organize the completed additional predictive evidence results review into a dete
 ## Implementation Progress
 
 - Predictive Usefulness Reassessment Candidate v1 is completed.
-- Predictive Usefulness Reassessment Candidate Operator Review Package v1 is implemented.
-- The review preserves all candidate evidence, per-ticker digests, domains, gates, controls, and planned-output boundaries.
-- Predictive Usefulness Reassessment Review Package v1 remains future work.
+- Predictive Usefulness Reassessment Candidate Operator Review Package v1 is completed.
+- Predictive Usefulness Reassessment Review Package v1 is implemented and binds the candidate review as source evidence.
+- The reassessment review preserves all evidence, per-ticker counts and digests, domains, gates, controls, and planned-output boundaries.
+- It is ready only for the separate Predictive Usefulness Acceptance Readiness Review v1.
 - Predictive Usefulness Acceptance Readiness Review v1 remains future work.
 - Predictive Usefulness Acceptance Ceremony v1 remains future work only if ready.
 - Profitability remains `not accepted`; runtime activation remains future and separate.
 
 ## Next Tasks
 
-1. Predictive Usefulness Reassessment Review Package v1.
-2. Predictive Usefulness Acceptance Readiness Review v1.
-3. Predictive Usefulness Acceptance Ceremony v1, only if ready.
+1. Predictive Usefulness Acceptance Readiness Review v1.
+2. Predictive Usefulness Acceptance Candidate v1, only if readiness supports it.
+3. Predictive Usefulness Acceptance Ceremony v1, only if ready and explicitly approved.
 4. Separate profitability and runtime-migration chains, only if later required and authorized.
