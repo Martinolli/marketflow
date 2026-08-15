@@ -85,6 +85,7 @@ __all__ = [
     "feature_label_refinement_plan_approval_service",
     "feature_label_refinement_execution_candidate_service",
     "feature_label_refinement_execution_candidate_operator_review_service",
+    "feature_label_refinement_execution_approval_service",
     "predictive_usefulness_review_candidate_operator_review_service",
     "predictive_usefulness_review_candidate_service",
     "corporate_action_authority_plan_candidate_service",
@@ -2631,6 +2632,18 @@ from marketflow.services.feature_label_refinement_execution_candidate_operator_r
     per_ticker_feature_label_refinement_execution_candidate_review_digest_v1,
     validate_feature_label_refinement_execution_candidate_review_package_v1,
     write_feature_label_refinement_execution_candidate_review_package_v1,
+)
+from marketflow.services.feature_label_refinement_execution_approval_service import (
+    ARTIFACT_KIND_FEATURE_LABEL_REFINEMENT_EXECUTION_APPROVED,
+    FEATURE_LABEL_REFINEMENT_EXECUTION_APPROVED,
+    REQUIRED_FEATURE_LABEL_REFINEMENT_EXECUTION_APPROVAL_ATTESTATION_PHRASE,
+    build_feature_label_refinement_execution_approval_attestation_v1,
+    build_feature_label_refinement_execution_approved_markdown_v1,
+    build_feature_label_refinement_execution_approved_v1,
+    feature_label_refinement_execution_approval_digest_v1,
+    per_ticker_feature_label_refinement_execution_approval_digest_v1,
+    validate_feature_label_refinement_execution_approved_v1,
+    write_feature_label_refinement_execution_approved_v1,
 )
 from marketflow.services.predictive_usefulness_assessment_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE,

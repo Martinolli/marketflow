@@ -94,4 +94,7 @@ The reviewed execution steps are: `load_frozen_canonical_dataset`, `verify_recor
 
 ## Next Task Recommendation
 
-- `Feature/Label Refinement Execution Approval Ceremony v1`, if selected through a separate operator decision.
+- Follow-on `Feature/Label Refinement Execution Approval Ceremony v1` is implemented on its stacked feature branch.
+- The approval is bound to this exact review digest and authorizes only future research refinement execution; it does not retroactively change this review package.
+- Refinement execution and results remain unperformed, predictive usefulness and profitability remain `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- Next: `Feature/Label Refinement Execution v1`, only as a separate task consuming the exact approval digest.

@@ -70,21 +70,29 @@ Define an offline, digest-bound, research-only candidate plan for future feature
 1. Feature/Label Refinement Plan Candidate Operator Review Package.
 2. Feature/Label Refinement Plan Approval Ceremony, if selected.
 3. Feature/Label Refinement Execution Candidate.
-4. Additional Predictive Evidence Execution Candidate for refined evidence.
-5. Additional Predictive Evidence Execution Approval Ceremony, if required.
-6. Additional Predictive Evidence Execution.
-7. Additional Predictive Evidence Results Review.
-8. Predictive Usefulness Reassessment Review rerun.
-9. Predictive Usefulness Acceptance Readiness Review rerun.
-10. Predictive Usefulness Acceptance Candidate, only if readiness passes.
-11. Profitability review chain, if separately required.
-12. Runtime migration chain, if ever separately authorized.
+4. Feature/Label Refinement Execution Candidate Operator Review Package.
+5. Feature/Label Refinement Execution Approval Ceremony, if selected.
+6. Feature/Label Refinement Execution.
+7. Feature/Label Refinement Results Review Package.
+8. Additional Predictive Evidence Execution Candidate for refined evidence.
+9. Additional Predictive Evidence Execution Approval Ceremony, if required.
+10. Additional Predictive Evidence Execution.
+11. Additional Predictive Evidence Results Review.
+12. Predictive Usefulness Reassessment Review rerun.
+13. Predictive Usefulness Acceptance Readiness Review rerun.
+14. Predictive Usefulness Acceptance Candidate, only if readiness passes.
+15. Profitability review chain, if separately required.
+16. Runtime migration chain, if ever separately authorized.
 
 ## Future Gates
 
 - `feature_label_refinement_plan_candidate_operator_review`
 - `feature_label_refinement_plan_approval_if_selected`
 - `feature_label_refinement_execution_candidate`
+- `feature_label_refinement_execution_candidate_operator_review`
+- `feature_label_refinement_execution_approval_if_selected`
+- `feature_label_refinement_execution`
+- `feature_label_refinement_results_review`
 - `additional_predictive_evidence_execution_candidate_for_refined_evidence`
 - `additional_predictive_evidence_execution_approval_if_required`
 - `additional_predictive_evidence_execution`
@@ -126,13 +134,14 @@ Define an offline, digest-bound, research-only candidate plan for future feature
 - Feature/Label Refinement Plan Approval Ceremony v1 is implemented.
 - Feature/Label Refinement Execution Candidate v1 is implemented as an offline, digest-bound candidate only.
 - Feature/Label Refinement Execution Candidate Operator Review Package v1 is implemented as a review-only layer.
-- Separate execution approval remains future work if selected; refinement execution and results review remain future work.
-- Approval authorizes only execution-candidate planning; refinement execution remains not authorized and not performed.
+- Feature/Label Refinement Execution Approval Ceremony v1 is implemented as an offline, digest-bound approval for future research execution only.
+- Refinement execution is now authorized but remains not performed; results review remains future work.
+- Plan approval authorizes only execution-candidate planning. The separate execution approval authorizes future refinement execution without creating execution evidence or results.
 - Additional Predictive Evidence Execution Candidate remains future work.
 - Predictive usefulness acceptance remains closed, profitability remains `not accepted`, and runtime activation remains separate future work.
 
 ## Next Tasks
 
-1. Feature/Label Refinement Execution Approval Ceremony v1, if selected.
-2. Feature/Label Refinement Execution v1, only after separate approval.
-3. Feature/Label Refinement Results Review Package v1, only after execution.
+1. Feature/Label Refinement Execution v1, consuming the exact approval digest.
+2. Feature/Label Refinement Results Review Package v1, only after execution.
+3. Additional Predictive Evidence Execution Candidate v1, only after reviewed refinement results.
