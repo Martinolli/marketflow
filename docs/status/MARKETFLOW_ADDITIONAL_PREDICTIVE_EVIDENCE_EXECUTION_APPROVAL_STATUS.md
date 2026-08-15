@@ -136,4 +136,9 @@ All ten families are `AUTHORIZED_NOT_EXECUTED`, research-only, and non-actionabl
 
 ## Next Task Recommendation
 
-- `Additional Predictive Evidence Execution v1` is separate future work and must produce research-only results for a later results-review package.
+- Follow-on `Additional Predictive Evidence Execution v1` is implemented on the stacked execution branch.
+- This approval remains the digest-bound source authority for that execution.
+- The execution created research-only, non-actionable evidence results under the ignored `.marketflow` output root.
+- Predictive usefulness and profitability remain `not accepted`.
+- Runtime, Strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
+- The next separate task is `Additional Predictive Evidence Results Review Package v1`.
