@@ -80,4 +80,7 @@
 
 ## Next Task Recommendation
 
-- `Feature/Label Refinement Execution v1`, only as a separate research-only task that consumes this exact approval digest and preserves every execution, predictive, profitability, and runtime boundary until its own evidence is produced and reviewed.
+- Follow-on `Feature/Label Refinement Execution v1` is implemented on its stacked feature branch and consumes this exact approval digest as source evidence.
+- The execution creates research-only refinement results; it does not change or broaden this approval artifact.
+- No additional predictive-evidence execution candidate was created. Predictive usefulness and profitability remain `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- Next: `Feature/Label Refinement Results Review Package v1`, as a separate offline review task.

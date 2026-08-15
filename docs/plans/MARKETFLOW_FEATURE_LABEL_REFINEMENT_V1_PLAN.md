@@ -135,13 +135,14 @@ Define an offline, digest-bound, research-only candidate plan for future feature
 - Feature/Label Refinement Execution Candidate v1 is implemented as an offline, digest-bound candidate only.
 - Feature/Label Refinement Execution Candidate Operator Review Package v1 is implemented as a review-only layer.
 - Feature/Label Refinement Execution Approval Ceremony v1 is implemented as an offline, digest-bound approval for future research execution only.
-- Refinement execution is now authorized but remains not performed; results review remains future work.
+- Feature/Label Refinement Execution v1 is implemented as an offline, digest-bound research run; refinement execution and research-only results are now created.
+- Feature/Label Refinement Results Review Package v1 remains future work.
 - Plan approval authorizes only execution-candidate planning. The separate execution approval authorizes future refinement execution without creating execution evidence or results.
 - Additional Predictive Evidence Execution Candidate remains future work.
 - Predictive usefulness acceptance remains closed, profitability remains `not accepted`, and runtime activation remains separate future work.
 
 ## Next Tasks
 
-1. Feature/Label Refinement Execution v1, consuming the exact approval digest.
-2. Feature/Label Refinement Results Review Package v1, only after execution.
-3. Additional Predictive Evidence Execution Candidate v1, only after reviewed refinement results.
+1. Feature/Label Refinement Results Review Package v1, reviewing the exact execution digest and ignored outputs.
+2. Additional Predictive Evidence Execution Candidate v1, only after reviewed refinement results.
+3. Predictive Usefulness Reassessment and Readiness reviews, only through their separate future gates.
