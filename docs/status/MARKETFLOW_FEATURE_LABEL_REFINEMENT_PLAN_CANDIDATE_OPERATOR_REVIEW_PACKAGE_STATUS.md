@@ -162,4 +162,8 @@ Every reviewed group remains `PLANNED_NOT_EXECUTED`, `NOT_AUTHORIZED`, `NOT_EXEC
 
 ## Next Task Recommendation
 
-- `Feature/Label Refinement Plan Approval Ceremony v1`, if selected.
+- Follow-on `Feature/Label Refinement Plan Approval Ceremony v1` is implemented on `feature/feature-label-refinement-plan-approval-v1`.
+- This candidate review remains the exact source evidence for that approval.
+- Approval authorizes only future Feature/Label Refinement Execution Candidate planning; it does not authorize or perform refinement execution.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- The next recommended task is `Feature/Label Refinement Execution Candidate v1`.
