@@ -115,4 +115,7 @@ All operator-review, refinement, execution, results, reassessment, readiness, ac
 
 ## Next Task Recommendation
 
-- `Predictive Evidence Improvement Candidate Operator Review Package v1` is the next separate task.
+- Follow-on `Predictive Evidence Improvement Candidate Operator Review Package v1` is implemented on `feature/predictive-evidence-improvement-candidate-review-v1`.
+- This candidate remains bound source evidence for that review.
+- The review does not authorize improvement execution; predictive usefulness and profitability remain `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- `Feature/Label Refinement Plan Candidate v1` remains a separate future task if selected.

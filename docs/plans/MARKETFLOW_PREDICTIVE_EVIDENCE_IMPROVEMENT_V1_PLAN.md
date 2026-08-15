@@ -64,8 +64,17 @@ All future gates remain distinct and closed until their prerequisite review or a
 - Use deterministic canonical JSON, semantic digests, strict validation, and no-overwrite output.
 - Planned themes, options, and outputs do not imply execution or authority.
 
+## Implementation Progress
+
+- Predictive Evidence Improvement Candidate v1 is completed.
+- Predictive Evidence Improvement Candidate Operator Review Package v1 is implemented and binds the candidate as source evidence.
+- The operator review preserves all themes, options, per-ticker digests, future gates, controls, and planned-output boundaries.
+- Feature/Label Refinement Plan Candidate v1 remains future work if selected.
+- Additional Predictive Evidence Execution Candidate remains future and requires a separate chain.
+- Predictive usefulness acceptance remains closed; profitability remains `not accepted`; runtime activation remains future and separate.
+
 ## Next Tasks
 
-1. Predictive Evidence Improvement Candidate Operator Review Package v1.
-2. Feature/Label Refinement Plan Candidate v1, if selected.
-3. Additional Predictive Evidence Execution Candidate for improved evidence, only after the required reviews.
+1. Feature/Label Refinement Plan Candidate v1, if selected.
+2. Additional Predictive Evidence Execution Candidate for improved evidence, only after the required reviews.
+3. Separate execution approval and execution, only if later explicitly authorized.
