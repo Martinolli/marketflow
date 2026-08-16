@@ -67,4 +67,6 @@
 
 - Checklist: `35 / 35` passed, `0` failed, and `0` blockers.
 - No provider request, live transport, market-data acquisition, dataset regeneration, original/refined predictive rerun, label/feature generation, metric recomputation, model training, scoring, or recommendation occurred.
-- Next possible task: `Operator Method Path Selection v1`; no downstream candidate or execution is created by this review.
+- Operator Method Path Selection v1 is implemented as an attested, selection-only follow-on; this diagnostic review remains its bound source evidence.
+- The selected path is `OPTION_C_LABEL_OBJECTIVE_REDESIGN_CANDIDATE`. Selection does not create `LABEL_OBJECTIVE_REDESIGN_CANDIDATE` or authorize execution.
+- Next possible task: `Label Objective Redesign Candidate v1`, if separately requested; predictive acceptance, profitability, runtime, and trading remain closed.

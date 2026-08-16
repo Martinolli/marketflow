@@ -87,6 +87,7 @@ __all__ = [
     "predictive_evidence_improvement_candidate_operator_review_service",
     "predictive_evidence_planning_tree_review_service",
     "predictive_evidence_method_diagnostic_review_service",
+    "predictive_evidence_operator_method_path_selection_service",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -2608,6 +2609,20 @@ from marketflow.services.predictive_evidence_method_diagnostic_review_service im
     predictive_evidence_method_diagnostic_review_package_digest_v1,
     validate_predictive_evidence_method_diagnostic_review_package_v1,
     write_predictive_evidence_method_diagnostic_review_package_v1,
+)
+from marketflow.services.predictive_evidence_operator_method_path_selection_service import (
+    ARTIFACT_KIND_PREDICTIVE_EVIDENCE_OPERATOR_METHOD_PATH_SELECTION,
+    METHOD_PATH_SELECTION_ONLY_NOT_EXECUTION,
+    PREDICTIVE_EVIDENCE_OPERATOR_METHOD_PATH_SELECTED,
+    REQUIRED_OPERATOR_METHOD_PATH_SELECTION_ATTESTATION_PHRASE,
+    SELECTED_METHOD_PATH_OPTION_C_LABEL_OBJECTIVE_REDESIGN_CANDIDATE,
+    SELECTED_NEXT_ARTIFACT_KIND_LABEL_OBJECTIVE_REDESIGN_CANDIDATE,
+    build_predictive_evidence_operator_method_path_selection_attestation_v1,
+    build_predictive_evidence_operator_method_path_selection_markdown_v1,
+    build_predictive_evidence_operator_method_path_selection_v1,
+    predictive_evidence_operator_method_path_selection_digest_v1,
+    validate_predictive_evidence_operator_method_path_selection_v1,
+    write_predictive_evidence_operator_method_path_selection_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
