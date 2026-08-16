@@ -116,4 +116,8 @@
 
 ## Next Task Recommendation
 
-- `Additional Predictive Evidence Execution Approval for Refined Evidence v1`, if selected.
+- Follow-on `Additional Predictive Evidence Execution Approval for Refined Evidence v1` is implemented on its stacked feature branch.
+- This candidate review remains the bound source evidence for that approval.
+- Approval authorizes only future refined-evidence execution; execution and results remain not performed/not created.
+- Predictive usefulness and profitability remain not accepted, and runtime remains not authorized.
+- Next separate task: `Additional Predictive Evidence Execution for Refined Evidence v1`.
