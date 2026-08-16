@@ -69,7 +69,8 @@ The candidate cannot authorize label generation or execution; accept predictive 
 - Label Objective Redesign Execution Candidate Operator Review Package v1 is completed and digest-bound to the execution candidate.
 - Label Objective Redesign Execution Approval v1 is completed with exact operator attestation and approval-only scope.
 - Label Objective Redesign Execution v1 is implemented and produced eight research-only design artifacts.
-- Label Objective Redesign Results Review remains future work after this planning-output execution.
+- Label Objective Redesign Results Review v1 is implemented and digest-bound to the eight saved planning outputs.
+- Redesigned Label Generation Candidate v1 remains future work and was not created by the results review.
 - Redesigned label generation remains unauthorized and unperformed.
 - Predictive usefulness acceptance remains closed; profitability remains not accepted.
 - Runtime activation remains future and separate.
