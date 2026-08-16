@@ -91,4 +91,6 @@
 ## Non-Goals And Next Task
 
 - This execution is not predictive-usefulness acceptance, profitability acceptance, runtime migration, strategy activation, paper trading, broker execution, or trade recommendation generation.
-- Next task recommendation: `Additional Predictive Evidence Results Review for Refined Evidence v1`.
+- The follow-on Additional Predictive Evidence Results Review for Refined Evidence v1 is implemented as a separate offline, digest-bound package; this execution artifact remains its source evidence.
+- The results review creates no predictive-usefulness reassessment review: predictive usefulness and profitability remain `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- Next task recommendation: `Predictive Usefulness Reassessment Review Rerun Using Refined Evidence v1`.
