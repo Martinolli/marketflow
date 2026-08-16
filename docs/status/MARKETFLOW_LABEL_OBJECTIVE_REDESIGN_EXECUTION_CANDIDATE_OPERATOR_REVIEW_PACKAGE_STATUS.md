@@ -61,5 +61,6 @@
 
 ## Next Boundary
 
-- Label Objective Redesign Execution Approval v1 remains future work and requires a separate operator selection and authorization.
-- Label Objective Redesign Execution v1 remains future, unauthorized, and unperformed.
+- The follow-on Label Objective Redesign Execution Approval v1 is implemented on its separate stacked branch; this review package remains immutable source evidence.
+- That approval authorizes future redesign execution only. It does not execute redesign or authorize redesigned label generation; predictive usefulness and profitability remain not accepted, and runtime remains not authorized.
+- Label Objective Redesign Execution v1 remains future and unperformed; the review package itself remains non-authorizing.

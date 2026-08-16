@@ -93,6 +93,7 @@ __all__ = [
     "label_objective_redesign_approval_service",
     "label_objective_redesign_execution_candidate_service",
     "label_objective_redesign_execution_candidate_operator_review_service",
+    "label_objective_redesign_execution_approval_service",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -2680,6 +2681,19 @@ from marketflow.services.label_objective_redesign_execution_candidate_operator_r
     per_ticker_label_objective_redesign_execution_candidate_review_digest_v1,
     validate_label_objective_redesign_execution_candidate_review_package_v1,
     write_label_objective_redesign_execution_candidate_review_package_v1,
+)
+from marketflow.services.label_objective_redesign_execution_approval_service import (
+    ARTIFACT_KIND_LABEL_OBJECTIVE_REDESIGN_EXECUTION_APPROVED,
+    LABEL_OBJECTIVE_REDESIGN_EXECUTION_APPROVAL_ONLY,
+    LABEL_OBJECTIVE_REDESIGN_EXECUTION_APPROVED,
+    REQUIRED_LABEL_OBJECTIVE_REDESIGN_EXECUTION_APPROVAL_ATTESTATION_PHRASE,
+    build_label_objective_redesign_execution_approval_attestation_v1,
+    build_label_objective_redesign_execution_approved_markdown_v1,
+    build_label_objective_redesign_execution_approved_v1,
+    label_objective_redesign_execution_approval_digest_v1,
+    per_ticker_label_objective_redesign_execution_approval_digest_v1,
+    validate_label_objective_redesign_execution_approved_v1,
+    write_label_objective_redesign_execution_approved_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
