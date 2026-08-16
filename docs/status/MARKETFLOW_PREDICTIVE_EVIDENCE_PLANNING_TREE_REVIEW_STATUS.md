@@ -75,4 +75,6 @@
 
 - Checklist: `22 / 22` passed, `0` failed, and `0` blockers.
 - The checklist validates the review package and closed boundaries; it does not validate predictive usefulness or profitability.
-- Next step: `OPTION_B_METHOD_DIAGNOSTIC_REVIEW`, if desired, before any separately reviewed future execution loop.
+- Method Diagnostic Review v1 is implemented as the diagnosis-only follow-on; this planning-tree review remains its bound source evidence.
+- Both original and refined-evidence readiness gates remain not ready. The diagnostic review creates no redesign, execution, acceptance, profitability, or runtime authority.
+- Next step: `Operator Method Path Selection v1`, if desired, before any separately reviewed future candidate or execution loop.
