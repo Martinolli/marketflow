@@ -91,5 +91,7 @@
 
 - The low-to-mixed OOS range, unavailable model families, calibration/stability interpretation, and preserved META limitation require operator review.
 - The review result is research-only and is not predictive-usefulness or profitability acceptance evidence.
-- Next task recommendation: `Predictive Usefulness Reassessment Review Rerun Using Refined Evidence v1`.
+- The follow-on Predictive Usefulness Reassessment Review Rerun Using Refined Evidence v1 is implemented as a separate offline, digest-bound package; this refined-evidence results review remains its source evidence.
+- The reassessment rerun does not accept predictive usefulness: profitability remains `not accepted`, and runtime remains `NOT_AUTHORIZED`.
+- Next task recommendation: `Predictive Usefulness Acceptance Readiness Review Rerun Using Refined Evidence v1`.
 - Later acceptance-readiness, acceptance-candidate, profitability, and runtime chains remain separate and closed.
