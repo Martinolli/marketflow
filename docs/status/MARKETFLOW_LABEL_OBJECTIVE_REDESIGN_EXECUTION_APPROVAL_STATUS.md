@@ -64,5 +64,6 @@
 
 ## Next Boundary
 
-- Label Objective Redesign Execution v1 remains future work. It requires a separate task and must remain research-only.
+- The follow-on Label Objective Redesign Execution v1 is implemented on its separate stacked branch; this approval remains immutable source evidence.
+- Execution creates eight research-only planning outputs and does not generate redesigned labels. Predictive usefulness and profitability remain not accepted, and runtime remains not authorized.
 - Label Objective Redesign Results Review v1 remains future and cannot be inferred from this approval.
