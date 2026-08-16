@@ -26,6 +26,7 @@ __all__ = [
     "additional_predictive_evidence_execution_candidate_for_refined_evidence_service",
     "additional_predictive_evidence_execution_candidate_for_refined_evidence_operator_review_service",
     "additional_predictive_evidence_execution_approval_for_refined_evidence_service",
+    "additional_predictive_evidence_execution_for_refined_evidence_service",
     "additional_predictive_evidence_execution_approval_service",
     "additional_predictive_evidence_execution_service",
     "additional_predictive_evidence_results_review_service",
@@ -2704,6 +2705,17 @@ from marketflow.services.additional_predictive_evidence_execution_approval_for_r
     per_ticker_additional_predictive_evidence_execution_approval_for_refined_evidence_digest_v1,
     validate_additional_predictive_evidence_execution_approved_for_refined_evidence_v1,
     write_additional_predictive_evidence_execution_approved_for_refined_evidence_v1,
+)
+from marketflow.services.additional_predictive_evidence_execution_for_refined_evidence_service import (
+    ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTED_FOR_REFINED_EVIDENCE_RESEARCH_ONLY,
+    ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTION_FOR_REFINED_EVIDENCE_BLOCKED_MISSING_OR_INVALID_REFINED_EVIDENCE,
+    ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTION_FOR_REFINED_EVIDENCE_VALID,
+    ARTIFACT_KIND_ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTED_FOR_REFINED_EVIDENCE,
+    ARTIFACT_KIND_ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTION_FOR_REFINED_EVIDENCE_BLOCKED,
+    additional_predictive_evidence_execution_for_refined_evidence_digest_v1,
+    build_additional_predictive_evidence_execution_for_refined_evidence_status_markdown_v1,
+    execute_additional_predictive_evidence_for_refined_evidence_v1,
+    validate_additional_predictive_evidence_executed_for_refined_evidence_v1,
 )
 from marketflow.services.predictive_usefulness_assessment_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_USEFULNESS_ASSESSMENT_CANDIDATE_REVIEW_PACKAGE,

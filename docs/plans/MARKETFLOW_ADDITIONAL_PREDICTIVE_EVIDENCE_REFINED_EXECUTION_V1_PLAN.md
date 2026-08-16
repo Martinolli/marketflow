@@ -91,12 +91,14 @@ Define the controlled path from reviewed feature/label refinement evidence to a 
 
 - Additional Predictive Evidence Execution Candidate for Refined Evidence v1 is completed.
 - Its Operator Review Package v1 is completed as an offline, digest-bound review only.
-- Additional Predictive Evidence Execution Approval for Refined Evidence v1 is implemented as an attestation-gated, offline approval for future research execution only.
-- Execution and results review for refined evidence remain future work.
+- Additional Predictive Evidence Execution Approval for Refined Evidence v1 is completed as an attestation-gated, offline approval for research execution only.
+- Additional Predictive Evidence Execution for Refined Evidence v1 is implemented and executed offline, producing ten ignored research-only outputs.
+- Results review for refined evidence remains future work.
+- Predictive-usefulness reassessment and acceptance-readiness reruns remain future work.
 - Predictive-usefulness acceptance remains closed, profitability remains `not accepted`, and runtime activation remains future and separate.
 
 ## Next Tasks
 
-1. Additional Predictive Evidence Execution for Refined Evidence v1.
-2. Additional Predictive Evidence Results Review for Refined Evidence v1.
-3. Predictive Usefulness Reassessment Review rerun using refined evidence.
+1. Additional Predictive Evidence Results Review for Refined Evidence v1.
+2. Predictive Usefulness Reassessment Review rerun using refined evidence.
+3. Predictive Usefulness Acceptance Readiness Review rerun.
