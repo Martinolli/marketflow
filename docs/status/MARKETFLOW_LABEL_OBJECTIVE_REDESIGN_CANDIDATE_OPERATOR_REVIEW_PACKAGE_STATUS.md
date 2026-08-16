@@ -64,4 +64,6 @@
 - Predictive usefulness/profitability: `not accepted / not accepted`.
 - Runtime/strategy/paper/broker: all `NOT_AUTHORIZED`; trade recommendations: `False`.
 - No provider request, acquisition, dataset regeneration, evidence rerun, label/feature generation, metric recomputation, model training, strategy scoring, runtime activation, or trading action occurred.
-- Next task: `Label Objective Redesign Approval Ceremony v1`, only if separately selected and requested.
+- Follow-on status: Label Objective Redesign Approval Ceremony v1 is implemented on `feature/label-objective-redesign-approval-v1`; this review remains its source evidence.
+- Approval permits future execution-candidate planning only. It does not authorize execution or label generation; predictive usefulness and profitability remain not accepted, and runtime remains not authorized.
+- Next task: `Label Objective Redesign Execution Candidate v1`, only if separately requested.
