@@ -14,7 +14,8 @@
 - Status: `LABEL_OBJECTIVE_REDESIGN_EXECUTION_CANDIDATE_READY_FOR_OPERATOR_REVIEW`.
 - Deterministic candidate digest: `92171d443cb676425a73dbdf484040f55a19371c5c0713b70e5ea6f37742b63d`.
 - Execution candidate created / ready for operator review: `True / True`.
-- Candidate review created: `False`; ready for execution approval/execution: `False / False`.
+- The follow-on execution-candidate operator review package is implemented on its separate stacked branch; this execution candidate remains its immutable source evidence.
+- Candidate review created by the follow-on review package: `True`; ready for execution approval/execution remains `False / False`.
 
 ## Bound Evidence
 
@@ -60,4 +61,5 @@
 - Predictive usefulness/profitability: `not accepted / not accepted`.
 - Runtime/strategy/paper/broker: all `NOT_AUTHORIZED`; trade recommendations: `False`.
 - No provider request, acquisition, dataset regeneration, evidence rerun, label/feature generation, metric recomputation, model training, strategy scoring, runtime activation, or trading action occurred.
-- Next task: `Label Objective Redesign Execution Candidate Operator Review Package v1`, only if separately requested.
+- The follow-on review does not authorize execution or label generation. Predictive usefulness remains not accepted, profitability remains not accepted, and runtime remains not authorized.
+- Next possible task: `Label Objective Redesign Execution Approval v1`, only if separately selected and authorized.
