@@ -86,9 +86,12 @@ Define the controlled path from the reviewed refined-evidence results through an
 - Predictive Usefulness Acceptance Readiness Review Rerun Using Refined Evidence v1 is implemented with decision `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_USING_REFINED_EVIDENCE`.
 - Refined-evidence improvement or additional-evidence planning remains future work.
 - The predictive-usefulness acceptance ceremony remains closed. Predictive usefulness and profitability remain `not accepted`; runtime activation remains future and separate.
+- Predictive Evidence Planning Tree Review v1 is implemented as an offline, digest-bound review package.
+- Both the original and refined-evidence readiness gates remain not ready.
+- The recommended next step is a method diagnostic review before any further evidence-execution loop.
 
 ## Next Tasks
 
-1. Refined Evidence Improvement Candidate v1, if desired, or pause before any further improvement cycle.
-2. Additional refined evidence planning and its separate approval/execution/review chain, only if desired.
-3. A future reassessment and acceptance-readiness rerun; an acceptance candidate remains conditional on readiness passing.
+1. Method Diagnostic Review v1, if desired, or pause and archive the research chain.
+2. Any redesign or evidence-scope candidate requires its own operator review before execution is considered.
+3. Predictive-usefulness acceptance remains unavailable unless a future evidence cycle separately passes readiness; profitability and runtime remain separate and closed.
