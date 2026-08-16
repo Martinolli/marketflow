@@ -82,6 +82,7 @@ __all__ = [
     "predictive_usefulness_reassessment_candidate_operator_review_service",
     "predictive_usefulness_reassessment_review_service",
     "predictive_usefulness_acceptance_readiness_review_service",
+    "predictive_usefulness_acceptance_readiness_review_rerun_using_refined_evidence_service",
     "predictive_evidence_improvement_candidate_service",
     "predictive_evidence_improvement_candidate_operator_review_service",
     "feature_label_refinement_plan_candidate_service",
@@ -2566,6 +2567,17 @@ from marketflow.services.predictive_usefulness_acceptance_readiness_review_servi
     predictive_usefulness_acceptance_readiness_review_digest_v1,
     validate_predictive_usefulness_acceptance_readiness_review_v1,
     write_predictive_usefulness_acceptance_readiness_review_v1,
+)
+from marketflow.services.predictive_usefulness_acceptance_readiness_review_rerun_using_refined_evidence_service import (
+    ARTIFACT_KIND_PREDICTIVE_USEFULNESS_ACCEPTANCE_READINESS_REVIEW_RERUN_USING_REFINED_EVIDENCE,
+    PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_USING_REFINED_EVIDENCE,
+    PREDICTIVE_USEFULNESS_ACCEPTANCE_READINESS_REVIEW_RERUN_USING_REFINED_EVIDENCE_COMPLETED,
+    build_predictive_usefulness_acceptance_readiness_review_rerun_using_refined_evidence_markdown_v1,
+    build_predictive_usefulness_acceptance_readiness_review_rerun_using_refined_evidence_v1,
+    per_ticker_predictive_usefulness_acceptance_readiness_review_rerun_using_refined_evidence_digest_v1,
+    predictive_usefulness_acceptance_readiness_review_rerun_using_refined_evidence_digest_v1,
+    validate_predictive_usefulness_acceptance_readiness_review_rerun_using_refined_evidence_v1,
+    write_predictive_usefulness_acceptance_readiness_review_rerun_using_refined_evidence_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE,

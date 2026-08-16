@@ -82,11 +82,13 @@ Define the controlled path from the reviewed refined-evidence results through an
 ## Current Progress
 
 - Additional Predictive Evidence Results Review for Refined Evidence v1 is completed.
-- Predictive Usefulness Reassessment Review Rerun Using Refined Evidence v1 is implemented as an offline, digest-bound, research-only package.
-- Predictive usefulness and profitability remain `not accepted`; runtime activation remains future and separate.
+- Predictive Usefulness Reassessment Review Rerun Using Refined Evidence v1 is completed as an offline, digest-bound, research-only package.
+- Predictive Usefulness Acceptance Readiness Review Rerun Using Refined Evidence v1 is implemented with decision `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_USING_REFINED_EVIDENCE`.
+- Refined-evidence improvement or additional-evidence planning remains future work.
+- The predictive-usefulness acceptance ceremony remains closed. Predictive usefulness and profitability remain `not accepted`; runtime activation remains future and separate.
 
 ## Next Tasks
 
-1. Predictive Usefulness Acceptance Readiness Review Rerun Using Refined Evidence v1.
-2. Predictive Usefulness Acceptance Candidate, only if readiness passes.
-3. Predictive Usefulness Acceptance Ceremony, only if separately approved.
+1. Refined Evidence Improvement Candidate v1, if desired, or pause before any further improvement cycle.
+2. Additional refined evidence planning and its separate approval/execution/review chain, only if desired.
+3. A future reassessment and acceptance-readiness rerun; an acceptance candidate remains conditional on readiness passing.

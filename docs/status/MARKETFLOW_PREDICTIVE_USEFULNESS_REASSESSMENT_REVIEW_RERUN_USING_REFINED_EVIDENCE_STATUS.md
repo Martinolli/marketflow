@@ -102,4 +102,7 @@
 - Provider requests, live transport, market-data acquisition, dataset generation, and canonical regeneration: all `False`.
 - Feature/label refinement, refined label/feature generation, walk-forward/OOS reassessment, metrics, model comparison, and refined additional-predictive-evidence execution were not rerun.
 - No API key or `.env` was inspected, stored, or printed; no strategy scoring or trade recommendation occurred.
-- Next task recommendation: `Predictive Usefulness Acceptance Readiness Review Rerun Using Refined Evidence v1`.
+- The follow-on Predictive Usefulness Acceptance Readiness Review Rerun Using Refined Evidence v1 is implemented. This reassessment rerun remains its bound source evidence.
+- The readiness rerun does not accept predictive usefulness. Its current decision is `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_USING_REFINED_EVIDENCE`.
+- Profitability remains `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- Next task recommendation: `Refined Evidence Improvement Candidate v1`, if desired, or pause before any further improvement cycle.
