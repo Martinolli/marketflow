@@ -5,7 +5,7 @@
 - Branch: `feature/operator-method-path-selection-v1`.
 - Base commit: `51a65e860d100659df48c6eb447012e7a052dbb7`.
 - Commit: recorded by this document's implementing commit after validation.
-- Scope: offline, digest-bound operator selection of the next planning path. This artifact opens only the future Label Objective Redesign Candidate gate; it neither creates that candidate nor authorizes execution.
+- Scope: offline, digest-bound operator selection of the next planning path. The follow-on Label Objective Redesign Candidate is now implemented on its separate stacked branch; this selection remains its source evidence and does not authorize execution.
 
 ## Selection Artifact
 
@@ -46,7 +46,7 @@
 - Selected option: `OPTION_C_LABEL_OBJECTIVE_REDESIGN_CANDIDATE`.
 - Selected next artifact kind: `LABEL_OBJECTIVE_REDESIGN_CANDIDATE`.
 - Path status: `SELECTED_FOR_FUTURE_CANDIDATE_ONLY`.
-- Ready for the separately implemented candidate: `True`; candidate created: `False`.
+- Ready for the separately implemented candidate: `True`; this source selection artifact remains unchanged with candidate created: `False`. The follow-on artifact records creation independently.
 - Reason: `LABEL_OBJECTIVE_AND_PREDICTION_TARGET_MUST_BE_DIAGNOSED_BEFORE_MORE_MODEL_OR_EXECUTION_WORK`.
 - Basis: `TWO_CONSECUTIVE_READINESS_GATES_NOT_READY_AFTER_ORIGINAL_AND_REFINED_EVIDENCE`.
 
@@ -65,4 +65,6 @@
 ## Checklist And Next Task
 
 - Checklist: `33 / 33` passed, `0` failed, and `0` blockers.
-- Next task: `Label Objective Redesign Candidate v1`, if separately requested. This selection artifact does not create it.
+- Follow-on status: Label Objective Redesign Candidate v1 is implemented on `feature/label-objective-redesign-candidate-v1`; the selection remains source evidence.
+- The follow-on candidate does not authorize redesign execution. Predictive usefulness and profitability remain not accepted, and runtime remains not authorized.
+- Next task: `Label Objective Redesign Candidate Operator Review Package v1`, only if separately requested.
