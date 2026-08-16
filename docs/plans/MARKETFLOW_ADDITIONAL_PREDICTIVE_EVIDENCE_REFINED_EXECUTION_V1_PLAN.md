@@ -87,8 +87,16 @@ Define the controlled path from reviewed feature/label refinement evidence to a 
 - Preserve the exact universe order, per-ticker counts, and META limitation.
 - Fail closed on changed evidence, missing planning sections, unauthorized flags, or altered deterministic digests.
 
+## Current Progress
+
+- Additional Predictive Evidence Execution Candidate for Refined Evidence v1 is completed.
+- Its Operator Review Package v1 is implemented as an offline, digest-bound review only.
+- Execution approval for refined evidence remains future work, if selected.
+- Execution and results review for refined evidence remain future work.
+- Predictive-usefulness acceptance remains closed, profitability remains `not accepted`, and runtime activation remains future and separate.
+
 ## Next Tasks
 
-1. Additional Predictive Evidence Execution Candidate for Refined Evidence Operator Review Package v1.
-2. Additional Predictive Evidence Execution Approval for Refined Evidence v1, if selected.
-3. Additional Predictive Evidence Execution for Refined Evidence v1.
+1. Additional Predictive Evidence Execution Approval for Refined Evidence v1, if selected.
+2. Additional Predictive Evidence Execution for Refined Evidence v1.
+3. Additional Predictive Evidence Results Review for Refined Evidence v1.
