@@ -62,4 +62,9 @@ The candidate cannot authorize label generation or execution; accept predictive 
 
 ## Next Task
 
-`Label Objective Redesign Candidate Operator Review Package v1`, only after a separate request.
+- Label Objective Redesign Candidate v1 is completed.
+- Label Objective Redesign Candidate Operator Review Package v1 is implemented and digest-bound to the completed candidate.
+- Label Objective Redesign Approval Ceremony v1 remains future work only if separately selected and requested.
+- Label Objective Redesign execution remains future, unapproved, unauthorized, and unperformed.
+- Predictive usefulness acceptance remains closed; profitability remains not accepted.
+- Runtime activation remains future and separate.
