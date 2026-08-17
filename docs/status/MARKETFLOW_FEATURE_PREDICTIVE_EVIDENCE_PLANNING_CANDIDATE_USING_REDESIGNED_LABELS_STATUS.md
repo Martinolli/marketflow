@@ -100,4 +100,10 @@ Every future step is a separate closed gate. Recording it does not create, appro
 
 ## Next Task
 
-- `Feature / Predictive Evidence Planning Candidate Operator Review Package Using Redesigned Labels v1` remains the next separate task.
+- The follow-on `Feature / Predictive Evidence Planning Candidate Operator Review Package Using Redesigned Labels v1` is implemented on its separate guarded branch.
+- This candidate remains the source evidence reviewed by that package.
+- The review does not approve feature generation or predictive-evidence execution.
+- Predictive usefulness remains not accepted.
+- Profitability remains not accepted.
+- Runtime remains not authorized.
+- Feature/predictive-evidence planning approval remains future, separate work if selected.
