@@ -104,6 +104,15 @@ __all__ = [
     "label_objective_redesign_results_review_package_digest_v1",
     "validate_label_objective_redesign_results_review_package_v1",
     "write_label_objective_redesign_results_review_package_v1",
+    "redesigned_label_generation_candidate_service",
+    "ARTIFACT_KIND_REDESIGNED_LABEL_GENERATION_CANDIDATE",
+    "REDESIGNED_LABEL_GENERATION_CANDIDATE_READY_FOR_OPERATOR_REVIEW",
+    "build_redesigned_label_generation_candidate_markdown_v1",
+    "build_redesigned_label_generation_candidate_v1",
+    "per_ticker_redesigned_label_generation_candidate_digest_v1",
+    "redesigned_label_generation_candidate_digest_v1",
+    "validate_redesigned_label_generation_candidate_v1",
+    "write_redesigned_label_generation_candidate_v1",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -2724,6 +2733,16 @@ from marketflow.services.label_objective_redesign_results_review_service import 
     label_objective_redesign_results_review_package_digest_v1,
     validate_label_objective_redesign_results_review_package_v1,
     write_label_objective_redesign_results_review_package_v1,
+)
+from marketflow.services.redesigned_label_generation_candidate_service import (
+    ARTIFACT_KIND_REDESIGNED_LABEL_GENERATION_CANDIDATE,
+    REDESIGNED_LABEL_GENERATION_CANDIDATE_READY_FOR_OPERATOR_REVIEW,
+    build_redesigned_label_generation_candidate_markdown_v1,
+    build_redesigned_label_generation_candidate_v1,
+    per_ticker_redesigned_label_generation_candidate_digest_v1,
+    redesigned_label_generation_candidate_digest_v1,
+    validate_redesigned_label_generation_candidate_v1,
+    write_redesigned_label_generation_candidate_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,

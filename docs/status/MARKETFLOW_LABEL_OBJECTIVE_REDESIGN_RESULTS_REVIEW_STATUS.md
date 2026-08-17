@@ -98,5 +98,8 @@ Every listed step remains a separate gate. No step after this review is created,
 
 ## Next Task
 
-- `Redesigned Label Generation Candidate v1` remains future work and must be separately implemented and reviewed.
+- `Redesigned Label Generation Candidate v1` is implemented as a separate offline, digest-bound planning artifact; this results review remains its immutable source evidence.
+- The candidate does not authorize or perform label generation.
 - Actual label generation remains unauthorized.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- The next separate task is `Redesigned Label Generation Candidate Operator Review Package v1`.
