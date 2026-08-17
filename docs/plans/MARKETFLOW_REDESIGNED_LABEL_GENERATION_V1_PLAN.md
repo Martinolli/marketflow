@@ -64,5 +64,10 @@ The candidate cannot authorize or perform label or feature generation, predictiv
 
 ## Next Task
 
-- `Redesigned Label Generation Candidate Operator Review Package v1` is future, separate work.
-- The candidate does not create its review package and grants no label-generation authority.
+- Redesigned Label Generation Candidate v1 is completed.
+- Redesigned Label Generation Candidate Operator Review Package v1 is implemented and digest-bound to the candidate.
+- The candidate and review grant no label-generation authority and perform no label generation.
+- Redesigned Label Generation Approval v1 remains future work only if separately selected.
+- Redesigned Label Generation Execution v1 and actual label generation remain future, unauthorized work.
+- Predictive-usefulness acceptance remains closed; profitability remains `not accepted`.
+- Runtime activation remains future and separate.

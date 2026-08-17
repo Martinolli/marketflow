@@ -94,5 +94,7 @@ All 13 requested gates are recorded and remain separate; none after candidate cr
 
 ## Next Task
 
-- `Redesigned Label Generation Candidate Operator Review Package v1` remains the next separate task.
-- This candidate does not create its review package and does not imply approval or execution.
+- `Redesigned Label Generation Candidate Operator Review Package v1` is implemented as a separate offline, digest-bound review artifact; this candidate remains its immutable source evidence.
+- The review does not authorize or perform label generation.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- `Redesigned Label Generation Approval v1` remains future work only if separately selected and explicitly authorized.
