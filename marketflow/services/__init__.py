@@ -152,6 +152,15 @@ __all__ = [
     "redesigned_label_generation_results_review_package_digest_v1",
     "validate_redesigned_label_generation_results_review_package_v1",
     "write_redesigned_label_generation_results_review_package_v1",
+    "feature_predictive_evidence_planning_candidate_redesigned_labels_service",
+    "ARTIFACT_KIND_FEATURE_PREDICTIVE_EVIDENCE_PLANNING_CANDIDATE_USING_REDESIGNED_LABELS",
+    "FEATURE_PREDICTIVE_EVIDENCE_PLANNING_CANDIDATE_USING_REDESIGNED_LABELS_READY_FOR_OPERATOR_REVIEW",
+    "build_feature_predictive_evidence_planning_candidate_using_redesigned_labels_markdown_v1",
+    "build_feature_predictive_evidence_planning_candidate_using_redesigned_labels_v1",
+    "feature_predictive_evidence_planning_candidate_using_redesigned_labels_digest_v1",
+    "per_ticker_feature_predictive_evidence_planning_candidate_digest_v1",
+    "validate_feature_predictive_evidence_planning_candidate_using_redesigned_labels_v1",
+    "write_feature_predictive_evidence_planning_candidate_using_redesigned_labels_v1",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -2825,6 +2834,16 @@ from marketflow.services.redesigned_label_generation_results_review_service impo
     redesigned_label_generation_results_review_package_digest_v1,
     validate_redesigned_label_generation_results_review_package_v1,
     write_redesigned_label_generation_results_review_package_v1,
+)
+from marketflow.services.feature_predictive_evidence_planning_candidate_redesigned_labels_service import (
+    ARTIFACT_KIND_FEATURE_PREDICTIVE_EVIDENCE_PLANNING_CANDIDATE_USING_REDESIGNED_LABELS,
+    FEATURE_PREDICTIVE_EVIDENCE_PLANNING_CANDIDATE_USING_REDESIGNED_LABELS_READY_FOR_OPERATOR_REVIEW,
+    build_feature_predictive_evidence_planning_candidate_using_redesigned_labels_markdown_v1,
+    build_feature_predictive_evidence_planning_candidate_using_redesigned_labels_v1,
+    feature_predictive_evidence_planning_candidate_using_redesigned_labels_digest_v1,
+    per_ticker_feature_predictive_evidence_planning_candidate_digest_v1,
+    validate_feature_predictive_evidence_planning_candidate_using_redesigned_labels_v1,
+    write_feature_predictive_evidence_planning_candidate_using_redesigned_labels_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,

@@ -120,5 +120,7 @@ Every listed step remains a separate gate. None is created, approved, authorized
 
 ## Next Task
 
-- The next possible task is `Feature / Predictive Evidence Planning Candidate Using Redesigned Labels v1`.
-- That candidate remains future, separate, and non-authorized by this review.
+- `Feature / Predictive Evidence Planning Candidate Using Redesigned Labels v1` is implemented as a separate offline, digest-bound planning artifact; this results review remains its immutable source evidence.
+- The candidate does not generate features or execute predictive evidence and grants no downstream authorization.
+- Predictive usefulness/profitability remain `not accepted / not accepted`; runtime remains `NOT_AUTHORIZED`.
+- The next separate task is `Feature / Predictive Evidence Planning Candidate Operator Review Package Using Redesigned Labels v1`.
