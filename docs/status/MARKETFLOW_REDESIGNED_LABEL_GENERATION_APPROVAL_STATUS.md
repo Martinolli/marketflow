@@ -66,5 +66,7 @@
 
 ## Next Boundary
 
-- Redesigned Label Generation Execution v1 remains future, separate work.
-- This approval is valid input to that future ceremony only; it is not execution or results evidence.
+- Follow-on Redesigned Label Generation Execution v1 is implemented on its separate stacked branch; this approval remains immutable source evidence.
+- Execution generates research-only redesigned labels and does not generate features or execute predictive evidence.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- Redesigned Label Generation Results Review v1 remains future, separate work.

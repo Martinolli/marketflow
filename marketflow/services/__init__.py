@@ -134,6 +134,15 @@ __all__ = [
     "redesigned_label_generation_approval_digest_v1",
     "validate_redesigned_label_generation_approved_v1",
     "write_redesigned_label_generation_approved_v1",
+    "redesigned_label_generation_execution_service",
+    "ARTIFACT_KIND_REDESIGNED_LABEL_GENERATION_EXECUTED",
+    "ARTIFACT_KIND_REDESIGNED_LABEL_GENERATION_BLOCKED",
+    "REDESIGNED_LABEL_GENERATION_EXECUTED_RESEARCH_ONLY",
+    "REDESIGNED_LABEL_GENERATION_BLOCKED_MISSING_OR_INVALID_SOURCE_EVIDENCE",
+    "build_redesigned_label_generation_execution_status_markdown_v1",
+    "execute_redesigned_label_generation_v1",
+    "redesigned_label_generation_execution_digest_v1",
+    "validate_redesigned_label_generation_executed_v1",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -2787,6 +2796,16 @@ from marketflow.services.redesigned_label_generation_approval_service import (
     redesigned_label_generation_approval_digest_v1,
     validate_redesigned_label_generation_approved_v1,
     write_redesigned_label_generation_approved_v1,
+)
+from marketflow.services.redesigned_label_generation_execution_service import (
+    ARTIFACT_KIND_REDESIGNED_LABEL_GENERATION_BLOCKED,
+    ARTIFACT_KIND_REDESIGNED_LABEL_GENERATION_EXECUTED,
+    REDESIGNED_LABEL_GENERATION_BLOCKED_MISSING_OR_INVALID_SOURCE_EVIDENCE,
+    REDESIGNED_LABEL_GENERATION_EXECUTED_RESEARCH_ONLY,
+    build_redesigned_label_generation_execution_status_markdown_v1,
+    execute_redesigned_label_generation_v1,
+    redesigned_label_generation_execution_digest_v1,
+    validate_redesigned_label_generation_executed_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
