@@ -69,5 +69,7 @@
 
 ## Next Task
 
-- `Redesigned Label Generation Approval v1` remains future work only if separately selected and accompanied by its own explicit operator authority.
-- This review package does not approve label generation or execution.
+- Follow-on `Redesigned Label Generation Approval v1` is implemented on its separate stacked branch; this review remains the immutable source evidence bound by that ceremony.
+- The approval authorizes future redesigned-label generation only and does not perform label generation.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- This review package itself does not approve label generation or execution.
