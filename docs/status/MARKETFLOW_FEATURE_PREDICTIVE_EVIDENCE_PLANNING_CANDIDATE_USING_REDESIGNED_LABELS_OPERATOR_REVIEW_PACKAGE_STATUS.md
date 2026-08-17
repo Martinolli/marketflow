@@ -73,4 +73,12 @@ All fourteen future gates remain closed and separately governed. Recording or re
 
 ## Next Task
 
-- Feature/predictive-evidence planning approval remains future, separate work if selected by an operator.
+- Follow-on feature/predictive evidence planning approval using redesigned labels: implemented on its separate guarded branch.
+- Review remains the bound source evidence for that approval.
+- Approval authorizes planning only.
+- Approval does not create a feature-generation candidate.
+- Approval does not authorize predictive execution.
+- Predictive usefulness remains not accepted.
+- Profitability remains not accepted.
+- Runtime remains not authorized.
+- Feature-generation candidate work remains future and separate.

@@ -63,10 +63,10 @@ The candidate cannot generate features, execute predictive evidence, train model
 ## Next Task
 
 - The feature/predictive-evidence planning candidate is complete.
-- The candidate operator review is implemented.
-- Feature/predictive-evidence planning approval remains future work if selected.
-- Feature generation remains future and separately gated.
-- Predictive-evidence execution remains future and separately gated.
+- Feature/predictive evidence planning candidate: reviewed.
+- Feature/predictive evidence planning approval: implemented.
+- Feature-generation candidate remains future work and separately gated.
+- Predictive-evidence execution candidate remains future and separately gated after reviewed feature generation.
 - Predictive usefulness acceptance remains closed.
 - Profitability remains not accepted.
 - Runtime activation remains future and separate.
