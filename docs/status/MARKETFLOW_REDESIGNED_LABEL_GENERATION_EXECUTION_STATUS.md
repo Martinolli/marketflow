@@ -75,5 +75,7 @@
 
 ## Next Boundary
 
-- Redesigned Label Generation Results Review v1 remains future, separate work.
+- Redesigned Label Generation Results Review v1 is implemented as a separate offline, digest-bound inspection of the eleven ignored outputs; this execution remains its source evidence.
+- The results review does not generate features or predictive evidence and creates no feature-or-predictive-evidence planning candidate.
 - These generated labels are research-only evidence and do not establish predictive usefulness, profitability, or runtime authority.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.

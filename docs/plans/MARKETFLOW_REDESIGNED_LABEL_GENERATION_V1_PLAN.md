@@ -68,8 +68,9 @@ The candidate cannot authorize or perform label or feature generation, predictiv
 - Redesigned Label Generation Candidate Operator Review Package v1 is implemented and digest-bound to the candidate.
 - Redesigned Label Generation Approval v1 is implemented with the exact operator attestation and source digests; it authorizes future label generation only.
 - Redesigned Label Generation Execution v1 is implemented and generated the approved research-only labels from verified frozen sources.
+- Redesigned Label Generation Results Review v1 is implemented and digest-bound to the eleven saved ignored execution outputs.
 - The candidate and review remain non-authorizing source evidence, while the approval remains the exact authority input for the completed execution.
-- Redesigned Label Generation Results Review v1 remains future, separate work.
-- Feature generation remains unauthorized; predictive-evidence execution remains future and separately gated.
+- A feature-or-predictive-evidence planning candidate using redesigned labels remains future, separate work and was not created by the results review.
+- Feature generation remains unauthorized; predictive-evidence execution remains future and separately gated by planning, review, approval, and execution steps.
 - Predictive-usefulness acceptance remains closed; profitability remains `not accepted`.
 - Runtime activation remains future and separate.
