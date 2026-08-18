@@ -55,4 +55,8 @@
 
 ## Next Task
 
-- `Feature Generation Approval Using Redesigned Labels v1`, only if separately selected and authorized.
+- The follow-on `Feature Generation Approval Using Redesigned Labels v1` is implemented on its separate stacked branch.
+- This review package remains source evidence for the approval.
+- The approval authorizes future research-only feature generation and does not perform feature generation or create feature values.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- Feature-generation execution remains future, separate work.
