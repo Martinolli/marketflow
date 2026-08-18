@@ -75,4 +75,8 @@
 
 ## Next Task
 
-- `Feature Generation Candidate Using Redesigned Labels v1` remains future, separate work.
+- The follow-on `Feature Generation Candidate Using Redesigned Labels v1` is implemented on its separate stacked branch.
+- This planning approval remains source evidence for that candidate.
+- The candidate does not authorize or perform feature generation.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- The next separate task is `Feature Generation Candidate Operator Review Package Using Redesigned Labels v1`.
