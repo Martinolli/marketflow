@@ -55,3 +55,10 @@
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`; trade recommendations remain false.
 - No provider request, `.env` access, live transport, market-data acquisition, dataset regeneration, label regeneration, feature regeneration, predictive execution, runtime activation, broker action, or trading action occurred.
+
+## Follow-On Operator Review
+
+- `Additional Predictive Evidence Execution Candidate Operator Review Package Using Redesigned Labels v1` is implemented on its separate stacked branch.
+- This candidate remains the immutable source evidence for that review.
+- Review creation does not approve, authorize, or execute predictive evidence; metric recomputation and model training remain false.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
