@@ -212,6 +212,15 @@ __all__ = [
     "per_ticker_feature_generation_approval_digest_v1",
     "validate_feature_generation_approved_using_redesigned_labels_v1",
     "write_feature_generation_approved_using_redesigned_labels_v1",
+    "feature_generation_execution_redesigned_labels_service",
+    "ARTIFACT_KIND_FEATURE_GENERATION_EXECUTED_USING_REDESIGNED_LABELS",
+    "ARTIFACT_KIND_FEATURE_GENERATION_BLOCKED_USING_REDESIGNED_LABELS",
+    "FEATURE_GENERATION_EXECUTED_USING_REDESIGNED_LABELS_RESEARCH_ONLY",
+    "FEATURE_GENERATION_BLOCKED_MISSING_OR_INVALID_SOURCE_EVIDENCE",
+    "build_feature_generation_execution_status_markdown_v1",
+    "execute_feature_generation_using_redesigned_labels_v1",
+    "feature_generation_execution_digest_v1",
+    "validate_feature_generation_executed_using_redesigned_labels_v1",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -2951,6 +2960,16 @@ from marketflow.services.feature_generation_approval_redesigned_labels_service i
     per_ticker_feature_generation_approval_digest_v1,
     validate_feature_generation_approved_using_redesigned_labels_v1,
     write_feature_generation_approved_using_redesigned_labels_v1,
+)
+from marketflow.services.feature_generation_execution_redesigned_labels_service import (
+    ARTIFACT_KIND_FEATURE_GENERATION_BLOCKED_USING_REDESIGNED_LABELS,
+    ARTIFACT_KIND_FEATURE_GENERATION_EXECUTED_USING_REDESIGNED_LABELS,
+    FEATURE_GENERATION_BLOCKED_MISSING_OR_INVALID_SOURCE_EVIDENCE,
+    FEATURE_GENERATION_EXECUTED_USING_REDESIGNED_LABELS_RESEARCH_ONLY,
+    build_feature_generation_execution_status_markdown_v1,
+    execute_feature_generation_using_redesigned_labels_v1,
+    feature_generation_execution_digest_v1,
+    validate_feature_generation_executed_using_redesigned_labels_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,

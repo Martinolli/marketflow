@@ -49,4 +49,8 @@
 
 ## Next Task
 
-- `Feature Generation Execution Using Redesigned Labels v1` remains future, separate work.
+- The follow-on `Feature Generation Execution Using Redesigned Labels v1` is implemented and executed on its separate stacked branch.
+- This approval remains source evidence for that execution.
+- Execution generated research-only feature values; predictive-evidence execution remains separate and unauthorized.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- Feature-generation results review remains future, separate work.
