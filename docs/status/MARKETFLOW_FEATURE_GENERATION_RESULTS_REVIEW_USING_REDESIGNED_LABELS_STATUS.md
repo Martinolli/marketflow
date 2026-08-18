@@ -65,3 +65,10 @@
 8. Predictive Usefulness Acceptance Candidate, only if readiness passes.
 9. Profitability review chain, if separately required.
 10. Runtime migration chain, if ever separately authorized.
+
+## Follow-On Candidate
+
+- `Additional Predictive Evidence Execution Candidate Using Redesigned Labels v1` is implemented on its separate stacked branch.
+- This results-review package remains its immutable source evidence.
+- Candidate creation does not authorize or execute predictive evidence; metric recomputation and model training remain false.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
