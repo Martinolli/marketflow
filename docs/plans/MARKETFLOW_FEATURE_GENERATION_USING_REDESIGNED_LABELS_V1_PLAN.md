@@ -75,7 +75,8 @@ The candidate cannot generate or authorize features, execute predictive evidence
 - The feature-generation candidate using redesigned labels is reviewed.
 - `Feature Generation Approval Using Redesigned Labels v1` is implemented.
 - Feature-generation approval is complete and `Feature Generation Execution Using Redesigned Labels v1` is implemented and executed.
-- Research-only feature values were created; feature-generation results review remains future work.
+- Research-only feature values were created and `Feature Generation Results Review Using Redesigned Labels v1` is implemented.
+- An additional predictive-evidence execution candidate remains future work and requires a separate operator-review and approval chain.
 - Predictive-evidence execution remains future and separately gated.
 - Predictive-usefulness acceptance and profitability remain closed and `not accepted`.
 - Runtime activation remains a future, separate authority chain.

@@ -35,4 +35,6 @@
 
 ## Next Task
 
-- `Feature Generation Results Review Using Redesigned Labels v1` remains future, separate work.
+- Follow-on `Feature Generation Results Review Using Redesigned Labels v1` is implemented on its separate stacked branch.
+- This execution remains the immutable source evidence; the review inspected and hashed its ignored outputs without rerunning generation.
+- The results review does not execute predictive evidence. Predictive usefulness and profitability remain `not accepted`, and runtime remains `NOT_AUTHORIZED`.
