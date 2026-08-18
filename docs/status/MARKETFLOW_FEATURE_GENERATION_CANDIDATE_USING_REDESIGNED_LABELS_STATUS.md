@@ -51,4 +51,8 @@
 
 ## Next Task
 
-- `Feature Generation Candidate Operator Review Package Using Redesigned Labels v1` is the next separate task.
+- The follow-on `Feature Generation Candidate Operator Review Package Using Redesigned Labels v1` is implemented on its separate stacked branch.
+- This candidate remains source evidence for that review package.
+- The review does not approve, authorize, or perform feature generation.
+- Predictive usefulness and profitability remain `not accepted`; runtime remains `NOT_AUTHORIZED`.
+- Feature-generation approval remains future, separate work if selected.

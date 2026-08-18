@@ -70,4 +70,9 @@ The candidate cannot generate or authorize features, execute predictive evidence
 
 ## Next Task
 
-`Feature Generation Candidate Operator Review Package Using Redesigned Labels v1`.
+- `Feature Generation Candidate Using Redesigned Labels v1` is complete.
+- `Feature Generation Candidate Operator Review Package Using Redesigned Labels v1` is implemented.
+- Feature-generation approval remains future work if separately selected.
+- Feature-generation execution and predictive-evidence execution remain future and separately gated.
+- Predictive-usefulness acceptance and profitability remain closed and `not accepted`.
+- Runtime activation remains a future, separate authority chain.
