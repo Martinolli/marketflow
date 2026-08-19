@@ -60,3 +60,10 @@
 3. Predictive Usefulness Acceptance Candidate, only if readiness passes.
 4. Profitability review chain, if separately required.
 5. Runtime migration chain, if ever separately authorized.
+
+## Follow-On Reassessment
+
+- Follow-on `Predictive Usefulness Reassessment Using Redesigned Evidence v1` is implemented as a separate offline, digest-bound package.
+- This results review remains source evidence for the reassessment.
+- The reassessment does not accept predictive usefulness, approve profitability, authorize runtime, or create trade recommendations.
+- Predictive Usefulness Acceptance Readiness Review Using Redesigned Evidence v1 remains the next future, separate gate.
