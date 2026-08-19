@@ -65,4 +65,8 @@ The reassessment cannot accept usefulness or profitability, create an acceptance
 
 ## Next Task
 
-- `Predictive Usefulness Acceptance Readiness Review Using Redesigned Evidence v1` remains future and separately gated.
+- Predictive usefulness reassessment is complete.
+- `Predictive Usefulness Acceptance Readiness Review Using Redesigned Evidence v1` is implemented with decision `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_USING_REDESIGNED_EVIDENCE`.
+- Predictive-usefulness acceptance readiness/recommendation remain false, and the acceptance candidate remains closed.
+- Method or evidence improvement remains future and separately gated.
+- Profitability remains `not accepted`; runtime activation remains future and separate.

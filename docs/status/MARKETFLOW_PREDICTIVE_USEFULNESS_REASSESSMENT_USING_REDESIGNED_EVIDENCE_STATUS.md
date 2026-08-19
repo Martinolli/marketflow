@@ -55,5 +55,8 @@
 
 ## Next Gate
 
-- `Predictive Usefulness Acceptance Readiness Review Using Redesigned Evidence v1` remains future and separately gated.
-- An acceptance candidate is permitted only if that future readiness review passes.
+- Follow-on `Predictive Usefulness Acceptance Readiness Review Using Redesigned Evidence v1` is implemented as a separate offline, digest-bound review.
+- This reassessment remains source evidence for the completed readiness review.
+- The readiness decision is `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_USING_REDESIGNED_EVIDENCE`.
+- The readiness review does not accept predictive usefulness or create an acceptance candidate; profitability and runtime boundaries remain closed.
+- `Method / Evidence Improvement Candidate Using Redesigned Evidence v1` remains future and separately gated.
