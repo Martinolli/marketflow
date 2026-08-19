@@ -43,7 +43,9 @@
 
 - Review checklist: `56 / 56` passed with zero blockers.
 - The package is ready for operator assessment.
-- `Additional Predictive Evidence Execution Approval Using Redesigned Labels v1` remains future work if selected; the review does not mark approval readiness true or authorize execution.
+- The follow-on `Additional Predictive Evidence Execution Approval Using Redesigned Labels v1` is implemented on its separate stacked branch.
+- This review package remains the source evidence for that approval.
+- The approval authorizes only a future research-only predictive-evidence execution; it does not execute predictive evidence.
 
 ## Authority Boundary
 
@@ -52,3 +54,4 @@
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`; trade recommendations remain false.
 - No provider request, `.env` access, live transport, market-data acquisition, dataset regeneration, label regeneration, feature regeneration, predictive execution, runtime activation, broker action, or trading action occurred.
+- Metric recomputation and model training remain false; predictive usefulness and profitability remain `not accepted`, and runtime remains `NOT_AUTHORIZED` after approval.

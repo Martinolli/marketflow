@@ -74,8 +74,8 @@ The candidate cannot execute predictive evidence, train models, recompute metric
 ## Next Task
 
 - `Additional Predictive Evidence Execution Candidate Using Redesigned Labels v1` is complete.
-- `Additional Predictive Evidence Execution Candidate Operator Review Package Using Redesigned Labels v1` is implemented.
-- Additional predictive-evidence execution approval remains future work if selected.
-- Additional predictive-evidence execution and results review remain future and separately gated.
+- `Additional Predictive Evidence Execution Candidate Operator Review Package Using Redesigned Labels v1` is implemented and the candidate is reviewed.
+- `Additional Predictive Evidence Execution Approval Using Redesigned Labels v1` is implemented as an offline, attestation-gated approval for future research-only execution.
+- Additional predictive-evidence execution remains future work; approval does not execute it or create results.
 - Predictive-usefulness reassessment remains future and separately gated; usefulness acceptance remains closed.
-- Profitability remains `not accepted`, and runtime activation remains a future, separate authority chain.
+- Predictive-usefulness acceptance remains closed, profitability remains `not accepted`, and runtime activation remains a future, separate authority chain.
