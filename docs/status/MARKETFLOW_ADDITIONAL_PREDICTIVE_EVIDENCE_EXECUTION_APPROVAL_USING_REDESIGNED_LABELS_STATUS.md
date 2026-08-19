@@ -56,5 +56,7 @@
 
 ## Next Gates
 
-- The next separate gate is `Additional Predictive Evidence Execution Using Redesigned Labels v1`.
+- The follow-on `Additional Predictive Evidence Execution Using Redesigned Labels v1` is implemented and executed on its separate stacked branch.
+- This approval remains the source evidence for that research-only execution.
+- Execution creates only research evidence; predictive usefulness and profitability remain `not accepted`, and runtime remains `NOT_AUTHORIZED`.
 - Results review, predictive-usefulness reassessment, acceptance readiness, any acceptance candidate, profitability review, and runtime migration remain later independent gates.
