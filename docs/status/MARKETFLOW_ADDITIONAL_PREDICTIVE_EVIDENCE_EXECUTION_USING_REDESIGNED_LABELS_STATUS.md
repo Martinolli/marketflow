@@ -82,5 +82,6 @@ All values are aggregated research-only accuracies across heterogeneous label fa
 
 ## Next Gate
 
-- `Additional Predictive Evidence Results Review Using Redesigned Labels v1` remains future, separate work.
+- Follow-on `Additional Predictive Evidence Results Review Using Redesigned Labels v1` is implemented as a separate offline, digest-bound review package.
+- This execution remains source evidence; the results review does not accept predictive usefulness, approve profitability, or authorize runtime.
 - Predictive-usefulness reassessment remains future and separately gated after results review.
