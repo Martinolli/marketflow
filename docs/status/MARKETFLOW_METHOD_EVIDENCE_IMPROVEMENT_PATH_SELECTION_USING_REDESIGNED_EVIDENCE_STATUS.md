@@ -57,4 +57,6 @@ The ten review areas cover label-objective alignment, tradeable-signal structure
 
 ## Next Gate
 
-The next gate is a separately created `Label Objective / Target Definition Review Candidate Using Redesigned Evidence v1`. Its operator review, any approval or refinement, improved-evidence execution, predictive reassessment/readiness, acceptance, profitability, and runtime chains remain future and separately gated.
+The follow-on `Label Objective / Target Definition Review Candidate Using Redesigned Evidence v1` is implemented. This path selection remains its immutable source evidence.
+
+The candidate does not approve or execute review, regenerate labels, create new targets, accept predictive usefulness, approve profitability, or authorize runtime. Candidate operator review and every later approval, execution, refinement, evidence, acceptance, profitability, and runtime gate remain future and separate.
