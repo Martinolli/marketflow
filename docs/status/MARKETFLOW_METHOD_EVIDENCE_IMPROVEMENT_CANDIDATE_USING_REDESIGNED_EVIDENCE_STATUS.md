@@ -56,5 +56,8 @@
 
 ## Next Gate
 
-- Next task: `Method / Evidence Improvement Candidate Operator Review Using Redesigned Evidence v1`.
+- The follow-on `Method / Evidence Improvement Candidate Operator Review Using Redesigned Evidence v1` is implemented as an offline, digest-bound review package on its separate stacked branch.
+- The candidate remains source evidence for the review.
+- The review does not approve or execute improvement, select a method/evidence path, accept predictive usefulness, approve profitability, or authorize runtime.
+- `Method / Evidence Improvement Path Selection Using Redesigned Evidence v1` remains future work if separately selected.
 - Any path selection, planning, approval, execution, reassessment, acceptance, profitability, or runtime step remains separately gated.

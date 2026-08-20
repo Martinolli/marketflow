@@ -77,4 +77,6 @@ This plan does not fetch provider data, inspect credentials, generate datasets, 
 
 ## Next Task
 
-`Method / Evidence Improvement Candidate Operator Review Using Redesigned Evidence v1`.
+The method/evidence improvement candidate is complete, and its operator review package is implemented. The candidate remains the source evidence for that offline review.
+
+`Method / Evidence Improvement Path Selection Using Redesigned Evidence v1` remains future work if an option is separately selected. Improvement approval or execution remains future and separately gated. Predictive-usefulness acceptance remains closed, profitability remains not accepted, and runtime activation remains future and separate.
