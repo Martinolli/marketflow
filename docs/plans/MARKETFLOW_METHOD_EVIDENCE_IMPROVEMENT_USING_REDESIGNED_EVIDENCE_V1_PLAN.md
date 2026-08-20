@@ -77,6 +77,6 @@ This plan does not fetch provider data, inspect credentials, generate datasets, 
 
 ## Next Task
 
-The method/evidence improvement candidate is complete, and its operator review package is implemented. The candidate remains the source evidence for that offline review.
+The method/evidence improvement candidate and its operator review are complete. The guarded path selection is also implemented and selects `OPTION_A_REVIEW_LABEL_OBJECTIVE_AND_TARGET_DEFINITION` only.
 
-`Method / Evidence Improvement Path Selection Using Redesigned Evidence v1` remains future work if an option is separately selected. Improvement approval or execution remains future and separately gated. Predictive-usefulness acceptance remains closed, profitability remains not accepted, and runtime activation remains future and separate.
+The next label-objective/target-definition review candidate remains future work and was not created by selection. Improvement approval or execution remains future and separately gated. Predictive-usefulness acceptance remains closed, profitability remains not accepted, and runtime activation remains future and separate.

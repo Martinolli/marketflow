@@ -6,7 +6,7 @@
 - Review-package digest: `f98a468f3db63b53d76b0a5ff272c82cc4b826c0e97717f4326b0186bd39be81`.
 - Checklist: `63 / 63` passed, `0` failed, `0` blockers.
 - The review package was created offline, remains research-only and non-actionable, and requires operator assessment.
-- `ready_for_method_evidence_improvement_path_selection` remains false.
+- The follow-on method/evidence improvement path selection using redesigned evidence is implemented. This review remains its immutable source evidence.
 
 ## Reviewed Candidate
 
@@ -54,5 +54,6 @@
 
 ## Next Gate
 
-- `Method / Evidence Improvement Path Selection Using Redesigned Evidence v1` remains future and may proceed only if separately selected.
+- `Method / Evidence Improvement Path Selection Using Redesigned Evidence v1` selects only `OPTION_A_REVIEW_LABEL_OBJECTIVE_AND_TARGET_DEFINITION` for a future candidate.
+- The selection does not create the next candidate, approve or execute improvement, accept predictive usefulness, approve profitability, or authorize runtime.
 - Improvement approval/execution, reassessment, acceptance, profitability, and runtime remain future and separately gated.
