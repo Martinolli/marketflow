@@ -55,4 +55,6 @@
 
 ## Next Gate
 
-`Label Objective / Target Definition Review Candidate Operator Review Using Redesigned Evidence v1` is the next separate gate. Any approval, execution, results review, redesign/refinement, improved evidence, acceptance, profitability, or runtime work remains future and separately gated.
+The follow-on `Label Objective / Target Definition Review Candidate Operator Review Using Redesigned Evidence v1` is implemented. This candidate remains its immutable source evidence.
+
+The review does not approve or execute review, regenerate labels, authorize target-definition changes, create new targets, accept predictive usefulness, approve profitability, or authorize runtime. Approval and every later execution, results, refinement, evidence, acceptance, profitability, and runtime gate remain future and separate.

@@ -75,4 +75,6 @@ This plan does not call providers, inspect credentials, acquire data, regenerate
 
 ## Next Task
 
-`Label Objective / Target Definition Review Candidate Operator Review Using Redesigned Evidence v1` is the next task. It remains review-only and separately gated from approval, execution, label regeneration, target changes, predictive acceptance, profitability, and runtime.
+The label-objective/target-definition review candidate is complete, and its operator review package is implemented. The candidate remains source evidence for that offline review.
+
+Review approval remains future work if selected; review execution remains future and separately gated. Label regeneration and new-target creation remain closed, predictive-usefulness acceptance remains closed, profitability remains not accepted, and runtime activation remains future and separate.
