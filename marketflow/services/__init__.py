@@ -297,6 +297,15 @@ __all__ = [
     "build_predictive_usefulness_acceptance_readiness_review_using_redesigned_evidence_markdown_v1",
     "predictive_usefulness_acceptance_readiness_review_using_redesigned_evidence_digest_v1",
     "per_ticker_predictive_usefulness_acceptance_readiness_review_using_redesigned_evidence_digest_v1",
+    "method_evidence_improvement_candidate_redesigned_evidence_service",
+    "ARTIFACT_KIND_METHOD_EVIDENCE_IMPROVEMENT_CANDIDATE_USING_REDESIGNED_EVIDENCE",
+    "METHOD_EVIDENCE_IMPROVEMENT_CANDIDATE_USING_REDESIGNED_EVIDENCE_READY_FOR_OPERATOR_REVIEW",
+    "build_method_evidence_improvement_candidate_using_redesigned_evidence_v1",
+    "validate_method_evidence_improvement_candidate_using_redesigned_evidence_v1",
+    "write_method_evidence_improvement_candidate_using_redesigned_evidence_v1",
+    "build_method_evidence_improvement_candidate_using_redesigned_evidence_markdown_v1",
+    "method_evidence_improvement_candidate_using_redesigned_evidence_digest_v1",
+    "per_ticker_method_evidence_improvement_candidate_using_redesigned_evidence_digest_v1",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -3130,6 +3139,16 @@ from marketflow.services.predictive_usefulness_acceptance_readiness_review_redes
     predictive_usefulness_acceptance_readiness_review_using_redesigned_evidence_digest_v1,
     validate_predictive_usefulness_acceptance_readiness_review_using_redesigned_evidence_v1,
     write_predictive_usefulness_acceptance_readiness_review_using_redesigned_evidence_v1,
+)
+from marketflow.services.method_evidence_improvement_candidate_redesigned_evidence_service import (
+    ARTIFACT_KIND_METHOD_EVIDENCE_IMPROVEMENT_CANDIDATE_USING_REDESIGNED_EVIDENCE,
+    METHOD_EVIDENCE_IMPROVEMENT_CANDIDATE_USING_REDESIGNED_EVIDENCE_READY_FOR_OPERATOR_REVIEW,
+    build_method_evidence_improvement_candidate_using_redesigned_evidence_markdown_v1,
+    build_method_evidence_improvement_candidate_using_redesigned_evidence_v1,
+    method_evidence_improvement_candidate_using_redesigned_evidence_digest_v1,
+    per_ticker_method_evidence_improvement_candidate_using_redesigned_evidence_digest_v1,
+    validate_method_evidence_improvement_candidate_using_redesigned_evidence_v1,
+    write_method_evidence_improvement_candidate_using_redesigned_evidence_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,

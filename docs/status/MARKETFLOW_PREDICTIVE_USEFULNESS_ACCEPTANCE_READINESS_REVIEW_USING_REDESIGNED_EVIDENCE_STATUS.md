@@ -51,5 +51,7 @@
 
 ## Next Gate
 
-- `Method / Evidence Improvement Candidate Using Redesigned Evidence v1` remains future and separately gated.
+- The follow-on `Method / Evidence Improvement Candidate Using Redesigned Evidence v1` is implemented as an offline, operator-review candidate on its separate stacked branch.
+- The readiness review remains the source evidence for that candidate.
+- The candidate does not approve or execute improvement, accept predictive usefulness, approve profitability, or authorize runtime.
 - Acceptance-readiness may be rerun only after separately reviewed new method or evidence work.
