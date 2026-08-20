@@ -57,4 +57,6 @@
 
 ## Next Gate
 
-`Label Objective / Target Definition Review Approval v1`, if selected, is a future separate gate. Review execution, results review, redesign/refinement, improved evidence, predictive acceptance, profitability, and runtime remain future and separately gated.
+`Label Objective / Target Definition Review Approval Using Redesigned Evidence v1` is now implemented as a separate, attestation-gated artifact with digest `01f667deeea9a478dca8e1f326b672ffbcedbf9c0a0b3da93d3fac1714c622db` and checklist `66 / 66` passed. This review package remains immutable source evidence.
+
+The approval authorizes only future research-only review execution. Review execution and results remain absent and separately gated; label regeneration, target creation or change, predictive acceptance, profitability, runtime, strategy, broker execution, recommendations, and trading remain closed.

@@ -75,6 +75,6 @@ This plan does not call providers, inspect credentials, acquire data, regenerate
 
 ## Next Task
 
-The label-objective/target-definition review candidate is complete, and its operator review package is implemented. The candidate remains source evidence for that offline review.
+The label-objective/target-definition review candidate and operator review package are complete. The attestation-gated approval is also implemented with digest `01f667deeea9a478dca8e1f326b672ffbcedbf9c0a0b3da93d3fac1714c622db` and checklist `66 / 66` passed. The candidate and review package remain immutable source evidence.
 
-Review approval remains future work if selected; review execution remains future and separately gated. Label regeneration and new-target creation remain closed, predictive-usefulness acceptance remains closed, profitability remains not accepted, and runtime activation remains future and separate.
+Only future research review execution is approved. Review execution and results remain future and separately gated. Label regeneration, target creation and target-definition changes remain closed; predictive-usefulness acceptance remains closed, profitability remains not accepted, and runtime activation remains future and separate.
