@@ -68,3 +68,10 @@
 ## Next Gate
 
 An optional label-objective redesign candidate or threshold/horizon refinement candidate may be separately proposed only if an operator selects that path. All later evidence, acceptance, profitability, and runtime gates remain separate.
+
+## Follow-On Optional Redesign Candidate
+
+- The follow-on optional label-objective redesign candidate using redesigned evidence is implemented as `LABEL_OBJECTIVE_REDESIGN_CANDIDATE_USING_REDESIGNED_EVIDENCE` and is ready only for operator review.
+- This results-review package remains the source evidence; no results-review execution was rerun.
+- The candidate does not approve or execute redesign, regenerate labels, create targets, or authorize a target-definition change.
+- The candidate does not accept predictive usefulness, approve profitability, or authorize runtime, strategy, paper trading, broker execution, recommendations, or trading.
