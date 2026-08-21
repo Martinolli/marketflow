@@ -50,4 +50,6 @@
 
 ## Next Gate
 
-`Optional Label Objective Redesign Results Review Using Redesigned Evidence v1` remains future work and requires a separate implementation and authority decision.
+`Optional Label Objective Redesign Results Review Using Redesigned Evidence v1` is implemented as a separate digest-bound review of these ignored outputs. The execution remains the source evidence.
+
+The results review does not rerun execution, regenerate labels, create targets, authorize target-definition changes, create improved-evidence planning, accept predictive usefulness, approve profitability, or authorize runtime. Any optional improved-evidence planning candidate remains future work and requires separate operator selection.

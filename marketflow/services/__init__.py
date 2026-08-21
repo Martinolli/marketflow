@@ -417,6 +417,15 @@ __all__ = [
     "execute_label_objective_redesign_using_redesigned_evidence_v1",
     "validate_label_objective_redesign_executed_using_redesigned_evidence_v1",
     "build_label_objective_redesign_execution_status_markdown_v1",
+    "label_objective_redesign_results_review_redesigned_evidence_service",
+    "ARTIFACT_KIND_LABEL_OBJECTIVE_REDESIGN_RESULTS_REVIEW_PACKAGE_USING_REDESIGNED_EVIDENCE",
+    "LABEL_OBJECTIVE_REDESIGN_RESULTS_REVIEW_PACKAGE_USING_REDESIGNED_EVIDENCE_READY",
+    "build_label_objective_redesign_results_review_using_redesigned_evidence_v1",
+    "validate_label_objective_redesign_results_review_using_redesigned_evidence_v1",
+    "write_label_objective_redesign_results_review_using_redesigned_evidence_v1",
+    "build_label_objective_redesign_results_review_using_redesigned_evidence_markdown_v1",
+    "label_objective_redesign_results_review_using_redesigned_evidence_digest_v1",
+    "per_ticker_label_objective_redesign_results_review_using_redesigned_evidence_digest_v1",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -3382,6 +3391,16 @@ from marketflow.services.label_objective_redesign_execution_redesigned_evidence_
     build_label_objective_redesign_execution_status_markdown_v1,
     execute_label_objective_redesign_using_redesigned_evidence_v1,
     validate_label_objective_redesign_executed_using_redesigned_evidence_v1,
+)
+from marketflow.services.label_objective_redesign_results_review_redesigned_evidence_service import (
+    ARTIFACT_KIND_LABEL_OBJECTIVE_REDESIGN_RESULTS_REVIEW_PACKAGE_USING_REDESIGNED_EVIDENCE,
+    LABEL_OBJECTIVE_REDESIGN_RESULTS_REVIEW_PACKAGE_USING_REDESIGNED_EVIDENCE_READY,
+    build_label_objective_redesign_results_review_using_redesigned_evidence_markdown_v1,
+    build_label_objective_redesign_results_review_using_redesigned_evidence_v1,
+    label_objective_redesign_results_review_using_redesigned_evidence_digest_v1,
+    per_ticker_label_objective_redesign_results_review_using_redesigned_evidence_digest_v1,
+    validate_label_objective_redesign_results_review_using_redesigned_evidence_v1,
+    write_label_objective_redesign_results_review_using_redesigned_evidence_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
