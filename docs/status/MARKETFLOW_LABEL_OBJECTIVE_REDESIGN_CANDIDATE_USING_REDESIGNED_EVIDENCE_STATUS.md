@@ -61,3 +61,11 @@
 ## Next Gate
 
 The next task is `Optional Label Objective Redesign Candidate Operator Review Using Redesigned Evidence v1`. It is a separate gate and does not itself approve or execute redesign.
+
+## Follow-On Operator Review
+
+- The follow-on optional label-objective redesign candidate operator review using redesigned evidence is implemented as `LABEL_OBJECTIVE_REDESIGN_CANDIDATE_USING_REDESIGNED_EVIDENCE_REVIEW_PACKAGE`.
+- This candidate remains the source evidence; the review does not mutate or replace it.
+- The review does not select the recommended direction for approval and does not approve or execute redesign.
+- The review does not regenerate labels, create targets, or authorize a target-definition change.
+- Predictive usefulness and profitability remain not accepted; runtime, strategy, paper trading, broker execution, recommendations, and trading remain unauthorized.

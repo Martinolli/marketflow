@@ -68,3 +68,13 @@ All outputs are deterministic, offline, research-only, non-actionable, and candi
 ## Next Task
 
 `Optional Label Objective Redesign Candidate Operator Review Using Redesigned Evidence v1`.
+
+## Candidate And Operator Review Progress
+
+- The label-objective redesign candidate is completed and remains the digest-bound source evidence.
+- The candidate operator review is implemented as a separate review-only package.
+- Redesign approval remains future work only if an operator separately selects a path.
+- Redesign execution remains future work and requires a separate approval gate.
+- Label regeneration, new-target creation, and target-definition changes remain closed.
+- Predictive-usefulness acceptance remains closed; profitability remains not accepted.
+- Runtime activation remains future, separate, and unauthorized.
