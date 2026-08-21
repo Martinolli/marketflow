@@ -57,4 +57,6 @@
 
 ## Next Gate
 
-`Optional Label Objective Redesign Execution Using Redesigned Evidence v1` is future work and remains a separate gate. This approval does not perform that execution.
+`Optional Label Objective Redesign Execution Using Redesigned Evidence v1` is implemented as a separate, research-only execution over the approval and frozen source evidence. The approval remains the source authority; execution does not expand its scope.
+
+The execution analyzes the selected redesign direction but does not regenerate labels, create new targets, authorize target-definition changes, accept predictive usefulness, approve profitability, or authorize runtime. Its separate results review remains future work.

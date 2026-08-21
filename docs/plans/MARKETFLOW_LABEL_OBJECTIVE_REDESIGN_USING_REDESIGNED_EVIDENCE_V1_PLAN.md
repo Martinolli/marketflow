@@ -88,3 +88,14 @@ All outputs are deterministic, offline, research-only, non-actionable, and candi
 - Label regeneration, new-target creation, and operational target-definition changes remain closed.
 - Predictive-usefulness acceptance remains closed; profitability remains not accepted.
 - Runtime activation remains future, separate, and unauthorized.
+
+## Execution Progress
+
+- Redesign approval is complete and remains the digest-bound execution authority.
+- Research-only redesign execution is implemented for `REDESIGN_OPTION_ADD_OR_FORMALIZE_NO_TRADE_ABSTAIN_CLASS`.
+- The execution produced the 12 prescribed sanitized analysis outputs under the ignored execution root.
+- Redesign results review remains future work and a separate gate.
+- Label regeneration and new-target creation remain closed.
+- Operational target-definition change remains unauthorized.
+- Predictive-usefulness acceptance remains closed; profitability remains not accepted.
+- Runtime activation remains future, separate, and unauthorized.
