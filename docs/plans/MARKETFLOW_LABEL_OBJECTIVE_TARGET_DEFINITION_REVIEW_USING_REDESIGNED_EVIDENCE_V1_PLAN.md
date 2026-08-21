@@ -75,6 +75,6 @@ This plan does not call providers, inspect credentials, acquire data, regenerate
 
 ## Next Task
 
-The candidate, operator review package, and attestation-gated approval are complete. The approved research-only review execution is also implemented and executed with digest `7b5c299191abfd6aa8ef33ebed804757a2d57a6fb966ed1d51c78d1b233abe30`. All prior artifacts remain immutable source evidence.
+The candidate, operator review package, approval, and research-only execution are complete. The results review is also implemented with digest `682907f87575b8fde514c6db17b141420bfd55781b0b77c297ba358a378aff46` and checklist `78 / 78` passed. All prior artifacts remain immutable source evidence.
 
-Results review remains future and separately gated. Label regeneration and new-target creation remain closed, target-definition change remains unauthorized, predictive-usefulness acceptance remains closed, profitability remains not accepted, and runtime activation remains future and separate.
+An optional redesign or threshold/horizon refinement candidate remains future, operator-selected, and separately gated. Label regeneration and new-target creation remain closed, target-definition change remains unauthorized, predictive-usefulness acceptance remains closed, profitability remains not accepted, and runtime activation remains future and separate.
