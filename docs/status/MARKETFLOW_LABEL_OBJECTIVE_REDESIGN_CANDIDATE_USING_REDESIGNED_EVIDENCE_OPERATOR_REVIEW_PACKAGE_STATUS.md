@@ -60,3 +60,11 @@
 ## Next Gate
 
 `Optional Label Objective Redesign Approval Using Redesigned Evidence v1` remains future work only if an operator separately selects a redesign path. Approval would remain distinct from execution.
+
+## Follow-On Approval
+
+- The follow-on optional label-objective redesign approval using redesigned evidence is implemented as `LABEL_OBJECTIVE_REDESIGN_APPROVED_USING_REDESIGNED_EVIDENCE`.
+- This candidate review remains the source evidence.
+- The approval selects `REDESIGN_OPTION_ADD_OR_FORMALIZE_NO_TRADE_ABSTAIN_CLASS` for future research-only execution.
+- The approval does not execute redesign, regenerate labels, create targets, or authorize operational target-definition changes.
+- Predictive usefulness and profitability remain not accepted; runtime, strategy, paper trading, broker execution, recommendations, and trading remain unauthorized.

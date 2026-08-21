@@ -78,3 +78,13 @@ All outputs are deterministic, offline, research-only, non-actionable, and candi
 - Label regeneration, new-target creation, and target-definition changes remain closed.
 - Predictive-usefulness acceptance remains closed; profitability remains not accepted.
 - Runtime activation remains future, separate, and unauthorized.
+
+## Approval Progress
+
+- The candidate operator review is completed and remains the approval source.
+- Redesign approval is implemented with exact non-secret operator attestation and digest confirmations.
+- Selected direction: `REDESIGN_OPTION_ADD_OR_FORMALIZE_NO_TRADE_ABSTAIN_CLASS`.
+- Redesign execution remains future work and separately gated.
+- Label regeneration, new-target creation, and operational target-definition changes remain closed.
+- Predictive-usefulness acceptance remains closed; profitability remains not accepted.
+- Runtime activation remains future, separate, and unauthorized.
