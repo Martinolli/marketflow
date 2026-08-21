@@ -47,4 +47,6 @@
 
 ## Next Gate
 
-The next task is `Optional Improved Evidence Planning Candidate Operator Review Using Redesigned Evidence v1`. That future review may assess this candidate but cannot itself select, approve, authorize, or execute a plan unless a later separately governed task permits it.
+The follow-on `Optional Improved Evidence Planning Candidate Operator Review Using Redesigned Evidence v1` is now implemented as a separate review-only package. This candidate remains its unchanged source evidence.
+
+The review does not approve or execute planning, regenerate labels, create new targets, create a feature-label matrix, create an additional predictive-evidence execution candidate, accept predictive usefulness, approve profitability, or authorize runtime. Planning approval remains future work only if separately selected and governed.

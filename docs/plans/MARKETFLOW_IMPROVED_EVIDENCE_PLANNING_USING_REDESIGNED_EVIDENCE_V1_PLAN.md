@@ -73,4 +73,8 @@ Default validation remains deterministic and offline. Candidate and per-ticker d
 
 ## Next Task
 
-`Optional Improved Evidence Planning Candidate Operator Review Using Redesigned Evidence v1`.
+The improved-evidence planning candidate and its operator-review package are complete. The review preserves the candidate as source evidence and creates no selection, approval, authorization, or execution.
+
+Planning approval remains future work only if separately selected. Planning execution remains future and separately gated. Label regeneration, new-target creation, feature-label matrix creation, and an additional predictive-evidence execution candidate remain closed. Predictive-usefulness acceptance and profitability remain closed, and runtime activation remains a future, separate authority chain.
+
+The next possible task is `Optional Improved Evidence Planning Approval Using Redesigned Evidence v1`, only if explicitly selected.
