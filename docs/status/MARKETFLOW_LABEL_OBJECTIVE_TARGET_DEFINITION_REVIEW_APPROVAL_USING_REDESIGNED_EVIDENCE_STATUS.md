@@ -59,4 +59,6 @@ The required phrase binds the approval to `OPTION_A_REVIEW_LABEL_OBJECTIVE_AND_T
 
 ## Next Gate
 
-The next separately gated task is `Label Objective / Target Definition Review Execution Using Redesigned Evidence v1`. Results review, optional redesign/refinement, improved-evidence work, reassessment, acceptance, profitability, and runtime remain future and separately gated.
+The follow-on `Label Objective / Target Definition Review Execution Using Redesigned Evidence v1` is now implemented and executed offline with digest `7b5c299191abfd6aa8ef33ebed804757a2d57a6fb966ed1d51c78d1b233abe30`. This approval remains immutable source evidence.
+
+The execution performed only the approved research review. It did not regenerate labels, create new targets, authorize or perform a target-definition change, accept predictive usefulness, approve profitability, authorize runtime, or create recommendations or trading authority. Results review remains future and separately gated.
