@@ -44,7 +44,7 @@
 ## Readiness And Authority Boundary
 
 - Results review creation/readiness and readiness for a future optional improved-evidence planning candidate are true because the review has zero blockers.
-- No improved-evidence planning candidate or predictive-evidence execution candidate was created.
+- The results-review task itself created no improved-evidence planning candidate. A separate follow-on candidate-only artifact is now implemented; no predictive-evidence execution candidate was created.
 - No label was regenerated, no target was created, and no target-definition change was authorized or performed.
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, broker execution, automatic stitching, scoring, recommendations, and trading remain `NOT_AUTHORIZED`.
@@ -52,4 +52,6 @@
 
 ## Next Gate
 
-`Optional Improved Evidence Planning Candidate Using Redesigned Evidence v1` remains future work. It requires explicit operator selection and a separate candidate, review, and approval chain.
+`Optional Improved Evidence Planning Candidate Using Redesigned Evidence v1` is now implemented as a separate candidate-only artifact. This results review remains its source evidence.
+
+The follow-on candidate does not approve or execute planning, regenerate labels, create new targets, create a feature-label matrix, create an additional predictive-evidence execution candidate, accept predictive usefulness, approve profitability, or authorize runtime. Its next separate gate is `Optional Improved Evidence Planning Candidate Operator Review Using Redesigned Evidence v1`.
