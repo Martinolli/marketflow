@@ -57,3 +57,11 @@ All 12 ticker entries are `ACCEPTANCE_PATH_CLOSED_NOT_READY_FOR_CURRENT_IMPROVED
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, acquisition, regeneration, evidence/reassessment/readiness rerun, recomputation, training, scoring, recommendation, runtime, broker, or trading action occurred.
+
+## Follow-On Operator Selection
+
+- `Operator Method or Closure Selection Using Improved Evidence v1` is implemented as a separate, exact-attestation and digest-bound selection ceremony.
+- This closure remains immutable source evidence with digest `ca179fdfe2fcc3c1572339d7e35f8f201177d59d3b7fa5dc245b58620987cbda`.
+- The operator selection records `OPTION_A_STOP_ACCEPTANCE_PATH_CURRENT_DATASET` and `SELECT_STOP_ACCEPTANCE_PATH_CURRENT_DATASET` for the current dataset/evidence set.
+- The selection is ready for a separately gated acceptance-path archive record, but does not create that archive record.
+- The selection does not create a future method/evidence candidate, accept predictive usefulness, approve profitability, or authorize runtime, strategy, paper trading, broker execution, or trade recommendations.
