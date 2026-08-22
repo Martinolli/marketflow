@@ -77,3 +77,12 @@ All 26 source risk controls remain preserved. They prohibit this review from app
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, market-data acquisition, dataset regeneration, runtime action, strategy scoring, recommendation, or trading action occurred.
+
+## Follow-On Execution Approval
+
+- `Optional Additional Predictive Evidence Execution Approval Using Improved Evidence v1` is implemented as an exact-attestation, digest-bound, offline ceremony.
+- The candidate review remains its source evidence.
+- The approval authorizes only future research-only predictive-evidence execution; it does not execute evidence or create results.
+- It does not regenerate labels, create targets, generate features, create a feature-label matrix, compute metrics, or train models.
+- Predictive usefulness and profitability remain not accepted.
+- Runtime, strategy, paper trading, broker execution, and recommendations remain unauthorized.

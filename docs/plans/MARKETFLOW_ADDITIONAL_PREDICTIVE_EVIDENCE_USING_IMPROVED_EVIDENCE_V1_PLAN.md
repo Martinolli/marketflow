@@ -52,11 +52,11 @@ The 12 declared execution, schema, matrix, walk-forward, OOS, baseline, metric, 
 
 ## Risk Controls
 
-Preserve all 26 declared risk controls: no approval, execution, regeneration, target creation/change, feature or matrix creation, metrics, training, acceptance, profitability, runtime, strategy, paper, broker, recommendation, source mutation, or META repair.
+The candidate's 26 controls remain historical source evidence. The approval preserves 25 approval-specific controls: future research execution may be authorized, while present execution, regeneration, target creation/change, feature or matrix creation, metric computation, training, acceptance, profitability, runtime, strategy, paper, broker, recommendation, source mutation, and META repair remain closed.
 
 ## Non-Goals
 
-This plan is not candidate review, execution approval, execution, results creation, usefulness acceptance, profitability approval, runtime migration, strategy activation, or trading software.
+This plan and approval are not execution, results creation, usefulness acceptance, profitability approval, runtime migration, strategy activation, or trading software.
 
 ## Guardrails
 
@@ -68,11 +68,12 @@ The additional predictive evidence execution candidate is complete. `Optional Ad
 
 ## Remaining Future Work
 
-- Execution approval remains future work if separately selected.
-- Execution remains future and separately gated after any approval.
+- Candidate operator review is complete.
+- Additional predictive evidence execution approval is implemented.
+- Execution remains future and separately gated after approval.
 - Label regeneration and new-target creation remain closed.
 - Feature generation and feature-label matrix creation remain closed.
-- Metric computation and model training remain closed.
+- Metric computation and model training are not performed by approval.
 - Predictive usefulness acceptance remains closed.
 - Profitability remains not accepted.
 - Runtime activation remains future, separate, and unauthorized.
