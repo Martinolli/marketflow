@@ -43,6 +43,16 @@
 
 The next possible step is `Optional Additional Predictive Evidence Execution Candidate Operator Review Using Improved Evidence v1`. Approval, execution, results review, reassessment, acceptance-readiness, acceptance, profitability, and runtime remain separate future gates.
 
+## Follow-On Operator Review
+
+- The optional additional predictive evidence execution candidate operator review using improved evidence is implemented.
+- Review artifact/status: `ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTION_CANDIDATE_USING_IMPROVED_EVIDENCE_REVIEW_PACKAGE` / `ADDITIONAL_PREDICTIVE_EVIDENCE_EXECUTION_CANDIDATE_USING_IMPROVED_EVIDENCE_REVIEW_PACKAGE_READY`.
+- Review digest: `1db2b5a32e4cbd475330b3558706e8f7319bdf8d29a53c9e8c26bc32cc2b2442`.
+- The candidate remains the source evidence. The review does not approve or execute predictive evidence.
+- The review does not regenerate labels, create targets, generate features, create a feature-label matrix, compute metrics, or train models.
+- Predictive usefulness and profitability remain not accepted, and runtime remains unauthorized.
+- Execution approval and execution remain future, separate gates if selected.
+
 ## Authority Boundary
 
 - Candidate creation and readiness for operator review are true.

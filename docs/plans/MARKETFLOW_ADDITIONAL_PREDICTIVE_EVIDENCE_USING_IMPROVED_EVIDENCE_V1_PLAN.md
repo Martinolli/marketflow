@@ -64,4 +64,15 @@ Default behavior remains deterministic and offline. Do not inspect secrets or pr
 
 ## Next Task
 
-`Optional Additional Predictive Evidence Execution Candidate Operator Review Using Improved Evidence v1`.
+The additional predictive evidence execution candidate is complete. `Optional Additional Predictive Evidence Execution Candidate Operator Review Using Improved Evidence v1` is implemented as a deterministic, offline, digest-bound review package.
+
+## Remaining Future Work
+
+- Execution approval remains future work if separately selected.
+- Execution remains future and separately gated after any approval.
+- Label regeneration and new-target creation remain closed.
+- Feature generation and feature-label matrix creation remain closed.
+- Metric computation and model training remain closed.
+- Predictive usefulness acceptance remains closed.
+- Profitability remains not accepted.
+- Runtime activation remains future, separate, and unauthorized.
