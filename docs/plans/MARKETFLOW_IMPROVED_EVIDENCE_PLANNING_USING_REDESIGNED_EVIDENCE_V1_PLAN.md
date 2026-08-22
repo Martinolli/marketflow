@@ -76,7 +76,8 @@ Default validation remains deterministic and offline. Candidate and per-ticker d
 - The improved-evidence planning candidate operator review is complete and remains source evidence.
 - `Optional Improved Evidence Planning Approval Using Redesigned Evidence v1` is complete with exact attestation and digest gates.
 - `Optional Improved Evidence Planning Execution Using Redesigned Evidence v1` is implemented and has created only research-planning outputs.
-- Planning-results review remains future work and separately gated.
+- Planning execution is complete and remains the source evidence.
+- Planning-results review is implemented as an offline, digest-bound review with zero blockers.
 - Label regeneration, new-target creation, and target-definition change authorization remain closed.
 - Feature generation and feature-label matrix creation remain closed.
 - An additional predictive-evidence execution candidate and predictive-evidence execution remain closed.
@@ -85,4 +86,4 @@ Default validation remains deterministic and offline. Candidate and per-ticker d
 
 ## Next Task
 
-The next possible task is `Optional Improved Evidence Planning Results Review Using Redesigned Evidence v1`, only if separately selected. The completed planning execution does not itself create that review or open predictive-usefulness acceptance, profitability, runtime, or trading authority.
+The next possible task is an optional additional predictive-evidence execution candidate using improved evidence, only if separately selected. Label regeneration, new-target creation, feature generation, and feature-label matrix creation remain closed. Predictive-usefulness acceptance remains closed, profitability remains `not accepted`, and runtime activation remains future and separate.

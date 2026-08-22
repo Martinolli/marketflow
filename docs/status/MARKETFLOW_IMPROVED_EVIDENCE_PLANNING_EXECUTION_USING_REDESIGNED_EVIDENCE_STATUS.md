@@ -95,6 +95,15 @@ Defines exact-order reporting for all 12 tickers, separate aggregate/per-ticker 
 - Runtime, strategy, paper trading, broker execution, scoring, recommendations, and trading remain `NOT_AUTHORIZED`.
 - No provider call, live transport, market-data acquisition, dataset regeneration, source mutation, metric recomputation, model training, runtime action, or trading action occurred.
 
+## Follow-On Results Review
+
+`Optional Improved Evidence Planning Results Review Using Redesigned Evidence v1` is implemented as a separate offline, digest-bound review. This execution remains its read-only source evidence.
+
+- The results review does not regenerate labels or create targets.
+- It does not generate features or create feature-label matrix rows.
+- It does not create an additional predictive-evidence execution candidate or execute evidence.
+- It does not accept predictive usefulness, approve profitability, or authorize runtime.
+
 ## Next Gate
 
-`Optional Improved Evidence Planning Results Review Using Redesigned Evidence v1` remains future work. This execution does not create that review or authorize any later predictive-evidence, acceptance, profitability, runtime, or trading step.
+The next possible gate is an optional additional predictive-evidence execution candidate using improved evidence, only if separately selected. Neither this execution nor its results review creates that candidate or authorizes any acceptance, profitability, runtime, or trading step.
