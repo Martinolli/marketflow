@@ -80,3 +80,12 @@ The next chain begins only with an optional additional predictive-evidence execu
 ## Limitations and Risk Controls
 
 The package records all 16 required limitations, all 10 next gates, and all 27 risk controls. In particular, it prohibits mutation of frozen dataset, label, feature, predictive-evidence, label-objective, redesign, and improved-evidence planning outputs and preserves META's 913-row limitation.
+
+## Follow-On Candidate
+
+`Optional Additional Predictive Evidence Execution Candidate Using Improved Evidence v1` is implemented as a separate candidate-only artifact. This results review remains its source evidence.
+
+- The candidate does not approve or execute predictive evidence.
+- It does not regenerate labels, create targets, generate features, or create feature-label matrix rows.
+- It does not compute metrics or train models.
+- It does not accept predictive usefulness, approve profitability, or authorize runtime.
