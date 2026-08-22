@@ -43,13 +43,13 @@ The small cross-sectional edge and local-model equivalence are review facts, not
 
 ## Next Chain
 
-The package is ready only for a future predictive-usefulness reassessment using improved evidence. Reassessment was not created. Acceptance-readiness review, acceptance candidate, profitability review, and runtime migration remain later, separately gated steps.
+The follow-on predictive-usefulness reassessment rerun using improved evidence is implemented as a separate offline, digest-bound, research-only package. This results review remains its immutable source evidence. The reassessment does not create an acceptance-readiness review or acceptance candidate, does not accept predictive usefulness, does not approve profitability, and does not authorize runtime. Acceptance-readiness review, acceptance candidate, profitability review, and runtime migration remain later, separately gated steps.
 
 ## Authority Boundary
 
 - Results review creation/readiness and readiness for a future reassessment are true.
 - Label regeneration, target creation/change, feature generation, canonical matrix creation, metric recomputation in review, and model training in review remain false.
-- Predictive-usefulness reassessment and acceptance-readiness artifacts were not created.
+- This results-review package itself creates neither a reassessment nor an acceptance-readiness artifact; the follow-on reassessment is a separate artifact.
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No execution rerun, provider/data action, source mutation, strategy scoring, recommendation, or trading action occurred.
