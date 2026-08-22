@@ -48,3 +48,11 @@ The next separately gated step is `Optional Improved Evidence Planning Execution
 ## Risk Controls
 
 All 27 risk controls are present. They preserve frozen inputs and outputs, META's 913-row limitation, research-only/non-actionable use, and the separation between this approval and every execution, acceptance, profitability, runtime, and trading authority.
+
+## Follow-On Planning Execution
+
+`Optional Improved Evidence Planning Execution Using Redesigned Evidence v1` is now implemented and executed as a separate research-only artifact. This approval remains unchanged source evidence for that execution.
+
+The execution performs planning only. It does not regenerate labels, create targets, authorize target-definition changes, generate features, create feature-label matrix rows, or create an additional predictive-evidence execution candidate. It does not accept predictive usefulness or profitability and does not authorize runtime, strategy, broker, recommendation, or trading use.
+
+The next separately gated task is `Optional Improved Evidence Planning Results Review Using Redesigned Evidence v1`.
