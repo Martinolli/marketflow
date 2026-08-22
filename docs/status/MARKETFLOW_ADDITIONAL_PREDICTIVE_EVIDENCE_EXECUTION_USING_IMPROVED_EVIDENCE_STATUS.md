@@ -56,4 +56,6 @@ The digest manifest contains SHA-256 values for the 12 non-self outputs. Its own
 
 ## Next Gate
 
-The next possible task is a separately governed results review of this completed research-only evidence. This execution does not create results-review approval, usefulness acceptance, profitability acceptance, or runtime authority.
+The separately governed `Optional Additional Predictive Evidence Results Review Using Improved Evidence v1` is now implemented and ready. This execution remains immutable source evidence; the review did not rerun it.
+
+The results review does not regenerate labels, create targets, authorize target-definition changes, generate source features, create a canonical feature-label matrix, recompute metrics, train models, or mutate any source output. It does not create the predictive-usefulness reassessment or acceptance-readiness review, accept predictive usefulness, approve profitability, or authorize runtime, strategy, paper trading, broker execution, or recommendations.

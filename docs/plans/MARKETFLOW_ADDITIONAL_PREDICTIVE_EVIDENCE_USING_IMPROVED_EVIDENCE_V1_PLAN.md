@@ -64,18 +64,20 @@ Default behavior remains deterministic and offline. Do not inspect secrets or pr
 
 ## Next Task
 
-The research-only execution is complete. Results review remains future work and requires a separate governance step; this plan does not pre-authorize that review or any later acceptance decision.
+The research-only execution and its digest-bound results review are complete. Predictive usefulness reassessment using improved evidence remains future work and requires a separate governance step; this plan does not pre-authorize reassessment, readiness, or acceptance.
 
 ## Remaining Future Work
 
 - Candidate operator review is complete.
 - Additional predictive evidence execution approval is implemented.
 - Research-only additional predictive evidence execution is implemented and completed.
-- Results review remains future and separate.
+- Results review is implemented and ready with zero blockers.
+- Predictive usefulness reassessment using improved evidence remains future and separate.
 - Label regeneration and new-target creation remain closed.
 - Target-definition change remains unauthorized.
 - Source feature and label mutation remains prohibited; feature generation and canonical matrix creation remain closed.
 - Research-only metric recomputation and deterministic model comparison occurred only within the approved execution scope.
+- The results review did not recompute metrics, train models, or rerun execution.
 - Predictive usefulness acceptance remains closed.
 - Profitability remains not accepted.
 - Runtime activation remains future, separate, and unauthorized.

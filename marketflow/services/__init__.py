@@ -514,6 +514,15 @@ __all__ = [
     "build_additional_predictive_evidence_execution_status_markdown_v1",
     "additional_predictive_evidence_execution_using_improved_evidence_digest_v1",
     "per_ticker_additional_predictive_evidence_execution_using_improved_evidence_digest_v1",
+    "additional_predictive_evidence_results_review_improved_evidence_service",
+    "ARTIFACT_KIND_ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_PACKAGE_USING_IMPROVED_EVIDENCE",
+    "ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_PACKAGE_USING_IMPROVED_EVIDENCE_READY",
+    "ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_BLOCKED_USING_IMPROVED_EVIDENCE_MISSING_OR_INVALID_OUTPUTS",
+    "build_additional_predictive_evidence_results_review_using_improved_evidence_v1",
+    "validate_additional_predictive_evidence_results_review_using_improved_evidence_v1",
+    "write_additional_predictive_evidence_results_review_using_improved_evidence_v1",
+    "build_additional_predictive_evidence_results_review_using_improved_evidence_markdown_v1",
+    "additional_predictive_evidence_results_review_using_improved_evidence_digest_v1",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -3586,6 +3595,16 @@ from marketflow.services.additional_predictive_evidence_execution_improved_evide
     execute_additional_predictive_evidence_using_improved_evidence_v1,
     per_ticker_additional_predictive_evidence_execution_using_improved_evidence_digest_v1,
     validate_additional_predictive_evidence_executed_using_improved_evidence_v1,
+)
+from marketflow.services.additional_predictive_evidence_results_review_improved_evidence_service import (
+    ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_BLOCKED_USING_IMPROVED_EVIDENCE_MISSING_OR_INVALID_OUTPUTS,
+    ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_PACKAGE_USING_IMPROVED_EVIDENCE_READY,
+    ARTIFACT_KIND_ADDITIONAL_PREDICTIVE_EVIDENCE_RESULTS_REVIEW_PACKAGE_USING_IMPROVED_EVIDENCE,
+    additional_predictive_evidence_results_review_using_improved_evidence_digest_v1,
+    build_additional_predictive_evidence_results_review_using_improved_evidence_markdown_v1,
+    build_additional_predictive_evidence_results_review_using_improved_evidence_v1,
+    validate_additional_predictive_evidence_results_review_using_improved_evidence_v1,
+    write_additional_predictive_evidence_results_review_using_improved_evidence_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
