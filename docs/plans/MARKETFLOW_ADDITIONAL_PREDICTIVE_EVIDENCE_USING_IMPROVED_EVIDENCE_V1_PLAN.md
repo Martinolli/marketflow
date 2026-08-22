@@ -2,7 +2,7 @@
 
 ## Purpose
 
-Prepare a deterministic, offline candidate for a possible future additional predictive-evidence execution. This plan is candidate-only and creates no approval or execution authority.
+Track the deterministic, offline governance chain for additional predictive evidence using improved evidence. Candidate review and execution approval are complete, and the approved research-only execution is now implemented and completed.
 
 ## Source Improved Evidence Planning Results Review
 
@@ -64,16 +64,18 @@ Default behavior remains deterministic and offline. Do not inspect secrets or pr
 
 ## Next Task
 
-The additional predictive evidence execution candidate is complete. `Optional Additional Predictive Evidence Execution Candidate Operator Review Using Improved Evidence v1` is implemented as a deterministic, offline, digest-bound review package.
+The research-only execution is complete. Results review remains future work and requires a separate governance step; this plan does not pre-authorize that review or any later acceptance decision.
 
 ## Remaining Future Work
 
 - Candidate operator review is complete.
 - Additional predictive evidence execution approval is implemented.
-- Execution remains future and separately gated after approval.
+- Research-only additional predictive evidence execution is implemented and completed.
+- Results review remains future and separate.
 - Label regeneration and new-target creation remain closed.
-- Feature generation and feature-label matrix creation remain closed.
-- Metric computation and model training are not performed by approval.
+- Target-definition change remains unauthorized.
+- Source feature and label mutation remains prohibited; feature generation and canonical matrix creation remain closed.
+- Research-only metric recomputation and deterministic model comparison occurred only within the approved execution scope.
 - Predictive usefulness acceptance remains closed.
 - Profitability remains not accepted.
 - Runtime activation remains future, separate, and unauthorized.

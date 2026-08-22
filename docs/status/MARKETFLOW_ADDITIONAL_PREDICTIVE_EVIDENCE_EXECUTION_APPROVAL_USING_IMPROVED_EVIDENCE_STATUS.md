@@ -74,3 +74,9 @@ All 25 approval controls prohibit this ceremony from executing evidence; generat
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, market-data acquisition, dataset regeneration, runtime action, scoring, recommendation, or trading action occurred.
+
+## Follow-On Research Execution
+
+The separately gated `Optional Additional Predictive Evidence Execution Using Improved Evidence v1` is now implemented and completed as research-only evidence execution. This approval remains immutable source evidence; it did not itself execute or create results.
+
+The follow-on execution does not regenerate labels, create new targets, authorize target-definition changes, or mutate source features, labels, canonical records, or prior predictive evidence. It does not accept predictive usefulness, approve profitability, or authorize runtime, strategy, paper trading, broker execution, or recommendations. Those boundaries remain separately gated.
