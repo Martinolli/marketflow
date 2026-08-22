@@ -43,6 +43,10 @@ All 12 ordered ticker entries are `NOT_READY` and independently digest-bound. Ea
 
 ## Next Chain and Risk Controls
 
+- The follow-on `Predictive Usefulness Not-Ready Closure and Method Planning Tree Using Improved Evidence v1` is implemented as a separate offline, digest-bound artifact.
+- This readiness review remains immutable source evidence.
+- The current improved-evidence acceptance path is closed as not ready.
+- The closure creates no acceptance candidate, does not accept predictive usefulness or profitability, and does not authorize runtime.
 - Any method or evidence improvement requires separate operator selection, review, and approval.
 - A reassessment and readiness review may be rerun only after separately approved new evidence.
 - An acceptance candidate remains closed unless a future readiness review passes.
