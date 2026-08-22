@@ -55,4 +55,6 @@ Default tests remain deterministic, credential-free, network-free, isolated, and
 
 ## Next Task
 
-`Predictive Usefulness Acceptance Readiness Review Using Improved Evidence v1` is the next separately scoped task.
+The reassessment is completed. `Predictive Usefulness Acceptance Readiness Review Using Improved Evidence v1` is implemented as a separate offline review with decision `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_USING_IMPROVED_EVIDENCE`.
+
+The acceptance candidate remains closed, predictive-usefulness acceptance remains closed, and profitability remains not accepted. Runtime activation remains future and separately authorized. Additional evidence or method improvement is required before any future acceptance chain can proceed.

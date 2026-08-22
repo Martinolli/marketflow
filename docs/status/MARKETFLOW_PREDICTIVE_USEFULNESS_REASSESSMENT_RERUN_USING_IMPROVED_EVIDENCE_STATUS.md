@@ -39,14 +39,16 @@
 ## Domains, Next Chain, and Risk Controls
 
 - Seventeen research-only domains cover source, dataset, label, matrix, walk-forward, OOS, model/metric evidence, leakage, ticker consistency, META, acceptance, profitability, and runtime boundaries.
-- The next separately gated task is `Predictive Usefulness Acceptance Readiness Review Using Improved Evidence v1`.
+- The follow-on `Predictive Usefulness Acceptance Readiness Review Using Improved Evidence v1` is implemented as a separate conservative, offline, digest-bound review.
+- The reassessment remains immutable source evidence for that review.
+- The readiness decision is `PREDICTIVE_USEFULNESS_ACCEPTANCE_NOT_READY_USING_IMPROVED_EVIDENCE`.
 - An acceptance candidate may be considered only if readiness passes; acceptance, profitability, and runtime remain later and separately authorized chains.
 - All 25 risk controls pass, including non-mutation, no regeneration or recomputation, preservation of META's limitation, and closure of acceptance/runtime/trading authority.
 
 ## Authority Boundary
 
 - Reassessment creation/readiness and readiness for a future acceptance-readiness review are true.
-- The acceptance-readiness review and acceptance candidate were not created.
+- This reassessment itself creates no acceptance-readiness review or acceptance candidate; the follow-on readiness review is a separate artifact and creates no candidate.
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - Label regeneration, new targets, target-definition changes, feature generation, canonical matrix creation, metric recomputation, and model training remain false.
