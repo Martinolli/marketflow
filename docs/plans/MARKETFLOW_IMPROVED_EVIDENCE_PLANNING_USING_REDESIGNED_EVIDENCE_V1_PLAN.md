@@ -71,10 +71,17 @@ This plan is not a planning review, selection, approval, execution, results revi
 
 Default validation remains deterministic and offline. Candidate and per-ticker digests must be canonical and stable. Tests write only to pytest temporary directories, and `.marketflow` files must remain untracked.
 
+## Current Governance State
+
+- The improved-evidence planning candidate operator review is complete and remains the source evidence.
+- `Optional Improved Evidence Planning Approval Using Redesigned Evidence v1` is implemented with exact attestation and digest gates.
+- The approval authorizes only future research-only planning execution; planning execution remains future work and separately gated.
+- Label regeneration, new-target creation, and target-definition change authorization remain closed.
+- Feature generation and feature-label matrix creation remain closed.
+- An additional predictive-evidence execution candidate and predictive-evidence execution remain closed.
+- Predictive-usefulness acceptance remains closed and profitability remains `not accepted`.
+- Runtime activation, strategy use, paper trading, broker execution, recommendations, and trading remain future and separate authority chains.
+
 ## Next Task
 
-The improved-evidence planning candidate and its operator-review package are complete. The review preserves the candidate as source evidence and creates no selection, approval, authorization, or execution.
-
-Planning approval remains future work only if separately selected. Planning execution remains future and separately gated. Label regeneration, new-target creation, feature-label matrix creation, and an additional predictive-evidence execution candidate remain closed. Predictive-usefulness acceptance and profitability remain closed, and runtime activation remains a future, separate authority chain.
-
-The next possible task is `Optional Improved Evidence Planning Approval Using Redesigned Evidence v1`, only if explicitly selected.
+The next possible task is `Optional Improved Evidence Planning Execution Using Redesigned Evidence v1`, only if separately selected and performed under the approval's exact research-only boundary.

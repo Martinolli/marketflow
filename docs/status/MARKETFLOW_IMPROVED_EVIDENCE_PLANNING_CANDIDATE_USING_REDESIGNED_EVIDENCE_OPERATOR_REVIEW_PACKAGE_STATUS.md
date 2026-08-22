@@ -46,6 +46,10 @@
 - Runtime, strategy, paper trading, broker execution, scoring, recommendations, and trading remain `NOT_AUTHORIZED`.
 - No provider request, acquisition, dataset regeneration, credential access, runtime action, or trading action occurred.
 
-## Next Gate
+## Follow-On Planning Approval
 
-`Optional Improved Evidence Planning Approval Using Redesigned Evidence v1` remains future work only if separately selected. This review does not attest, approve, or authorize that future task.
+`Optional Improved Evidence Planning Approval Using Redesigned Evidence v1` is now implemented as a separate, attestation-gated artifact. This candidate review remains unchanged source evidence for that approval.
+
+The approval authorizes only future research-only planning execution. It does not execute planning, regenerate labels, create new targets, authorize target-definition changes, generate features, create a feature-label matrix, or create an additional predictive-evidence execution candidate. It does not accept predictive usefulness or profitability and does not authorize runtime, strategy, broker, recommendation, or trading use.
+
+The next separately gated task is `Optional Improved Evidence Planning Execution Using Redesigned Evidence v1`.
