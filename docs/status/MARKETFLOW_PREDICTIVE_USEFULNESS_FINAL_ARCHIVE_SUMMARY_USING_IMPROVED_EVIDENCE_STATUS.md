@@ -69,3 +69,11 @@ No immediate next task is required for the archived current path. The six-step n
 ## Terminal State
 
 The current improved-evidence predictive-usefulness acceptance path is finalized and archived as not ready. There is no immediate next task.
+
+## Follow-On Algorithm Strategy Charter
+
+- `MarketFlow Algorithm Strategy Charter v1` is implemented as a separate deterministic, digest-bound, offline concept artifact.
+- This final archive summary remains immutable source evidence with digest `31b61c934f3bc4970973dd2cfc0e18fb3ea4ca76e02c815bed5cf509e4a5440b`.
+- The new research direction is `EXPECTANCY_FIRST_TREND_AND_FLOW_ENGINE` and requires operator review.
+- The charter does not generate labels, targets, features, matrices, backtests, models, metrics, scores, or recommendations.
+- The charter does not accept predictive usefulness, approve profitability, or authorize runtime, strategy, paper trading, or broker execution.
