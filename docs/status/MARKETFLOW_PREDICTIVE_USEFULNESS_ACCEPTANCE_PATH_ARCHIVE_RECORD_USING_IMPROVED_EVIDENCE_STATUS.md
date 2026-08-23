@@ -73,3 +73,11 @@ The seven-step terminal chain and nine future gates preserve the archived curren
 ## Terminal State
 
 The current improved-evidence predictive-usefulness acceptance path is archived as not ready. This record creates no immediate next gate.
+
+## Follow-On Final Archive Summary
+
+- `MarketFlow Predictive Usefulness Final Archive Summary Using Improved Evidence v1` is implemented as a separate deterministic, digest-bound, offline terminal summary.
+- This archive record remains immutable source evidence with digest `e38963a93be3518b531f60c55924b985d42761b60c07300450944b3e876dce99`.
+- The current improved-evidence predictive-usefulness chain is finalized and archived not ready.
+- The final summary does not create a future method/evidence candidate, accept predictive usefulness, approve profitability, or authorize runtime, strategy, paper trading, broker execution, or trade recommendations.
+- Any future research requires a new method concept, new operator method selection, and separately gated downstream work.
