@@ -45,4 +45,11 @@
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain NOT_AUTHORIZED.
 - No provider, market-data, dataset, generation, evaluation, runtime, or trading action occurred.
-- The next task is Objective Label or Target Generation Execution v1 under a separately invoked execution task.
+- The separately invoked Objective Label or Target Generation Execution v1 follow-on is now implemented on its stacked execution branch.
+
+## Follow-On Execution
+
+- This approval remains immutable source evidence for the follow-on execution.
+- The execution generates only offline, digest-bound, research-only target/label values for `PACKAGE_EXPECTANCY_PAYOFF_ABSTENTION_LABEL_SET`.
+- The execution does not generate features or feature-label matrix rows and does not run backtests, train models, compute performance metrics, score strategies, or generate recommendations.
+- Predictive usefulness and profitability acceptance remain closed; runtime, strategy, paper trading, and broker execution remain NOT_AUTHORIZED.

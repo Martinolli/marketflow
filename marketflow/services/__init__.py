@@ -730,6 +730,14 @@ __all__ = [
     "build_marketflow_objective_label_or_target_generation_approval_markdown_v1",
     "marketflow_objective_label_or_target_generation_approval_digest_v1",
     "per_ticker_objective_label_or_target_generation_approval_digest_v1",
+    "marketflow_objective_label_or_target_generation_execution_service",
+    "ARTIFACT_KIND_MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED",
+    "MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED_RESEARCH_ONLY",
+    "OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTION_ONLY_NOT_FEATURE_GENERATION_NOT_BACKTEST",
+    "PACKAGE_EXPECTANCY_PAYOFF_ABSTENTION_LABEL_SET",
+    "execute_marketflow_objective_label_or_target_generation_v1",
+    "validate_marketflow_objective_label_or_target_generation_execution_v1",
+    "build_marketflow_objective_label_or_target_generation_execution_markdown_v1",
     "feature_label_refinement_plan_candidate_service",
     "feature_label_refinement_plan_candidate_operator_review_service",
     "feature_label_refinement_plan_approval_service",
@@ -4036,6 +4044,15 @@ from marketflow.services.marketflow_objective_label_or_target_generation_approva
     per_ticker_objective_label_or_target_generation_approval_digest_v1,
     validate_marketflow_objective_label_or_target_generation_approval_v1,
     write_marketflow_objective_label_or_target_generation_approval_v1,
+)
+from marketflow.services.marketflow_objective_label_or_target_generation_execution_service import (
+    ARTIFACT_KIND_MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED,
+    MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED_RESEARCH_ONLY,
+    OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTION_ONLY_NOT_FEATURE_GENERATION_NOT_BACKTEST,
+    PACKAGE_EXPECTANCY_PAYOFF_ABSTENTION_LABEL_SET,
+    build_marketflow_objective_label_or_target_generation_execution_markdown_v1,
+    execute_marketflow_objective_label_or_target_generation_v1,
+    validate_marketflow_objective_label_or_target_generation_execution_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
