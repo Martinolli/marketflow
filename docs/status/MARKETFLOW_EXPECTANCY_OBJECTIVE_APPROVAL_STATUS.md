@@ -61,8 +61,15 @@
 ## Next Chain, Gates, and Controls
 
 - The approval defines 8 future chain steps and 9 separately closed next gates.
-- Expectancy Objective Design Execution v1 is the next future artifact; it is not created or executed by this approval.
+- Expectancy Objective Design Execution v1 is implemented as a separate research-only artifact using this approval as immutable source evidence.
 - All 23 risk controls prohibit generation, providers, acquisition, acceptance, runtime, strategy, paper-trading, and broker authority while preserving frozen evidence.
+
+## Design Execution Follow-On
+
+- Artifact/status/scope: MARKETFLOW_EXPECTANCY_OBJECTIVE_DESIGN_EXECUTED / MARKETFLOW_EXPECTANCY_OBJECTIVE_DESIGN_EXECUTED_RESEARCH_ONLY / EXPECTANCY_OBJECTIVE_DESIGN_EXECUTION_ONLY_NOT_LABEL_GENERATION.
+- Execution/output-binding digests: ba9661d34b57dbd464b6ec559c5b3e48df5ff78847102aa16d2d9e45f076ec11 / 3ee2acfb7461769fc054e1afb34e222302297b04d66a08b21fb411613e0585a4.
+- Exactly 11 research-only design outputs were created under ignored `.marketflow`; the approval remains source evidence at digest 4ae9d4e81cc41b9578ac061574669d6fb11a45ed56871f4d05a02aacad165a1d.
+- Design execution created specifications and plans only. It generated no labels, targets, features, matrix rows, backtests, models, computed metrics, recommendations, predictive-usefulness acceptance, profitability acceptance, or runtime authority.
 
 ## Authority Boundary
 
