@@ -72,6 +72,6 @@ Run fully offline. Do not call providers, inspect `.env`, enable live transport,
 
 Objective Label or Target Generation Candidate v1 is complete. Objective Label or Target Generation Candidate Operator Review v1 is implemented as an offline, digest-bound, review-only package.
 
-The review does not select the recommended package and does not approve generation. Objective Label or Target Generation Approval v1 remains future work only if separately selected.
+The candidate operator review is complete. Objective Label or Target Generation Approval v1 is implemented as an offline, attestation-bound approval ceremony. It selects PACKAGE_EXPECTANCY_PAYOFF_ABSTENTION_LABEL_SET and authorizes future label-or-target generation execution only.
 
-Selection, approval, generation, labels, targets, target values, feature generation, feature-label matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.
+Objective Label or Target Generation Execution v1 remains future work. Generation, label values, target values, feature generation, feature-label matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.

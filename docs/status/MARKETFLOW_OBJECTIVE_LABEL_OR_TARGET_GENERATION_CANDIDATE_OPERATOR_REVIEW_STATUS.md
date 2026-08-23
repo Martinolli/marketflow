@@ -37,9 +37,13 @@
 
 ## Authority Boundary
 
+- Objective Label or Target Generation Approval v1 is implemented at canonical test-attestation digest df3ee8758ca86a04f944ed1a46ede444693833009c99692e490f6cae5e21414b with 74 / 74 checks passed.
+- The candidate review remains the immutable source evidence for that approval.
+- The approval selects PACKAGE_EXPECTANCY_PAYOFF_ABSTENTION_LABEL_SET and authorizes future label-or-target generation execution only.
+- The approval does not perform generation or create label values, target values, features, matrix rows, backtests, models, metrics, recommendations, acceptance, profitability, or runtime authority.
 - The review is created and ready; ready_for_objective_label_or_target_generation_approval remains false.
 - Package selection, approval, authorization, generation, labels, targets, target values, feature generation, matrix creation, backtests, training, metric computation, and scoring remain false.
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain NOT_AUTHORIZED.
 - No provider, market-data, dataset, generation, evaluation, runtime, or trading action occurred.
-- The next task is Objective Label or Target Generation Approval v1 only if a future operator selection separately authorizes that path.
+- The next task is Objective Label or Target Generation Execution v1 under the approval's future-execution-only authority.
