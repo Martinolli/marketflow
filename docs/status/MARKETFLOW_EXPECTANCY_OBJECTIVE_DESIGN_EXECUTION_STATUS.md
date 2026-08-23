@@ -71,9 +71,12 @@
 
 ## Next Chain, Gates, and Controls
 
-- The next artifact is Expectancy Objective Design Results Review v1.
+- The follow-on Expectancy Objective Design Results Review v1 is implemented as an offline, digest-bound review package.
+- The design execution remains immutable source evidence for that review.
+- The review verifies the 11 research-only design outputs and permits readiness for a future label/target-generation candidate only.
 - The execution defines 7 future chain steps and 9 separately closed next gates.
 - All 23 risk controls preserve the design-only, provider-free, non-mutating boundary.
+- The review does not generate labels or targets and creates no feature, matrix, backtest, model, metric, recommendation, predictive-usefulness, profitability, runtime, or trading authority.
 
 ## Authority Boundary
 

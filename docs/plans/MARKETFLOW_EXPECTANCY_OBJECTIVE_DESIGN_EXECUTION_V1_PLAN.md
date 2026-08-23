@@ -74,4 +74,6 @@ Run fully offline. Do not call providers, inspect `.env`, enable live transport,
 
 ## Next Task
 
-Expectancy Objective Design Results Review v1.
+Expectancy Objective Design Results Review v1 is implemented. It verifies all 11 ignored design outputs, their ordinary hashes, the digest-manifest self-reference policy, source bindings, research-only content, and closed authority flags.
+
+The next future task is Objective Label or Target Generation Candidate v1. Candidate creation and approval remain false. Label generation, target creation/change, feature generation, feature-label matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.
