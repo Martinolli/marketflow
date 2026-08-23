@@ -58,3 +58,11 @@ The next artifact may be an Expectancy Objective Candidate v1. It still requires
 - Runtime, strategy, paper trading, and broker execution remain NOT_AUTHORIZED.
 - No provider request, acquisition, regeneration, objective creation, label or target generation, feature or matrix generation, backtest, model training, metric computation, scoring, recommendation, predictive acceptance, profitability, runtime, paper-trading, or broker action occurred.
 - Frozen data and prior outputs were not mutated; META's 913-record limitation remains explicit.
+
+## Follow-on Expectancy Objective Candidate
+
+- Expectancy Objective Candidate v1 is implemented as a separate offline, digest-bound, candidate-only artifact.
+- This strategy-charter approval remains the source evidence for the candidate.
+- The candidate prepares the 10 approved objective families, four review clusters, research questions, design dimensions, and future outputs only.
+- The candidate does not select or approve an objective and does not generate labels or targets.
+- Features, matrices, backtests, models, metrics, scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.
