@@ -57,3 +57,10 @@ This task does not call providers, acquire data, regenerate the canonical datase
 ## Guardrails
 
 All generated files remain ignored and untracked under `.marketflow`. Default tests remain deterministic and offline. The execution fails closed with a blocked artifact when canonical source rows are missing, invalid, or digest-mismatched.
+
+## Completion and Results Review
+
+- Objective Label or Target Generation Execution v1 is complete and remains the immutable source-evidence layer.
+- Objective Label or Target Generation Results Review v1 is implemented and verifies the eleven generated outputs without modifying or regenerating them.
+- Signal or Feature Generation Candidate v1 remains future work and is not created by the review.
+- Feature generation, feature-label matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, strategy, paper trading, and broker execution remain closed.

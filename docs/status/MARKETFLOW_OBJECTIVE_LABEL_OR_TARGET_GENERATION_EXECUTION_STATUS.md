@@ -33,4 +33,10 @@
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, live transport, market-data acquisition, dataset regeneration, candidate/review/approval rerun, runtime activation, or trading action occurs.
-- The next task is Objective Label or Target Generation Results Review v1.
+- The follow-on Objective Label or Target Generation Results Review v1 is now implemented on its stacked review branch.
+
+## Follow-On Results Review
+
+- The execution artifact and eleven ignored outputs remain immutable source evidence.
+- The results review reads and hashes those outputs in place, verifies all 179,190 research-only target rows and their declared schema/counts, and does not rerun generation.
+- Review readiness authorizes only a future Signal or Feature Generation Candidate v1; it does not authorize feature generation, a feature-label matrix, backtesting, training, metrics, recommendations, predictive-usefulness or profitability acceptance, runtime, or trading.
