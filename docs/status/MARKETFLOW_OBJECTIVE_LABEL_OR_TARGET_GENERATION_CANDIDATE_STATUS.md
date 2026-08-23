@@ -52,7 +52,10 @@
 
 ## Next Chain and Authority Boundary
 
-- The next task is Objective Label or Target Generation Candidate Operator Review v1.
+- Objective Label or Target Generation Candidate Operator Review v1 is implemented at review digest ec9e117ad735e984a52c5600374ae274aceec8e58bc5aeb9e75a4357dcfd5e1b with 79 / 79 checks passed.
+- The candidate remains the immutable source evidence for that review.
+- The review does not select or approve either package.
+- Objective Label or Target Generation Approval v1 remains future work only if a separate operator selection authorizes it.
 - The candidate defines 9 future chain steps, 9 separately closed gates, and 26 risk controls.
 - objective_label_or_target_generation_candidate_created and candidate_ready_for_operator_review are true.
 - Selection, approval, authorization, generation, label generation, target creation/values, feature generation, matrix creation, backtests, training, metric computation, and scoring remain false.

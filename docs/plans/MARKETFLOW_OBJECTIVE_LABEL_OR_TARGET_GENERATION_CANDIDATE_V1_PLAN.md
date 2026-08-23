@@ -70,4 +70,8 @@ Run fully offline. Do not call providers, inspect `.env`, enable live transport,
 
 ## Next Task
 
-Objective Label or Target Generation Candidate Operator Review v1.
+Objective Label or Target Generation Candidate v1 is complete. Objective Label or Target Generation Candidate Operator Review v1 is implemented as an offline, digest-bound, review-only package.
+
+The review does not select the recommended package and does not approve generation. Objective Label or Target Generation Approval v1 remains future work only if separately selected.
+
+Selection, approval, generation, labels, targets, target values, feature generation, feature-label matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.
