@@ -48,7 +48,18 @@ Define expectancy-oriented objectives before generating any labels or targets. D
 
 ## Next Chain and Gates
 
-The next artifact is Expectancy Objective Candidate Operator Review v1. Objective approval and design execution remain separate future steps if selected. Label/target generation, feature planning, VPA/Wyckoff baseline work, backtesting, results review, acceptance, profitability, and runtime remain separately gated.
+Expectancy Objective Candidate Operator Review v1 is implemented as a separate digest-bound review package. It reviews the recommended path without selecting or approving it. Objective approval and design execution remain separate future steps if selected. Label/target generation, feature planning, VPA/Wyckoff baseline work, backtesting, results review, acceptance, profitability, and runtime remain separately gated.
+
+## Operator Review Follow-On
+
+- Artifact: MARKETFLOW_EXPECTANCY_OBJECTIVE_CANDIDATE_OPERATOR_REVIEW_PACKAGE.
+- Status: MARKETFLOW_EXPECTANCY_OBJECTIVE_CANDIDATE_OPERATOR_REVIEW_PACKAGE_READY.
+- Scope: EXPECTANCY_OBJECTIVE_CANDIDATE_OPERATOR_REVIEW_ONLY_NOT_APPROVAL.
+- Deterministic review digest: baac33f292d77d26eae6eacc4cffaa5cdabe17785cb2c090c053c82d1bfe551d.
+- Source candidate digest: 9b241ab1be15921384d97d75a11ac7858065d041c0b8a02144e97c3e3ed3bc17.
+- Review checklist: 63 / 63 passed, 0 failed, 0 blockers.
+- EXPECTANCY_PAYOFF_WITH_ABSTENTION_SUPPORT is reviewed and recommended for operator assessment, but remains not selected and not approved.
+- The review creates no objective, label, target, feature, matrix, baseline, backtest, model, metric, scoring, acceptance, profitability, runtime, paper-trading, or broker-execution authority.
 
 ## Authority Boundary and Guardrails
 

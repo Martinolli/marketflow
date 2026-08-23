@@ -42,7 +42,7 @@ Keep all 11 manifests, specifications, plans, reviews, summaries, and digest out
 
 ## Next Chain
 
-Proceed only to candidate operator review. Objective approval, design execution, results review, generation candidates, features, baselines, backtests, readiness, acceptance, profitability, and runtime remain separate future steps.
+The candidate operator review is implemented and digest-bound without selecting or approving an objective. Objective approval, design execution, results review, generation candidates, features, baselines, backtests, readiness, acceptance, profitability, and runtime remain separate future steps.
 
 ## Next Gates
 
@@ -60,6 +60,14 @@ No objective selection or approval, label or target generation, feature generati
 
 Run fully offline. Do not call providers, inspect .env, enable live transport, modify .marketflow, mutate source artifacts, store or print API keys, commit raw provider payloads, or modify broker/IBKR code.
 
+## Implementation Progress
+
+- The source candidate is complete at digest 9b241ab1be15921384d97d75a11ac7858065d041c0b8a02144e97c3e3ed3bc17 with 60 / 60 checks passed.
+- The operator review package is complete at digest baac33f292d77d26eae6eacc4cffaa5cdabe17785cb2c090c053c82d1bfe551d with 63 / 63 checks passed.
+- The review covers all 10 objective families, 4 clusters, 10 unanswered research questions, 12 unexecuted design dimensions, 11 planned future outputs, and 12 per-ticker entries.
+- EXPECTANCY_PAYOFF_WITH_ABSTENTION_SUPPORT remains reviewed and recommended, not selected or approved.
+- All generation, execution, predictive-usefulness, profitability, runtime, paper-trading, and broker-execution authorities remain closed.
+
 ## Next Task
 
-Expectancy Objective Candidate Operator Review v1.
+Expectancy Objective Approval v1, if selected.
