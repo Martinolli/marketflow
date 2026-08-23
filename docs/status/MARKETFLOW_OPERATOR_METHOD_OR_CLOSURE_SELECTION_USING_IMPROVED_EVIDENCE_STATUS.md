@@ -70,3 +70,11 @@ All 30 risk controls preserve source outputs, META's limitation, research-only s
 - Acceptance readiness and recommendation remain false; no acceptance candidate or ceremony exists.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, market-data acquisition, dataset generation/regeneration, label or feature regeneration, new target creation, evidence/reassessment/readiness rerun, metric recomputation, model training, strategy scoring, trade recommendation, archive record, method/evidence candidate, runtime migration, broker, or trading action occurred.
+
+## Follow-On Acceptance Path Archive Record
+
+- `Predictive Usefulness Acceptance Path Archive Record Using Improved Evidence v1` is implemented as a separate deterministic, digest-bound, offline final-disposition record.
+- This operator selection remains immutable source evidence with digest `fccd75c360f68fcb7181bcbbc3afb98ba57b1f667cd0b930a2e45d0041b2a048`.
+- The current improved-evidence acceptance path is archived as not ready under `ARCHIVE_RECORD_ONLY`.
+- The archive does not create a future method/evidence candidate, accept predictive usefulness, approve profitability, or authorize runtime, strategy, paper trading, broker execution, or trade recommendations.
+- Future reopening requires a new operator method-selection artifact and separately gated downstream work.
