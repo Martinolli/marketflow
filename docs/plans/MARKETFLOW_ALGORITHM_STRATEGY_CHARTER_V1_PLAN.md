@@ -66,6 +66,14 @@ Maintain all 23 service-defined controls. They prohibit generation, execution, c
 
 Run entirely offline. Do not call providers, inspect `.env`, enable live transport, modify `.marketflow`, mutate source artifacts, store or print API keys, commit raw provider payloads, or modify broker/IBKR code. Default tests remain deterministic and credential-free.
 
+## Implementation Progress
+
+- The strategy charter is complete.
+- MarketFlow Algorithm Strategy Charter Operator Review v1 is implemented as an offline, digest-bound, review-only package.
+- Charter approval remains future work if selected; the review itself creates no approval or authorization.
+- An Expectancy Objective Candidate remains future work and may be created only after separate charter approval.
+- Objective and label generation, target creation, feature generation, matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.
+
 ## Next Task
 
-`MarketFlow Algorithm Strategy Charter Operator Review v1`.
+`MarketFlow Algorithm Strategy Charter Approval v1`, if selected.

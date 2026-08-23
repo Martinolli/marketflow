@@ -66,3 +66,11 @@ The six-step next chain begins with operator review and permits an Expectancy Ob
 - Predictive usefulness and profitability remain `not accepted`.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No labels, targets, features, matrix, backtest, training, metrics, scoring, recommendations, provider request, acquisition, dataset regeneration, acceptance, profitability, runtime, broker, or trading action occurred.
+
+## Follow-on Operator Review
+
+- MarketFlow Algorithm Strategy Charter Operator Review v1 is implemented as a separate, offline, digest-bound review package.
+- The strategy charter remains the source evidence, and the review preserves its EXPECTANCY_FIRST_TREND_AND_FLOW_ENGINE direction.
+- The review does not approve or authorize the charter and does not create an Expectancy Objective Candidate.
+- Approval remains future work if selected.
+- Labels, targets, features, matrices, backtests, models, metrics, scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.
