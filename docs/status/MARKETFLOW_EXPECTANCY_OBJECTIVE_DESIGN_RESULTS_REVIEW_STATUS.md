@@ -49,10 +49,12 @@
 ## Next Readiness
 
 - ready_for_objective_label_or_target_generation_candidate is true.
-- objective_label_or_target_generation_candidate_created is false.
+- The follow-on Objective Label or Target Generation Candidate v1 is implemented and ready for operator review.
+- The design results review remains immutable source evidence for the candidate.
+- The candidate prepares future label/target generation structures only; it does not generate labels, targets, target values, features, matrix rows, backtests, models, metrics, recommendations, acceptance, profitability, or runtime authority.
 - objective_label_or_target_generation_approved is false.
 - objective_label_or_target_generation_performed is false.
-- The next task is Objective Label or Target Generation Candidate v1.
+- The next task is Objective Label or Target Generation Candidate Operator Review v1.
 - The package defines 9 future chain steps, 9 separately closed gates, and 24 risk controls.
 
 ## Authority Boundary
