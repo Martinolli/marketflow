@@ -69,11 +69,11 @@ Run entirely offline. Do not call providers, inspect `.env`, enable live transpo
 ## Implementation Progress
 
 - The strategy charter is complete.
-- MarketFlow Algorithm Strategy Charter Operator Review v1 is implemented as an offline, digest-bound, review-only package.
-- Charter approval remains future work if selected; the review itself creates no approval or authorization.
-- An Expectancy Objective Candidate remains future work and may be created only after separate charter approval.
+- MarketFlow Algorithm Strategy Charter Operator Review v1 is complete as an offline, digest-bound, review-only package.
+- MarketFlow Algorithm Strategy Charter Approval v1 is implemented as an attestation-bound, charter-only approval.
+- An Expectancy Objective Candidate remains future work; approval makes the chain ready for candidate creation but does not create it.
 - Objective and label generation, target creation, feature generation, matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.
 
 ## Next Task
 
-`MarketFlow Algorithm Strategy Charter Approval v1`, if selected.
+`MarketFlow Expectancy Objective Candidate v1`.

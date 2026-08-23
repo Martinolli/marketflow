@@ -55,3 +55,11 @@ Charter approval remains a separate future step if selected. Only after approval
 - Runtime, strategy, paper trading, and broker execution remain NOT_AUTHORIZED.
 - No provider request, market-data acquisition, dataset regeneration, label or target creation, feature or matrix generation, backtest, model training, metric computation, strategy scoring, trade recommendation, acceptance, profitability, runtime, or trading action occurred.
 - Frozen datasets and prior label, feature, and predictive-evidence outputs were not mutated; META's 913-record limitation remains explicit.
+
+## Follow-on Strategy Charter Approval
+
+- MarketFlow Algorithm Strategy Charter Approval v1 is implemented as a separate, attestation-bound offline artifact.
+- This operator-review package remains the source evidence for that approval.
+- The approval authorizes only the strategy charter and opens readiness for a future Expectancy Objective Candidate.
+- The approval does not create the Expectancy Objective Candidate.
+- Labels, targets, features, matrices, backtests, models, metrics, scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, paper trading, and broker execution remain closed.
