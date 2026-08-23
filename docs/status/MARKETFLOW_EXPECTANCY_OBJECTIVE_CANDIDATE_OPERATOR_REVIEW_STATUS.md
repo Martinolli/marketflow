@@ -53,15 +53,23 @@
 ## Next Chain, Gates, and Controls
 
 - The review preserves 9 future chain steps and 9 closed next gates.
-- Objective approval is a distinct future ceremony and is available only if an operator separately selects the reviewed path.
+- Expectancy Objective Approval v1 is now implemented as a separate attestation-bound artifact using this review as source evidence.
+- The approval selects EXPECTANCY_PAYOFF_WITH_ABSTENTION_SUPPORT and authorizes future objective design execution only.
 - All 25 risk controls preserve the provider-free, non-mutating, candidate-review-only boundary.
 - Label/target generation, feature planning, VPA/Wyckoff baseline work, backtesting, model training, results review, acceptance, profitability, runtime migration, paper trading, and broker execution remain separately gated.
 
+## Approval Follow-On
+
+- Artifact/status/scope: MARKETFLOW_EXPECTANCY_OBJECTIVE_APPROVED / MARKETFLOW_EXPECTANCY_OBJECTIVE_APPROVED / EXPECTANCY_OBJECTIVE_APPROVAL_ONLY.
+- Fixed-test-attestation approval digest: 4ae9d4e81cc41b9578ac061574669d6fb11a45ed56871f4d05a02aacad165a1d.
+- The candidate review remains immutable source evidence at digest baac33f292d77d26eae6eacc4cffaa5cdabe17785cb2c090c053c82d1bfe551d.
+- Approval creates no labels, targets, features, matrix, backtest, model, metrics, scoring, recommendations, predictive-usefulness acceptance, profitability acceptance, runtime, paper-trading, or broker authority.
+
 ## Authority Boundary
 
-- expectancy_objective_candidate_review_created and expectancy_objective_candidate_review_ready are true.
-- ready_for_expectancy_objective_approval is false.
-- selection_created, approval_created, and generation_created are false.
+- Within this source review artifact, expectancy_objective_candidate_review_created and expectancy_objective_candidate_review_ready are true.
+- Within this source review artifact, ready_for_expectancy_objective_approval is false.
+- Within this source review artifact, selection_created, approval_created, and generation_created are false.
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain NOT_AUTHORIZED.
 - No provider request, acquisition, regeneration, label or target generation, feature or matrix generation, backtest, model training, metric computation, scoring, recommendation action, acceptance, profitability, runtime, paper-trading, or broker action occurred.

@@ -26,7 +26,7 @@ Carry forward all 10 approved objective families as OBJECTIVE_CANDIDATE_DEFINED_
 
 ## Recommended Clusters
 
-Recommend CLUSTER_EXPECTANCY_AND_PAYOFF as primary, CLUSTER_ABSTENTION_AND_NO_TRADE as supporting, and CLUSTER_TREND_QUALITY_AND_MATERIAL_MOVE as secondary. Keep CLUSTER_CONTEXTUAL_SELECTION available. The path EXPECTANCY_PAYOFF_WITH_ABSTENTION_SUPPORT remains recommended but not selected.
+The candidate recommended CLUSTER_EXPECTANCY_AND_PAYOFF as primary, CLUSTER_ABSTENTION_AND_NO_TRADE as supporting, and CLUSTER_TREND_QUALITY_AND_MATERIAL_MOVE as secondary while keeping CLUSTER_CONTEXTUAL_SELECTION available. At that candidate stage, EXPECTANCY_PAYOFF_WITH_ABSTENTION_SUPPORT was recommended but not selected.
 
 ## Research Questions
 
@@ -46,15 +46,15 @@ The candidate operator review is implemented and digest-bound without selecting 
 
 ## Next Gates
 
-Maintain all 10 gates from candidate operator review through the separately authorized runtime-migration chain.
+The candidate artifact maintains all 10 gates from candidate operator review through the separately authorized runtime-migration chain.
 
 ## Risk Controls
 
-Maintain all 24 service-defined controls prohibiting approval, generation, execution, providers, acquisition, acceptance, runtime, strategy, paper, and broker authority while preserving frozen evidence and META's limitation.
+The candidate artifact maintains all 24 service-defined controls prohibiting approval, generation, execution, providers, acquisition, acceptance, runtime, strategy, paper, and broker authority while preserving frozen evidence and META's limitation.
 
-## Non-Goals
+## Candidate Artifact Non-Goals
 
-No objective selection or approval, label or target generation, feature generation, matrix creation, baseline execution, backtest, model training, metric computation, scoring, recommendation, predictive-usefulness acceptance, profitability claim, runtime activation, paper trading, or broker execution.
+The candidate artifact created no objective selection or approval, label or target generation, feature generation, matrix creation, baseline execution, backtest, model training, metric computation, scoring, recommendation, predictive-usefulness acceptance, profitability claim, runtime activation, paper trading, or broker execution.
 
 ## Guardrails
 
@@ -65,9 +65,12 @@ Run fully offline. Do not call providers, inspect .env, enable live transport, m
 - The source candidate is complete at digest 9b241ab1be15921384d97d75a11ac7858065d041c0b8a02144e97c3e3ed3bc17 with 60 / 60 checks passed.
 - The operator review package is complete at digest baac33f292d77d26eae6eacc4cffaa5cdabe17785cb2c090c053c82d1bfe551d with 63 / 63 checks passed.
 - The review covers all 10 objective families, 4 clusters, 10 unanswered research questions, 12 unexecuted design dimensions, 11 planned future outputs, and 12 per-ticker entries.
-- EXPECTANCY_PAYOFF_WITH_ABSTENTION_SUPPORT remains reviewed and recommended, not selected or approved.
+- At the candidate-review stage, EXPECTANCY_PAYOFF_WITH_ABSTENTION_SUPPORT was reviewed and recommended without selection or approval.
 - All generation, execution, predictive-usefulness, profitability, runtime, paper-trading, and broker-execution authorities remain closed.
+- The candidate operator review is complete and remains source evidence at digest baac33f292d77d26eae6eacc4cffaa5cdabe17785cb2c090c053c82d1bfe551d.
+- Expectancy Objective Approval v1 is implemented with the selected path EXPECTANCY_PAYOFF_WITH_ABSTENTION_SUPPORT and authorizes future objective design execution only.
+- Objective design execution remains future work. Label generation, target creation, feature generation, backtesting, model training, metric computation, scoring, recommendations, predictive-usefulness acceptance, profitability, and runtime remain closed.
 
 ## Next Task
 
-Expectancy Objective Approval v1, if selected.
+Expectancy Objective Design Execution v1, if separately initiated.
