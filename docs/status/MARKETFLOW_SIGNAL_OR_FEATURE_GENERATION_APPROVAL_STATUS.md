@@ -42,4 +42,8 @@
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider, market-data, dataset, runtime, or trading action occurred.
-- The next task is Signal or Feature Generation Execution v1 only through a separately invoked research-only execution gate, followed by results review and separately approved downstream candidates.
+- The separately invoked follow-on Signal or Feature Generation Execution v1 is now implemented and executed offline on its stacked branch.
+- This approval remains immutable source evidence for the execution; it was inspected and digest-bound, not rerun or modified.
+- The execution generates research-only signal/feature values for `PACKAGE_TREND_FLOW_EXPECTANCY_SIGNAL_SET` from the frozen canonical dataset.
+- It does not create feature-label matrix rows, backtests, models, performance metrics, strategy scores, recommendations, predictive-usefulness acceptance, profitability acceptance, or runtime/trading authority.
+- The next task is Signal or Feature Generation Results Review v1; every downstream candidate remains separately gated.
