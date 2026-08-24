@@ -33,4 +33,8 @@
 - No backtest, trained model, performance metric, strategy score, recommendation, predictive-usefulness acceptance, or profitability acceptance was created.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, live transport, market-data acquisition, dataset regeneration, upstream rerun, runtime activation, or trading action occurred.
-- The next task is Feature-Label Matrix Candidate v1, which remains a separate design-only governance step.
+- The follow-on Feature-Label Matrix Candidate v1 is now implemented on its stacked branch.
+- This results review remains immutable source evidence; the candidate binds its digest and facts without rerunning review or reading/joining row-level outputs.
+- The candidate prepares future feature-label matrix construction only. It defines unselected layouts, planned keys/rules/checks, counts, and future outputs.
+- It creates no matrix rows, joined output, backtest, model, metric, score, recommendation, acceptance, profitability, runtime, or trading authority.
+- The next task is Feature-Label Matrix Candidate Operator Review v1.
