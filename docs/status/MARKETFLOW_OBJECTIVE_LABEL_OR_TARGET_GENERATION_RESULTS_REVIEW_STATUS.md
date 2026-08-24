@@ -42,4 +42,7 @@
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, market-data acquisition, dataset regeneration, target-generation rerun, candidate/review/approval rerun, runtime activation, or trading action occurred.
-- The next task is Signal or Feature Generation Candidate v1.
+- Follow-on Signal or Feature Generation Candidate v1 is implemented as an offline, digest-bound, candidate-only artifact.
+- This target results review remains its source evidence; the candidate only prepares future signal or feature generation.
+- The candidate does not generate signal values, feature values, matrix rows, backtests, models, metrics, recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
+- The next task is Signal or Feature Generation Candidate Operator Review v1.

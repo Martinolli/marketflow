@@ -4071,6 +4071,20 @@ from marketflow.services.marketflow_objective_label_or_target_generation_results
     validate_marketflow_objective_label_or_target_generation_results_review_v1,
     write_marketflow_objective_label_or_target_generation_results_review_v1,
 )
+from marketflow.services.marketflow_signal_or_feature_generation_candidate_service import (
+    ARTIFACT_KIND_MARKETFLOW_SIGNAL_OR_FEATURE_GENERATION_CANDIDATE_V1,
+    MARKETFLOW_SIGNAL_OR_FEATURE_GENERATION_CANDIDATE_READY_FOR_OPERATOR_REVIEW,
+    PACKAGE_REGIME_CONTEXT_SIGNAL_SET,
+    PACKAGE_TREND_FLOW_EXPECTANCY_SIGNAL_SET,
+    SCHEMA_VERSION_MARKETFLOW_SIGNAL_OR_FEATURE_GENERATION_CANDIDATE_V1,
+    SIGNAL_OR_FEATURE_GENERATION_CANDIDATE_ONLY_NOT_APPROVAL_NOT_GENERATION,
+    build_marketflow_signal_or_feature_generation_candidate_markdown_v1,
+    build_marketflow_signal_or_feature_generation_candidate_v1,
+    marketflow_signal_or_feature_generation_candidate_v1_digest,
+    per_ticker_signal_or_feature_generation_candidate_digest_v1,
+    validate_marketflow_signal_or_feature_generation_candidate_v1,
+    write_marketflow_signal_or_feature_generation_candidate_v1,
+)
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
     PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE_READY,
