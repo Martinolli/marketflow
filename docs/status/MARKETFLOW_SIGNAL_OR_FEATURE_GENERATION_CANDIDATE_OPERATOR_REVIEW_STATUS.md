@@ -43,10 +43,11 @@
 
 ## Authority Boundary and Next Gate
 
-- Review creation/readiness are true, while readiness for signal or feature generation approval remains false.
-- Selection, approval, authorization, and generation remain false.
+- This review remains immutable source evidence for the follow-on Signal or Feature Generation Approval v1.
+- The follow-on approval selects `PACKAGE_TREND_FLOW_EXPECTANCY_SIGNAL_SET` and authorizes future generation execution only.
+- The review itself remains review-only: its selection, approval, authorization, and generation fields remain false.
 - No signal values, feature values, feature-label matrix rows, backtests, models, metrics, strategy scores, or recommendations were created.
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, market-data acquisition, dataset regeneration, target-generation rerun, target-results-review rerun, persisted candidate recreation, runtime activation, or trading action occurred.
-- The next task is Signal or Feature Generation Approval v1 only if an operator separately selects a package.
+- Signal or Feature Generation Approval v1 is implemented as an offline, attestation-bound approval-only artifact. It performs no generation and creates no downstream authority.
