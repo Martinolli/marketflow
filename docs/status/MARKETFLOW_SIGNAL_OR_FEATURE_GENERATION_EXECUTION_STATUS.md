@@ -36,4 +36,7 @@
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, market-data acquisition, dataset regeneration, candidate/review/approval rerun, runtime activation, or trading action occurred.
-- The next task is Signal or Feature Generation Results Review v1. Every later matrix, VPA/Wyckoff, expectancy-backtest, acceptance, and runtime step remains separately gated.
+- The follow-on Signal or Feature Generation Results Review v1 is now implemented on its stacked branch.
+- The execution artifact and ten ignored outputs remain immutable source evidence; the review reads and hashes them in place without regeneration.
+- The review verifies the research-only feature schema, counts, families, groups, no-peek controls, per-ticker coverage, META limitation, and digest manifest.
+- Review readiness permits only a future Feature-Label Matrix Candidate v1. It creates no matrix rows, backtests, models, performance metrics, scores, recommendations, acceptance, profitability, runtime, or trading authority.

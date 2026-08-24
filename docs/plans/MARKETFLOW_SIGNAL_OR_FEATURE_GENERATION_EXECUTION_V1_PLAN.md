@@ -66,3 +66,10 @@ The immediate next task is Signal or Feature Generation Results Review v1. A fea
 ## Risk Controls, Non-Goals, and Guardrails
 
 This execution does not call providers, acquire data, mutate frozen inputs, rerun upstream ceremonies, create a feature-label matrix, backtest, train models, compute performance metrics, score strategies, generate recommendations, accept predictive usefulness or profitability, or authorize runtime/trading. Generated files remain ignored and untracked. Missing or digest-invalid canonical records yield a closed blocked artifact and no feature outputs.
+
+## Completion and Results Review
+
+- Signal or Feature Generation Execution v1 is complete and remains the immutable source-evidence layer.
+- Signal or Feature Generation Results Review v1 is implemented and verifies the ten generated outputs without modifying or regenerating them.
+- Feature-Label Matrix Candidate v1 remains future work; readiness does not create the candidate or any matrix rows.
+- Feature-label matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, runtime, strategy, paper trading, and broker execution remain closed.
