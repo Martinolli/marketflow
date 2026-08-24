@@ -49,4 +49,7 @@
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, market-data acquisition, dataset regeneration, target-generation rerun, target-results-review rerun, runtime activation, or trading action occurred.
-- The next task is Signal or Feature Generation Candidate Operator Review v1.
+- Follow-on Signal or Feature Generation Candidate Operator Review v1 is implemented as an offline, digest-bound, review-only package.
+- This candidate remains the source evidence; the review does not select or approve either feature package.
+- The review does not generate signal values, feature values, matrix rows, backtests, models, metrics, recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
+- Signal or Feature Generation Approval v1 remains future work only if an operator separately selects a package.

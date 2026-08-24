@@ -74,4 +74,6 @@ Default validation remains deterministic and offline. Generated `.marketflow` ar
 
 ## Next Task
 
-Signal or Feature Generation Candidate Operator Review v1.
+Signal or Feature Generation Candidate v1 is complete, and its Operator Review v1 is implemented.
+
+Feature package selection and Signal or Feature Generation Approval v1 remain future work. Selection, approval, generation, signal values, feature values, feature-label matrix creation, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability acceptance, and runtime authority remain closed.
