@@ -56,4 +56,7 @@
 - It did not run a backtest, train a model, compute performance metrics, score a strategy, or generate recommendations.
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
-- The next task is Feature-Label Matrix Results Review v1, invoked separately.
+- Follow-on Feature-Label Matrix Results Review v1 is implemented as an offline, digest-bound review of the twelve generated research-only matrix outputs.
+- The execution remains the source evidence and was not rerun or modified by that review.
+- The results review does not create a VPA/Wyckoff baseline candidate, expectancy backtest lab candidate, backtests, models, performance metrics, recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
+- The next task is VPA/Wyckoff Rule Baseline Candidate v1, invoked separately.
