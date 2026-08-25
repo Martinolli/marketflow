@@ -27,9 +27,12 @@
 ## Authority Boundary and Next Gate
 
 - Candidate-review creation and readiness are true.
-- `ready_for_feature_label_matrix_approval` remains false.
-- Selection, approval, authorization, matrix creation, row creation, feature-target joining, and execution remain false.
+- Follow-on Feature-Label Matrix Approval v1 is implemented as a separate attestation-bound artifact.
+- This candidate review remains immutable source evidence for that approval.
+- The approval selects `PACKAGE_EXPECTANCY_TARGET_PROFILE_WIDE_FEATURE_MATRIX` and authorizes future matrix execution only.
+- This review itself still selects or approves nothing, and its `ready_for_feature_label_matrix_approval` field remains false.
+- Matrix creation, row creation, feature-target joining, and execution remain false in both this review and the approval ceremony.
 - No backtest, model training, metric computation, strategy scoring, recommendation, predictive-usefulness acceptance, or profitability acceptance occurred.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, data acquisition, dataset regeneration, source rerun, runtime activation, or trading action occurred.
-- The next task is Feature-Label Matrix Approval v1, if selected through a separate future decision.
+- The next task is Feature-Label Matrix Execution v1, invoked separately under the approval.

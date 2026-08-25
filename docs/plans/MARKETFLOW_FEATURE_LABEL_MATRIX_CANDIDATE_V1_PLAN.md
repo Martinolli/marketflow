@@ -46,10 +46,12 @@ Each non-META ticker plans 15,045 matrix rows, 14,870 available rows, 175 unavai
 
 ## Next Chain and Gates
 
-Feature-Label Matrix Candidate v1 is complete. Its operator review is implemented as a separate digest-bound package that reviews the candidate without selecting or approving it. The next task is Feature-Label Matrix Approval v1 only if a future operator decision selects the package. Execution, results review, VPA/Wyckoff, expectancy backtesting, reassessment, acceptance, and any runtime migration remain separate future gates.
+Feature-Label Matrix Candidate v1 and its operator review are complete. Feature-Label Matrix Approval v1 is implemented as a separate attestation-bound artifact selecting the wide target-profile package and authorizing future matrix execution only. The next task is Feature-Label Matrix Execution v1. Execution, results review, VPA/Wyckoff, expectancy backtesting, reassessment, acceptance, and any runtime migration remain separate gates.
 
 ## Risk Controls, Non-Goals, and Guardrails
 
 This candidate does not call providers, acquire data, regenerate datasets, rerun source work, join features and targets, create matrix rows, backtest, train models, compute metrics, score strategies, recommend trades, accept predictive usefulness or profitability, or authorize runtime/trading. Generated `.marketflow` evidence remains ignored and untracked.
 
 The completed operator review preserves these same guardrails. Selection, approval, matrix construction, matrix rows, backtesting, model training, metric computation, scoring, recommendations, predictive-usefulness acceptance, profitability acceptance, and runtime authority remain closed.
+
+The subsequent approval opens only the future feature-label matrix execution gate. Matrix construction, matrix rows, joined output, backtesting, model training, metric computation, scoring, recommendations, predictive-usefulness acceptance, profitability acceptance, and runtime authority remain unperformed or closed until separately executed and reviewed.
