@@ -37,4 +37,7 @@
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, market-data acquisition, dataset regeneration, source rerun, runtime activation, or trading action occurred.
-- The next task is Feature-Label Matrix Execution v1, invoked separately.
+- The separately authorized Feature-Label Matrix Execution v1 is now implemented. This approval remains its source evidence and is not retroactively broadened.
+- Execution creates only research-only feature-label matrix rows for the selected package and layout.
+- Execution does not run backtests, train models, compute metrics, score a strategy, create recommendations, accept usefulness/profitability, or authorize runtime/trading.
+- The next task is Feature-Label Matrix Results Review v1, invoked separately.
