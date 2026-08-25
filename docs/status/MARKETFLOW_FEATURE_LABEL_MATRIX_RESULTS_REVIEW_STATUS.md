@@ -46,4 +46,7 @@
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, data acquisition, dataset generation, upstream regeneration/rerun, runtime activation, or trading action occurred.
-- The next task is VPA/Wyckoff Rule Baseline Candidate v1, which requires its own separately bounded candidate step.
+- Follow-on VPA/Wyckoff Rule Baseline Candidate v1 is implemented as an offline, digest-bound, candidate-only artifact.
+- This matrix results review remains its source evidence and was not rerun or modified.
+- The candidate prepares transparent rule-baseline research only. It creates no rule values, baseline outputs, backtests, models, metrics, recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
+- The next task is VPA/Wyckoff Rule Baseline Candidate Operator Review v1.
