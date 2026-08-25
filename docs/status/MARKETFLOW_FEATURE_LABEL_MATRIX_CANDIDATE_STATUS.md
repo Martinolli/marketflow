@@ -27,8 +27,10 @@
 ## Authority Boundary and Next Gate
 
 - Candidate creation and readiness for Feature-Label Matrix Candidate Operator Review v1 are true.
+- Follow-on Feature-Label Matrix Candidate Operator Review v1 is implemented as a separate digest-bound review package.
+- This candidate remains the source evidence; the review does not select or approve a matrix package.
 - Selection, approval, authorization, matrix creation, row creation, joining, and execution remain false.
 - No backtest, model, metric, strategy score, recommendation, predictive-usefulness acceptance, or profitability acceptance was created.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider request, data acquisition, dataset regeneration, source rerun, runtime activation, or trading action occurred.
-- The next task is Feature-Label Matrix Candidate Operator Review v1.
+- The next task is Feature-Label Matrix Approval v1, if separately selected.
