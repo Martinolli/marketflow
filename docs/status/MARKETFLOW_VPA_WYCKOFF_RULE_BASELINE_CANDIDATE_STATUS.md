@@ -48,4 +48,7 @@
 - Backtests, training, metrics, scoring, recommendations, predictive-usefulness acceptance, and profitability acceptance remain closed.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider, acquisition, dataset regeneration, source rerun, rule execution, runtime, or trading action occurred.
-- The next task is VPA/Wyckoff Rule Baseline Candidate Operator Review v1.
+- Follow-on VPA/Wyckoff Rule Baseline Candidate Operator Review v1 is implemented as an offline, digest-bound, review-only package.
+- This candidate remains its source evidence and was not regenerated or modified.
+- The review does not select or approve either VPA/Wyckoff package and creates no rule values, baseline outputs, backtests, models, metrics, recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
+- The next possible task is VPA/Wyckoff Rule Baseline Approval v1 only if separately selected and authorized.

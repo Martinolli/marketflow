@@ -63,4 +63,6 @@ Candidate Operator Review → approval if selected → execution if approved →
 
 ## Next Task
 
-VPA/Wyckoff Rule Baseline Candidate Operator Review v1.
+The VPA/Wyckoff Rule Baseline Candidate is complete and Candidate Operator Review v1 is implemented. Approval remains future work only if separately selected. Selection, approval, execution, rule values, baseline outputs, backtesting, model training, metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability, and runtime remain closed.
+
+Next possible task: VPA/Wyckoff Rule Baseline Approval v1, if selected.
