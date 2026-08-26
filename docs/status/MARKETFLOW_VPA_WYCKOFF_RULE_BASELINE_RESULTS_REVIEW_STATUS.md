@@ -40,4 +40,8 @@
 
 ## Next Task
 
-Expectancy Backtest Lab Candidate v1.
+Follow-on Expectancy Backtest Lab Candidate v1 is implemented as `MARKETFLOW_EXPECTANCY_BACKTEST_LAB_CANDIDATE_READY_FOR_OPERATOR_REVIEW`. This VPA/Wyckoff results review remains immutable source evidence and was not rerun or modified.
+
+The candidate prepares future backtest-lab research only. It creates no selection, approval, backtest rows/results, metrics, models, scores, recommendations, predictive-usefulness or profitability acceptance, runtime authority, or trading authority.
+
+The next task is Expectancy Backtest Lab Candidate Operator Review v1.
