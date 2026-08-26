@@ -48,4 +48,7 @@
 - Backtests, training, metrics, scoring, recommendations, predictive-usefulness acceptance, and profitability acceptance remain closed.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - No provider, acquisition, regeneration, candidate rerun, runtime, or trading action occurred.
-- The next possible task is VPA/Wyckoff Rule Baseline Approval v1 only if separately selected and authorized.
+- The follow-on VPA/Wyckoff Rule Baseline Approval v1 is now implemented. This review remains its immutable source evidence and is not retroactively broadened.
+- The approval selects `PACKAGE_VPA_WYCKOFF_TRANSPARENT_RULE_BASELINE` and authorizes only future research-only rule-baseline execution.
+- The approval creates no rule values, state values, baseline outputs, backtests, models, metrics, recommendations, predictive-usefulness or profitability acceptance, runtime authority, or trading authority.
+- The next possible task is VPA/Wyckoff Rule Baseline Execution v1, invoked separately.
