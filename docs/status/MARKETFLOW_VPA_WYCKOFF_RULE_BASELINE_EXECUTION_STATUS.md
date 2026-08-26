@@ -33,4 +33,7 @@
 - No provider request, acquisition, dataset regeneration, matrix rerun, candidate/review/approval rerun, backtest, model training, performance-metric computation, strategy scoring, or recommendation occurred.
 - Predictive usefulness and profitability remain not accepted.
 - Runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
-- The next task is VPA/Wyckoff Rule Baseline Results Review v1, invoked separately.
+- Follow-on VPA/Wyckoff Rule Baseline Results Review v1 is implemented as `MARKETFLOW_VPA_WYCKOFF_RULE_BASELINE_RESULTS_REVIEW_PACKAGE_READY`; the execution remains immutable source evidence.
+- The review verifies the ten generated research-only VPA/Wyckoff rule/state outputs using ordinary-file digest checks and streaming JSONL inspection without rerunning execution or mutating outputs.
+- The review does not create the Expectancy Backtest Lab Candidate, run backtests, train models, compute performance metrics, score strategies, generate recommendations, accept usefulness/profitability, or authorize runtime/trading.
+- The next task is Expectancy Backtest Lab Candidate v1, invoked and governed separately.

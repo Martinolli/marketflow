@@ -65,4 +65,6 @@ Execution → VPA/Wyckoff Rule Baseline Results Review → separately approved E
 
 ## Next Task
 
-VPA/Wyckoff Rule Baseline Results Review v1.
+VPA/Wyckoff Rule Baseline Execution v1 is complete. Its follow-on Results Review v1 is implemented and verifies all ten ignored research outputs, the streamed rule/state rows, digest bindings, no-peek controls, per-ticker counts, and META limitation without mutating or regenerating source evidence.
+
+Expectancy Backtest Lab Candidate v1 remains future, separately governed work. Backtesting, model training, performance-metric computation, strategy scoring, recommendations, predictive-usefulness acceptance, profitability acceptance, runtime migration, and trading authority remain closed.
