@@ -39,4 +39,4 @@
 
 ## Next Task
 
-Expectancy Backtest Lab Execution v1.
+Expectancy Backtest Lab Execution v1 is implemented as the separately invoked, research-only follow-on. This approval remains immutable source evidence for that execution. The execution creates lab rows, descriptive results, and metric reports without training models, scoring a strategy, creating recommendations, accepting predictive usefulness or profitability, or authorizing runtime or trading.
