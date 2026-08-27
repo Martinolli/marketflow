@@ -45,7 +45,7 @@ No shuffling, outcome-defined rule tags, future features, same-row prior rate, p
 
 ## Next Chain and Gates
 
-The next task is Expectancy Backtest Lab Results Review v1, followed by predictive-usefulness reassessment. Acceptance-readiness and any acceptance candidate require separate later gates. Runtime migration remains closed unless ever separately authorized.
+Expectancy Backtest Lab Execution v1 is complete, and Expectancy Backtest Lab Results Review v1 is implemented. The next future task is predictive-usefulness reassessment using the reviewed lab evidence. Acceptance-readiness and any acceptance candidate require separate later gates. Model training, strategy scoring, recommendations, predictive-usefulness acceptance, profitability acceptance, and runtime migration remain closed unless separately authorized.
 
 ## Risk Controls, Non-Goals, and Guardrails
 

@@ -26,4 +26,4 @@ This execution does not train models, optimize thresholds, score a strategy, gen
 
 ## Next Task
 
-Expectancy Backtest Lab Results Review v1.
+Expectancy Backtest Lab Results Review v1 is implemented as the read-only follow-on. The execution remains immutable source evidence. The review verifies research-only lab rows, results, metrics, baselines, chronology, no-peek controls, per-ticker counts, META limitations, and all output digests. It does not create reassessment or acceptance readiness, train models, score strategies, generate recommendations, accept usefulness/profitability, or authorize runtime or trading.
