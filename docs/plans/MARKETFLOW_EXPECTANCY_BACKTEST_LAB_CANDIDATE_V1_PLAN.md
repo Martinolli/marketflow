@@ -59,4 +59,13 @@ Candidate Operator Review → Approval if selected → Execution if approved →
 
 ## Next Task
 
-Expectancy Backtest Lab Candidate Operator Review v1.
+The Expectancy Backtest Lab Candidate is complete, and its separate digest-bound
+Operator Review v1 is implemented. The review preserves this candidate as source
+evidence and does not select the recommended package.
+
+Approval remains future work only if the package is separately selected.
+Selection, approval, execution, backtest rows/results, metric computation, model
+training, strategy scoring, recommendations, predictive-usefulness acceptance,
+profitability acceptance, and runtime/trading authority all remain closed.
+
+The next task is Expectancy Backtest Lab Approval v1, if selected.

@@ -44,4 +44,10 @@
 
 ## Next Task
 
-Expectancy Backtest Lab Candidate Operator Review v1.
+The Expectancy Backtest Lab Candidate Operator Review v1 is implemented as a
+separate digest-bound review package. This candidate remains immutable source
+evidence. The review does not select or approve a backtest lab and creates no
+backtest rows, results, metrics, models, scores, recommendations, predictive-
+usefulness acceptance, profitability acceptance, or runtime authority.
+
+The next task is Expectancy Backtest Lab Approval v1, if selected.
