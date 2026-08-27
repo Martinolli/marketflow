@@ -29,3 +29,9 @@ No provider request, acquisition, regeneration, source rerun, raw-row metric rec
 ## Next Task
 
 Predictive-Usefulness Not-Ready Closure and Method Planning Tree Using Expectancy Lab Evidence v1.
+
+## Follow-On Status
+
+The follow-on Predictive-Usefulness Not-Ready Closure and Method Planning Tree Using Expectancy Lab Evidence v1 is implemented. This readiness review remains its source evidence, and the follow-on closes the current acceptance path as not ready while defining—but not selecting—future operator options.
+
+The closure does not create an acceptance candidate, trade recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
