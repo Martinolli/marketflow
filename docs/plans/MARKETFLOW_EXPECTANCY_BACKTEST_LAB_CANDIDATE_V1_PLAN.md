@@ -68,4 +68,14 @@ Selection, approval, execution, backtest rows/results, metric computation, model
 training, strategy scoring, recommendations, predictive-usefulness acceptance,
 profitability acceptance, and runtime/trading authority all remain closed.
 
-The next task is Expectancy Backtest Lab Approval v1, if selected.
+The Expectancy Backtest Lab Candidate Operator Review is complete, and the
+attestation-bound Expectancy Backtest Lab Approval v1 is implemented. The
+approval selects the recommended package and authorizes only a future,
+separately invoked, research-only lab execution.
+
+Execution remains future work. Backtest rows/results, metric values/reports,
+model training, strategy scoring, recommendations, predictive-usefulness and
+profitability acceptance, runtime migration, and trading authority remain
+closed.
+
+The next task is Expectancy Backtest Lab Execution v1.

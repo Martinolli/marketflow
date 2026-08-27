@@ -4468,6 +4468,27 @@ from marketflow.services.marketflow_expectancy_backtest_lab_candidate_operator_r
     validate_marketflow_expectancy_backtest_lab_candidate_operator_review_v1,
     write_marketflow_expectancy_backtest_lab_candidate_operator_review_v1,
 )
+from marketflow.services.marketflow_expectancy_backtest_lab_approval_service import (
+    ARTIFACT_KIND_MARKETFLOW_EXPECTANCY_BACKTEST_LAB_APPROVED,
+    EXPECTANCY_BACKTEST_LAB_APPROVAL_ONLY,
+    MARKETFLOW_EXPECTANCY_BACKTEST_LAB_APPROVED,
+    REQUIRED_MARKETFLOW_EXPECTANCY_BACKTEST_LAB_APPROVAL_ATTESTATION_PHRASE,
+    SCHEMA_VERSION_MARKETFLOW_EXPECTANCY_BACKTEST_LAB_APPROVAL_V1,
+    SELECTED_BACKTEST_LAB_PACKAGE,
+    SELECTED_FEATURE_PACKAGE,
+    SELECTED_LABEL_TARGET_PACKAGE,
+    SELECTED_MATRIX_LAYOUT,
+    SELECTED_MATRIX_PACKAGE,
+    SELECTED_OBJECTIVE_PATH,
+    SELECTED_VPA_WYCKOFF_PACKAGE,
+    build_marketflow_expectancy_backtest_lab_approval_attestation_v1,
+    build_marketflow_expectancy_backtest_lab_approval_markdown_v1,
+    build_marketflow_expectancy_backtest_lab_approval_v1,
+    marketflow_expectancy_backtest_lab_approval_digest_v1,
+    per_ticker_expectancy_backtest_lab_approval_digest_v1,
+    validate_marketflow_expectancy_backtest_lab_approval_v1,
+    write_marketflow_expectancy_backtest_lab_approval_v1,
+)
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
     PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE_READY,

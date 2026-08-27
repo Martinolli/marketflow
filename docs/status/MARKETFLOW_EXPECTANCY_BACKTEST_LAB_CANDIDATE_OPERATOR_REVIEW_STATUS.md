@@ -39,4 +39,13 @@
 
 ## Next Task
 
-Expectancy Backtest Lab Approval v1, if selected.
+The follow-on Expectancy Backtest Lab Approval v1 is implemented as a separate
+attestation-bound artifact. This review remains immutable source evidence.
+
+The approval selects `PACKAGE_EXPECTANCY_VPA_WYCKOFF_RESEARCH_BACKTEST_LAB` and
+authorizes only future research-only lab execution. It does not execute the lab,
+create rows/results, compute metric values, train models, score a strategy,
+generate recommendations, accept predictive usefulness/profitability, or
+authorize runtime/trading.
+
+The next task is Expectancy Backtest Lab Execution v1.
