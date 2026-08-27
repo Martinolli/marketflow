@@ -26,4 +26,4 @@ The review marks only readiness for a future predictive-usefulness reassessment.
 
 ## Next Task
 
-Predictive-Usefulness Reassessment Using Expectancy Lab Evidence v1.
+Predictive-Usefulness Reassessment Using Expectancy Lab Evidence v1 is implemented as the offline, digest-bound follow-on. This results review remains immutable source evidence, and the reassessment uses only the reviewed expectancy-lab evidence and committed bindings. It does not create an acceptance-readiness review, acceptance candidate, recommendations, predictive-usefulness or profitability acceptance, runtime authority, paper trading, or broker execution.

@@ -921,6 +921,17 @@ __all__ = [
     "build_marketflow_expectancy_backtest_lab_results_review_markdown_v1",
     "marketflow_expectancy_backtest_lab_results_review_digest_v1",
     "per_ticker_expectancy_backtest_lab_results_review_digest_v1",
+    "marketflow_predictive_usefulness_reassessment_expectancy_lab_evidence_service",
+    "ARTIFACT_KIND_MARKETFLOW_PREDICTIVE_USEFULNESS_REASSESSMENT_USING_EXPECTANCY_LAB_EVIDENCE_PACKAGE",
+    "SCHEMA_VERSION_MARKETFLOW_PREDICTIVE_USEFULNESS_REASSESSMENT_USING_EXPECTANCY_LAB_EVIDENCE_V1",
+    "MARKETFLOW_PREDICTIVE_USEFULNESS_REASSESSMENT_USING_EXPECTANCY_LAB_EVIDENCE_PACKAGE_READY",
+    "PREDICTIVE_USEFULNESS_REASSESSMENT_ONLY_NOT_ACCEPTANCE_NOT_RUNTIME",
+    "build_marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_v1",
+    "validate_marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_v1",
+    "write_marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_v1",
+    "build_marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_markdown_v1",
+    "marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_digest_v1",
+    "per_ticker_predictive_usefulness_reassessment_digest_v1",
     "marketflow_objective_label_or_target_generation_execution_service",
     "ARTIFACT_KIND_MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED",
     "MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED_RESEARCH_ONLY",
@@ -4542,6 +4553,21 @@ from marketflow.services.marketflow_expectancy_backtest_lab_results_review_servi
     per_ticker_expectancy_backtest_lab_results_review_digest_v1,
     validate_marketflow_expectancy_backtest_lab_results_review_v1,
     write_marketflow_expectancy_backtest_lab_results_review_v1,
+)
+from marketflow.services import (
+    marketflow_predictive_usefulness_reassessment_expectancy_lab_evidence_service,
+)
+from marketflow.services.marketflow_predictive_usefulness_reassessment_expectancy_lab_evidence_service import (
+    ARTIFACT_KIND_MARKETFLOW_PREDICTIVE_USEFULNESS_REASSESSMENT_USING_EXPECTANCY_LAB_EVIDENCE_PACKAGE,
+    MARKETFLOW_PREDICTIVE_USEFULNESS_REASSESSMENT_USING_EXPECTANCY_LAB_EVIDENCE_PACKAGE_READY,
+    PREDICTIVE_USEFULNESS_REASSESSMENT_ONLY_NOT_ACCEPTANCE_NOT_RUNTIME,
+    SCHEMA_VERSION_MARKETFLOW_PREDICTIVE_USEFULNESS_REASSESSMENT_USING_EXPECTANCY_LAB_EVIDENCE_V1,
+    build_marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_markdown_v1,
+    build_marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_v1,
+    marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_digest_v1,
+    per_ticker_predictive_usefulness_reassessment_digest_v1,
+    validate_marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_v1,
+    write_marketflow_predictive_usefulness_reassessment_using_expectancy_lab_evidence_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
