@@ -34,4 +34,6 @@ No provider request, acquisition, regeneration, source rerun, raw-row metric rec
 
 ## Next Task
 
-MarketFlow Predictive-Usefulness Final Archive Summary Using Expectancy Lab Evidence v1.
+MarketFlow Predictive-Usefulness Final Archive Summary Using Expectancy Lab Evidence v1 is implemented as the follow-on terminal record. This archive record remains its source evidence. The final summary finalizes the current expectancy-lab predictive-usefulness path as archived not ready and does not create reopening, a method-improvement candidate, new evidence, an acceptance candidate, recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
+
+The current archived path now has no immediate next task: `NONE_FOR_CURRENT_ARCHIVED_PATH`.
