@@ -34,3 +34,9 @@ No provider request, market-data acquisition, dataset regeneration, source rerun
 ## Next Task
 
 Predictive-Usefulness Acceptance Path Archive Record Using Expectancy Lab Evidence v1.
+
+## Follow-On Status
+
+The follow-on Predictive-Usefulness Acceptance Path Archive Record Using Expectancy Lab Evidence v1 is implemented. This operator selection remains its source evidence, and the archive record records the current expectancy-lab path as archived not ready.
+
+The archive does not create the final summary, a method-improvement candidate, new evidence, an acceptance candidate, trade recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
