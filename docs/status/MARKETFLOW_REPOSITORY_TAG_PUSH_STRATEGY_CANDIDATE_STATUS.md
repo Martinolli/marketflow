@@ -51,4 +51,6 @@ No provider request, acquisition, dataset generation, source rerun, metric recom
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_TAG_PUSH_STRATEGY_OPERATOR_REVIEW_V1`.
+Repository Tag Push Strategy Operator Review v1 is implemented as the follow-on governance artifact. This candidate remains its source evidence. The operator review assesses remote-publication options only; it does not select or approve a push, push/create/modify/delete tags, merge or delete branches, push main, accept predictive usefulness or profitability, or authorize runtime.
+
+The next task is `MARKETFLOW_REPOSITORY_TAG_PUSH_STRATEGY_APPROVAL_V1_IF_SELECTED`.
