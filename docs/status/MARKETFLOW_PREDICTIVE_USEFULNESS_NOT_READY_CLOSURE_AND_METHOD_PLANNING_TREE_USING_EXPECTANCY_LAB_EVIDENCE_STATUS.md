@@ -33,3 +33,9 @@ Predictive usefulness and profitability remain not accepted. Runtime, strategy, 
 ## Next Task
 
 Operator Method or Closure Selection Using Expectancy Lab Evidence v1.
+
+## Follow-On Status
+
+The follow-on Operator Method or Closure Selection Using Expectancy Lab Evidence v1 is implemented. This closure remains its source evidence, and the attestation-bound selection chooses Option A for a future archive record.
+
+The selection does not create the archive record, a method-improvement candidate, new evidence, an acceptance candidate, trade recommendations, predictive-usefulness or profitability acceptance, or runtime authority.
