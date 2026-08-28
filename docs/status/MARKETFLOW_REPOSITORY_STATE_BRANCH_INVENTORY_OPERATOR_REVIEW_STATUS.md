@@ -40,4 +40,6 @@ Predictive usefulness and profitability remain not accepted. Runtime, strategy, 
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_CANDIDATE_V1`.
+The follow-on `MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_CANDIDATE_V1` is implemented on its stacked candidate branch. This operator review remains its digest-bound source evidence. The candidate proposes only a future tag/release strategy; it does not create or push tags, merge, delete, push main, accept predictive usefulness or profitability, or authorize runtime.
+
+After the candidate, the next task is `MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_OPERATOR_REVIEW_V1`.
