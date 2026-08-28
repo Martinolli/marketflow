@@ -36,3 +36,9 @@ The checklist passes `62 / 62` with zero failures and zero blockers.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVAL_V1_IF_SELECTED`.
+
+## Follow-on Approval
+
+Repository Tagging / Release Strategy Approval v1 is implemented as an attestation-bound follow-on. This operator review remains its committed source evidence. The follow-on selects `PACKAGE_TERMINAL_EXPECTANCY_LAB_ARCHIVE_TAGS` and approves only the four terminal expectancy-lab archive tags for future execution in a separately invoked task.
+
+The follow-on approval does not create or push tags, merge, rebase, delete branches or remotes, push main, force-push, accept predictive usefulness or profitability, or authorize runtime, paper trading, or broker execution.

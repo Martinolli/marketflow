@@ -1035,6 +1035,18 @@ __all__ = [
     "write_marketflow_repository_tagging_release_strategy_operator_review_v1",
     "build_marketflow_repository_tagging_release_strategy_operator_review_markdown_v1",
     "marketflow_repository_tagging_release_strategy_operator_review_digest_v1",
+    "marketflow_repository_tagging_release_strategy_approval_service",
+    "ARTIFACT_KIND_MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVED",
+    "MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVED",
+    "REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVAL_ONLY_NOT_TAGGING_NOT_MERGE_NOT_DELETE_NOT_MAIN",
+    "SELECTED_TAGGING_PACKAGE",
+    "REQUIRED_MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVAL_ATTESTATION_PHRASE",
+    "build_marketflow_repository_tagging_release_strategy_approval_attestation_v1",
+    "build_marketflow_repository_tagging_release_strategy_approval_v1",
+    "validate_marketflow_repository_tagging_release_strategy_approval_v1",
+    "write_marketflow_repository_tagging_release_strategy_approval_v1",
+    "build_marketflow_repository_tagging_release_strategy_approval_markdown_v1",
+    "marketflow_repository_tagging_release_strategy_approval_digest_v1",
     "marketflow_objective_label_or_target_generation_execution_service",
     "ARTIFACT_KIND_MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED",
     "MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED_RESEARCH_ONLY",
@@ -4810,6 +4822,22 @@ from marketflow.services.marketflow_repository_tagging_release_strategy_operator
     marketflow_repository_tagging_release_strategy_operator_review_digest_v1,
     validate_marketflow_repository_tagging_release_strategy_operator_review_v1,
     write_marketflow_repository_tagging_release_strategy_operator_review_v1,
+)
+from marketflow.services import (
+    marketflow_repository_tagging_release_strategy_approval_service,
+)
+from marketflow.services.marketflow_repository_tagging_release_strategy_approval_service import (
+    ARTIFACT_KIND_MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVED,
+    MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVED,
+    REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVAL_ONLY_NOT_TAGGING_NOT_MERGE_NOT_DELETE_NOT_MAIN,
+    REQUIRED_MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVAL_ATTESTATION_PHRASE,
+    SELECTED_TAGGING_PACKAGE,
+    build_marketflow_repository_tagging_release_strategy_approval_attestation_v1,
+    build_marketflow_repository_tagging_release_strategy_approval_markdown_v1,
+    build_marketflow_repository_tagging_release_strategy_approval_v1,
+    marketflow_repository_tagging_release_strategy_approval_digest_v1,
+    validate_marketflow_repository_tagging_release_strategy_approval_v1,
+    write_marketflow_repository_tagging_release_strategy_approval_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
