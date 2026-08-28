@@ -995,6 +995,16 @@ __all__ = [
     "build_marketflow_predictive_usefulness_final_archive_summary_expectancy_lab_evidence_markdown_v1",
     "marketflow_predictive_usefulness_final_archive_summary_expectancy_lab_evidence_digest_v1",
     "per_ticker_marketflow_predictive_usefulness_final_archive_summary_expectancy_lab_evidence_digest_v1",
+    "marketflow_repository_state_branch_inventory_integration_plan_service",
+    "ARTIFACT_KIND_MARKETFLOW_REPOSITORY_STATE_BRANCH_INVENTORY_AND_INTEGRATION_PLAN_V1",
+    "SCHEMA_VERSION_MARKETFLOW_REPOSITORY_STATE_BRANCH_INVENTORY_INTEGRATION_PLAN_V1",
+    "MARKETFLOW_REPOSITORY_STATE_BRANCH_INVENTORY_AND_INTEGRATION_PLAN_READY",
+    "REPOSITORY_STATE_AND_BRANCH_INVENTORY_PLANNING_ONLY_NOT_MERGE_NOT_DELETE_NOT_TAG_NOT_MAIN",
+    "build_marketflow_repository_state_branch_inventory_integration_plan_v1",
+    "validate_marketflow_repository_state_branch_inventory_integration_plan_v1",
+    "write_marketflow_repository_state_branch_inventory_integration_plan_v1",
+    "build_marketflow_repository_state_branch_inventory_integration_plan_markdown_v1",
+    "marketflow_repository_state_branch_inventory_integration_plan_digest_v1",
     "marketflow_objective_label_or_target_generation_execution_service",
     "ARTIFACT_KIND_MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED",
     "MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED_RESEARCH_ONLY",
@@ -4714,6 +4724,20 @@ from marketflow.services.marketflow_predictive_usefulness_final_archive_summary_
     per_ticker_marketflow_predictive_usefulness_final_archive_summary_expectancy_lab_evidence_digest_v1,
     validate_marketflow_predictive_usefulness_final_archive_summary_expectancy_lab_evidence_v1,
     write_marketflow_predictive_usefulness_final_archive_summary_expectancy_lab_evidence_v1,
+)
+from marketflow.services import (
+    marketflow_repository_state_branch_inventory_integration_plan_service,
+)
+from marketflow.services.marketflow_repository_state_branch_inventory_integration_plan_service import (
+    ARTIFACT_KIND_MARKETFLOW_REPOSITORY_STATE_BRANCH_INVENTORY_AND_INTEGRATION_PLAN_V1,
+    MARKETFLOW_REPOSITORY_STATE_BRANCH_INVENTORY_AND_INTEGRATION_PLAN_READY,
+    REPOSITORY_STATE_AND_BRANCH_INVENTORY_PLANNING_ONLY_NOT_MERGE_NOT_DELETE_NOT_TAG_NOT_MAIN,
+    SCHEMA_VERSION_MARKETFLOW_REPOSITORY_STATE_BRANCH_INVENTORY_INTEGRATION_PLAN_V1,
+    build_marketflow_repository_state_branch_inventory_integration_plan_markdown_v1,
+    build_marketflow_repository_state_branch_inventory_integration_plan_v1,
+    marketflow_repository_state_branch_inventory_integration_plan_digest_v1,
+    validate_marketflow_repository_state_branch_inventory_integration_plan_v1,
+    write_marketflow_repository_state_branch_inventory_integration_plan_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,

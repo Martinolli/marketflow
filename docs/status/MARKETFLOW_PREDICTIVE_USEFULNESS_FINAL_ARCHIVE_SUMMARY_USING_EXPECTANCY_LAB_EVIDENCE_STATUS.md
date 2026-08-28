@@ -48,3 +48,7 @@ Future reopening is possible only through a new operator method-selection artifa
 The current archived path requires no immediate next action: `NONE_FOR_CURRENT_ARCHIVED_PATH`. The summary creates no reopening artifact, method-improvement candidate, new evidence candidate, acceptance candidate, predictive-usefulness or profitability acceptance, runtime or strategy authority, paper-trading or broker-execution authority, or trade recommendation.
 
 No provider request, market-data acquisition, dataset regeneration, raw-row metric recomputation, source rerun, model training, strategy scoring, runtime, broker, or trading action occurs. The deterministic checklist passes `84 / 84` with zero failures and zero blockers.
+
+## Repository Inventory Follow-On
+
+MarketFlow Repository State, Branch Inventory, and Integration Plan v1 is implemented as a planning-only follow-on. This final archive summary remains its source evidence. The inventory does not merge, delete, rename, squash, rebase, tag, prune, push main, force-push, accept predictive usefulness or profitability, or authorize runtime, strategy, paper trading, or broker execution.
