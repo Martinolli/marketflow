@@ -50,4 +50,6 @@ The checklist passes `69 / 69` with zero failures and zero blockers.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_TAG_PUSH_STRATEGY_APPROVAL_V1_IF_SELECTED`.
+Repository Tag Push Strategy Approval v1 is implemented as the attestation-gated follow-on artifact. This operator review remains its source evidence. Approval selects the terminal expectancy-lab package for future explicit-refspec execution only; it does not push/create/modify/delete tags, merge or delete branches, push main, accept predictive usefulness or profitability, or authorize runtime.
+
+The next task is `MARKETFLOW_REPOSITORY_TAG_PUSH_EXECUTION_V1`.
