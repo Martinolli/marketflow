@@ -1047,6 +1047,15 @@ __all__ = [
     "write_marketflow_repository_tagging_release_strategy_approval_v1",
     "build_marketflow_repository_tagging_release_strategy_approval_markdown_v1",
     "marketflow_repository_tagging_release_strategy_approval_digest_v1",
+    "marketflow_repository_tagging_execution_service",
+    "ARTIFACT_KIND_MARKETFLOW_REPOSITORY_TAGGING_EXECUTED",
+    "MARKETFLOW_REPOSITORY_TAGGING_EXECUTED_LOCAL_TAGS_CREATED",
+    "REPOSITORY_TAGGING_EXECUTION_ONLY_LOCAL_TAGS_NOT_PUSH_NOT_MERGE_NOT_DELETE_NOT_MAIN",
+    "execute_marketflow_repository_tagging_v1",
+    "validate_marketflow_repository_tagging_execution_v1",
+    "build_marketflow_repository_tagging_execution_markdown_v1",
+    "marketflow_repository_tagging_execution_digest_v1",
+    "marketflow_repository_tagging_execution_tag_manifest_digest_v1",
     "marketflow_objective_label_or_target_generation_execution_service",
     "ARTIFACT_KIND_MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED",
     "MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED_RESEARCH_ONLY",
@@ -4838,6 +4847,17 @@ from marketflow.services.marketflow_repository_tagging_release_strategy_approval
     marketflow_repository_tagging_release_strategy_approval_digest_v1,
     validate_marketflow_repository_tagging_release_strategy_approval_v1,
     write_marketflow_repository_tagging_release_strategy_approval_v1,
+)
+from marketflow.services import marketflow_repository_tagging_execution_service
+from marketflow.services.marketflow_repository_tagging_execution_service import (
+    ARTIFACT_KIND_MARKETFLOW_REPOSITORY_TAGGING_EXECUTED,
+    MARKETFLOW_REPOSITORY_TAGGING_EXECUTED_LOCAL_TAGS_CREATED,
+    REPOSITORY_TAGGING_EXECUTION_ONLY_LOCAL_TAGS_NOT_PUSH_NOT_MERGE_NOT_DELETE_NOT_MAIN,
+    build_marketflow_repository_tagging_execution_markdown_v1,
+    execute_marketflow_repository_tagging_v1,
+    marketflow_repository_tagging_execution_digest_v1,
+    marketflow_repository_tagging_execution_tag_manifest_digest_v1,
+    validate_marketflow_repository_tagging_execution_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,
