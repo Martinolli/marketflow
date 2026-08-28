@@ -51,4 +51,6 @@ The checklist passes `45 / 45` with zero failures and zero blockers.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_STATE_BRANCH_INVENTORY_OPERATOR_REVIEW_V1`.
+The follow-on `MARKETFLOW_REPOSITORY_STATE_BRANCH_INVENTORY_OPERATOR_REVIEW_V1` is implemented on its stacked review branch. This inventory plan remains its digest-bound source evidence. The operator review covers the source branch categories and integration phases; it does not merge, delete, tag, push main, accept predictive usefulness or profitability, or authorize runtime.
+
+After the operator review, the next planning task is `MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_CANDIDATE_V1`.
