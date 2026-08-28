@@ -42,4 +42,6 @@ The checklist passes `55 / 55` with zero failures and zero blockers.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_OPERATOR_REVIEW_V1`.
+The follow-on `MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_OPERATOR_REVIEW_V1` is implemented on its stacked review branch. This tagging candidate remains its digest-bound source evidence. The operator review assesses the candidate packages and tag definitions; it does not select a package, approve tagging, create or push tags, merge, delete, push main, accept predictive usefulness or profitability, or authorize runtime.
+
+After the operator review, the optional next task is `MARKETFLOW_REPOSITORY_TAGGING_RELEASE_STRATEGY_APPROVAL_V1_IF_SELECTED`.
