@@ -1,5 +1,11 @@
 # MarketFlow Repository Tag Push Execution v1 Status
 
+Follow-on Repository Tag Push Results Review v1 is implemented. The execution
+remains its bound source evidence. The review verifies exactly four published
+remote tags using read-only inspection and performs no tag push, creation,
+modification, deletion, merge, branch deletion, main push, usefulness or
+profitability acceptance, or runtime authorization.
+
 Status: `MARKETFLOW_REPOSITORY_TAG_PUSH_EXECUTED_REMOTE_TAGS_PUBLISHED`
 
 Artifact: `MARKETFLOW_REPOSITORY_TAG_PUSH_EXECUTED`
