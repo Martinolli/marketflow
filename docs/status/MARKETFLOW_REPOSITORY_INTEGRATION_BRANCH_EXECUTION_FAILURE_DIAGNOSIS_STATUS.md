@@ -53,3 +53,12 @@ fixture isolation. No retry may occur before remediation review and approval.
 No provider, market-data, dataset, metric, model, scoring, recommendation,
 runtime, broker, or trading action is performed or authorized. Predictive
 usefulness and profitability remain not accepted.
+
+## Follow-on Remediation Candidate
+
+Integration Branch Validation Failure Remediation Candidate v1 is implemented
+as the next governance artifact. This diagnosis remains its digest-bound source
+evidence. The candidate proposes controlled remediation packages only: it does
+not execute remediation, stage evidence, retry integration, create results
+review, push branches, commit `.marketflow`, accept predictive usefulness or
+profitability, or authorize runtime or trading.
