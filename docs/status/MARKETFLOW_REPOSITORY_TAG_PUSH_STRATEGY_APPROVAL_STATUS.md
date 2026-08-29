@@ -1,5 +1,11 @@
 # MarketFlow Repository Tag Push Strategy Approval v1 Status
 
+Follow-on Repository Tag Push Execution v1 is implemented. The approval remains
+the bound source evidence for publishing exactly four terminal expectancy-lab
+tags to `origin` with explicit refspecs. Execution does not push all tags or
+main, merge, delete branches, accept predictive usefulness or profitability, or
+authorize runtime or trading.
+
 ## Status and Scope
 
 - Artifact/status: `MARKETFLOW_REPOSITORY_TAG_PUSH_STRATEGY_APPROVED`.
