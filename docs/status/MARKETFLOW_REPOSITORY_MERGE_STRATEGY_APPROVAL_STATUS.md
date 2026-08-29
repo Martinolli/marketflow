@@ -75,6 +75,14 @@ accepted; runtime and trading remain `NOT_AUTHORIZED`.
 
 The checklist passes `66 / 66` with zero failures and zero blockers.
 
+## Follow-On Execution
+
+Follow-on `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_EXECUTION_V1` is
+implemented. This approval remains its source evidence. Execution creates and
+validates only the temporary local integration branch; it does not push that
+branch, merge or push main, delete branches, mutate tags, accept predictive
+usefulness or profitability, or authorize runtime.
+
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_EXECUTION_V1`.
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RESULTS_REVIEW_V1`.
