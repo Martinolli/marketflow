@@ -47,3 +47,13 @@ paper trading, and broker execution remain `NOT_AUTHORIZED`.
 - Next task: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_VALIDATION_FAILURE_REMEDIATION_APPROVAL_V1_IF_SELECTED`.
 - Status: `FUTURE_APPROVAL_NOT_CREATED`.
 - An optional operator selection and separate approval are required before remediation execution.
+
+## Follow-on Approval
+
+Integration Branch Validation Failure Remediation Approval v1 is implemented as
+the next attestation-gated governance artifact. This operator review remains its
+digest-bound source evidence. The approval selects the frozen ignored-evidence
+staging package for a separately invoked future execution only. It does not
+stage or copy evidence, execute remediation, retry integration, create results
+review, push branches, commit `.marketflow`, accept usefulness or profitability,
+or authorize runtime or trading.
