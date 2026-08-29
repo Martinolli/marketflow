@@ -49,6 +49,18 @@ runtime, broker, or trading action is authorized or performed. Predictive
 usefulness and profitability remain not accepted; runtime and trading remain
 `NOT_AUTHORIZED`.
 
+## Failed Execution Follow-On
+
+Repository Integration Branch Execution Failure Diagnosis v1 is implemented as
+a diagnosis-only follow-on. Execution remains blocked because the authoritative
+first integration pytest run reported `24481 passed, 1300 failed, 500 errors,
+7 skipped`.
+
+The later `26842 passed, 7 skipped` feature-worktree diagnostic does not override
+the failed gate and is not integration acceptance evidence. Results Review is
+not ready. A separate remediation candidate is required before any approved
+retry.
+
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RESULTS_REVIEW_V1`.
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_VALIDATION_FAILURE_REMEDIATION_CANDIDATE_V1`.
