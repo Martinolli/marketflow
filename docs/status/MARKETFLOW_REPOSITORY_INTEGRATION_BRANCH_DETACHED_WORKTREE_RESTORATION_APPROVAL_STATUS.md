@@ -52,3 +52,15 @@ is authorized or performed.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_DETACHED_WORKTREE_RESTORATION_EXECUTION_V1`
+
+## Follow-on Execution
+
+Integration Branch Detached Worktree Restoration Execution v1 has now been
+implemented and executed. This approval remains the immutable source evidence
+for that follow-on task. The execution created the registered detached
+worktree at the exact approved integration head.
+
+The follow-on execution did not stage evidence, copy or commit `.marketflow`,
+retry integration, create a results review, push main or the integration
+branch, accept predictive usefulness or profitability, or authorize runtime,
+broker, or trading use.
