@@ -42,4 +42,13 @@ is authorized or performed.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_DETACHED_WORKTREE_RESTORATION_CANDIDATE_OPERATOR_REVIEW_V1`
+The follow-on Integration Branch Detached Worktree Restoration Candidate
+Operator Review v1 is implemented. This candidate remains the source evidence;
+the operator review assesses restoration packages only.
+
+The review does not select or approve restoration, create or restore a worktree,
+stage evidence, retry integration, create a results review, push branches,
+commit `.marketflow`, accept predictive usefulness or profitability, or
+authorize runtime or trading.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_DETACHED_WORKTREE_RESTORATION_APPROVAL_V1_IF_SELECTED`
