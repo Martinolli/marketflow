@@ -47,3 +47,13 @@ strategy, paper-trading, and broker execution remain `NOT_AUTHORIZED`.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_VALIDATION_FAILURE_REMEDIATION_CANDIDATE_OPERATOR_REVIEW_V1`
+
+## Follow-on Operator Review
+
+Integration Branch Validation Failure Remediation Candidate Operator Review v1
+is implemented as the next governance artifact. This candidate remains its
+digest-bound source evidence. The operator review reviews remediation packages,
+requirements, future steps, non-goals, and open questions only. It does not
+select, approve, authorize, or execute remediation; stage evidence; retry
+integration; create results review; push branches; commit `.marketflow`; accept
+predictive usefulness or profitability; or authorize runtime or trading.
