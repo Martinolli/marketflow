@@ -28,4 +28,12 @@ scoring, recommendation, runtime, broker, or trading action. Predictive
 usefulness and profitability remain not accepted, and runtime/trading remain
 `NOT_AUTHORIZED`.
 
-Next task: `MARKETFLOW_REPOSITORY_MERGE_STRATEGY_OPERATOR_REVIEW_V1`.
+Follow-on `MARKETFLOW_REPOSITORY_MERGE_STRATEGY_OPERATOR_REVIEW_V1` is
+implemented. This candidate remains its source evidence. The operator review
+reviews merge and integration choices only; it does not select or approve a
+merge, create the integration branch, merge, rebase, squash, cherry-pick,
+delete branches, push main, modify tags, accept predictive usefulness or
+profitability, or authorize runtime or trading.
+
+Next task, if selected:
+`MARKETFLOW_REPOSITORY_MERGE_STRATEGY_APPROVAL_V1_IF_SELECTED`.
