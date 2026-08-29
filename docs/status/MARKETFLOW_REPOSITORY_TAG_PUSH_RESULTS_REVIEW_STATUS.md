@@ -1,5 +1,11 @@
 # MarketFlow Repository Tag Push Results Review v1 Status
 
+Follow-on Repository Merge Strategy Candidate v1 is implemented. This review
+remains its bound source evidence. The candidate proposes future integration
+choices only and does not merge, create an integration branch, rebase, squash,
+cherry-pick, delete branches, push main, modify tags, accept usefulness or
+profitability, or authorize runtime or trading.
+
 Artifact: `MARKETFLOW_REPOSITORY_TAG_PUSH_RESULTS_REVIEW_V1`
 
 Status: `MARKETFLOW_REPOSITORY_TAG_PUSH_RESULTS_REVIEW_READY`
