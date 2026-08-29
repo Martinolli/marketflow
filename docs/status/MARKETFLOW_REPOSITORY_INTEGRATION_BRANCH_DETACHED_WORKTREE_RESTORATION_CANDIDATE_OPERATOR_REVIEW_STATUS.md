@@ -44,4 +44,12 @@ acceptance, runtime activation, broker action, or trading action occurs.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_DETACHED_WORKTREE_RESTORATION_APPROVAL_V1_IF_SELECTED`
+The follow-on Integration Branch Detached Worktree Restoration Approval v1 is
+implemented. This operator review remains the source evidence. The approval
+selects registered detached-worktree restoration for future execution only.
+
+The approval does not create or restore a worktree, stage evidence, retry
+integration, create a results review, push branches, commit `.marketflow`,
+accept predictive usefulness or profitability, or authorize runtime or trading.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_DETACHED_WORKTREE_RESTORATION_EXECUTION_V1`
