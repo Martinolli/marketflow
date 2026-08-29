@@ -48,4 +48,13 @@ Predictive usefulness and profitability remain not accepted.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_VALIDATION_FAILURE_REMEDIATION_EXECUTION_V1`
+The follow-on Integration Branch Detached Worktree Restoration Candidate v1 is
+implemented. Remediation execution remains blocked because the detached
+integration worktree is missing. The restoration candidate proposes only a
+controlled registered detached worktree path for future review.
+
+The candidate does not create a worktree, stage evidence, retry integration,
+create a results review, push branches, commit `.marketflow`, accept predictive
+usefulness or profitability, or authorize runtime or trading.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_DETACHED_WORKTREE_RESTORATION_CANDIDATE_OPERATOR_REVIEW_V1`
