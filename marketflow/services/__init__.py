@@ -1129,6 +1129,17 @@ __all__ = [
     "validate_marketflow_repository_merge_strategy_operator_review_v1",
     "write_marketflow_repository_merge_strategy_operator_review_v1",
     "build_marketflow_repository_merge_strategy_operator_review_markdown_v1",
+    "marketflow_repository_merge_strategy_approval_service",
+    "ARTIFACT_KIND_MARKETFLOW_REPOSITORY_MERGE_STRATEGY_APPROVED",
+    "MARKETFLOW_REPOSITORY_MERGE_STRATEGY_APPROVED",
+    "REPOSITORY_MERGE_STRATEGY_APPROVAL_ONLY_NOT_INTEGRATION_BRANCH_NOT_MERGE_NOT_DELETE_NOT_MAIN",
+    "PACKAGE_CREATE_INTEGRATION_BRANCH_FOR_FULL_STACK_VALIDATION",
+    "REQUIRED_REPOSITORY_MERGE_STRATEGY_OPERATOR_ATTESTATION_PHRASE",
+    "build_marketflow_repository_merge_strategy_approval_attestation_v1",
+    "build_marketflow_repository_merge_strategy_approval_v1",
+    "validate_marketflow_repository_merge_strategy_approval_v1",
+    "write_marketflow_repository_merge_strategy_approval_v1",
+    "build_marketflow_repository_merge_strategy_approval_markdown_v1",
     "marketflow_objective_label_or_target_generation_execution_service",
     "ARTIFACT_KIND_MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED",
     "MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED_RESEARCH_ONLY",
@@ -5026,6 +5037,19 @@ from marketflow.services.marketflow_repository_merge_strategy_operator_review_se
     build_marketflow_repository_merge_strategy_operator_review_v1,
     validate_marketflow_repository_merge_strategy_operator_review_v1,
     write_marketflow_repository_merge_strategy_operator_review_v1,
+)
+from marketflow.services import marketflow_repository_merge_strategy_approval_service
+from marketflow.services.marketflow_repository_merge_strategy_approval_service import (
+    ARTIFACT_KIND_MARKETFLOW_REPOSITORY_MERGE_STRATEGY_APPROVED,
+    MARKETFLOW_REPOSITORY_MERGE_STRATEGY_APPROVED,
+    PACKAGE_CREATE_INTEGRATION_BRANCH_FOR_FULL_STACK_VALIDATION,
+    REPOSITORY_MERGE_STRATEGY_APPROVAL_ONLY_NOT_INTEGRATION_BRANCH_NOT_MERGE_NOT_DELETE_NOT_MAIN,
+    REQUIRED_OPERATOR_ATTESTATION_PHRASE as REQUIRED_REPOSITORY_MERGE_STRATEGY_OPERATOR_ATTESTATION_PHRASE,
+    build_marketflow_repository_merge_strategy_approval_attestation_v1,
+    build_marketflow_repository_merge_strategy_approval_markdown_v1,
+    build_marketflow_repository_merge_strategy_approval_v1,
+    validate_marketflow_repository_merge_strategy_approval_v1,
+    write_marketflow_repository_merge_strategy_approval_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,

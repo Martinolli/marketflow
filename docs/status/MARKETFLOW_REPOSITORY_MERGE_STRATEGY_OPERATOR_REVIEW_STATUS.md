@@ -44,5 +44,10 @@ runtime, broker, or trading action is authorized or performed. Predictive
 usefulness and profitability remain not accepted; runtime and trading remain
 `NOT_AUTHORIZED`.
 
-Next task, if selected:
-`MARKETFLOW_REPOSITORY_MERGE_STRATEGY_APPROVAL_V1_IF_SELECTED`.
+Follow-on `MARKETFLOW_REPOSITORY_MERGE_STRATEGY_APPROVAL_V1` is implemented.
+This operator review remains its source evidence. The approval selects only
+future temporary integration-branch validation; it does not create the branch,
+merge, rebase, squash, cherry-pick, push main, delete branches, mutate tags,
+accept predictive usefulness or profitability, or authorize runtime.
+
+Next task: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_EXECUTION_V1`.
