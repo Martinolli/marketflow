@@ -57,3 +57,14 @@ created.
 
 The required next task is
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OUTPUT_CAPTURE_OR_CLASSIFICATION_SOURCE_RESULTS_REVIEW_V1`.
+
+## Follow-on Results Review
+
+`MarketFlow Repository Integration Branch Retry Failure Output Capture or
+Classification Source Results Review v1` is implemented as the read-only,
+digest-bound follow-on, and this execution remains its source evidence. The
+review verifies the detached pytest-cache source, hashes, counts, module
+summary, and limitations. It does not rerun the retry or full pytest, execute
+diagnostics, create classification reentry, push main or integration, commit
+`.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability,
+or authorize runtime or trading.
