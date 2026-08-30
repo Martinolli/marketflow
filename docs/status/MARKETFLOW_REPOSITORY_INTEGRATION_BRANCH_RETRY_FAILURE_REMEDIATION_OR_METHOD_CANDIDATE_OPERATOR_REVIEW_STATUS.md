@@ -41,3 +41,14 @@ the review record only. No method execution, retry, remediation, results
 review, evidence mutation, `.marketflow` commit, provider/data/model action,
 protected-branch push, deletion, tag mutation, predictive/profitability
 acceptance, runtime authority, or trading authority is created.
+
+## Follow-on Approval
+
+`MarketFlow Repository Integration Branch Retry Failure Remediation or Method
+Approval v1` is implemented as an attestation-bound follow-on. This operator
+review remains its source evidence. The approval selects
+`PACKAGE_CLASSIFY_RETRY_FAILURE_DOMAINS_FROM_AUTHORITATIVE_OUTPUT` for future
+execution only; it does not execute diagnostics or remediation, rerun the
+retry, run full pytest, create a results review, push any protected branch,
+commit `.marketflow`, accept predictive usefulness or profitability, or
+authorize runtime or trading.
