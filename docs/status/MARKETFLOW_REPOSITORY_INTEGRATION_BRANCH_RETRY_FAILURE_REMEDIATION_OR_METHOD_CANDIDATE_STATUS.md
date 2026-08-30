@@ -50,3 +50,13 @@ trading authority is created.
 
 Next task:
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_OPERATOR_REVIEW_V1`.
+
+## Follow-on Operator Review
+
+Integration Branch Retry Failure Remediation or Method Candidate Operator
+Review v1 is implemented on its dedicated feature branch. This candidate
+remains the bound source evidence. The review evaluates the method packages
+only; it does not select or approve a package, execute diagnostics or
+remediation, rerun the retry, run full pytest, create results review, push main
+or the integration branch, commit `.marketflow`, accept predictive usefulness
+or profitability, or authorize runtime or trading.
