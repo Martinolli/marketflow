@@ -44,3 +44,14 @@ predictive usefulness or profitability, or authorize runtime or trading.
 All `55/55` approval checks pass with zero failures and zero blockers. The next
 task is `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_EXECUTION_V1`, if
 separately invoked.
+
+## Follow-on Execution
+
+Integration Branch Retry Execution v1 was separately invoked from this
+approval. The authoritative full pytest ran only from the remediated detached
+integration worktree and returned `24877 passed, 1292 failed, 112 errors, 7
+skipped` with exit code `1`. The execution therefore failed closed as
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_EXECUTION_BLOCKED_AUTHORITATIVE_FULL_PYTEST_FAILED`.
+The approval remains source evidence; no retry results review, branch push,
+`.marketflow` commit, usefulness/profitability acceptance, runtime authority,
+or trading authority was created.
