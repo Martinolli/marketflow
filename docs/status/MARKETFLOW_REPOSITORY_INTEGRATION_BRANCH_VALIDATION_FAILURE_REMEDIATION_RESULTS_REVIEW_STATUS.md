@@ -53,4 +53,9 @@ runtime and broker execution remain `NOT_AUTHORIZED`.
 
 All `64/64` review checks pass with zero failures and zero blockers.
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_CANDIDATE_V1`.
+The follow-on Integration Branch Retry Candidate v1 is implemented. This
+remediation results review remains its source evidence. The candidate proposes
+an authoritative full pytest retry from the remediated detached integration
+worktree, but does not execute a retry, create retry approval or results review,
+push branches, commit `.marketflow`, accept usefulness or profitability, or
+authorize runtime.
