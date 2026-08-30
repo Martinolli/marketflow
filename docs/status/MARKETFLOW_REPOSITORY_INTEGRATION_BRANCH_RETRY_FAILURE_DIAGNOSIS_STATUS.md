@@ -41,7 +41,17 @@ selected.
 
 Recommended next task:
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_V1`.
-It remains `FUTURE_CANDIDATE_NOT_CREATED`.
+At diagnosis issuance its status was `FUTURE_CANDIDATE_NOT_CREATED`.
+
+## Follow-on Remediation or Method Candidate
+
+Integration Branch Retry Failure Remediation or Method Candidate v1 is
+implemented on its dedicated feature branch. This diagnosis remains the bound
+source evidence. The candidate proposes failure-domain classification before
+any remediation or retry; it does not rerun the retry, run full pytest as retry
+evidence, create results review, push main or the integration branch, commit
+`.marketflow`, accept predictive usefulness or profitability, or authorize
+runtime or trading.
 
 ## Checklist and Authority Boundary
 
