@@ -64,3 +64,16 @@ strategy, paper-trading, broker, and execution authority remain
 All `59/59` execution checks passed with zero failures and zero blockers. The
 next separately authorized task is
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_DETACHED_WORKTREE_RESTORATION_RESULTS_REVIEW_V1`.
+
+## Follow-on Results Review
+
+Integration Branch Detached Worktree Restoration Results Review v1 has now
+been implemented and completed. This execution remains its immutable source
+evidence. The results review verified that the deterministic registered
+worktree exists, remains detached at the exact approved integration head, is
+clean, and contains no copied `.marketflow` directory.
+
+The read-only review did not stage evidence, copy or commit `.marketflow`,
+execute remediation, retry integration, create an integration results review,
+push main or the integration branch, accept predictive usefulness or
+profitability, or authorize runtime, broker, or trading use.
