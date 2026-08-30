@@ -1255,6 +1255,17 @@ __all__ = [
     "validate_marketflow_repository_integration_branch_retry_candidate_operator_review_v1",
     "write_marketflow_repository_integration_branch_retry_candidate_operator_review_v1",
     "build_marketflow_repository_integration_branch_retry_candidate_operator_review_markdown_v1",
+    "marketflow_repository_integration_branch_retry_approval_service",
+    "ARTIFACT_KIND_MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_APPROVED",
+    "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_APPROVED",
+    "REPOSITORY_INTEGRATION_BRANCH_RETRY_APPROVAL_ONLY_NOT_EXECUTION_NOT_RESULTS_REVIEW_NOT_MAIN",
+    "SELECTED_INTEGRATION_BRANCH_RETRY_PACKAGE",
+    "REQUIRED_MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_APPROVAL_ATTESTATION_PHRASE",
+    "build_marketflow_repository_integration_branch_retry_approval_attestation_v1",
+    "build_marketflow_repository_integration_branch_retry_approval_v1",
+    "validate_marketflow_repository_integration_branch_retry_approval_v1",
+    "write_marketflow_repository_integration_branch_retry_approval_v1",
+    "build_marketflow_repository_integration_branch_retry_approval_markdown_v1",
     "marketflow_objective_label_or_target_generation_execution_service",
     "ARTIFACT_KIND_MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED",
     "MARKETFLOW_OBJECTIVE_LABEL_OR_TARGET_GENERATION_EXECUTED_RESEARCH_ONLY",
@@ -5308,6 +5319,19 @@ from marketflow.services.marketflow_repository_integration_branch_retry_candidat
     build_marketflow_repository_integration_branch_retry_candidate_operator_review_v1,
     validate_marketflow_repository_integration_branch_retry_candidate_operator_review_v1,
     write_marketflow_repository_integration_branch_retry_candidate_operator_review_v1,
+)
+from marketflow.services import marketflow_repository_integration_branch_retry_approval_service
+from marketflow.services.marketflow_repository_integration_branch_retry_approval_service import (
+    ARTIFACT_KIND_MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_APPROVED,
+    MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_APPROVED,
+    REPOSITORY_INTEGRATION_BRANCH_RETRY_APPROVAL_ONLY_NOT_EXECUTION_NOT_RESULTS_REVIEW_NOT_MAIN,
+    REQUIRED_MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_APPROVAL_ATTESTATION_PHRASE,
+    SELECTED_INTEGRATION_BRANCH_RETRY_PACKAGE,
+    build_marketflow_repository_integration_branch_retry_approval_attestation_v1,
+    build_marketflow_repository_integration_branch_retry_approval_markdown_v1,
+    build_marketflow_repository_integration_branch_retry_approval_v1,
+    validate_marketflow_repository_integration_branch_retry_approval_v1,
+    write_marketflow_repository_integration_branch_retry_approval_v1,
 )
 from marketflow.services.predictive_evidence_improvement_candidate_operator_review_service import (
     ARTIFACT_KIND_PREDICTIVE_EVIDENCE_IMPROVEMENT_CANDIDATE_REVIEW_PACKAGE,

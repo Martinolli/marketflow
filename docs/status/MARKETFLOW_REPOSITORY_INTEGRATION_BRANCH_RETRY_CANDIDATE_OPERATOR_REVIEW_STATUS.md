@@ -48,3 +48,13 @@ tags, commit `.marketflow`, regenerate evidence, call providers, or authorize
 predictive, profitability, runtime, or trading use.
 
 All `61/61` review checks pass with zero failures and zero blockers.
+
+## Follow-on Approval
+
+Integration Branch Retry Approval v1 is implemented as a separate,
+attestation-bound governance artifact. The candidate operator review remains
+its immutable source evidence. The approval selects
+`PACKAGE_AUTHORITATIVE_FULL_PYTEST_RETRY_FROM_REMEDIATED_DETACHED_WORKTREE` for
+future execution only; it does not run retry pytest, create retry results
+review, push branches, commit `.marketflow`, accept usefulness or profitability,
+or authorize runtime or trading.
