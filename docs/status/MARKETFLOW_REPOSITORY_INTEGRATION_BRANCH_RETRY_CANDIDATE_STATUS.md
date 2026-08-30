@@ -47,4 +47,8 @@ trading use.
 
 All `56/56` candidate checks pass with zero failures and zero blockers.
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_CANDIDATE_OPERATOR_REVIEW_V1`.
+The follow-on Integration Branch Retry Candidate Operator Review v1 is
+implemented. This candidate remains its source evidence. The operator review
+reviews retry packages only and does not select or approve a package, execute a
+retry, run pytest, create retry results review, push branches, commit
+`.marketflow`, accept usefulness or profitability, or authorize runtime.
