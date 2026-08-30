@@ -51,3 +51,17 @@ acceptance, runtime authority, or broker authority was created.
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_CLASSIFICATION_METHOD_REENTRY_V1`
 may be invoked separately.
+
+## Follow-on Classification Method Reentry
+
+`MarketFlow Repository Integration Branch Retry Failure Classification Method
+Reentry v1` is implemented as the offline, digest-bound follow-on. This results
+review remains its source evidence. The reentry accepts the cache source only
+for module-level planning and requires a new Classification Method Candidate v2
+because the source cannot distinguish failures from errors or provide
+first-order trace detail.
+
+The reentry does not read cache, execute classification, rerun the retry or full
+pytest, run diagnostics, create a new retry candidate, push main or integration,
+commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or
+profitability, or authorize runtime or trading.
