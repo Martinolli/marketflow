@@ -50,3 +50,14 @@ acceptance, runtime authority, or broker authority.
 
 The separately invoked next task is
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_V1`.
+
+## Follow-on Execution
+
+`MarketFlow Repository Integration Branch Retry Failure Remediation or Method
+Execution v1` is implemented as the separately authorized follow-on. This
+approval remains its source evidence. The execution searches only approved
+persisted sources and classifies authoritative retry detail when available; it
+fails closed when only aggregate counts are persisted. It does not rerun the
+retry or full pytest, create a results review, push protected branches, commit
+`.marketflow`, accept predictive usefulness or profitability, or authorize
+runtime or trading.
