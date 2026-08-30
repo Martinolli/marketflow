@@ -47,3 +47,14 @@ All `67/67` execution-boundary checks pass with zero checklist failures and
 zero blockers. These checks confirm faithful fail-closed recording; they do not
 mean pytest passed. The next task is
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_DIAGNOSIS_V1`.
+
+## Follow-on Failure Diagnosis
+
+Integration Branch Retry Failure Diagnosis v1 is implemented on its dedicated
+feature branch. The retry execution remains blocked because the authoritative
+detached-worktree retry failed with `1,292` failures and `112` errors. The
+root-worktree regression remains a separate control and is not retry evidence.
+The diagnosis does not rerun the retry, create retry or integration results
+review, accept integration, push main or the integration branch, commit
+`.marketflow`, accept predictive usefulness or profitability, or authorize
+runtime or trading.
