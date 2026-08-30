@@ -64,3 +64,17 @@ strategy, paper-trading, broker, and execution authority remain
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_VALIDATION_FAILURE_REMEDIATION_EXECUTION_V1_RETRY_AFTER_WORKTREE_RESTORATION`
+
+## Follow-on Remediation Execution
+
+Integration Branch Validation Failure Remediation Execution v1 Retry After
+Worktree Restoration has now been implemented and executed. This worktree
+restoration results review remains its immutable source evidence. The
+follow-on execution copied the verified frozen ignored acquisition evidence
+root into the exact detached integration worktree and confirmed matching
+source/staged file inventories and digests.
+
+The execution did not commit `.marketflow`, regenerate evidence, run the
+integration retry, create an integration results review, push main or the
+integration branch, delete/reset branches or worktrees, accept predictive
+usefulness or profitability, or authorize runtime, broker, or trading use.
