@@ -45,3 +45,14 @@ candidate, main-merge approval, evidence mutation, `.marketflow` commit,
 provider/data/model action, protected-branch push, deletion, tag mutation,
 predictive/profitability acceptance, runtime authority, or broker authority was
 created.
+
+## Follow-on Approval
+
+`MarketFlow Repository Integration Branch Retry Failure Output Capture or
+Classification Source Approval v1` is implemented as the attestation-bound
+follow-on. This operator review remains its source evidence. The approval
+selects the read-only detached pytest-cache `lastfailed` package for future
+execution only; it does not read the cache, parse logs, run diagnostics, rerun
+the retry or full pytest, create a retry results review, push main or the
+integration branch, commit `.marketflow`, accept predictive usefulness or
+profitability, or authorize runtime or trading.
