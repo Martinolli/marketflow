@@ -67,5 +67,11 @@ strategy, paper-trading, broker, and execution authority remain
 
 ## Checklist and Next Task
 
-All `66/66` checks passed with zero failures and zero blockers. The next task
-is `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_VALIDATION_FAILURE_REMEDIATION_RESULTS_REVIEW_V1`.
+All `66/66` checks passed with zero failures and zero blockers.
+
+The follow-on Integration Branch Validation Failure Remediation Results Review
+v1 is implemented. This execution remains its source evidence. The results
+review verifies the staged ignored frozen evidence root in the detached
+integration worktree and does not retry integration, create a retry candidate,
+create an integration results review, push branches, commit `.marketflow`,
+regenerate evidence, accept usefulness or profitability, or authorize runtime.
