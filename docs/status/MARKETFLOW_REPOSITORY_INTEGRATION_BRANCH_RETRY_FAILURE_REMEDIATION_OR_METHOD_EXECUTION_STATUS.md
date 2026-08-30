@@ -52,3 +52,14 @@ authority, or broker authority was created.
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OUTPUT_CAPTURE_OR_CLASSIFICATION_SOURCE_CANDIDATE_V1`
 is the recommended separately gated next task.
+
+## Follow-on Classification-Source Candidate
+
+`MarketFlow Repository Integration Branch Retry Failure Output Capture or
+Classification Source Candidate v1` is implemented as a planning-only
+follow-on. This method execution remains blocked because detailed authoritative
+retry output was unavailable. The candidate proposes safe source acquisition
+before classification reentry; it does not read pytest cache, parse logs,
+capture output, run diagnostics, rerun retry/full pytest, create results review,
+push protected branches, commit `.marketflow`, accept usefulness/profitability,
+or authorize runtime or trading.
