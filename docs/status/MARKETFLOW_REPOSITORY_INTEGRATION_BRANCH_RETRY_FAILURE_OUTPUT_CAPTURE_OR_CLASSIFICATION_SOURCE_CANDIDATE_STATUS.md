@@ -47,3 +47,14 @@ authority, or broker authority was created.
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OUTPUT_CAPTURE_OR_CLASSIFICATION_SOURCE_CANDIDATE_OPERATOR_REVIEW_V1`
 is the next separately gated task.
+
+## Follow-on Operator Review
+
+`MarketFlow Repository Integration Branch Retry Failure Output Capture or
+Classification Source Candidate Operator Review v1` is implemented as a
+planning-only follow-on. This candidate remains its source evidence. The review
+assesses all packages, requirements, plan steps, outputs, and non-goals without
+selecting or approving a package. It does not read pytest cache, parse logs,
+capture output, run diagnostics, rerun retry/full pytest, create results review,
+push protected branches, commit `.marketflow`, accept usefulness/profitability,
+or authorize runtime or trading.
