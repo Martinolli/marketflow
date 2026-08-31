@@ -57,4 +57,16 @@ and `.pytest_cache` remain untracked and uncommitted.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_CLASSIFICATION_V2_REVIEW_V1`
+The follow-on Remediation or Method Candidate After Classification v2 Review is
+implemented. Classification Method Results Review v2 remains its immutable
+source evidence. The candidate proposes prioritized diagnostic/remediation
+planning based only on the reviewed module-level classification.
+
+The candidate does not execute remediation, diagnostics, classification, or a
+retry; read cache; run full pytest; create a new retry candidate; push protected
+branches; commit `.marketflow` or `.pytest_cache`; accept predictive usefulness
+or profitability; or authorize runtime or trading.
+
+Next task:
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_CLASSIFICATION_V2_REVIEW_OPERATOR_REVIEW_V1`
