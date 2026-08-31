@@ -60,4 +60,16 @@ runtime authorization, or trading authorization occurred. `.marketflow` and
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_CLASSIFICATION_METHOD_RESULTS_REVIEW_V2`
+The follow-on Classification Method Results Review v2 is implemented. Execution
+v2 remains its immutable source evidence. The results review verifies only the
+module-level grouping, module summary, limitations, and unsupported-claims
+exclusion.
+
+The results review does not execute classification, rerun the retry, run full
+pytest, create a remediation or new retry candidate, push branches, commit
+`.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability,
+or authorize runtime or trading.
+
+Next task:
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_CLASSIFICATION_V2_REVIEW_V1`
