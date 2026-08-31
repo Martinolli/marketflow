@@ -54,4 +54,17 @@ uncommitted.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_CLASSIFICATION_V2_REVIEW_OPERATOR_REVIEW_V1`
+The follow-on after-v2 candidate Operator Review v1 is implemented. The
+after-v2 candidate remains immutable source evidence. The operator review
+reviews remediation/method packages, future requirements, plan, outputs, and
+non-goals only.
+
+The operator review does not select or approve a package; execute remediation,
+diagnostics, or classification; read cache; rerun the retry; run full pytest;
+create a new retry candidate; push protected branches; commit `.marketflow` or
+`.pytest_cache`; accept predictive usefulness or profitability; or authorize
+runtime or trading.
+
+Next optional task:
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVAL_AFTER_CLASSIFICATION_V2_REVIEW_V1_IF_SELECTED`
