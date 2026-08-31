@@ -53,3 +53,16 @@ accept predictive usefulness or profitability, or authorize runtime or trading.
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_CLASSIFICATION_METHOD_CANDIDATE_V2`
 may be invoked separately.
+
+## Follow-on Classification Method Candidate v2
+
+`MarketFlow Repository Integration Branch Retry Failure Classification Method
+Candidate v2` is implemented as the offline, digest-bound follow-on. This
+classification-method reentry remains its source evidence. Candidate v2
+proposes cache-supported module-level node-ID classification packages only and
+keeps the recommended package unselected pending operator review.
+
+Candidate v2 does not read cache, execute classification, rerun the retry or
+full pytest, run diagnostics, create a retry candidate, push main or integration,
+commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or
+profitability, or authorize runtime or trading.
