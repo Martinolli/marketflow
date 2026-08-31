@@ -54,3 +54,16 @@ profitability, or authorize runtime or trading.
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_CLASSIFICATION_METHOD_APPROVAL_V2_IF_SELECTED`
 may be invoked only after an explicit package selection.
+
+## Follow-on Classification Method Approval v2
+
+`MarketFlow Repository Integration Branch Retry Failure Classification Method
+Approval v2` is implemented as the offline, attestation-bound follow-on. This
+operator review remains its source evidence. The approval selects
+`PACKAGE_CACHE_SUPPORTED_MODULE_LEVEL_NODEID_CLASSIFICATION_V2` for future
+Classification Method Execution v2 only.
+
+The follow-on approval does not read cache, execute classification, rerun the
+retry or full pytest, run diagnostics, create results review or main-merge
+authority, push main or integration, commit `.marketflow` or `.pytest_cache`,
+or authorize runtime or trading.
