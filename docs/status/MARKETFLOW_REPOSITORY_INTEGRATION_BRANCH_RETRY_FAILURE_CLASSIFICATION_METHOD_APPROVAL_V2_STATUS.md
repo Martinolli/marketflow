@@ -68,3 +68,17 @@ profitability, runtime, paper-trading, and broker authorities remain closed.
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_CLASSIFICATION_METHOD_EXECUTION_V2`
 may be invoked separately under this future-only approval.
+
+## Follow-on Classification Method Execution v2
+
+`MarketFlow Repository Integration Branch Retry Failure Classification Method
+Execution v2` is implemented as the approved read-only cache-supported
+follow-on. Approval v2 remains its source evidence. Execution v2 performs only
+module-level grouping of the reviewed failed-or-errored node IDs and produces
+bounded research-only summaries and limitation evidence.
+
+Execution v2 does not claim failure/error separation, first-order failure,
+traceback root cause, retry success, or main-merge readiness. It does not rerun
+the retry or full pytest, run diagnostics, create a retry candidate or results
+review, push main or integration, commit `.marketflow` or `.pytest_cache`,
+accept predictive usefulness or profitability, or authorize runtime or trading.
