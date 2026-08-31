@@ -55,3 +55,16 @@ authorize runtime or trading.
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_CLASSIFICATION_METHOD_CANDIDATE_V2_OPERATOR_REVIEW`
 may be invoked separately.
+
+## Follow-on Candidate v2 Operator Review
+
+`MarketFlow Repository Integration Branch Retry Failure Classification Method
+Candidate v2 Operator Review v1` is implemented as the offline, digest-bound
+follow-on. Candidate v2 remains its source evidence. The operator review covers
+only the cache-supported v2 packages and keeps every package unselected,
+unapproved, unauthorized, and unexecuted.
+
+The review does not read cache, execute classification, rerun the retry or full
+pytest, run diagnostics, create a retry candidate, push main or integration,
+commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or
+profitability, or authorize runtime or trading.
