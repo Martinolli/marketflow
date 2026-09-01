@@ -46,3 +46,14 @@ untracked and uncommitted.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REENTRY_MODULE_GROUPING_DETAIL_EXPOSURE_OR_BINDING_CANDIDATE_V1`
+
+## Follow-on Detail Exposure or Binding Candidate v1
+
+The follow-on candidate is implemented. This diagnosis remains its source
+evidence, and the candidate proposes only controlled future exposure or binding
+of the complete reviewed 29-row module grouping detail. It does not expose or
+bind detail, read cache, recover source, execute planning, diagnostics,
+remediation, or classification, rerun the retry or full pytest, create a new
+retry candidate, push protected branches, commit `.marketflow` or
+`.pytest_cache`, accept usefulness or profitability, or authorize runtime or
+trading.
