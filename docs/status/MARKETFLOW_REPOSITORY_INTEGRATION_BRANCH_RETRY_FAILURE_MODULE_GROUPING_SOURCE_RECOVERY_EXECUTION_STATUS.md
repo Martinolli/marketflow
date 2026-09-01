@@ -40,3 +40,17 @@ untracked and uncommitted.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_MODULE_GROUPING_SOURCE_RECOVERY_RESULTS_REVIEW_V1`
+
+## Follow-on Results Review
+
+Module Grouping Source Recovery Results Review v1 is implemented as a separate,
+digest-bound review. This execution remains its source evidence. The follow-on
+review verifies the recovered module paths, per-module counts, bounded node-ID
+samples, top-module concentration, cache hash-and-count report, limitations,
+and unsupported-claims boundary from the committed execution facts.
+
+The review does not read cache, recover source again, execute diagnostics,
+remediation, or classification, rerun the retry, run full pytest, create the
+planning re-entry or a new retry candidate, push protected branches, commit
+`.marketflow` or `.pytest_cache`, accept usefulness or profitability, or
+authorize runtime or trading.
