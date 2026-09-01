@@ -51,4 +51,13 @@ acceptance, runtime authorization, or trading authorization occurs.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVAL_AFTER_CLASSIFICATION_V2_REVIEW_V1_IF_SELECTED`
+The follow-on approval is implemented. This operator review remains its source
+evidence. The approval selects
+`PACKAGE_PRIORITIZE_LARGEST_MODULE_GROUPS_FOR_DIAGNOSTIC_REMEDIATION_PLANNING`
+for future execution only; it does not execute remediation, diagnostics, or
+classification, read cache, rerun the retry, run full pytest, create a new retry
+candidate or results review, push branches, commit `.marketflow` or
+`.pytest_cache`, accept usefulness or profitability, or authorize runtime or
+trading.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_CLASSIFICATION_V2_REVIEW_V1`
