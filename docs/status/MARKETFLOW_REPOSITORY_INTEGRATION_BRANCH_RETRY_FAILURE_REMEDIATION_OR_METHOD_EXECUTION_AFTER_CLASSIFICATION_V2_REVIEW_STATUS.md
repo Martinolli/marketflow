@@ -55,4 +55,12 @@ or profitability, or authorize runtime, paper trading, or broker execution.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_MODULE_GROUPING_SOURCE_RECOVERY_CANDIDATE_V1`
+The follow-on Module Grouping Source Recovery Candidate v1 is implemented. This
+blocked execution remains its source evidence. The candidate proposes controlled
+future recovery methods only; it does not recover module detail, expose module
+paths, read cache, execute diagnostics/remediation/classification, rerun retry or
+full pytest, create a retry candidate/results review, push branches, commit
+`.marketflow` or `.pytest_cache`, accept usefulness/profitability, or authorize
+runtime or trading.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_MODULE_GROUPING_SOURCE_RECOVERY_CANDIDATE_OPERATOR_REVIEW_V1`
