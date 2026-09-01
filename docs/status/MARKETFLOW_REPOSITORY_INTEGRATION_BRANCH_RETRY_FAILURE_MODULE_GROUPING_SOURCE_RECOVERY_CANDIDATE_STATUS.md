@@ -57,3 +57,16 @@ runtime authorization, or trading authorization. `.marketflow` and
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_MODULE_GROUPING_SOURCE_RECOVERY_CANDIDATE_OPERATOR_REVIEW_V1`
+
+## Follow-on Operator Review
+
+The follow-on Module Grouping Source Recovery Candidate Operator Review v1 is
+implemented. This candidate remains its digest-bound source evidence. The
+operator review reviews the ten source-recovery packages only and leaves the
+recommended package unselected and unapproved.
+
+The review does not recover module grouping, expose module paths, read cache,
+execute diagnostics, remediation, or classification, rerun the retry, run full
+pytest, create a new retry candidate, push integration or main, commit
+`.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability,
+or authorize runtime or trading.
