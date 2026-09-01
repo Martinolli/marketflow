@@ -43,3 +43,17 @@ performed.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_AFTER_V2_PLANNING_REENTRY_USING_RECOVERED_MODULE_GROUPING_SOURCE_V1`
+
+## Follow-on Planning Reentry
+
+After-v2 Planning Reentry Using Recovered Module Grouping Source v1 is
+implemented as a separate governance artifact. This results review remains its
+source evidence. The reentry accepts the recovered grouping only for a future,
+separately invoked planning execution and resolves the prior module-detail
+blocker for reentry only.
+
+The reentry does not execute planning, read cache, recover source, run
+diagnostics, remediation, classification, retry, or full pytest, create a new
+retry candidate, push protected branches, commit `.marketflow` or
+`.pytest_cache`, accept usefulness or profitability, or authorize runtime or
+trading.
