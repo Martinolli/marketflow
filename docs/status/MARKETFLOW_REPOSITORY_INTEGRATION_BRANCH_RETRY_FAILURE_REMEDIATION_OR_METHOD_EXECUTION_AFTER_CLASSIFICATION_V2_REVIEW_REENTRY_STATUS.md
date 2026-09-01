@@ -43,3 +43,14 @@ uncommitted.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_CLASSIFICATION_V2_REVIEW_REENTRY_FAILURE_DIAGNOSIS_V1`
+
+## Follow-on Reentry Failure Diagnosis v1
+
+The follow-on diagnosis is implemented. The blocked reentry execution remains
+the source evidence, and the diagnosis identifies only a committed reentry
+source-detail carry-forward gap. It does not expose the 29 module rows, read
+cache, recover source, execute planning, diagnostics, remediation, or
+classification, rerun the retry or full pytest, create a diagnostic or retry
+candidate, push main or the integration branch, commit `.marketflow` or
+`.pytest_cache`, accept usefulness or profitability, or authorize runtime or
+trading.
