@@ -59,4 +59,15 @@ profitability, or authorize runtime, paper trading, or broker execution.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_CLASSIFICATION_V2_REVIEW_V1`
+The follow-on planning execution is implemented. This approval remains its
+source evidence. The execution verifies committed aggregate classification
+evidence but fails closed because committed artifacts do not expose actual
+module paths and per-path counts. It does not invent module identities or
+planning rows.
+
+The execution performs no diagnostics, remediation, classification, cache read,
+retry, full pytest, retry candidate, results review, branch push, runtime-output
+commit, predictive/profitability acceptance, runtime authorization, or trading
+authorization.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_MODULE_GROUPING_SOURCE_RECOVERY_CANDIDATE_V1`
