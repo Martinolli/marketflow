@@ -47,3 +47,17 @@ data action, runtime activation, or trading action occurred. `.marketflow` and
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_CLASSIFICATION_V2_REVIEW_REENTRY_V1`
+
+## Follow-on Planning Execution
+
+Remediation or Method Execution After Classification v2 Review Reentry v1 is
+implemented with deterministic success and fail-closed paths. The reentry
+artifact remains its source evidence. The actual committed-source execution is
+blocked because the source exposes top-five paths and aggregate/tier facts but
+not the complete 29 module-path/count/sample rows required for prioritization.
+
+The execution does not read cache, recover source, invent paths, execute
+diagnostics, remediation, or classification, rerun retry or full pytest, create
+a targeted diagnostic or retry candidate, push protected branches, commit
+`.marketflow` or `.pytest_cache`, accept usefulness or profitability, or
+authorize runtime or trading.
