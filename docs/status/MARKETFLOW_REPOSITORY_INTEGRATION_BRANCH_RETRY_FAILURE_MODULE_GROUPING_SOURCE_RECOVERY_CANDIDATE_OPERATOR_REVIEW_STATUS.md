@@ -63,3 +63,15 @@ usefulness or profitability; or authorize runtime or trading.
 - Action: `OPTIONAL_OPERATOR_SELECTION_AND_APPROVAL_REQUIRED_BEFORE_ANY_MODULE_GROUPING_SOURCE_RECOVERY_EXECUTION`.
 - Next task, only if selected: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_MODULE_GROUPING_SOURCE_RECOVERY_APPROVAL_V1_IF_SELECTED`.
 - Next status: `FUTURE_APPROVAL_NOT_CREATED`.
+
+## Follow-on Approval
+
+Module Grouping Source Recovery Approval v1 is implemented. This operator review
+remains its digest-bound source evidence. The approval selects the reviewed
+detached pytest-cache read-only package for future execution only.
+
+The approval does not recover module grouping, expose module paths, read or
+modify cache, execute diagnostics, remediation, or classification, rerun the
+retry, run full pytest, create a retry candidate or results review, push
+integration or main, commit `.marketflow` or `.pytest_cache`, accept predictive
+usefulness or profitability, or authorize runtime or trading.
