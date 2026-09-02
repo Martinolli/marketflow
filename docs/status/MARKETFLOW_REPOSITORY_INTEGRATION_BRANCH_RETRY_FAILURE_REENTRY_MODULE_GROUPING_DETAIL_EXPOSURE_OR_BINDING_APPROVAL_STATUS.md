@@ -38,4 +38,18 @@ closed.
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REENTRY_MODULE_GROUPING_DETAIL_EXPOSURE_OR_BINDING_EXECUTION_V1`
+The follow-on Detail Exposure or Binding Execution v1 is implemented. This
+approval remains its source evidence, and execution uses committed source
+evidence only.
+
+The real execution blocked because committed source structures do not contain
+the complete reviewed 29-row module-grouping detail. It did not call the cache-
+reading recovery executor or infer the missing rows. A complete deterministic
+snapshot remains available only to exercise the success path in tests.
+
+Execution did not read cache, recover source again, enter planning, run
+diagnostics, remediation, classification, retry, or full pytest, create a new
+retry candidate, push protected branches, commit `.marketflow` or
+`.pytest_cache`, accept usefulness or profitability, or authorize runtime.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REENTRY_MODULE_GROUPING_DETAIL_EXPOSURE_OR_BINDING_EXECUTION_FAILURE_DIAGNOSIS_V1`
