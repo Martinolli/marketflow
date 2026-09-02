@@ -29,4 +29,15 @@ broker action occurred. Protected branches and evidence remain unchanged, and
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REENTRY_MODULE_GROUPING_DETAIL_EXPOSURE_OR_BINDING_APPROVAL_V1_IF_SELECTED`
+The selected follow-on Reentry Module Grouping Detail Exposure or Binding
+Approval v1 is implemented. This operator review remains the source evidence;
+the approval selects the complete recovered module-grouping detail package for
+future execution only.
+
+The approval does not expose or bind complete detail, read cache, recover the
+source again, execute planning reentry, diagnostics, remediation,
+classification, or retry, run full pytest, create a retry candidate, push
+protected branches, commit `.marketflow` or `.pytest_cache`, accept predictive
+usefulness or profitability, or authorize runtime or trading.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REENTRY_MODULE_GROUPING_DETAIL_EXPOSURE_OR_BINDING_EXECUTION_V1`
