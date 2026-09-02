@@ -34,3 +34,13 @@ operation, runtime use, trading, or protected-branch action.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_COMPLETE_29_ROW_MODULE_GROUPING_DETAIL_SOURCE_MATERIALIZATION_CANDIDATE_OPERATOR_REVIEW_V1`
+
+## Follow-on Operator Review
+
+Candidate Operator Review v1 is implemented and retains this candidate as its
+source evidence. It reviews all packages and future requirements but does not
+select or approve a package; materialize, expose, or bind detail; read cache;
+rerun recovery; execute binding, planning, diagnostics, remediation,
+classification, retry, or full pytest; create results review or a new retry
+candidate; push protected branches; track `.marketflow` or `.pytest_cache`;
+accept usefulness or profitability; or authorize runtime.
