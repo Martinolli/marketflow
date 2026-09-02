@@ -42,3 +42,13 @@ action occurred. Protected refs and staged evidence remain unchanged.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REENTRY_MODULE_GROUPING_DETAIL_EXPOSURE_OR_BINDING_EXECUTION_FAILURE_DIAGNOSIS_V1`
+
+## Follow-on Diagnosis
+
+Failure Diagnosis v1 is implemented as a committed-evidence-only diagnosis. It
+identifies `COMMITTED_COMPLETE_29_ROW_DETAIL_SOURCE_UNAVAILABLE` while preserving
+this blocked execution as source evidence. The diagnosis does not expose or bind
+complete detail, read cache, recover source, execute planning reentry,
+diagnostics, remediation, classification, retry, or full pytest; create a new
+retry candidate; push protected branches; commit `.marketflow` or
+`.pytest_cache`; accept usefulness or profitability; or authorize runtime.
