@@ -148,3 +148,16 @@ sums, tier sums, sorted maximum-five samples, and equality with the tracked
 committed source. It preserved the integration branch, origin main, staged
 evidence, terminal archive evidence, published governance tags, and the META
 limitation.
+
+## Follow-on Results Review
+
+Complete 29-row Module Grouping Detail Source Materialization Results Review v1
+is implemented and ready. This execution status remains its immutable source
+evidence. The follow-on review verifies only the committed 29-row payload and
+its bound execution, payload, and manifest digests.
+
+The review does not read cache, rerun materialization or source recovery, run
+pytest or the retry, execute detail binding or planning reentry, perform
+diagnostics, remediation, or classification, create a new retry candidate,
+push branches, commit `.marketflow` or `.pytest_cache`, accept predictive
+usefulness or profitability, or authorize runtime or trading.
