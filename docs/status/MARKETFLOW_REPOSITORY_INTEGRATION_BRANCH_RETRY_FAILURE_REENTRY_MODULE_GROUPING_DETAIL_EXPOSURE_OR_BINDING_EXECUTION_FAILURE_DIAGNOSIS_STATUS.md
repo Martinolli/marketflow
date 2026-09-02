@@ -35,3 +35,14 @@ retry, full pytest, results review, branch integration, provider request, data
 operation, model operation, runtime use, strategy use, paper trading, or broker
 execution. The failed retry remains authoritative; the prior root regression is
 not retry evidence.
+
+## Follow-on Candidate
+
+Complete 29-row Module Grouping Detail Source Materialization Candidate v1 is
+implemented as a proposal-only follow-on. This diagnosis remains its source
+evidence. The candidate proposes controlled materialization or binding methods
+but does not materialize or expose rows, bind detail, read cache, rerun source
+recovery, execute binding or planning, run diagnostics, remediation,
+classification, retry, or full pytest, create results review or a new retry
+candidate, push protected branches, track runtime outputs, accept usefulness or
+profitability, or authorize runtime.
