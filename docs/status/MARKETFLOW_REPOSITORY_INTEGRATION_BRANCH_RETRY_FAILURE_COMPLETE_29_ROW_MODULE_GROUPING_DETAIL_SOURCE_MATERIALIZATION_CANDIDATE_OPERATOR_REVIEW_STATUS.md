@@ -28,3 +28,14 @@ No package selection, approval, materialization, detail exposure or binding,
 cache access, recovery, planning reentry, diagnostics, remediation,
 classification, retry, full pytest, results review, provider/data action,
 runtime use, trading, or protected-branch action occurred.
+
+## Follow-on Approval
+
+Complete 29-row Module Grouping Detail Source Materialization Approval v1 is
+implemented as a separate attestation-bound artifact. The operator review
+remains source evidence. The approval selects the controlled materialize-or-bind
+package for future execution only; it does not materialize detail, expose the
+29 rows, bind detail, read cache, rerun recovery, execute planning reentry,
+diagnostics, remediation, classification, retry, or full pytest, create a new
+retry candidate, push branches, commit `.marketflow` or `.pytest_cache`, accept
+usefulness or profitability, or authorize runtime or trading.
