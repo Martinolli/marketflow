@@ -38,3 +38,13 @@ model, strategy, runtime, paper-trading, or broker actions. `.marketflow` and
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REENTRY_MODULE_GROUPING_DETAIL_EXPOSURE_OR_BINDING_CANDIDATE_OPERATOR_REVIEW_V1`
+
+## Follow-on Candidate Operator Review v1
+
+The operator review is implemented. This candidate remains its source evidence,
+and the review evaluates detail exposure/binding packages only. It does not
+select or approve a package, expose or bind detail, read cache, recover source,
+execute planning, diagnostics, remediation, or classification, rerun retry or
+full pytest, create a new retry candidate, push protected branches, commit
+`.marketflow` or `.pytest_cache`, accept usefulness or profitability, or
+authorize runtime or trading.
