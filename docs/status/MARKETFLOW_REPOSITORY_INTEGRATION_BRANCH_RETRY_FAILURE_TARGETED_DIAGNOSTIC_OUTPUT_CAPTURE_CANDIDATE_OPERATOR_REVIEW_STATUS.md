@@ -27,4 +27,8 @@ No provider, data, dataset, metric, model, strategy, recommendation, runtime, or
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_APPROVAL_V1_IF_SELECTED`
+The follow-on approval is now implemented. This operator-review artifact remains the immutable source review; it is not converted into an approval artifact and its digest remains unchanged.
+
+The approval selects `PACKAGE_CAPTURE_TARGETED_DIAGNOSTIC_OUTPUT_FOR_PRIORITY_1_TOP_MODULE_GROUPS` for future execution only. It does not execute diagnostic capture, pytest, retry, remediation, classification, or any branch, runtime, or trading action.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_EXECUTION_V1`
