@@ -104,3 +104,15 @@ or data work, runtime action, or trading action. It did not modify evidence,
 branches, worktrees, tags, main, or the integration branch, and did not commit
 `.marketflow` or `.pytest_cache`. Predictive usefulness and profitability remain
 not accepted; runtime and broker execution remain `NOT_AUTHORIZED`.
+
+## Follow-on Complete-source Binding Reattempt
+
+The follow-on Detail Exposure or Binding Execution Reattempt with Complete
+Source v1 is implemented. It uses only this reviewed, committed, complete
+29-row source and leaves this materialization results review unchanged as its
+source evidence. The reattempt does not read cache, rerun materialization or
+source recovery, run pytest as part of execution, rerun the failed retry,
+execute planning reentry, diagnostics, remediation, or classification, create
+a diagnostic or retry candidate, push protected branches, commit
+`.marketflow` or `.pytest_cache`, accept predictive usefulness or
+profitability, or authorize runtime or broker execution.
