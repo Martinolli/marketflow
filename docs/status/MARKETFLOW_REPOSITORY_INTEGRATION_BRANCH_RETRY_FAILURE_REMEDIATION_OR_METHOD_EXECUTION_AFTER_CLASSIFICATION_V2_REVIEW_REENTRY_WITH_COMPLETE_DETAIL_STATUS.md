@@ -31,6 +31,18 @@ The artifact is ready only for the separate
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_RESULTS_REVIEW_AFTER_CLASSIFICATION_V2_REVIEW_REENTRY_WITH_COMPLETE_DETAIL_V1`.
 It is not ready for a targeted diagnostic candidate, retry candidate, retry execution, or main merge.
 
+The follow-on Remediation or Method Results Review After Classification v2
+Review Reentry with Complete Detail v1 is implemented. The planning reentry
+execution remains its source evidence. The review verifies planning output
+only and may establish readiness for a separately invoked targeted diagnostic
+output capture candidate; it does not create that candidate.
+
+The results review does not read cache; rerun planning, detail binding,
+materialization, source recovery, pytest, or retry; execute diagnostics,
+remediation, or classification; create a retry candidate; push branches;
+track `.marketflow` or `.pytest_cache`; accept usefulness or profitability; or
+authorize runtime or trading.
+
 ## Authority Boundaries
 
 The planning execution does not read or modify cache; rerun detail binding, materialization, source recovery, pytest, or the failed retry; execute diagnostics, remediation, or classification; create a targeted diagnostic candidate, retry candidate, results review, or merge approval; modify evidence, tags, branches, worktrees, `.marketflow`, or `.pytest_cache`; or call providers and data systems.
