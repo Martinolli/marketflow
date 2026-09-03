@@ -30,4 +30,8 @@ The diagnostic command was not rerun. No full pytest, retry rerun, cache read, p
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_EXECUTION_FAILURE_DIAGNOSIS_V1`
+The follow-on failure diagnosis is now implemented. This blocked execution receipt remains immutable source evidence with the same execution digest, blocked manifest digest, and blocked reason.
+
+The diagnosis classifies durable success-receipt loss as the primary failure and the outer wrapper `NameError` as contributing. It does not rerun the diagnostic command or reconstruct missing values. Only a separately governed receipt-recovery-or-recapture candidate is now ready for consideration.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_CANDIDATE_V1`
