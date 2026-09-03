@@ -33,3 +33,9 @@ Failure/error separation, first failure, first error, traceback root cause, dire
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_CANDIDATE_FOR_TOP_MODULE_GROUPS_V1`
+
+## Follow-on Candidate
+
+The Targeted Diagnostic Output Capture Candidate for Top Module Groups v1 is implemented for operator review. This results review remains its source evidence.
+
+The follow-on proposes diagnostic-output capture packages only. It does not select or approve a package; execute diagnostics; run pytest, targeted pytest, full pytest, or retry; read or modify cache; rerun planning or evidence workflows; execute remediation or classification; create a retry candidate; push branches; commit `.marketflow` or `.pytest_cache`; accept predictive usefulness or profitability; or authorize runtime or trading.
