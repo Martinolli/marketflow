@@ -35,4 +35,8 @@ No diagnostic rerun, pytest, retry, cache access, log parsing, environment inspe
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_CANDIDATE_V1`
+The follow-on receipt recovery or recapture candidate is now implemented. This diagnosis remains immutable source evidence, including its blocked reason and receipt-loss classifications.
+
+The candidate defines recovery and controlled-recapture options only. It does not recover a receipt, rerun a diagnostic, run pytest diagnostics, rerun the retry, read cache, parse logs, reconstruct output, execute remediation or classification, create a retry candidate, push protected branches, commit runtime outputs, accept usefulness or profitability, or authorize runtime.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_CANDIDATE_OPERATOR_REVIEW_V1`
