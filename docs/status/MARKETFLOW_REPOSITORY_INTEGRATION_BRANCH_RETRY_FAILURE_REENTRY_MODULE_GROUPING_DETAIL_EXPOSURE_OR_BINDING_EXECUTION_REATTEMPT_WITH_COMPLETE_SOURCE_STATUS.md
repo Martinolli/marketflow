@@ -66,3 +66,14 @@ runtime, broker, evidence-regeneration, branch deletion, worktree deletion,
 tag, integration-push, or main-push action is authorized. `.marketflow` and
 `.pytest_cache` remain untracked. Predictive usefulness and profitability
 remain not accepted; runtime and broker execution remain `NOT_AUTHORIZED`.
+
+## Follow-on Results Review
+
+The follow-on Detail Exposure or Binding Execution Reattempt with Complete
+Source Results Review v1 is implemented. The successful reattempt remains its
+committed source evidence. The review verifies only the complete 29-row binding
+and does not read cache; rerun the reattempt, materialization, source recovery,
+pytest, or the failed retry; execute planning reentry, diagnostics,
+remediation, or classification; create a retry candidate; push protected
+branches; commit `.marketflow` or `.pytest_cache`; accept usefulness or
+profitability; or authorize runtime or broker execution.
