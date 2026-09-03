@@ -32,10 +32,19 @@ than five bounded sample node IDs.
 ## Findings and Recommendation
 
 All 12 findings and all 12 research-only review outputs are present. The
-binding is ready only to support the separately invoked
+binding remains the source evidence for the separately invoked
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_CLASSIFICATION_V2_REVIEW_REENTRY_WITH_COMPLETE_DETAIL_V1`.
-That future reentry has not been created or executed. Retry-candidate creation
-remains closed.
+That follow-on is implemented and executes only deterministic module-priority,
+concentration, and diagnostic/remediation-method planning from the reviewed
+committed complete 29-row detail. It does not create a targeted diagnostic
+candidate or retry candidate; those gates remain closed pending separate
+planning results review.
+
+The follow-on does not read cache; rerun detail binding, materialization,
+source recovery, pytest, or retry; execute diagnostics, remediation, or
+classification; create results-review or merge artifacts; push branches;
+track `.marketflow` or `.pytest_cache`; accept usefulness or profitability; or
+authorize runtime or trading.
 
 ## Authority Boundaries
 
