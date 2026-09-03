@@ -32,3 +32,9 @@ No receipt recovery, recapture, diagnostic command, pytest diagnostic, retry, ca
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_CANDIDATE_OPERATOR_REVIEW_V1`
+
+## Follow-on Operator Review
+
+Targeted Diagnostic Output Capture Receipt Recovery or Recapture Candidate Operator Review v1 is implemented as a separate, digest-bound follow-on. This candidate remains its immutable source evidence.
+
+The follow-on reviews recovery and controlled-recapture packages only. It does not select or approve a package; recover or recapture a receipt; run a diagnostic command, targeted pytest, full pytest, or retry; read or modify cache; parse terminal or operator logs; inspect environment data; reconstruct missing output; execute remediation or classification; create a retry candidate; push branches; commit `.marketflow` or `.pytest_cache`; accept predictive usefulness or profitability; or authorize runtime or trading.
