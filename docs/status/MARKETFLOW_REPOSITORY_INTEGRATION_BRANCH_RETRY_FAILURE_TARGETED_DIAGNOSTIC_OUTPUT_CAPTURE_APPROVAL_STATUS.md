@@ -31,4 +31,8 @@ No provider, market-data, dataset, metric, model, strategy, recommendation, runt
 
 ## Next Task
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_EXECUTION_V1`
+The follow-on execution implementation is complete, and the approved five-module command was invoked exactly once. The source approval remains immutable evidence.
+
+The command returned a transient success artifact, but the outer reporting wrapper failed before required result hashes, byte counts, excerpts, and success digests were retained. The execution branch therefore fails closed with `POST_CAPTURE_ARTIFACT_REPORTING_BOUNDARY_FAILED`; it does not rerun the approved command or claim results-review readiness.
+
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_EXECUTION_FAILURE_DIAGNOSIS_V1`
