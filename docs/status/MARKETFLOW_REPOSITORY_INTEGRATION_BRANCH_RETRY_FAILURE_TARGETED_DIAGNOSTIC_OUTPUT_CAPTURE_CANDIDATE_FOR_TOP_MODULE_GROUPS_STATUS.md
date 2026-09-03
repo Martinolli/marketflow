@@ -31,3 +31,9 @@ It does not call providers, inspect `.env`, acquire data, generate datasets, rec
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_CANDIDATE_OPERATOR_REVIEW_V1`
+
+## Follow-on Operator Review
+
+The Targeted Diagnostic Output Capture Candidate Operator Review v1 is implemented. This candidate remains its source evidence.
+
+The operator review reviews the twelve targeted diagnostic-output capture packages only. It does not select or approve a package; execute diagnostics; run pytest, targeted pytest, full pytest, or retry; read or modify cache; rerun planning or evidence workflows; execute remediation or classification; create a retry candidate; push branches; commit `.marketflow` or `.pytest_cache`; accept predictive usefulness or profitability; or authorize runtime or trading.
