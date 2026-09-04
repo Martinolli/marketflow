@@ -1,5 +1,9 @@
 # MarketFlow Repository Integration Branch Retry Failure Remediation Plan or Execution Approval After Method Results Review Status
 
+## Follow-on execution
+
+Remediation Plan or Execution After Method Results Review v1 is implemented. This approval remains source evidence. The execution generates only the four-workstream targeted remediation plan from reviewed family evidence; it does not execute remediation, change production code or existing tests, update expected digests, parse the durable receipt, analyze diagnostic output, rerun method execution or pytest, rerun the retry, read cache or logs, inspect environment files, create retry readiness, push protected branches, accept predictive usefulness/profitability, or authorize runtime/trading.
+
 - Artifact: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_PLAN_OR_EXECUTION_APPROVED_AFTER_METHOD_RESULTS_REVIEW_V1`
 - Status: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_PLAN_OR_EXECUTION_APPROVED_AFTER_METHOD_RESULTS_REVIEW`
 - Scope: approval only; no execution, remediation, retry, or main action.
