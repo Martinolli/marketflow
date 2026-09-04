@@ -83,3 +83,11 @@ Candidate readiness is true. Remediation execution, retry candidate, main-merge 
 ## Guardrails
 
 No method execution rerun, receipt parsing, diagnostic analysis, classification reperformance, remediation, retry, protected-branch change, evidence regeneration, provider/data/model activity, or runtime/trading authorization occurred.
+
+## Follow-on Candidate
+
+The separately governed Remediation Plan or Execution Candidate After Method Results Review v1 is implemented. This results review remains its source evidence.
+
+The follow-on candidate defines remediation-plan or remediation-execution packages only and recommends the plan-first `PACKAGE_CREATE_TARGETED_REMEDIATION_PLAN_FROM_REVIEWED_FAILURE_FAMILIES_ONLY` package because direct-remediation readiness remains false. It does not select, approve, authorize, or execute a package.
+
+The candidate does not execute planning or remediation; modify production code or existing tests; update expected digests; parse the durable receipt or diagnostic output; rerun method execution, controlled recapture, diagnostics, pytest, or retry; read cache or logs; inspect `.env`; create retry authority; push protected branches; commit `.marketflow` or `.pytest_cache`; accept predictive usefulness or profitability; or authorize runtime or trading.
