@@ -1,5 +1,9 @@
 # MarketFlow Repository Integration Branch Retry Failure Remediation Plan or Execution Candidate After Method Results Review Operator Review v1
 
+## Follow-on approval
+
+Remediation Plan or Execution Approval After Method Results Review v1 is implemented. The operator review remains source evidence. The approval selects the plan-first targeted remediation package for future execution only; it does not execute planning/remediation, modify code/tests/digests, parse evidence, rerun commands or pytest, create a retry candidate, push branches, accept predictive usefulness/profitability, or authorize runtime/trading.
+
 Status: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_PLAN_OR_EXECUTION_CANDIDATE_AFTER_METHOD_RESULTS_REVIEW_OPERATOR_REVIEW_READY`.
 
 Scope: `REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_PLAN_OR_EXECUTION_CANDIDATE_AFTER_METHOD_RESULTS_REVIEW_OPERATOR_REVIEW_ONLY_NOT_APPROVAL_NOT_EXECUTION_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN`.
