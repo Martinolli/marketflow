@@ -62,3 +62,9 @@ Any future remediation must be source-authority-bound, plan-derived, preceded by
 ## Authority Boundaries
 
 This candidate selects, approves, authorizes, and executes nothing. It does not modify production code, existing tests, expected digests, evidence, protected branches, tags, runtime, broker, or trading behavior. It does not generate/apply a patch; open or parse the receipt; analyze output; rerun plan, method, diagnostics, pytest, or retry; read cache/logs/environment files; call providers; acquire data; train/score models; or accept predictive usefulness/profitability.
+
+## Follow-on Operator Review
+
+Remediation Execution Candidate After Plan Results Review Operator Review v1 is implemented. The candidate remains source evidence, and the operator review reviews package options only. It preserves the controlled plan-derived remediation recommendation without selecting it.
+
+The operator review does not select, approve, authorize, or execute remediation; modify code or existing tests; update expected digests; generate or apply patches; parse the durable receipt; analyze diagnostic output; rerun plan execution or pytest; rerun the retry; read cache; parse terminal or operator logs; inspect `.env`; create a retry candidate; push branches; commit `.marketflow` or `.pytest_cache`; accept usefulness or profitability; or authorize runtime, broker, or trading use.
