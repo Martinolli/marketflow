@@ -43,3 +43,11 @@ Predictive usefulness and profitability remain `not accepted`; runtime, strategy
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_PLAN_OR_EXECUTION_CANDIDATE_AFTER_METHOD_RESULTS_REVIEW_OPERATOR_REVIEW_V1`
+
+## Follow-on Operator Review
+
+The Remediation Plan or Execution Candidate After Method Results Review Operator Review v1 is implemented. This candidate remains source evidence.
+
+The operator review evaluates the twelve remediation-plan or remediation-execution packages only. It preserves the plan-first `PACKAGE_CREATE_TARGETED_REMEDIATION_PLAN_FROM_REVIEWED_FAILURE_FAMILIES_ONLY` recommendation because direct-remediation readiness remains false, but it does not select, approve, authorize, or execute that package.
+
+The review does not execute planning or remediation; change production code, existing tests, or expected digests; parse the receipt or diagnostic output; rerun method execution, controlled recapture, diagnostics, pytest, or retry; read cache or logs; inspect `.env`; create retry authority; push protected branches; commit `.marketflow` or `.pytest_cache`; accept predictive usefulness or profitability; or authorize runtime or trading.
