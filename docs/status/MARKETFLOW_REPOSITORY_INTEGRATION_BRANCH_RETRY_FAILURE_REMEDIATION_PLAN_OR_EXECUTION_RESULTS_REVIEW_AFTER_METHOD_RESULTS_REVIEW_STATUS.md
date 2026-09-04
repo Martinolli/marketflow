@@ -57,3 +57,10 @@ Each workstream preserves its planning basis, five Priority 1 candidate modules,
 ## Guardrails
 
 This review did not rerun or regenerate the plan; execute remediation; modify production code or existing tests; update expected digests; open the durable receipt; analyze diagnostic output; rerun method execution, recapture, diagnostics, pytest, or retry; read cache or logs; inspect `.env`; reconstruct streams; classify failures again; create a remediation or retry candidate; push protected branches; modify evidence or tags; call providers; acquire data; train or score models; accept predictive usefulness/profitability; or authorize runtime/trading.
+
+## Follow-on Remediation Execution Candidate
+
+- Remediation Execution Candidate After Plan Results Review v1 is implemented.
+- This plan results review remains immutable source evidence.
+- The candidate defines twelve remediation execution package options and recommends controlled plan-derived remediation for future operator review without selecting it.
+- It does not select, approve, authorize, or execute remediation; modify production code, existing tests, expected digests, or evidence; generate/apply patches; parse the receipt or diagnostics; rerun plan execution, pytest, or retry; read cache/logs/environment files; create retry authority; push protected branches; commit `.marketflow` or `.pytest_cache`; accept usefulness/profitability; or authorize runtime/trading.
