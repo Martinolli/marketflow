@@ -28,3 +28,9 @@ No receipt recovery, recapture, package selection, approval, diagnostic command,
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_APPROVAL_V1_IF_SELECTED`
+
+## Follow-on Approval
+
+Targeted Diagnostic Output Capture Receipt Recovery or Recapture Approval v1 is implemented as an attestation-bound follow-on. This operator review remains its immutable source evidence.
+
+The approval selects `PACKAGE_CONTROLLED_SINGLE_RECAPTURE_WITH_PREWRITE_RECEIPT_FILE_AND_NO_CACHEPROVIDER` for future execution only. It does not recover a receipt, execute recapture, run a diagnostic command or pytest, rerun the retry, read cache, parse logs, reconstruct output, execute remediation or classification, create a retry candidate, push protected branches, commit `.marketflow` or `.pytest_cache`, accept usefulness or profitability, or authorize runtime or trading.
