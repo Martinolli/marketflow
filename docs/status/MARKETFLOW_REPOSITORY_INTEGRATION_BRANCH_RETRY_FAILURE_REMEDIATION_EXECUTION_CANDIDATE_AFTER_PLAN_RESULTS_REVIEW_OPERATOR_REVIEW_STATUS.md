@@ -39,3 +39,9 @@ The authoritative retry remains failed with 24,877 passed, 1,292 failed, 112 err
 ## Authority Boundaries
 
 No package was selected, approved, authorized, or executed. This review did not modify production code, existing tests, expected digests, staged evidence, protected branches, tags, runtime, broker, or trading behavior. It did not generate or apply a patch; parse the durable receipt; analyze diagnostic output; rerun plan or method execution, recapture, diagnostics, pytest, or retry; read cache; parse logs; inspect `.env`; call providers; acquire data; train or score models; or accept predictive usefulness or profitability.
+
+## Follow-on Approval
+
+Remediation Execution Approval After Plan Results Review v1 is implemented. This operator review remains source evidence. The approval selects the controlled plan-derived package for future execution only.
+
+The approval does not execute remediation; modify production code or existing tests; update expected digests; generate or apply patches; parse the durable receipt; analyze diagnostic output; rerun plan execution, pytest, or retry; read cache; parse logs; inspect `.env`; create a retry candidate; push branches; commit `.marketflow` or `.pytest_cache`; accept predictive usefulness or profitability; or authorize runtime, broker, or trading use.
