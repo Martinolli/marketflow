@@ -244,3 +244,9 @@
 ## Guardrails
 
 - Committed receipt and bounded excerpts only; no cache, logs, environment, commands, providers, or full-stream reconstruction.
+
+## Follow-on Results Review
+
+Remediation or Method Results Review After Diagnostic Capture v1 is implemented as a separate, digest-bound follow-on. This method execution remains immutable source evidence.
+
+The results review verifies only the committed bounded failure-family classification. It does not rerun method execution, parse the durable receipt, analyze diagnostic output, run pytest as diagnostic work, rerun recapture or retry, read or modify cache, parse terminal or operator logs, inspect `.env`, reconstruct streams, execute remediation, create a retry candidate, push protected branches, commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability, or authorize runtime or broker execution.
