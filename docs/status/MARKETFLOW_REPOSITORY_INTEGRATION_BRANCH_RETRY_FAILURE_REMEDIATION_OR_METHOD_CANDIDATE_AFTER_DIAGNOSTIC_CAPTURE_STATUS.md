@@ -33,3 +33,9 @@ Only readiness for candidate operator review is open. Method approval, method ex
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_DIAGNOSTIC_CAPTURE_OPERATOR_REVIEW_V1`
+
+## Follow-on Operator Review
+
+The follow-on `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_DIAGNOSTIC_CAPTURE_OPERATOR_REVIEW_V1` is implemented. This candidate remains immutable source evidence, and the review assesses only its twelve remediation-or-method packages.
+
+The review does not select or approve a package, execute method analysis or remediation, parse the durable receipt, analyze diagnostic output, rerun diagnostic capture, run pytest, rerun the failed retry, read cache, parse logs, inspect `.env`, create a retry candidate, push protected branches, commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability, or authorize runtime or trading.
