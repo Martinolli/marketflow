@@ -50,3 +50,11 @@ The original failed retry remains authoritative. The latest prior root regressio
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_RESULTS_REVIEW_V1`
+
+## Follow-on Results Review
+
+Receipt Recovery or Controlled Recapture Results Review v1 is implemented. The execution and its committed durable receipt remain immutable diagnostic source evidence. The results review verifies only the controlled-recapture output metadata, durable receipt, digests, and post-execution boundaries.
+
+The review did not rerun recapture, execute the diagnostic command, run targeted or full pytest as reviewed evidence, rerun the retry, read cache, parse logs, inspect `.env`, remediate, classify, create a retry candidate, push branches, commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability, or authorize runtime or trading.
+
+The review opens only readiness for `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_DIAGNOSTIC_CAPTURE_V1`. Retry and main-merge readiness remain closed.
