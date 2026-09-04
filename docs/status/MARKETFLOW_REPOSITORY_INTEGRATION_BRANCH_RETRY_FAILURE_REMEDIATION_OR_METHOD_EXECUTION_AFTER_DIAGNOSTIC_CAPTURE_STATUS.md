@@ -1,0 +1,246 @@
+# MarketFlow Repository Integration Branch Retry Failure Remediation or Method Execution After Diagnostic Capture v1
+
+## Source Approval
+
+- 486024f32efb50d9620ba26b950892295c5a660e
+- 7c4096364f1d1d5feb048bdbb7987c46e082947d75664f15976460590745b6e6
+
+## Source Operator Review and Candidate
+
+- 63a717f6149f2deb9de303381235c2d0d80ec5273a332faf36708cfe79852845
+- 405fa30e32f2e71f77cd502cbd8ad0644f2f07d684de9a24b0d90ac0b3bab95d
+
+## Source Diagnostic Results Review
+
+- 427d2a76afcec7c8b9647a0f0c19b6037e5a451b0f70fad1a5025afc266946ba
+
+## Source Controlled Recapture Execution
+
+- 51175f3d24232773ae3982a97b05877e18ff699e
+- 25a70331c48eedeb62c6f8532dba0e1b782904ff4b753934c2fd12ccbec47e46
+
+## Source Durable Receipt
+
+- docs/status/MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_EXECUTION_RECEIPT_V1.json
+- dfd7f50c4065e759ccfee0f160c97177f4d9a1cfe977fb6db1ce240f8ad3345b
+
+## Source Receipt Loss History
+
+- POST_CAPTURE_ARTIFACT_REPORTING_BOUNDARY_FAILED
+
+## Source Planning and Detail Binding Evidence
+
+- 846c926ed10172c45207adb982fdb93346dac9ac550dd3a6509178746529059b
+- 9124d03f9c540873a1bb3253800b1574f1266e67708034e64c95eb1ff3254a74
+
+## Retry Failure Context
+
+- 24877 passed; 1292 failed; 112 errors; 7 skipped; retry remains failed.
+
+## Execution Scope
+
+- REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_DIAGNOSTIC_CAPTURE_ONLY_METHOD_ANALYSIS_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN
+
+## Selected Remediation or Method Package
+
+- PACKAGE_CLASSIFY_REVIEWED_DURABLE_DIAGNOSTIC_RECEIPT_FAILURE_FAMILIES_FOR_REMEDIATION_METHOD_PLANNING
+
+## Priority 1 Target Modules
+
+- tests/test_marketflow_signal_or_feature_generation_results_review_service.py
+- tests/test_post_identity_freeze_registry_inventory_approval_service.py
+- tests/test_corporate_action_authority_plan_candidate_service.py
+- tests/test_feature_generation_results_review_redesigned_labels_service.py
+- tests/test_marketflow_objective_label_or_target_generation_results_review_service.py
+
+## Diagnostic Capture Evidence Summary
+
+- Exit 1; bounded stdout/stderr only; diagnostic evidence, not retry evidence.
+
+## Method Input Source
+
+- {'durable_receipt_path': 'docs/status/MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_EXECUTION_RECEIPT_V1.json', 'stdout_excerpt_used': True, 'stderr_excerpt_used': False, 'full_streams_available_or_used': False}
+
+## Durable Receipt Integrity
+
+- {'path': 'C:\\Users\\Aspire5 15 i7 4G2050\\marketflow\\docs\\status\\MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_EXECUTION_RECEIPT_V1.json', 'file_sha256': '0b563d41c2c9d6541f8e9f39792efd728c892d70eaf103463b44f038035de0b0', 'embedded_receipt_digest': 'dfd7f50c4065e759ccfee0f160c97177f4d9a1cfe977fb6db1ce240f8ad3345b', 'receipt_digest_verified': True, 'receipt_finalized': True}
+
+## Bounded Excerpt Integrity
+
+- {'stdout_chars': 20000, 'stderr_chars': 0, 'stdout_excerpt_sha256': '2fab005ec415e830af96ebe8782e064e4a8987c436ca97e0312b3c4467b28c5a', 'stderr_excerpt_sha256': 'e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855', 'source_stdout_is_truncated': True, 'source_stderr_is_truncated': False, 'redaction_checked': True}
+
+## Failure-Family Classification Method
+
+- {'method': 'DETERMINISTIC_CONSERVATIVE_RULE_CLASSIFIER_V1', 'ordering': ['descending evidence count', 'ascending family_id'], 'max_snippets_per_family': 5, 'max_snippet_chars': 500, 'input_scope': 'BOUNDED_EXCERPTS_ONLY'}
+
+## Observable Failure Families
+
+- assertion_or_value_mismatch: 47 (HIGH)
+- digest_or_hash_mismatch: 47 (HIGH)
+- fixture_or_test_isolation_issue: 47 (HIGH)
+- missing_or_unexpected_field: 47 (HIGH)
+
+## Family Confidence and Limitations
+
+- {'assertion_or_value_mismatch': 'HIGH', 'digest_or_hash_mismatch': 'HIGH', 'fixture_or_test_isolation_issue': 'HIGH', 'missing_or_unexpected_field': 'HIGH'}
+- Only committed bounded excerpts were analyzed.
+- The output is not a full retry classification and makes no root-cause or first-order claim.
+- Every family requires a separately invoked method results review.
+
+## Unsupported Claims Boundary
+
+- {'root_cause': False, 'authoritative_first_failure': False, 'authoritative_first_error': False, 'full_retry_classification': False, 'direct_code_remediation': False, 'retry_success': False, 'main_merge_readiness': False}
+
+## Success or Blocked Disposition
+
+- MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTED_AFTER_DIAGNOSTIC_CAPTURE_FAILURE_FAMILY_CLASSIFICATION_READY
+- None
+
+## Deterministic Digests
+
+- execution: `1670927267782671afaa7aa784604580fd3c1efaf5331ab41585012ff8963d88`
+- failure-family classification: `3e3f2409315228bc88c23fb02dfdf3dbea4724d30356f0a4548243105a49dac1`
+- bounded excerpt analysis: `d20ddba72b6461a061e7a1b3a7fc4b892abce093bc8d1e25b3c0a46bca0960c9`
+- manifest: `d4e10da387d3f96cffd5822e832cfd1c5a4cae8a8eb8d802f67739a673f1eef9`
+
+## Recommendation
+
+- MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_RESULTS_REVIEW_AFTER_DIAGNOSTIC_CAPTURE_V1
+
+## Next Chain
+
+- Remediation or Method Results Review After Diagnostic Capture v1.
+- Remediation Plan or Execution Candidate v1, only if supported by method results review.
+- Remediation Plan or Execution Candidate Operator Review v1, if needed.
+- Remediation Plan or Execution Approval v1, if selected.
+- Remediation Plan or Execution v1, if approved.
+- Remediation Results Review v1.
+- New Integration Branch Retry Candidate v1, only after remediation or method review.
+- New Integration Branch Retry Approval v1.
+- New Integration Branch Retry Execution v1.
+- New Integration Branch Retry Results Review v1.
+- Main Merge Approval only if new retry results review passes.
+
+## Next Gates
+
+- method_results_review_after_diagnostic_capture
+- remediation_plan_or_execution_candidate_if_supported
+- remediation_plan_or_execution_operator_review_if_needed
+- remediation_plan_or_execution_approval_if_selected
+- remediation_plan_or_execution_if_approved
+- remediation_results_review
+- new_integration_branch_retry_candidate_after_remediation_or_method_review
+- new_integration_branch_retry_approval_if_selected
+- new_integration_branch_retry_execution_if_approved
+- new_integration_branch_retry_results_review
+- main_merge_approval_if_new_retry_passes
+- method_execution_after_diagnostic_capture_failure_diagnosis
+- alternate_method_execution_or_source_candidate_if_needed
+- remediation_execution_blocked_until_method_results_review_passes
+- new_retry_blocked_until_remediation_or_method_review_passes
+- main_merge_blocked_until_new_retry_results_review_passes
+
+## Risk Controls
+
+- method_execution_after_diagnostic_capture_uses_approved_package_only
+- method_execution_after_diagnostic_capture_reads_committed_durable_receipt_only
+- method_execution_after_diagnostic_capture_uses_bounded_excerpts_only
+- method_execution_after_diagnostic_capture_preserves_output_bounding_limitations
+- method_execution_after_diagnostic_capture_does_not_reconstruct_full_stdout
+- method_execution_after_diagnostic_capture_does_not_reconstruct_full_stderr
+- method_execution_after_diagnostic_capture_does_not_rerun_controlled_recapture
+- method_execution_after_diagnostic_capture_does_not_run_diagnostic_command
+- method_execution_after_diagnostic_capture_does_not_run_targeted_pytest
+- method_execution_after_diagnostic_capture_does_not_run_full_pytest
+- method_execution_after_diagnostic_capture_does_not_rerun_retry
+- method_execution_after_diagnostic_capture_does_not_read_pytest_cache
+- method_execution_after_diagnostic_capture_does_not_modify_pytest_cache
+- method_execution_after_diagnostic_capture_does_not_parse_terminal_logs
+- method_execution_after_diagnostic_capture_does_not_parse_operator_logs
+- method_execution_after_diagnostic_capture_does_not_inspect_env
+- method_execution_after_diagnostic_capture_does_not_reconstruct_prior_lost_values
+- method_execution_after_diagnostic_capture_does_not_execute_code_remediation
+- method_execution_after_diagnostic_capture_does_not_modify_production_code
+- method_execution_after_diagnostic_capture_does_not_modify_existing_tests_except_new_governance_tests
+- method_execution_after_diagnostic_capture_does_not_classify_full_retry_failures
+- method_execution_after_diagnostic_capture_does_not_classify_full_retry_errors
+- method_execution_after_diagnostic_capture_does_not_claim_failure_error_separation
+- method_execution_after_diagnostic_capture_does_not_identify_authoritative_first_failure
+- method_execution_after_diagnostic_capture_does_not_identify_authoritative_first_error
+- method_execution_after_diagnostic_capture_does_not_claim_traceback_root_cause
+- method_execution_after_diagnostic_capture_does_not_recommend_direct_code_remediation
+- method_execution_after_diagnostic_capture_does_not_create_remediation_execution
+- method_execution_after_diagnostic_capture_does_not_create_remediation_results_review
+- method_execution_after_diagnostic_capture_does_not_create_new_retry_candidate
+- method_execution_after_diagnostic_capture_does_not_create_retry_results_review
+- method_execution_after_diagnostic_capture_does_not_create_integration_results_review
+- method_execution_after_diagnostic_capture_does_not_mark_integration_successful
+- method_execution_after_diagnostic_capture_does_not_generate_successful_integration_digest
+- method_execution_after_diagnostic_capture_does_not_treat_diagnostic_capture_as_retry
+- method_execution_after_diagnostic_capture_does_not_treat_exit_code_as_retry_result
+- method_execution_after_diagnostic_capture_does_not_push_integration_branch
+- method_execution_after_diagnostic_capture_does_not_push_main
+- method_execution_after_diagnostic_capture_does_not_delete_integration_branch
+- method_execution_after_diagnostic_capture_does_not_delete_worktree
+- method_execution_after_diagnostic_capture_does_not_force_push
+- method_execution_after_diagnostic_capture_does_not_prune_remotes
+- method_execution_after_diagnostic_capture_does_not_modify_tags
+- method_execution_after_diagnostic_capture_does_not_modify_staged_evidence
+- method_execution_after_diagnostic_capture_does_not_regenerate_evidence
+- method_execution_after_diagnostic_capture_does_not_call_providers
+- method_execution_after_diagnostic_capture_does_not_acquire_market_data
+- method_execution_after_diagnostic_capture_does_not_regenerate_dataset
+- method_execution_after_diagnostic_capture_does_not_recompute_metrics
+- method_execution_after_diagnostic_capture_does_not_train_models
+- method_execution_after_diagnostic_capture_does_not_score_strategy
+- method_execution_after_diagnostic_capture_does_not_generate_recommendations
+- method_execution_after_diagnostic_capture_does_not_accept_predictive_usefulness
+- method_execution_after_diagnostic_capture_does_not_accept_profitability
+- method_execution_after_diagnostic_capture_does_not_authorize_runtime
+- method_execution_after_diagnostic_capture_does_not_authorize_broker_execution
+- observable_failure_family_classification_is_method_planning_only
+- failure_family_classification_is_not_root_cause
+- failure_family_classification_is_not_direct_remediation
+- failure_family_classification_is_not_retry_success
+- diagnostic_capture_results_review_remains_source_evidence
+- durable_receipt_is_diagnostic_evidence_only
+- controlled_recapture_is_not_retry_success
+- priority_1_selection_is_not_root_cause
+- module_concentration_is_not_failure_error_separation
+- prior_blocked_diagnostic_capture_execution_remains_historically_blocked
+- previous_remediation_or_method_approval_remains_source_evidence
+- previous_remediation_or_method_operator_review_remains_source_evidence
+- previous_remediation_or_method_candidate_remains_source_evidence
+- previous_receipt_recovery_or_recapture_results_review_remains_source_evidence
+- previous_receipt_recovery_or_recapture_execution_remains_source_evidence
+- previous_receipt_recovery_or_recapture_approval_remains_source_evidence
+- previous_failure_diagnosis_remains_source_evidence
+- previous_targeted_diagnostic_approval_remains_source_evidence
+- previous_planning_results_review_remains_valid
+- previous_detail_binding_results_review_remains_valid
+- previous_materialization_results_review_remains_valid
+- previous_source_recovery_results_review_remains_valid
+- first_retry_failure_remains_authoritative
+- root_regression_not_retry_evidence
+- separate_results_review_required_after_method_execution
+- separate_remediation_approval_required_before_remediation_execution
+- separate_retry_approval_required_before_new_retry
+- main_merge_requires_passing_new_retry_results_review
+- protect_origin_main
+- preserve_integration_branch
+- preserve_staged_frozen_evidence
+- preserve_terminal_archive_evidence
+- preserve_published_governance_tags
+- preserve_meta_limitation
+
+## Authority Boundaries
+
+- No remediation, retry, main merge, runtime, or trading authority.
+
+## Checklist Summary
+
+- 231/231 checks pass; 0 blockers.
+
+## Guardrails
+
+- Committed receipt and bounded excerpts only; no cache, logs, environment, commands, providers, or full-stream reconstruction.

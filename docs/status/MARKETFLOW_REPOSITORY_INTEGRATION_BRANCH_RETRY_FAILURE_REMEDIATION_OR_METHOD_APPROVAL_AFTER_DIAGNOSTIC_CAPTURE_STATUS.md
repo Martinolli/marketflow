@@ -44,3 +44,9 @@ Retry-candidate and main-merge readiness remain false.
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_DIAGNOSTIC_CAPTURE_V1`
+
+## Follow-on Execution
+
+Remediation or Method Execution After Diagnostic Capture v1 is implemented as a separate follow-on artifact. This approval remains immutable source evidence for that execution.
+
+The follow-on reads only the committed durable receipt and its bounded diagnostic excerpts. It performs conservative failure-family classification for method planning only. It does not execute remediation, modify production behavior or existing tests, run pytest as diagnostic work, rerun recapture or retry, read or modify cache, parse terminal or operator logs, inspect `.env`, reconstruct full streams, create a retry candidate or results review, push protected branches, commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability, or authorize runtime, strategy, paper-trading, or broker use.
