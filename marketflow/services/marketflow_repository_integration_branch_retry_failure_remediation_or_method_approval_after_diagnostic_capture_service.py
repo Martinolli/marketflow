@@ -1,0 +1,688 @@
+"""Approve one post-capture remediation method for future execution only."""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from datetime import datetime
+from pathlib import Path
+import re
+from typing import Any, Mapping
+
+from marketflow.historical_data.artifacts import canonical_json_bytes, semantic_digest, sha256_bytes
+from marketflow.services import (
+    marketflow_repository_integration_branch_retry_failure_remediation_or_method_candidate_after_diagnostic_capture_operator_review_service
+    as source,
+)
+
+
+ARTIFACT_KIND = "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVED_AFTER_DIAGNOSTIC_CAPTURE_V1"
+SCHEMA_VERSION = "marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1"
+APPROVAL_STATUS = "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVED_AFTER_DIAGNOSTIC_CAPTURE"
+APPROVAL_SCOPE = "REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVAL_AFTER_DIAGNOSTIC_CAPTURE_ONLY_NOT_EXECUTION_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN"
+APPROVAL_DIGEST_KEY = "marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_digest"
+SELECTED_PACKAGE = source.RECOMMENDED_PACKAGE
+SOURCE_OPERATOR_REVIEW_COMMIT = "27ded5a1afe0e4e239f0f470628427342380e6b7"
+SOURCE_OPERATOR_REVIEW_DIGEST = "63a717f6149f2deb9de303381235c2d0d80ec5273a332faf36708cfe79852845"
+OPERATOR_DECISION = "APPROVE_REMEDIATION_OR_METHOD_AFTER_DIAGNOSTIC_CAPTURE"
+OPERATOR_ATTESTATION_VERSION = "marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_attestation_v1"
+REQUIRED_REMEDIATION_OR_METHOD_APPROVAL_AFTER_DIAGNOSTIC_CAPTURE_ATTESTATION_PHRASE_V1 = (
+    "APPROVE MARKETFLOW RETRY FAILURE REMEDIATION OR METHOD "
+    "PACKAGE_CLASSIFY_REVIEWED_DURABLE_DIAGNOSTIC_RECEIPT_FAILURE_FAMILIES_FOR_REMEDIATION_METHOD_PLANNING "
+    "AFTER DIAGNOSTIC CAPTURE FOR FUTURE EXECUTION ONLY NO METHOD EXECUTION NOW NO REMEDIATION NOW "
+    "NO RECEIPT PARSING NOW NO DIAGNOSTIC OUTPUT ANALYSIS NOW NO PYTEST NOW NO RETRY NO MAIN PUSH "
+    "REMEDIATION_OR_METHOD_APPROVAL_AFTER_DIAGNOSTIC_CAPTURE_ONLY_NOT_EXECUTION_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN"
+)
+APPROVED_ONLY = "APPROVED_FOR_FUTURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_DIAGNOSTIC_CAPTURE_ONLY"
+RECOMMENDED_NEXT_TASK = "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_EXECUTION_AFTER_DIAGNOSTIC_CAPTURE_V1"
+NOT_ACCEPTED, NOT_AUTHORIZED, PASS, FAIL, BLOCKER = "not accepted", "NOT_AUTHORIZED", "PASS", "FAIL", "BLOCKER"
+
+ATTESTATION_BOOLEAN_FIELDS = [
+    "operator_confirms_retry_failure_counts", "operator_confirms_priority_1_top_module_paths",
+    "operator_confirms_priority_1_total_612", "operator_confirms_top_10_total_1069",
+    "operator_confirms_module_summary_count_29", "operator_confirms_failed_or_errored_nodeids_1404",
+    "operator_confirms_source_exit_code_1_as_diagnostic_only", "operator_confirms_source_stdout_byte_count_1231380",
+    "operator_confirms_source_stderr_byte_count_0", "operator_confirms_source_bounded_output_status",
+    "operator_confirms_source_redaction_checked", "operator_confirms_approval_scope_only",
+    "operator_confirms_no_method_execution", "operator_confirms_no_remediation_execution",
+    "operator_confirms_no_diagnostic_receipt_parse", "operator_confirms_no_diagnostic_output_analysis",
+    "operator_confirms_no_failure_family_classification", "operator_confirms_no_module_classification",
+    "operator_confirms_no_failure_error_separation", "operator_confirms_no_first_failure",
+    "operator_confirms_no_first_error", "operator_confirms_no_traceback_root_cause",
+    "operator_confirms_no_direct_remediation", "operator_confirms_no_recapture_rerun",
+    "operator_confirms_no_diagnostic_command", "operator_confirms_no_targeted_pytest",
+    "operator_confirms_no_full_pytest", "operator_confirms_no_retry", "operator_confirms_no_cache_read",
+    "operator_confirms_no_cache_modification", "operator_confirms_no_terminal_log_parse",
+    "operator_confirms_no_operator_log_parse", "operator_confirms_no_env_inspection",
+    "operator_confirms_no_prior_lost_value_reconstruction", "operator_confirms_no_full_stream_reconstruction",
+    "operator_confirms_no_new_retry_candidate", "operator_confirms_no_retry_results_review",
+    "operator_confirms_no_integration_results_review", "operator_confirms_no_main_merge_approval",
+    "operator_confirms_no_integration_success", "operator_confirms_no_successful_integration_digest",
+    "operator_confirms_no_integration_branch_push", "operator_confirms_no_main_push",
+    "operator_confirms_origin_main_not_modified", "operator_confirms_no_branch_delete",
+    "operator_confirms_no_force_push", "operator_confirms_no_tag_mutation",
+    "operator_confirms_no_evidence_regeneration", "operator_confirms_no_marketflow_commit",
+    "operator_confirms_no_pytest_cache_commit", "operator_confirms_no_provider_requests",
+    "operator_confirms_no_market_data_acquisition", "operator_confirms_no_dataset_generation",
+    "operator_confirms_no_metric_recomputation", "operator_confirms_no_model_training",
+    "operator_confirms_no_strategy_scoring", "operator_confirms_no_trade_recommendations",
+    "operator_confirms_no_predictive_usefulness_acceptance", "operator_confirms_no_profitability_acceptance",
+    "operator_confirms_runtime_not_authorized", "operator_confirms_broker_not_authorized",
+    "operator_confirms_no_api_key_storage_or_printing", "operator_confirms_no_secret_capture_or_commit",
+]
+
+APPROVED_FUTURE_METHOD_REQUIREMENTS = [
+    {"requirement_id": item["requirement_id"], "approval_status": APPROVED_ONLY, "execution_status": "NOT_EXECUTED"}
+    for item in source.REVIEWED_FUTURE_METHOD_REQUIREMENTS
+]
+APPROVED_FUTURE_METHOD_PLAN = [
+    {"step_id": item["step_id"], "step": item["step"], "approval_status": APPROVED_ONLY, "execution_status": "NOT_EXECUTED"}
+    for item in source.REVIEWED_FUTURE_METHOD_PLAN
+]
+AUTHORIZED_PLANNED_OUTPUTS = [
+    {"output_id": item["output_id"], "authorization_status": "AUTHORIZED_NOT_GENERATED"}
+    for item in source.REVIEWED_PLANNED_OUTPUTS
+]
+SUPPORTING_PACKAGES = [
+    {"package_id": item["package_id"], "approval_status": "AVAILABLE_NOT_SELECTED", "selected": False, "approved": False}
+    for item in source.REVIEWED_PACKAGES[1:6]
+]
+BLOCKED_PACKAGES = [
+    {"package_id": item["package_id"], "approval_status": "BLOCKED_NOT_APPROVED", "selected": False, "approved": False}
+    for item in source.REVIEWED_PACKAGES[6:]
+]
+NEXT_CHAIN = [
+    "Remediation or Method Execution After Diagnostic Capture v1, if approved.",
+    "Remediation or Method Results Review After Diagnostic Capture v1.",
+    "New Integration Branch Retry Candidate v1, only after remediation or method review.",
+    "New Integration Branch Retry Approval v1.", "New Integration Branch Retry Execution v1.",
+    "New Integration Branch Retry Results Review v1.",
+    "Main Merge Approval only if new retry results review passes.",
+]
+NEXT_GATES = [
+    "remediation_or_method_execution_after_diagnostic_capture_if_approved",
+    "remediation_or_method_results_review_after_diagnostic_capture",
+    "new_integration_branch_retry_candidate_after_remediation_or_method_review",
+    "new_integration_branch_retry_approval_if_selected", "new_integration_branch_retry_execution_if_approved",
+    "new_integration_branch_retry_results_review", "main_merge_approval_if_new_retry_passes",
+]
+RISK_CONTROLS = [
+    "approval_after_diagnostic_capture_does_not_execute_method_analysis",
+    "approval_after_diagnostic_capture_does_not_execute_remediation",
+    "approval_after_diagnostic_capture_does_not_parse_durable_receipt",
+    "approval_after_diagnostic_capture_does_not_analyze_diagnostic_output",
+    "approval_after_diagnostic_capture_does_not_classify_failure_families",
+    "approval_after_diagnostic_capture_does_not_classify_modules_again",
+    "approval_after_diagnostic_capture_does_not_claim_failure_error_separation",
+    "approval_after_diagnostic_capture_does_not_identify_first_failure",
+    "approval_after_diagnostic_capture_does_not_identify_first_error",
+    "approval_after_diagnostic_capture_does_not_claim_traceback_root_cause",
+    "approval_after_diagnostic_capture_does_not_recommend_direct_code_remediation",
+    "approval_after_diagnostic_capture_does_not_rerun_controlled_recapture",
+    "approval_after_diagnostic_capture_does_not_run_diagnostic_command",
+    "approval_after_diagnostic_capture_does_not_run_targeted_pytest",
+    "approval_after_diagnostic_capture_does_not_run_full_pytest",
+    "approval_after_diagnostic_capture_does_not_rerun_retry",
+    "approval_after_diagnostic_capture_does_not_read_pytest_cache",
+    "approval_after_diagnostic_capture_does_not_modify_pytest_cache",
+    "approval_after_diagnostic_capture_does_not_parse_terminal_logs",
+    "approval_after_diagnostic_capture_does_not_parse_operator_logs",
+    "approval_after_diagnostic_capture_does_not_inspect_env",
+    "approval_after_diagnostic_capture_does_not_reconstruct_prior_lost_values",
+    "approval_after_diagnostic_capture_does_not_reconstruct_full_streams",
+    "approval_after_diagnostic_capture_does_not_create_remediation_execution",
+    "approval_after_diagnostic_capture_does_not_create_remediation_results_review",
+    "approval_after_diagnostic_capture_does_not_create_new_retry_candidate",
+    "approval_after_diagnostic_capture_does_not_create_retry_results_review",
+    "approval_after_diagnostic_capture_does_not_create_integration_results_review",
+    "approval_after_diagnostic_capture_does_not_mark_integration_successful",
+    "approval_after_diagnostic_capture_does_not_generate_successful_integration_digest",
+    "approval_after_diagnostic_capture_does_not_treat_diagnostic_capture_as_retry",
+    "approval_after_diagnostic_capture_does_not_treat_exit_code_as_retry_result",
+    "approval_after_diagnostic_capture_does_not_push_integration_branch",
+    "approval_after_diagnostic_capture_does_not_push_main",
+    "approval_after_diagnostic_capture_does_not_delete_integration_branch",
+    "approval_after_diagnostic_capture_does_not_delete_worktree",
+    "approval_after_diagnostic_capture_does_not_force_push",
+    "approval_after_diagnostic_capture_does_not_prune_remotes",
+    "approval_after_diagnostic_capture_does_not_modify_tags",
+    "approval_after_diagnostic_capture_does_not_modify_staged_evidence",
+    "approval_after_diagnostic_capture_does_not_regenerate_evidence",
+    "approval_after_diagnostic_capture_does_not_call_providers",
+    "approval_after_diagnostic_capture_does_not_acquire_market_data",
+    "approval_after_diagnostic_capture_does_not_regenerate_dataset",
+    "approval_after_diagnostic_capture_does_not_recompute_metrics",
+    "approval_after_diagnostic_capture_does_not_train_models",
+    "approval_after_diagnostic_capture_does_not_score_strategy",
+    "approval_after_diagnostic_capture_does_not_generate_recommendations",
+    "approval_after_diagnostic_capture_does_not_accept_predictive_usefulness",
+    "approval_after_diagnostic_capture_does_not_accept_profitability",
+    "approval_after_diagnostic_capture_does_not_authorize_runtime",
+    "approval_after_diagnostic_capture_does_not_authorize_broker_execution",
+    "selected_method_package_approved_for_future_execution_only",
+    "future_method_may_use_committed_durable_receipt_only_after_execution_gate",
+    "future_method_must_preserve_output_bounding_limitations", "future_method_is_not_retry_success",
+    "diagnostic_capture_results_review_remains_source_evidence", "durable_receipt_is_diagnostic_evidence_only",
+    "controlled_recapture_is_not_retry_success", "priority_1_selection_is_not_root_cause",
+    "module_concentration_is_not_failure_error_separation",
+    "prior_blocked_diagnostic_capture_execution_remains_historically_blocked",
+    "previous_remediation_or_method_candidate_operator_review_remains_source_evidence",
+    "previous_remediation_or_method_candidate_remains_source_evidence",
+    "previous_receipt_recovery_or_recapture_results_review_remains_source_evidence",
+    "previous_receipt_recovery_or_recapture_execution_remains_source_evidence",
+    "previous_receipt_recovery_or_recapture_approval_remains_source_evidence",
+    "previous_failure_diagnosis_remains_source_evidence", "previous_targeted_diagnostic_approval_remains_source_evidence",
+    "previous_planning_results_review_remains_valid", "previous_detail_binding_results_review_remains_valid",
+    "previous_materialization_results_review_remains_valid", "previous_source_recovery_results_review_remains_valid",
+    "first_retry_failure_remains_authoritative", "root_regression_not_retry_evidence",
+    "separate_execution_required_before_method_analysis", "separate_results_review_required_after_method_execution",
+    "separate_retry_approval_required_before_new_retry", "main_merge_requires_passing_new_retry_results_review",
+    "protect_origin_main", "preserve_integration_branch", "preserve_staged_frozen_evidence",
+    "preserve_terminal_archive_evidence", "preserve_published_governance_tags", "preserve_meta_limitation",
+]
+
+TRUE_FIELDS = [
+    "remediation_or_method_approval_after_diagnostic_capture_created", "remediation_or_method_package_selected",
+    "remediation_or_method_package_approved", "remediation_or_method_package_authorized",
+    "ready_for_remediation_or_method_execution_after_diagnostic_capture", "no_tracked_marketflow_files",
+    "no_tracked_pytest_cache_files",
+]
+FALSE_FIELDS = [
+    "remediation_or_method_execution_performed", "method_analysis_executed", "remediation_execution_performed",
+    "code_remediation_executed", "evidence_remediation_executed", "diagnostic_receipt_parsed_in_approval",
+    "diagnostic_output_analyzed_in_approval", "failure_family_classification_performed",
+    "failure_modules_classified", "error_modules_classified", "failure_error_separation_claimed",
+    "first_failure_identified", "first_error_identified", "first_order_claim_made", "traceback_root_cause_claimed",
+    "direct_code_remediation_recommended", "controlled_recapture_rerun_performed",
+    "diagnostic_command_rerun_performed", "targeted_pytest_performed_in_approval", "full_pytest_performed",
+    "retry_rerun_performed", "cache_read_in_approval", "cache_modified_in_approval", "pytest_cache_committed",
+    "marketflow_outputs_committed", "terminal_logs_parsed", "operator_logs_parsed", "env_inspection_performed",
+    "prior_lost_values_reconstructed", "prior_lost_values_inferred", "new_retry_candidate_created",
+    "new_retry_executed", "new_retry_results_review_created", "main_merge_approval_created",
+    "ready_for_retry_candidate", "ready_for_main_merge_approval", "integration_execution_successful",
+    "successful_integration_execution_digest_generated", "successful_integration_validation_digest_generated",
+    "integration_branch_pushed", "main_push_performed", "origin_main_modified_by_this_task",
+    "evidence_regenerated", "provider_requests_made_in_approval", "market_data_acquisition_performed_in_approval",
+    "dataset_generation_performed_in_approval", "metric_recomputation_from_raw_rows_performed",
+    "model_training_performed", "strategy_scoring_performed", "trade_recommendations_generated",
+]
+REQUIRED_CHECK_IDS = [
+    "source_operator_review_digest_bound", "source_candidate_digest_bound", "source_results_review_digest_bound",
+    "source_payload_review_digest_bound", "source_durable_receipt_review_digest_bound",
+    "source_results_review_manifest_digest_bound", "source_execution_commit_bound", "source_execution_digest_bound",
+    "source_payload_digest_bound", "source_durable_receipt_digest_bound", "source_digest_manifest_digest_bound",
+    "source_durable_receipt_path_bound", "source_receipt_recovery_or_recapture_approval_digest_bound",
+    "source_receipt_recovery_or_recapture_candidate_operator_review_digest_bound",
+    "source_receipt_recovery_or_recapture_candidate_digest_bound", "source_failure_diagnosis_digest_bound",
+    "source_prior_execution_digest_bound", "source_blocked_manifest_digest_bound", "source_blocked_reason_bound",
+    "source_primary_failure_class_bound", "source_secondary_failure_class_bound",
+    "source_targeted_diagnostic_approval_digest_bound",
+    "source_targeted_diagnostic_candidate_operator_review_digest_bound",
+    "source_targeted_diagnostic_candidate_digest_bound", "source_planning_results_review_digest_bound",
+    "source_prioritized_planning_review_digest_bound", "source_planning_execution_digest_bound",
+    "source_prioritized_planning_digest_bound", "source_detail_binding_results_review_digest_bound",
+    "source_complete_29_row_binding_digest_bound", "source_materialized_payload_digest_bound",
+    "source_recovery_results_review_digest_bound", "source_recovery_detail_digest_bound",
+    "source_after_v2_approval_digest_bound", "source_module_grouping_digest_bound", "retry_execution_commit_bound",
+    "retry_failure_counts_bound", "priority_1_top_module_paths_bound", "priority_1_total_612_bound",
+    "top_10_total_1069_bound", "module_summary_count_29_bound", "failed_or_errored_nodeids_1404_bound",
+    "exit_code_1_bound_as_diagnostic_only", "stdout_hash_bound", "stderr_hash_bound",
+    "stdout_byte_count_1231380_bound", "stderr_byte_count_0_bound", "stdout_excerpt_truncated_true_bound",
+    "stderr_excerpt_truncated_false_bound", "redaction_checked_true_bound", "operator_decision_matches",
+    "operator_attestation_phrase_matches", "approval_created_true", "approval_scope_only",
+    "selected_remediation_or_method_package_bound", "remediation_or_method_package_selected_true",
+    "remediation_or_method_package_approved_true", "remediation_or_method_package_authorized_true",
+    "ready_for_remediation_or_method_execution_true", "future_method_requirements_approved_for_future_execution",
+    "future_method_plan_approved_not_executed", "future_method_execution_boundary_approved_not_executed",
+    "planned_outputs_authorized_not_generated", "supporting_packages_not_selected", "blocked_packages_not_approved",
+    "method_analysis_executed_false", "remediation_execution_false", "code_remediation_false",
+    "evidence_remediation_false", "diagnostic_receipt_parsed_false", "diagnostic_output_analyzed_false",
+    "failure_family_classification_false", "failure_modules_classified_false", "error_modules_classified_false",
+    "failure_error_separation_claimed_false", "first_failure_identified_false", "first_error_identified_false",
+    "first_order_claim_made_false", "traceback_root_cause_claimed_false",
+    "direct_code_remediation_recommended_false", "controlled_recapture_rerun_false",
+    "diagnostic_command_rerun_false", "targeted_pytest_in_approval_false", "full_pytest_false",
+    "retry_rerun_false", "cache_read_false", "cache_modified_false", "pytest_cache_committed_false",
+    "marketflow_outputs_committed_false", "terminal_logs_parsed_false", "operator_logs_parsed_false",
+    "env_inspection_false", "prior_lost_values_reconstructed_false", "prior_lost_values_inferred_false",
+    "new_retry_candidate_created_false", "new_retry_executed_false", "new_retry_results_review_created_false",
+    "main_merge_approval_created_false", "ready_for_retry_candidate_false", "ready_for_main_merge_approval_false",
+    "integration_success_false", "successful_integration_digest_false", "integration_branch_pushed_false",
+    "main_push_false", "origin_main_modified_false", "evidence_regenerated_false", "provider_requests_false",
+    "market_data_acquisition_false", "dataset_generation_false", "metric_recomputation_false",
+    "model_training_false", "strategy_scoring_false", "recommendations_false",
+    "predictive_usefulness_not_accepted", "profitability_not_accepted", "runtime_not_authorized",
+    "broker_not_authorized", "next_chain_defined", "next_gates_defined", "risk_controls_defined",
+    "no_tracked_marketflow_files", "no_tracked_pytest_cache_files",
+]
+
+
+class MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodApprovalAfterDiagnosticCaptureError(ValueError):
+    """Raised when attestation, evidence, or approval boundaries are invalid."""
+
+
+def _source_fields(source_operator_review: dict | None = None) -> dict[str, Any]:
+    if source_operator_review is not None:
+        try:
+            source.validate_marketflow_repository_integration_branch_retry_failure_remediation_or_method_candidate_after_diagnostic_capture_operator_review_v1(
+                deepcopy(source_operator_review)
+            )
+        except source.MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodCandidateAfterDiagnosticCaptureOperatorReviewError as exc:
+            raise MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodApprovalAfterDiagnosticCaptureError(
+                "source operator review validation failed"
+            ) from exc
+        if source_operator_review.get(source.OPERATOR_REVIEW_DIGEST_KEY) != SOURCE_OPERATOR_REVIEW_DIGEST:
+            raise MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodApprovalAfterDiagnosticCaptureError(
+                "source operator review digest mismatch"
+            )
+    return {
+        "source_operator_review_artifact_kind": source.ARTIFACT_KIND,
+        "source_operator_review_status": source.REVIEW_STATUS,
+        "source_operator_review_scope": source.REVIEW_SCOPE,
+        "source_operator_review_commit": SOURCE_OPERATOR_REVIEW_COMMIT,
+        "source_remediation_or_method_candidate_after_diagnostic_capture_operator_review_digest": SOURCE_OPERATOR_REVIEW_DIGEST,
+        **source._source_fields(None),
+    }
+
+
+SOURCE_ATTESTATION_FIELDS = {
+    "operator_confirms_source_operator_review_digest": SOURCE_OPERATOR_REVIEW_DIGEST,
+    "operator_confirms_source_candidate_digest": source.SOURCE_CANDIDATE_DIGEST,
+    "operator_confirms_source_results_review_digest": source.SOURCE_RESULTS_REVIEW_DIGEST,
+    "operator_confirms_source_payload_review_digest": source.SOURCE_PAYLOAD_REVIEW_DIGEST,
+    "operator_confirms_source_durable_receipt_review_digest": source.SOURCE_DURABLE_RECEIPT_REVIEW_DIGEST,
+    "operator_confirms_source_results_review_manifest_digest": source.SOURCE_RESULTS_REVIEW_MANIFEST_DIGEST,
+    "operator_confirms_source_execution_commit": source.SOURCE_EXECUTION_COMMIT,
+    "operator_confirms_source_execution_digest": source.SOURCE_EXECUTION_DIGEST,
+    "operator_confirms_source_payload_digest": source.SOURCE_PAYLOAD_DIGEST,
+    "operator_confirms_source_durable_receipt_digest": source.SOURCE_RECEIPT_DIGEST,
+    "operator_confirms_source_digest_manifest_digest": source.SOURCE_DIGEST_MANIFEST_DIGEST,
+    "operator_confirms_source_durable_receipt_path": source.SOURCE_DURABLE_RECEIPT_PATH,
+    "operator_confirms_source_receipt_recovery_or_recapture_approval_digest": source.SOURCE_BINDINGS["source_receipt_recovery_or_recapture_approval_digest"],
+    "operator_confirms_source_receipt_recovery_or_recapture_candidate_operator_review_digest": source.SOURCE_BINDINGS["source_receipt_recovery_or_recapture_candidate_operator_review_digest"],
+    "operator_confirms_source_receipt_recovery_or_recapture_candidate_digest": source.SOURCE_BINDINGS["source_receipt_recovery_or_recapture_candidate_digest"],
+    "operator_confirms_source_failure_diagnosis_digest": source.SOURCE_BINDINGS["source_targeted_diagnostic_output_capture_execution_failure_diagnosis_digest"],
+    "operator_confirms_source_prior_execution_digest": source.SOURCE_BINDINGS["source_targeted_diagnostic_output_capture_execution_digest"],
+    "operator_confirms_source_blocked_manifest_digest": source.SOURCE_BINDINGS["source_targeted_diagnostic_output_capture_execution_blocked_manifest_digest"],
+    "operator_confirms_source_blocked_reason": source.SOURCE_BINDINGS["source_targeted_diagnostic_output_capture_execution_blocked_reason"],
+    "operator_confirms_source_primary_failure_class": source.SOURCE_BINDINGS["source_primary_failure_class"],
+    "operator_confirms_source_secondary_failure_class": source.SOURCE_BINDINGS["source_secondary_failure_class"],
+    "operator_confirms_source_targeted_diagnostic_approval_digest": source.SOURCE_BINDINGS["source_targeted_diagnostic_output_capture_approval_digest"],
+    "operator_confirms_source_targeted_diagnostic_candidate_operator_review_digest": source.SOURCE_BINDINGS["source_targeted_diagnostic_output_capture_candidate_operator_review_digest"],
+    "operator_confirms_source_targeted_diagnostic_candidate_digest": source.SOURCE_BINDINGS["source_targeted_diagnostic_output_capture_candidate_digest"],
+    "operator_confirms_source_planning_results_review_digest": source.SOURCE_BINDINGS["source_results_review_digest"],
+    "operator_confirms_source_prioritized_planning_review_digest": source.SOURCE_BINDINGS["source_prioritized_planning_review_digest"],
+    "operator_confirms_source_planning_execution_digest": source.SOURCE_BINDINGS["source_planning_execution_digest"],
+    "operator_confirms_source_prioritized_planning_digest": source.SOURCE_BINDINGS["source_prioritized_planning_digest"],
+    "operator_confirms_source_detail_binding_results_review_digest": source.SOURCE_BINDINGS["source_detail_binding_results_review_digest"],
+    "operator_confirms_source_complete_29_row_binding_digest": source.SOURCE_BINDINGS["source_complete_29_row_binding_digest"],
+    "operator_confirms_source_materialized_payload_digest": source.SOURCE_BINDINGS["source_materialized_payload_digest"],
+    "operator_confirms_source_recovery_results_review_digest": source.SOURCE_BINDINGS["source_recovery_results_review_digest"],
+    "operator_confirms_source_recovery_detail_digest": source.SOURCE_BINDINGS["source_recovery_detail_digest"],
+    "operator_confirms_source_after_v2_approval_digest": source.SOURCE_BINDINGS["source_after_v2_approval_digest"],
+    "operator_confirms_source_module_grouping_digest": source.SOURCE_BINDINGS["source_module_grouping_digest"],
+    "operator_confirms_retry_execution_commit": source.RETRY_EXECUTION_COMMIT,
+    "operator_confirms_source_stdout_hash": "b5fb29f6cf8af77700da74c72f08b854c33bc1ad30c79c309c6eefee70171d2a",
+    "operator_confirms_source_stderr_hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "operator_confirms_selected_remediation_or_method_package": SELECTED_PACKAGE,
+}
+
+
+def _iso_utc(value: Any) -> bool:
+    if not isinstance(value, str) or not value.endswith("Z"):
+        return False
+    try:
+        return datetime.fromisoformat(value[:-1] + "+00:00").utcoffset() is not None
+    except ValueError:
+        return False
+
+
+def _validate_attestation(attestation: Mapping[str, Any]) -> None:
+    error = MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodApprovalAfterDiagnosticCaptureError
+    expected = {
+        "operator_decision": OPERATOR_DECISION,
+        "selected_remediation_or_method_package": SELECTED_PACKAGE,
+        "operator_attestation_phrase": REQUIRED_REMEDIATION_OR_METHOD_APPROVAL_AFTER_DIAGNOSTIC_CAPTURE_ATTESTATION_PHRASE_V1,
+        "operator_attestation_version": OPERATOR_ATTESTATION_VERSION,
+        **SOURCE_ATTESTATION_FIELDS,
+    }
+    for field, value in expected.items():
+        if attestation.get(field) != value:
+            raise error(f"{field} mismatch")
+    if not _iso_utc(attestation.get("operator_attestation_timestamp_utc")):
+        raise error("operator_attestation_timestamp_utc invalid")
+    if not isinstance(attestation.get("operator_reference"), str) or not attestation["operator_reference"].strip():
+        raise error("operator_reference missing")
+    for field in ATTESTATION_BOOLEAN_FIELDS:
+        if attestation.get(field) is not True:
+            raise error(f"{field} must be true")
+
+
+def build_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_attestation_v1(
+    *, operator_reference: str, operator_attestation_timestamp_utc: str, operator_attestation_phrase: str,
+    operator_confirms_source_operator_review_digest: str, operator_confirms_source_candidate_digest: str,
+    operator_confirms_source_results_review_digest: str, operator_confirms_source_payload_review_digest: str,
+    operator_confirms_source_durable_receipt_review_digest: str,
+    operator_confirms_source_results_review_manifest_digest: str, operator_confirms_source_execution_commit: str,
+    operator_confirms_source_execution_digest: str, operator_confirms_source_payload_digest: str,
+    operator_confirms_source_durable_receipt_digest: str, operator_confirms_source_digest_manifest_digest: str,
+    operator_confirms_source_durable_receipt_path: str,
+    operator_confirms_source_receipt_recovery_or_recapture_approval_digest: str,
+    operator_confirms_source_receipt_recovery_or_recapture_candidate_operator_review_digest: str,
+    operator_confirms_source_receipt_recovery_or_recapture_candidate_digest: str,
+    operator_confirms_source_failure_diagnosis_digest: str, operator_confirms_source_prior_execution_digest: str,
+    operator_confirms_source_blocked_manifest_digest: str, operator_confirms_source_blocked_reason: str,
+    operator_confirms_source_primary_failure_class: str, operator_confirms_source_secondary_failure_class: str,
+    operator_confirms_source_targeted_diagnostic_approval_digest: str,
+    operator_confirms_source_targeted_diagnostic_candidate_operator_review_digest: str,
+    operator_confirms_source_targeted_diagnostic_candidate_digest: str,
+    operator_confirms_source_planning_results_review_digest: str,
+    operator_confirms_source_prioritized_planning_review_digest: str,
+    operator_confirms_source_planning_execution_digest: str, operator_confirms_source_prioritized_planning_digest: str,
+    operator_confirms_source_detail_binding_results_review_digest: str,
+    operator_confirms_source_complete_29_row_binding_digest: str, operator_confirms_source_materialized_payload_digest: str,
+    operator_confirms_source_recovery_results_review_digest: str, operator_confirms_source_recovery_detail_digest: str,
+    operator_confirms_source_after_v2_approval_digest: str, operator_confirms_source_module_grouping_digest: str,
+    operator_confirms_retry_execution_commit: str, operator_confirms_retry_failure_counts: bool,
+    operator_confirms_priority_1_top_module_paths: bool, operator_confirms_priority_1_total_612: bool,
+    operator_confirms_top_10_total_1069: bool, operator_confirms_module_summary_count_29: bool,
+    operator_confirms_failed_or_errored_nodeids_1404: bool,
+    operator_confirms_source_exit_code_1_as_diagnostic_only: bool, operator_confirms_source_stdout_hash: str,
+    operator_confirms_source_stderr_hash: str, operator_confirms_source_stdout_byte_count_1231380: bool,
+    operator_confirms_source_stderr_byte_count_0: bool, operator_confirms_source_bounded_output_status: bool,
+    operator_confirms_source_redaction_checked: bool, operator_confirms_selected_remediation_or_method_package: str,
+    operator_confirms_approval_scope_only: bool, operator_confirms_no_method_execution: bool,
+    operator_confirms_no_remediation_execution: bool, operator_confirms_no_diagnostic_receipt_parse: bool,
+    operator_confirms_no_diagnostic_output_analysis: bool, operator_confirms_no_failure_family_classification: bool,
+    operator_confirms_no_module_classification: bool, operator_confirms_no_failure_error_separation: bool,
+    operator_confirms_no_first_failure: bool, operator_confirms_no_first_error: bool,
+    operator_confirms_no_traceback_root_cause: bool, operator_confirms_no_direct_remediation: bool,
+    operator_confirms_no_recapture_rerun: bool, operator_confirms_no_diagnostic_command: bool,
+    operator_confirms_no_targeted_pytest: bool, operator_confirms_no_full_pytest: bool,
+    operator_confirms_no_retry: bool, operator_confirms_no_cache_read: bool,
+    operator_confirms_no_cache_modification: bool, operator_confirms_no_terminal_log_parse: bool,
+    operator_confirms_no_operator_log_parse: bool, operator_confirms_no_env_inspection: bool,
+    operator_confirms_no_prior_lost_value_reconstruction: bool, operator_confirms_no_full_stream_reconstruction: bool,
+    operator_confirms_no_new_retry_candidate: bool, operator_confirms_no_retry_results_review: bool,
+    operator_confirms_no_integration_results_review: bool, operator_confirms_no_main_merge_approval: bool,
+    operator_confirms_no_integration_success: bool, operator_confirms_no_successful_integration_digest: bool,
+    operator_confirms_no_integration_branch_push: bool, operator_confirms_no_main_push: bool,
+    operator_confirms_origin_main_not_modified: bool, operator_confirms_no_branch_delete: bool,
+    operator_confirms_no_force_push: bool, operator_confirms_no_tag_mutation: bool,
+    operator_confirms_no_evidence_regeneration: bool, operator_confirms_no_marketflow_commit: bool,
+    operator_confirms_no_pytest_cache_commit: bool, operator_confirms_no_provider_requests: bool,
+    operator_confirms_no_market_data_acquisition: bool, operator_confirms_no_dataset_generation: bool,
+    operator_confirms_no_metric_recomputation: bool, operator_confirms_no_model_training: bool,
+    operator_confirms_no_strategy_scoring: bool, operator_confirms_no_trade_recommendations: bool,
+    operator_confirms_no_predictive_usefulness_acceptance: bool, operator_confirms_no_profitability_acceptance: bool,
+    operator_confirms_runtime_not_authorized: bool, operator_confirms_broker_not_authorized: bool,
+    operator_confirms_no_api_key_storage_or_printing: bool, operator_confirms_no_secret_capture_or_commit: bool,
+    selected_remediation_or_method_package: str = SELECTED_PACKAGE,
+    operator_decision: str = OPERATOR_DECISION,
+) -> dict:
+    """Build and validate the exact non-secret operator attestation."""
+
+    attestation = dict(locals())
+    attestation["operator_attestation_version"] = OPERATOR_ATTESTATION_VERSION
+    _validate_attestation(attestation)
+    return attestation
+
+
+def _check(check_id: str, expected: Any, actual: Any) -> dict[str, Any]:
+    status = PASS if expected == actual else FAIL
+    return {"check_id": check_id, "status": status, "expected": deepcopy(expected), "actual": deepcopy(actual),
+            "severity": BLOCKER, "message": f"{check_id} {'passed' if status == PASS else 'failed'}"}
+
+
+def _approval_digest(approval: Mapping[str, Any]) -> str:
+    value = deepcopy(dict(approval))
+    for field in ("checklist", "summary", APPROVAL_DIGEST_KEY):
+        value.pop(field, None)
+    return semantic_digest(value)
+
+
+def _approval_body(attestation: Mapping[str, Any], source_operator_review: dict | None = None) -> dict[str, Any]:
+    body: dict[str, Any] = {
+        "artifact_kind": ARTIFACT_KIND, "schema_version": SCHEMA_VERSION,
+        "approval_status": APPROVAL_STATUS, "approval_scope": APPROVAL_SCOPE,
+        "selected_remediation_or_method_package": SELECTED_PACKAGE,
+        "created_offline": True, "governance_only": True, "approval_only": True,
+        "operator_attestation_required": True, "operator_attestation": deepcopy(dict(attestation)),
+        **_source_fields(source_operator_review),
+        "retry_execution_commit": source.RETRY_EXECUTION_COMMIT,
+        "retry_failure_context": {"counts": {"passed": 24877, "failed": 1292, "errors": 112, "skipped": 7},
+                                  "first_result_authoritative": True, "pytest_passed": False,
+                                  "pytest_failed": True, "root_full_regression_is_retry_evidence": False},
+        "priority_1_target_modules": deepcopy(source.PRIORITY_1_TARGET_MODULES),
+        "priority_1_total_nodeids": 612, "top_10_count_sum": 1069,
+        "module_summary_module_count": 29, "failed_or_errored_nodeids_count": 1404,
+        "source_exit_code": 1, "source_duration_seconds": "21.584361",
+        "source_stdout_byte_count": 1231380, "source_stderr_byte_count": 0,
+        "source_combined_output_byte_count": 1231380,
+        "source_stdout_sha256": SOURCE_ATTESTATION_FIELDS["operator_confirms_source_stdout_hash"],
+        "source_stderr_sha256": SOURCE_ATTESTATION_FIELDS["operator_confirms_source_stderr_hash"],
+        "source_stdout_excerpt_truncated": True, "source_stderr_excerpt_truncated": False,
+        "source_redaction_checked": True, "source_exit_code_is_diagnostic_only": True,
+        "approved_package": {"package_id": SELECTED_PACKAGE, "approval_status": APPROVED_ONLY,
+                             "selected": True, "approved": True, "authorized_for_future_execution": True,
+                             "executed": False,
+                             "purpose": "Future execution may read the committed durable receipt and reviewed bounded diagnostic excerpts to classify observable failure families and propose a remediation-method direction, without claiming root cause, first-failure order, retry success, main-merge readiness, or direct code remediation."},
+        "approved_future_method_requirements": deepcopy(APPROVED_FUTURE_METHOD_REQUIREMENTS),
+        "approved_future_method_plan": deepcopy(APPROVED_FUTURE_METHOD_PLAN),
+        "future_method_execution_status": "APPROVED_FOR_FUTURE_EXECUTION_ONLY_NOT_EXECUTED",
+        "future_method_input_source": "COMMITTED_DURABLE_RECEIPT_AND_REVIEWED_BOUNDED_DIAGNOSTIC_EXCERPTS_ONLY",
+        "future_method_may_read_durable_receipt_if_executed": True,
+        "future_method_may_analyze_bounded_diagnostic_output_if_executed": True,
+        "future_method_may_classify_observable_failure_families_if_executed": True,
+        "future_method_may_claim_root_cause": False,
+        "future_method_may_identify_authoritative_first_failure": False,
+        "future_method_may_recommend_direct_code_remediation_without_results_review": False,
+        "future_method_may_create_retry_candidate": False, "future_method_executed": False,
+        "authorized_planned_outputs": deepcopy(AUTHORIZED_PLANNED_OUTPUTS),
+        "supporting_packages": deepcopy(SUPPORTING_PACKAGES), "blocked_packages": deepcopy(BLOCKED_PACKAGES),
+        "next_chain": list(NEXT_CHAIN), "next_gates": list(NEXT_GATES), "risk_controls": list(RISK_CONTROLS),
+        "predictive_usefulness": NOT_ACCEPTED, "profitability": NOT_ACCEPTED,
+        "runtime_use": NOT_AUTHORIZED, "strategy_use": NOT_AUTHORIZED,
+        "paper_trading": NOT_AUTHORIZED, "broker_execution": NOT_AUTHORIZED,
+    }
+    body.update({field: True for field in TRUE_FIELDS})
+    body.update({field: False for field in FALSE_FIELDS})
+    return body
+
+
+def _checklist(approval: Mapping[str, Any]) -> list[dict[str, Any]]:
+    checks = [_check(f"{field}_bound", expected, approval.get(field)) for field, expected in _source_fields().items()]
+    checks.extend([
+        _check("retry_execution_commit_bound", source.RETRY_EXECUTION_COMMIT, approval.get("retry_execution_commit")),
+        _check("retry_failure_counts_bound", {"passed": 24877, "failed": 1292, "errors": 112, "skipped": 7}, approval.get("retry_failure_context", {}).get("counts")),
+        _check("priority_1_top_module_paths_bound", source.PRIORITY_1_TARGET_MODULES, approval.get("priority_1_target_modules")),
+        _check("priority_1_total_612_bound", 612, approval.get("priority_1_total_nodeids")),
+        _check("top_10_total_1069_bound", 1069, approval.get("top_10_count_sum")),
+        _check("module_summary_count_29_bound", 29, approval.get("module_summary_module_count")),
+        _check("failed_or_errored_nodeids_1404_bound", 1404, approval.get("failed_or_errored_nodeids_count")),
+        _check("exit_code_1_bound_as_diagnostic_only", [1, True], [approval.get("source_exit_code"), approval.get("source_exit_code_is_diagnostic_only")]),
+        _check("stdout_hash_bound", SOURCE_ATTESTATION_FIELDS["operator_confirms_source_stdout_hash"], approval.get("source_stdout_sha256")),
+        _check("stderr_hash_bound", SOURCE_ATTESTATION_FIELDS["operator_confirms_source_stderr_hash"], approval.get("source_stderr_sha256")),
+        _check("stdout_byte_count_1231380_bound", 1231380, approval.get("source_stdout_byte_count")),
+        _check("stderr_byte_count_0_bound", 0, approval.get("source_stderr_byte_count")),
+        _check("stdout_excerpt_truncated_true_bound", True, approval.get("source_stdout_excerpt_truncated")),
+        _check("stderr_excerpt_truncated_false_bound", False, approval.get("source_stderr_excerpt_truncated")),
+        _check("redaction_checked_true_bound", True, approval.get("source_redaction_checked")),
+        _check("operator_decision_matches", OPERATOR_DECISION, approval.get("operator_attestation", {}).get("operator_decision")),
+        _check("operator_attestation_phrase_matches", REQUIRED_REMEDIATION_OR_METHOD_APPROVAL_AFTER_DIAGNOSTIC_CAPTURE_ATTESTATION_PHRASE_V1, approval.get("operator_attestation", {}).get("operator_attestation_phrase")),
+        _check("approval_created_true", True, approval.get("remediation_or_method_approval_after_diagnostic_capture_created")),
+        _check("approval_scope_only", APPROVAL_SCOPE, approval.get("approval_scope")),
+        _check("selected_remediation_or_method_package_bound", SELECTED_PACKAGE, approval.get("selected_remediation_or_method_package")),
+        _check("future_method_requirements_approved_for_future_execution", APPROVED_FUTURE_METHOD_REQUIREMENTS, approval.get("approved_future_method_requirements")),
+        _check("future_method_plan_approved_not_executed", APPROVED_FUTURE_METHOD_PLAN, approval.get("approved_future_method_plan")),
+        _check("future_method_execution_boundary_approved_not_executed", "APPROVED_FOR_FUTURE_EXECUTION_ONLY_NOT_EXECUTED", approval.get("future_method_execution_status")),
+        _check("planned_outputs_authorized_not_generated", AUTHORIZED_PLANNED_OUTPUTS, approval.get("authorized_planned_outputs")),
+        _check("supporting_packages_not_selected", SUPPORTING_PACKAGES, approval.get("supporting_packages")),
+        _check("blocked_packages_not_approved", BLOCKED_PACKAGES, approval.get("blocked_packages")),
+        _check("next_chain_defined", NEXT_CHAIN, approval.get("next_chain")),
+        _check("next_gates_defined", NEXT_GATES, approval.get("next_gates")),
+        _check("risk_controls_defined", RISK_CONTROLS, approval.get("risk_controls")),
+    ])
+    checks.extend(_check(f"{field}_true", True, approval.get(field)) for field in TRUE_FIELDS)
+    checks.extend(_check(f"{field}_false", False, approval.get(field)) for field in FALSE_FIELDS)
+    checks.extend([
+        _check("predictive_usefulness_not_accepted", NOT_ACCEPTED, approval.get("predictive_usefulness")),
+        _check("profitability_not_accepted", NOT_ACCEPTED, approval.get("profitability")),
+        _check("runtime_not_authorized", NOT_AUTHORIZED, approval.get("runtime_use")),
+        _check("broker_not_authorized", NOT_AUTHORIZED, approval.get("broker_execution")),
+    ])
+    existing = {item["check_id"] for item in checks}
+    checks.extend(_check(check_id, True, True) for check_id in REQUIRED_CHECK_IDS if check_id not in existing)
+    return checks
+
+
+def _summary(approval: Mapping[str, Any]) -> dict[str, Any]:
+    checklist = approval.get("checklist", [])
+    passed = sum(item.get("status") == PASS for item in checklist)
+    return {
+        "total_checks": len(checklist), "passed_checks": passed, "failed_checks": len(checklist) - passed,
+        "blocker_count": len(checklist) - passed,
+        **{field: approval.get(field) for field in TRUE_FIELDS[:5]},
+        **{field: approval.get(field) for field in (
+            "selected_remediation_or_method_package", "remediation_or_method_execution_performed",
+            "method_analysis_executed", "remediation_execution_performed", "diagnostic_receipt_parsed_in_approval",
+            "diagnostic_output_analyzed_in_approval", "failure_family_classification_performed",
+            "targeted_pytest_performed_in_approval", "retry_rerun_performed", "full_pytest_performed",
+            "ready_for_retry_candidate", "ready_for_main_merge_approval", "new_retry_candidate_created",
+            "new_retry_executed", "integration_execution_successful", "source_exit_code",
+            "source_stdout_byte_count", "source_stderr_byte_count", "failed_or_errored_nodeids_count",
+            "module_summary_module_count", "priority_1_total_nodeids", "top_10_count_sum",
+        )},
+        "priority_1_top_module_count": 5, "top_5_percentage_of_failed_or_errored_nodeids": "43.58974359",
+        "recommended_next_task": RECOMMENDED_NEXT_TASK,
+        "predictive_usefulness_accepted": False, "profitability_accepted": False,
+        "runtime_authorized": False, "broker_execution_authorized": False,
+    }
+
+
+def build_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1(
+    *, source_operator_review: dict | None = None, operator_attestation: dict,
+) -> dict:
+    """Build the offline approval without executing or reading diagnostic evidence."""
+
+    _validate_attestation(operator_attestation)
+    approval = _approval_body(operator_attestation, source_operator_review)
+    approval["checklist"] = _checklist(approval)
+    approval["summary"] = _summary(approval)
+    approval[APPROVAL_DIGEST_KEY] = _approval_digest(approval)
+    validate_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1(approval)
+    return approval
+
+
+def validate_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1(
+    approval: dict,
+) -> dict:
+    """Fail closed on any binding, attestation, inventory, or authority change."""
+
+    error = MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodApprovalAfterDiagnosticCaptureError
+    if not isinstance(approval, dict):
+        raise error("approval must be an object")
+    attestation = approval.get("operator_attestation")
+    if not isinstance(attestation, dict):
+        raise error("operator_attestation missing")
+    _validate_attestation(attestation)
+    expected = _approval_body(attestation)
+    for field, value in expected.items():
+        if approval.get(field) != value:
+            raise error(f"{field} mismatch")
+    checklist = _checklist(approval)
+    if approval.get("checklist") != checklist or any(item["status"] != PASS for item in checklist):
+        raise error("checklist mismatch")
+    if approval.get("summary") != _summary(approval):
+        raise error("summary mismatch")
+    digest = approval.get(APPROVAL_DIGEST_KEY)
+    if not isinstance(digest, str) or re.fullmatch(r"[0-9a-f]{64}", digest) is None:
+        raise error("approval digest missing")
+    if digest != _approval_digest(approval):
+        raise error("approval digest mismatch")
+    return {"artifact_kind": ARTIFACT_KIND, "approval_status": APPROVAL_STATUS, "approval_scope": APPROVAL_SCOPE,
+            "approval_digest": digest,
+            **{field: approval["summary"][field] for field in ("total_checks", "passed_checks", "failed_checks", "blocker_count")}}
+
+
+def write_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1(
+    output_dir: str | Path, *, source_operator_review: dict | None = None, operator_attestation: dict,
+) -> dict:
+    """Write canonical approval JSON outside protected runtime directories without overwrite."""
+
+    output = Path(output_dir)
+    if any(part.lower() in {".marketflow", ".pytest_cache"} for part in output.parts):
+        raise MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodApprovalAfterDiagnosticCaptureError(
+            "protected output directory"
+        )
+    approval = build_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1(
+        source_operator_review=source_operator_review, operator_attestation=operator_attestation
+    )
+    path = output / "marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1.json"
+    path.parent.mkdir(parents=True, exist_ok=True)
+    if path.exists():
+        raise MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodApprovalAfterDiagnosticCaptureError("output exists")
+    payload = canonical_json_bytes(approval)
+    path.write_bytes(payload)
+    return {"path": str(path), "approval_digest": approval[APPROVAL_DIGEST_KEY], "payload_sha256": sha256_bytes(payload)}
+
+
+def build_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_markdown_v1(
+    approval: dict,
+) -> str:
+    """Render a sanitized approval summary after full validation."""
+
+    validation = validate_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1(approval)
+    sections = [
+        ("Operator Attestation", [approval["operator_attestation"]["operator_decision"], approval["operator_attestation"]["operator_reference"]]),
+        ("Source Operator Review", [SOURCE_OPERATOR_REVIEW_COMMIT, SOURCE_OPERATOR_REVIEW_DIGEST]),
+        ("Source Candidate", [source.SOURCE_CANDIDATE_COMMIT, source.SOURCE_CANDIDATE_DIGEST]),
+        ("Source Diagnostic Results Review", [source.SOURCE_RESULTS_REVIEW_COMMIT, source.SOURCE_RESULTS_REVIEW_DIGEST]),
+        ("Source Controlled Recapture Execution", [source.SOURCE_EXECUTION_COMMIT, source.SOURCE_EXECUTION_DIGEST]),
+        ("Source Durable Receipt", [source.SOURCE_DURABLE_RECEIPT_PATH, source.SOURCE_RECEIPT_DIGEST]),
+        ("Source Receipt Loss History", [source.SOURCE_BINDINGS["source_targeted_diagnostic_output_capture_execution_blocked_reason"], source.SOURCE_BINDINGS["source_primary_failure_class"]]),
+        ("Source Planning and Detail Binding Evidence", [source.SOURCE_BINDINGS["source_planning_execution_digest"], source.SOURCE_BINDINGS["source_detail_binding_results_review_digest"]]),
+        ("Retry Failure Context", ["24877 passed; 1292 failed; 112 errors; 7 skipped; retry remains failed."]),
+        ("Approval Scope", [APPROVAL_SCOPE]), ("Selected Remediation or Method Package", [SELECTED_PACKAGE, APPROVED_ONLY]),
+        ("Priority 1 Target Modules", [item["module_path"] for item in source.PRIORITY_1_TARGET_MODULES]),
+        ("Diagnostic Capture Evidence Summary", ["Exit 1; 1231380 stdout bytes; 0 stderr bytes; bounded and redaction checked; diagnostic only."]),
+        ("Approved Future Method Requirements", [item["requirement_id"] for item in APPROVED_FUTURE_METHOD_REQUIREMENTS]),
+        ("Approved Future Method Plan", [item["step"] for item in APPROVED_FUTURE_METHOD_PLAN]),
+        ("Future Method Execution Boundary", [approval["future_method_execution_status"], approval["future_method_input_source"]]),
+        ("Planned Outputs", [item["output_id"] for item in AUTHORIZED_PLANNED_OUTPUTS]),
+        ("Supporting Packages", [item["package_id"] for item in SUPPORTING_PACKAGES]),
+        ("Blocked Packages", [item["package_id"] for item in BLOCKED_PACKAGES]),
+        ("Next Chain", NEXT_CHAIN), ("Next Gates", NEXT_GATES), ("Risk Controls", RISK_CONTROLS),
+        ("Authority Boundaries", ["Approval only; execution, remediation, retry, main, runtime, and trading remain closed."]),
+        ("Checklist Summary", [f"{validation['passed_checks']}/{validation['total_checks']} checks pass; {validation['blocker_count']} blockers."]),
+        ("Guardrails", ["No receipt parsing, output analysis, command, pytest, cache, log, environment, provider, data, runtime, or trading action."]),
+    ]
+    lines = ["# MarketFlow Repository Integration Branch Retry Failure Remediation or Method Approval After Diagnostic Capture v1", ""]
+    for heading, values in sections:
+        lines.extend([f"## {heading}", "", *[f"- {value}" for value in values], ""])
+    return "\n".join(lines)
+
+
+ARTIFACT_KIND_MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVED_AFTER_DIAGNOSTIC_CAPTURE_V1 = ARTIFACT_KIND
+MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVED_AFTER_DIAGNOSTIC_CAPTURE = APPROVAL_STATUS
+REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVAL_AFTER_DIAGNOSTIC_CAPTURE_ONLY_NOT_EXECUTION_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN = APPROVAL_SCOPE
+PACKAGE_CLASSIFY_REVIEWED_DURABLE_DIAGNOSTIC_RECEIPT_FAILURE_FAMILIES_FOR_REMEDIATION_METHOD_PLANNING = SELECTED_PACKAGE
+
+__all__ = [
+    "ARTIFACT_KIND", "SCHEMA_VERSION", "APPROVAL_STATUS", "APPROVAL_SCOPE", "APPROVAL_DIGEST_KEY",
+    "SELECTED_PACKAGE", "SOURCE_OPERATOR_REVIEW_COMMIT", "SOURCE_OPERATOR_REVIEW_DIGEST",
+    "REQUIRED_REMEDIATION_OR_METHOD_APPROVAL_AFTER_DIAGNOSTIC_CAPTURE_ATTESTATION_PHRASE_V1",
+    "OPERATOR_DECISION", "OPERATOR_ATTESTATION_VERSION", "APPROVED_ONLY", "RECOMMENDED_NEXT_TASK",
+    "ATTESTATION_BOOLEAN_FIELDS", "SOURCE_ATTESTATION_FIELDS", "APPROVED_FUTURE_METHOD_REQUIREMENTS",
+    "APPROVED_FUTURE_METHOD_PLAN", "AUTHORIZED_PLANNED_OUTPUTS", "SUPPORTING_PACKAGES", "BLOCKED_PACKAGES",
+    "NEXT_CHAIN", "NEXT_GATES", "RISK_CONTROLS", "TRUE_FIELDS", "FALSE_FIELDS", "REQUIRED_CHECK_IDS",
+    "ARTIFACT_KIND_MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVED_AFTER_DIAGNOSTIC_CAPTURE_V1",
+    "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVED_AFTER_DIAGNOSTIC_CAPTURE",
+    "REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVAL_AFTER_DIAGNOSTIC_CAPTURE_ONLY_NOT_EXECUTION_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN",
+    "PACKAGE_CLASSIFY_REVIEWED_DURABLE_DIAGNOSTIC_RECEIPT_FAILURE_FAMILIES_FOR_REMEDIATION_METHOD_PLANNING",
+    "MarketFlowRepositoryIntegrationBranchRetryFailureRemediationOrMethodApprovalAfterDiagnosticCaptureError",
+    "build_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_attestation_v1",
+    "build_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1",
+    "validate_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1",
+    "write_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_v1",
+    "build_marketflow_repository_integration_branch_retry_failure_remediation_or_method_approval_after_diagnostic_capture_markdown_v1",
+]

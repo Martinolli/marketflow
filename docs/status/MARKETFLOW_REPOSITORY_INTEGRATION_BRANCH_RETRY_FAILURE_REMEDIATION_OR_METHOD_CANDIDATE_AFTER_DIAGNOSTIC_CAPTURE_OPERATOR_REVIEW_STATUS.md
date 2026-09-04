@@ -44,3 +44,9 @@ Readiness for remediation-or-method approval, remediation-or-method execution, a
 Status: `FUTURE_APPROVAL_NOT_CREATED`.
 
 Action: `OPTIONAL_OPERATOR_SELECTION_AND_APPROVAL_REQUIRED_BEFORE_ANY_REMEDIATION_OR_METHOD_EXECUTION`.
+
+## Follow-on Approval
+
+The follow-on `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_APPROVED_AFTER_DIAGNOSTIC_CAPTURE_V1` is implemented. This operator review remains immutable source evidence. The approval selects the reviewed failure-family classification package for future execution only.
+
+The approval does not execute method analysis, parse the durable receipt, analyze diagnostic output, execute remediation, classify failure families, run pytest, rerun the retry, read cache, parse logs, inspect `.env`, create a retry candidate, push protected branches, commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability, or authorize runtime or trading.
