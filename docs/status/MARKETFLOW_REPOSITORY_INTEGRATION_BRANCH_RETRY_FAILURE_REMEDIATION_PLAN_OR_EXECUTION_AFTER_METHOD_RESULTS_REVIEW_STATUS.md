@@ -281,3 +281,10 @@
 ## Guardrails
 
 - Source constants only; no receipt, diagnostic output, cache, logs, environment, commands, providers, or pytest.
+
+## Follow-on Results Review
+
+- Remediation Plan or Execution Results Review After Method Results Review v1 is implemented.
+- This plan execution remains immutable source evidence.
+- The follow-on review verifies only the committed targeted remediation plan, four workstream mappings, verification evidence requirements, future approval boundaries, and unsupported-claim controls.
+- It does not rerun or regenerate the plan; execute remediation; modify production code or existing tests; update expected digests; parse the durable receipt; analyze diagnostic output; run pytest or retry; read cache/logs/environment files; create a remediation or retry candidate; push protected branches; commit `.marketflow` or `.pytest_cache`; accept usefulness/profitability; or authorize runtime/trading.
