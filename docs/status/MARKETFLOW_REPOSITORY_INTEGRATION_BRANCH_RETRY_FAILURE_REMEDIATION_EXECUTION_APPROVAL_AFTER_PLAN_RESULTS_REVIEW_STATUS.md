@@ -40,3 +40,9 @@ No remediation, code remediation, production-code or existing-test change, expec
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_EXECUTION_AFTER_PLAN_RESULTS_REVIEW_V1`
+
+## Follow-on Execution
+
+Remediation Execution After Plan Results Review v1 is implemented on its separate execution branch and stopped fail-closed because no safe source-authority-bound remediation change was identified. This approval remains immutable source evidence, and the execution used only the approved controlled plan-derived package.
+
+The execution records a file-impact inventory, pre-change snapshot, change records and post-change snapshots when changes exist, verification evidence, and focused validation. It does not run full pytest or the detached retry; parse the durable receipt, diagnostic output, caches, or logs; inspect `.env`; regenerate evidence; push main or the integration branch; accept predictive usefulness or profitability; or authorize runtime or broker execution. Retry readiness remains false until a successful remediation-execution results review and separate retry approval.
