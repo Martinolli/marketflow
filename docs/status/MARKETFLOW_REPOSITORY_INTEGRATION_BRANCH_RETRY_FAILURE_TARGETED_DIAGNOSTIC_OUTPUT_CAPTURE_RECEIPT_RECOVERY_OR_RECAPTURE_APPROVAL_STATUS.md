@@ -30,3 +30,9 @@ No receipt recovery, recapture, diagnostic command, pytest, retry, cache access,
 ## Next Task
 
 `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_TARGETED_DIAGNOSTIC_OUTPUT_CAPTURE_RECEIPT_RECOVERY_OR_RECAPTURE_EXECUTION_V1`
+
+## Follow-on Execution
+
+Receipt Recovery or Controlled Recapture Execution v1 is implemented. The approval remains source evidence and authorized exactly one five-module controlled recapture with a durable receipt scaffold prewritten before command execution and finalized afterward.
+
+The recapture evidence is diagnostic evidence only, not retry evidence. The execution did not run full pytest, rerun the retry, read cache, reconstruct prior missing output, parse logs, inspect `.env`, execute remediation or classification, create a retry candidate, push protected branches, commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability, or authorize runtime/trading use.
