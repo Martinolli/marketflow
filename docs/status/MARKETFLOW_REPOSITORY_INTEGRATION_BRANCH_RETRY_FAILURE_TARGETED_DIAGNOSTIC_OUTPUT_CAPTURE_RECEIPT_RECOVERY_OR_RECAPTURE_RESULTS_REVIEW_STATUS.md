@@ -34,3 +34,11 @@ The review did not rerun recapture, execute the diagnostic command, run targeted
 Only `ready_for_remediation_or_method_candidate_after_diagnostic_capture` is open. Retry-candidate and main-merge readiness remain closed.
 
 Recommended next task: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_DIAGNOSTIC_CAPTURE_V1`.
+
+## Follow-on Candidate
+
+Remediation or Method Candidate After Diagnostic Capture v1 is implemented. This results review remains immutable source evidence; the follow-on candidate only defines twelve remediation-or-method packages and recommends one for operator review without selecting it.
+
+The candidate did not parse the durable receipt, analyze diagnostic output, select or approve a package, execute a method or remediation, run diagnostic pytest, rerun retry, read cache, parse logs, inspect `.env`, create a retry candidate, push protected branches, commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability, or authorize runtime or trading.
+
+Next task: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_OR_METHOD_CANDIDATE_AFTER_DIAGNOSTIC_CAPTURE_OPERATOR_REVIEW_V1`.
