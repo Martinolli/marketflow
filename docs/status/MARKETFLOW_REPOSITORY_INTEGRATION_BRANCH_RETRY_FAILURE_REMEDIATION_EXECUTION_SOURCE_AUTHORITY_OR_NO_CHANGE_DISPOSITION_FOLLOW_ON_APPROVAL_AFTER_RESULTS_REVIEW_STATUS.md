@@ -207,3 +207,9 @@ The deterministic approval checklist is `499/499 PASS`, with zero failures and z
 ## Guardrails
 
 This artifact is offline, deterministic, attestation-bound, governance-only, and non-actionable beyond authorizing a separate future candidate-creation execution. Predictive usefulness and profitability remain not accepted; runtime, strategy, paper trading, and broker execution remain `NOT_AUTHORIZED`.
+
+## Follow-On Execution After Results Review
+
+The separately authorized follow-on execution is implemented on its dedicated execution branch and uses only `PACKAGE_CREATE_SOURCE_AUTHORITY_ACQUISITION_CANDIDATE_FROM_ENRICHMENT_RESULTS`. The approval artifact remains immutable source evidence. The execution creates a source-authority acquisition candidate, defines future acquisition scope, maps the 30 reviewed missing-authority items, and defines acceptable artifacts, operator evidence, custody, digest, and results-review requirements.
+
+The execution does not acquire source authority or evidence. It does not create a no-change disposition, run alternate diagnostics, execute remediation, modify production behavior or existing tests, update expected digests, generate or apply patches, run pytest internally, rerun Priority 1 validation or retry, read cache, parse the durable receipt or logs, analyze diagnostic output, inspect `.env`, create retry readiness, push protected branches, commit `.marketflow` or `.pytest_cache`, accept predictive usefulness or profitability, or authorize runtime/trading use.
