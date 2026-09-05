@@ -90,7 +90,7 @@ Bind the planning, materialization, detail-binding, recovery, and review chain w
 
 ## Retry Failure Context
 
-Preserve the detached retry as `24877 passed`, `1292 failed`, `112 skipped`, and `7 errors`; current-root results are not retry evidence.
+Preserve the detached retry as `24877 passed`, `1292 failed`, `112 errors`, and `7 skipped`; current-root results are not retry evidence.
 
 ## Priority 1 Target Modules
 

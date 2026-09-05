@@ -94,7 +94,7 @@ Planning, materialization, detail-binding, recovery, and review digests remain s
 
 ## Retry Failure Context
 
-The authoritative detached retry remains failed with `24877 passed`, `1292 failed`, `112 skipped`, and `7 errors`. The current-root focused pass is not retry evidence.
+The authoritative detached retry remains failed with `24877 passed`, `1292 failed`, `112 errors`, and `7 skipped`. The current-root focused pass is not retry evidence.
 
 ## Priority 1 Target Modules
 
