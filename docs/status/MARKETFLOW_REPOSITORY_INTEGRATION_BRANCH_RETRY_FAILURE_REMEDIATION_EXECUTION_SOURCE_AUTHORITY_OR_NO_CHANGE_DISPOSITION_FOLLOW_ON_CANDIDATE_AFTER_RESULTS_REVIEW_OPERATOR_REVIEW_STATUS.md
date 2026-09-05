@@ -199,3 +199,9 @@ The deterministic review checklist is `293/293 PASS`, with zero failures and zer
 ## Guardrails
 
 This artifact is offline, deterministic, governance-only, and non-actionable. It neither accepts predictive usefulness or profitability nor authorizes runtime or broker execution.
+
+## Follow-On Approval After Results Review v1
+
+The attestation-bound follow-on approval is implemented as a separate governance artifact. This operator review remains source evidence. The approval selects `PACKAGE_CREATE_SOURCE_AUTHORITY_ACQUISITION_CANDIDATE_FROM_ENRICHMENT_RESULTS` and authorizes only a future follow-on execution that may create a source-authority acquisition candidate and define its evidence-acquisition scope.
+
+The approval does not execute follow-on work; create the candidate now; acquire source authority or evidence; create a no-change disposition; run alternate diagnostics or remediation; change production behavior or existing tests; update expected digests; generate or apply a remediation patch; run pytest or Priority 1 validation; rerun retry; read cache; parse the durable receipt, diagnostic output, terminal logs, or operator logs; inspect `.env`; create retry readiness; push main or the integration branch; track `.marketflow` or `.pytest_cache`; accept usefulness or profitability; or authorize runtime, broker, or trading use.
