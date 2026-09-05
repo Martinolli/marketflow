@@ -1,5 +1,9 @@
 # MarketFlow Repository Integration Branch Retry Failure Remediation Execution Source Authority or No-Change Disposition Follow-On Execution After Results Review Results Review v1
 
+## Downstream Operator Review
+
+The source-authority acquisition candidate operator review after follow-on execution results review is implemented on its dedicated stacked branch. This results review remains source evidence. The downstream review compares the candidate, four scope sections, 30 missing-authority mappings, 13 acceptable artifact types, ten operator evidence requirements, six custody/digest requirements, and 16 candidate results-review requirements. It recommends a future acquisition package for optional operator assessment without selecting, approving, authorizing, or executing it. No evidence acquisition, disposition, diagnostic, remediation, source or test change, digest update, pytest/retry rerun, receipt/output/log/cache/environment access, provider action, runtime use, trading authority, or merge readiness is created.
+
 Artifact: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_EXECUTION_SOURCE_AUTHORITY_OR_NO_CHANGE_DISPOSITION_FOLLOW_ON_EXECUTION_AFTER_RESULTS_REVIEW_RESULTS_REVIEW_V1`
 
 Status: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_EXECUTION_SOURCE_AUTHORITY_OR_NO_CHANGE_DISPOSITION_FOLLOW_ON_EXECUTION_AFTER_RESULTS_REVIEW_RESULTS_REVIEW_READY`
