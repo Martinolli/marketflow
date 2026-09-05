@@ -50,6 +50,21 @@ PACKAGE_RUN_ALTERNATE_DIAGNOSTICS_WITHOUT_APPROVAL = "PACKAGE_RUN_ALTERNATE_DIAG
 PACKAGE_NEW_RETRY_FROM_ENRICHMENT_RESULTS_ONLY = "PACKAGE_NEW_RETRY_FROM_ENRICHMENT_RESULTS_ONLY"
 PACKAGE_MAIN_MERGE_FROM_ENRICHMENT_RESULTS_OR_CURRENT_ROOT_PASS = "PACKAGE_MAIN_MERGE_FROM_ENRICHMENT_RESULTS_OR_CURRENT_ROOT_PASS"
 RECOMMENDED_PACKAGE = PACKAGE_CREATE_SOURCE_AUTHORITY_ACQUISITION_CANDIDATE_FROM_ENRICHMENT_RESULTS
+HISTORICAL_SELECTED_REMEDIATION_EXECUTION_PACKAGE = "PACKAGE_EXECUTE_CONTROLLED_PLAN_DERIVED_REMEDIATION_WITH_VERIFICATION_ONLY"
+PRIMARY_FAILURE_CLASS = "NO_SAFE_SOURCE_AUTHORITY_BOUND_REMEDIATION_CHANGE_IDENTIFIED"
+SECONDARY_FAILURE_CLASSES = (
+    "REVIEWED_WORKSTREAMS_ARE_PLANNING_EVIDENCE_NOT_CHANGE_AUTHORITY",
+    "PRIORITY_1_FOCUSED_VALIDATION_ALREADY_PASSING_IN_CURRENT_ROOT_CONTEXT",
+    "NO_RETAINED_CHANGE_RECORDS_AVAILABLE_FOR_REMEDIATION_SUCCESS",
+    "DETACHED_RETRY_FAILURE_REMAINS_AUTHORITATIVE_AND_UNREMEDIATED",
+)
+RECOMMENDATION_REASON = (
+    "The reviewed source-authority enrichment plan identified 30 missing authority items across four sections, "
+    "but no source authority was acquired and no concrete source-authority-bound change was identified. The "
+    "safest next path is a governed source-authority acquisition candidate that defines what evidence must be "
+    "obtained or bound before any remediation, no-change disposition, alternate diagnostic, retry candidate, or "
+    "main merge can be considered."
+)
 
 ARTIFACT_KIND_MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_EXECUTION_SOURCE_AUTHORITY_OR_NO_CHANGE_DISPOSITION_FOLLOW_ON_CANDIDATE_AFTER_RESULTS_REVIEW_V1 = ARTIFACT_KIND
 MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_REMEDIATION_EXECUTION_SOURCE_AUTHORITY_OR_NO_CHANGE_DISPOSITION_FOLLOW_ON_CANDIDATE_AFTER_RESULTS_REVIEW_READY_FOR_OPERATOR_REVIEW = CANDIDATE_STATUS
@@ -63,39 +78,49 @@ CANDIDATE_PHILOSOPHY = {
 }
 
 
-def _package(package_id: str, status: str, purpose: str, *, reason: str | None = None) -> dict[str, Any]:
+def _package(
+    package_id: str,
+    status: str,
+    purpose: str,
+    *,
+    reason: str | None = None,
+    recommended_reason: str | None = None,
+) -> dict[str, Any]:
     item = {"package_id": package_id, "status": status, "purpose": purpose,
             "selected": False, "approved": False, "authorized": False, "executed": False}
     if reason is not None:
         item["blocked_reason"] = reason
+    if recommended_reason is not None:
+        item["recommended_reason"] = recommended_reason
     return item
 
 
 PROPOSED_PACKAGES = (
     _package(RECOMMENDED_PACKAGE, "RECOMMENDED_FOR_OPERATOR_REVIEW_NOT_SELECTED",
-             "Create a future source-authority acquisition candidate from the reviewed inventory, evidence requirements, contracts, fixture requirements, and mappings."),
+             "Future execution may create a source-authority acquisition candidate based on the reviewed missing-authority inventory, source-evidence requirements, canonical serialization requirements, schema/field contract requirements, fixture/isolation requirements, and workstream mappings. It may define what source artifacts, specifications, schemas, canonical payloads, field contracts, fixture lifecycle evidence, or operator-provided reviewed evidence must be obtained before any remediation or no-change disposition can be justified.",
+             recommended_reason="The enrichment results review confirmed 30 missing authority items and no acquired source authority. The safest next step is to define a governed source-authority acquisition candidate before considering remediation, no-change disposition, retry, or main merge."),
     _package(PACKAGE_CREATE_NO_CHANGE_DISPOSITION_CANDIDATE_FROM_REVIEWED_ENRICHMENT_RESULTS, "AVAILABLE_FOR_OPERATOR_REVIEW_NOT_SELECTED",
-             "Create a future no-change disposition candidate using the seven reviewed inputs without creating a disposition."),
+             "Future execution may create a no-change disposition candidate using the reviewed no-change input requirements. It may define what evidence is required to formally conclude that no remediation is justified while keeping retry and main merge blocked unless separately approved."),
     _package(PACKAGE_CREATE_ALTERNATE_BOUNDED_DIAGNOSTIC_CANDIDATE_FROM_ENRICHMENT_RESULTS, "AVAILABLE_FOR_OPERATOR_REVIEW_NOT_SELECTED",
-             "Create a separately governed bounded diagnostic candidate without executing diagnostics or retry."),
+             "Future execution may create a separately governed alternate bounded diagnostic candidate focused on detached retry failures, context mismatch, branch/worktree state, CWD/path assumptions, deterministic fixture behavior, or authority gaps. It must not execute diagnostics or retry unless separately approved."),
     _package(PACKAGE_CREATE_REMEDIATION_REENTRY_CANDIDATE_ONLY_AFTER_SOURCE_AUTHORITY_EXISTS, "AVAILABLE_FOR_OPERATOR_REVIEW_NOT_SELECTED",
-             "Define remediation re-entry criteria only after source authority is acquired or reviewed."),
+             "Future execution may define criteria for a remediation re-entry candidate, but only after source authority is acquired or reviewed. It must not perform remediation and must not claim that current reviewed planning evidence is sufficient for direct change."),
     _package(PACKAGE_CREATE_NO_CHANGE_RETRY_CRITERIA_CANDIDATE_AFTER_RESULTS_REVIEW, "AVAILABLE_FOR_OPERATOR_REVIEW_NOT_SELECTED",
-             "Define possible no-change retry criteria only after a later approved no-change disposition."),
+             "Future execution may define criteria for a possible no-change retry candidate if a later no-change disposition is approved. It must not create retry readiness, approve retry, or execute retry."),
     _package(PACKAGE_HOLD_REMEDIATION_AND_RETRY_BLOCKED_PENDING_SOURCE_AUTHORITY_ACQUISITION, "AVAILABLE_FOR_OPERATOR_REVIEW_NOT_SELECTED",
-             "Keep remediation and retry blocked pending source authority or operator-provided reviewed evidence."),
+             "Future execution may formally hold remediation and retry blocked pending source-authority acquisition, additional reviewed artifacts, or operator-provided source evidence."),
     _package(PACKAGE_ACQUIRE_SOURCE_AUTHORITY_WITHOUT_SEPARATE_APPROVAL, "BLOCKED_NOT_ALLOWED", "Acquire source authority now.",
              reason="Source-authority acquisition requires separate governed approval and cannot be performed by this candidate."),
     _package(PACKAGE_DIRECT_REMEDIATION_FROM_ENRICHMENT_PLAN, "BLOCKED_NOT_ALLOWED", "Perform direct remediation from planning evidence.",
              reason="The enrichment plan identifies missing authority and does not authorize direct code, test, digest, fixture, schema, or export changes."),
     _package(PACKAGE_NO_CHANGE_DISPOSITION_WITHOUT_REVIEWED_EVIDENCE, "BLOCKED_NOT_ALLOWED", "Create a no-change disposition without a reviewed basis.",
-             reason="No-change disposition requires a separate reviewed basis; planning inputs are not a disposition."),
+             reason="No-change disposition requires a separate reviewed basis; this candidate cannot convert planning inputs into disposition."),
     _package(PACKAGE_RUN_ALTERNATE_DIAGNOSTICS_WITHOUT_APPROVAL, "BLOCKED_NOT_ALLOWED", "Run alternate diagnostics now.",
-             reason="Alternate diagnostics require separate scope, approval, controls, execution, and results review."),
+             reason="Alternate diagnostics require separate bounded scope, approval, execution controls, and results review."),
     _package(PACKAGE_NEW_RETRY_FROM_ENRICHMENT_RESULTS_ONLY, "BLOCKED_NOT_ALLOWED", "Create a retry from enrichment planning.",
-             reason="Enrichment results are planning evidence only and do not create retry readiness."),
+             reason="Source-authority enrichment results are planning evidence only and do not create retry readiness."),
     _package(PACKAGE_MAIN_MERGE_FROM_ENRICHMENT_RESULTS_OR_CURRENT_ROOT_PASS, "BLOCKED_NOT_ALLOWED", "Merge main from planning or current-root evidence.",
-             reason="Main merge remains blocked until a future retry results review passes."),
+             reason="Main merge remains blocked until a future retry results review passes; current-root evidence and enrichment planning are not retry evidence."),
 )
 
 FUTURE_REQUIREMENT_IDS = tuple("""source_results_review_must_be_ready
@@ -559,7 +584,7 @@ class MarketFlowRepositoryIntegrationBranchRetryFailureFollowOnCandidateError(Va
     """Raised when candidate evidence or a protected boundary changes."""
 
 
-def _source_bindings() -> dict[str, Any]:
+def _source_execution_bindings() -> dict[str, Any]:
     bindings = deepcopy(source.source.SOURCE_BINDINGS)
     bindings.update({
         "source_execution_commit": source.SOURCE_EXECUTION_COMMIT,
@@ -575,21 +600,74 @@ def _source_bindings() -> dict[str, Any]:
     return bindings
 
 
+def _source_bindings() -> dict[str, Any]:
+    bindings = _source_execution_bindings()
+    bindings.update({
+        "source_approval_artifact_kind": source.source.source.ARTIFACT_KIND,
+        "source_approval_status": source.source.source.APPROVAL_STATUS,
+        "source_approval_scope": source.source.source.APPROVAL_SCOPE,
+        "source_approval_commit": source.source.SOURCE_APPROVAL_COMMIT,
+        "source_approval_digest": source.source.SOURCE_APPROVAL_DIGEST,
+        "source_operator_review_digest": "8c3715141f8a52643dd7262406dce003a4868db279d66b74164c7b0c9d7baf51",
+        "source_candidate_digest": "bae832a665e9a1d389a2955536401c87b2032ad773c5de799f9ee90958cb324c",
+        "historical_selected_remediation_execution_package": HISTORICAL_SELECTED_REMEDIATION_EXECUTION_PACKAGE,
+        "primary_failure_class": PRIMARY_FAILURE_CLASS,
+        "secondary_failure_classes": list(SECONDARY_FAILURE_CLASSES),
+    })
+    return bindings
+
+
 def _source_context() -> dict[str, Any]:
     return {
+        "retry_execution_branch": "feature/marketflow-repository-integration-branch-retry-execution-v1",
+        "retry_execution_commit": "ab178b65c69f0274b0abbf9c20df102d35e78d34",
+        "retry_pytest_working_directory": r"C:\Users\Aspire5 15 i7 4G2050\marketflow_worktrees\integration-terminal-evidence-stack-validation-v1",
+        "retry_pytest_passed_count": 24877, "retry_pytest_failed_count": 1292,
+        "retry_pytest_error_count": 112, "retry_pytest_skipped_count": 7,
+        "retry_pytest_first_result_authoritative": True,
+        "retry_pytest_passed": False, "retry_pytest_failed": True,
+        "root_full_regression_is_retry_evidence": False,
         "retry_failure_context": {"counts": {"passed": 24877, "failed": 1292, "errors": 112, "skipped": 7},
-                                  "first_result_authoritative": True, "root_full_regression_is_retry_evidence": False},
+                                  "first_result_authoritative": True, "pytest_passed": False, "pytest_failed": True,
+                                  "root_full_regression_is_retry_evidence": False},
         "priority_1_target_modules": [
             {"module_path": path, "failed_or_errored_nodeid_count": count} for path, count in source.source.PRIORITY_1_MODULES
         ],
+        "priority_1_top_module_count": 5, "priority_1_total_nodeids": 612,
+        "top_5_percentage_of_failed_or_errored_nodeids": "43.58974359",
+        "top_10_count_sum": 1069, "module_summary_module_count": 29,
+        "failed_or_errored_nodeids_count": 1404,
+        "priority1_pre_change_validation_passed": True,
+        "priority1_pre_change_validation_passed_count": 675,
+        "priority1_post_change_validation_passed": True,
+        "priority1_post_change_validation_passed_count": 675,
+        "priority1_post_change_validation_duration_seconds": "41.88",
+        "priority1_post_change_stdout_byte_count": 832,
+        "priority1_post_change_stderr_byte_count": 0,
+        "priority1_post_change_stdout_sha256": "e3d3087f3ffa39552c5a1264c8043ed6fa8a875f62f6ed94cb8986425978b374",
+        "priority1_post_change_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
         "priority1_validation_summary": {"pre_change_passed": True, "pre_change_passed_count": 675,
                                          "post_change_passed": True, "post_change_passed_count": 675,
+                                         "post_change_duration_seconds": "41.88",
+                                         "post_change_stdout_byte_count": 832,
+                                         "post_change_stderr_byte_count": 0,
                                          "post_change_stdout_sha256": "e3d3087f3ffa39552c5a1264c8043ed6fa8a875f62f6ed94cb8986425978b374",
                                          "post_change_stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
                                          "not_retry_evidence": True},
-        "diagnostic_capture_evidence_summary": {"exit_code": 1, "stdout_byte_count": 1231380, "stderr_byte_count": 0,
+        "source_exit_code": 1, "source_duration_seconds": "21.584361",
+        "source_stdout_byte_count": 1231380, "source_stderr_byte_count": 0,
+        "source_combined_output_byte_count": 1231380,
+        "source_stdout_sha256": source.source.source.source.source.SOURCE_CORE["source_stdout_sha256"],
+        "source_stderr_sha256": source.source.source.source.source.SOURCE_CORE["source_stderr_sha256"],
+        "source_stdout_excerpt_truncated": True, "source_stderr_excerpt_truncated": False,
+        "source_redaction_checked": True,
+        "diagnostic_capture_evidence_summary": {"exit_code": 1, "duration_seconds": "21.584361",
+                                                "stdout_byte_count": 1231380, "stderr_byte_count": 0,
+                                                "combined_output_byte_count": 1231380,
                                                 "stdout_sha256": source.source.source.source.source.SOURCE_CORE["source_stdout_sha256"],
                                                 "stderr_sha256": source.source.source.source.source.SOURCE_CORE["source_stderr_sha256"],
+                                                "stdout_excerpt_truncated": True, "stderr_excerpt_truncated": False,
+                                                "redaction_checked": True,
                                                 "diagnostic_only": True},
         "reviewed_observable_failure_families": [
             {"family_id": family, "observable_evidence_count": 47, "confidence": "HIGH", "planning_evidence_only": True}
@@ -604,6 +682,18 @@ def _source_context() -> dict[str, Any]:
 
 
 def _committed_source_results_review() -> dict[str, Any]:
+    context = _source_context()
+    source_review_context = {
+        field: context[field]
+        for field in (
+            "retry_execution_branch", "retry_execution_commit", "retry_failure_context",
+            "priority_1_target_modules", "priority_1_top_module_count", "priority_1_total_nodeids",
+            "top_5_percentage_of_failed_or_errored_nodeids", "top_10_count_sum",
+            "module_summary_module_count", "failed_or_errored_nodeids_count",
+            "priority1_validation_summary", "diagnostic_capture_evidence_summary",
+            "reviewed_observable_failure_families", "reviewed_workstreams",
+        )
+    }
     return {
         "artifact_kind": SOURCE_RESULTS_REVIEW_ARTIFACT_KIND, "review_status": SOURCE_RESULTS_REVIEW_STATUS,
         "review_scope": SOURCE_RESULTS_REVIEW_SCOPE, "source_results_review_commit": SOURCE_RESULTS_REVIEW_COMMIT,
@@ -612,13 +702,13 @@ def _committed_source_results_review() -> dict[str, Any]:
         source.MISSING_AUTHORITY_INVENTORY_REVIEW_DIGEST_KEY: SOURCE_MISSING_AUTHORITY_INVENTORY_REVIEW_DIGEST,
         source.WORKSTREAM_AUTHORITY_MAPPING_REVIEW_DIGEST_KEY: SOURCE_WORKSTREAM_MAPPING_REVIEW_DIGEST,
         source.MANIFEST_DIGEST_KEY: SOURCE_RESULTS_REVIEW_MANIFEST_DIGEST,
-        **_source_bindings(),
+        **_source_execution_bindings(),
         "missing_authority_inventory_section_count": 4, "missing_authority_inventory_item_count": 30,
         "missing_authority_items_status": "MISSING_NOT_ACQUIRED", "workstream_mapping_count": 4,
         "workstream_mapping_status": "PLANNED_NOT_EXECUTED", "no_change_disposition_input_count": 7,
         "alternate_diagnostic_input_count": 8, "retry_basis_requirement_count": 7,
-        "source_outputs_generated_count": 27, "review_outputs_generated_count": 28,
-        **_source_context(),
+        "source_outputs_generated_count": 27,
+        **source_review_context,
     }
 
 
@@ -638,9 +728,12 @@ def _summaries() -> dict[str, Any]:
                                           "checks": "168/168 PASS", "planning_only": True},
         "source_execution_summary": {"commit": bindings["source_execution_commit"], "digest": bindings["source_execution_digest"],
                                      "package": source.SELECTED_PACKAGE, "planning_outputs": 27},
-        "source_approval_summary": {"commit": bindings["source_approval_commit"], "digest": bindings["source_approval_digest"]},
-        "source_operator_review_summary": {"commit": bindings["source_operator_review_commit"], "digest": bindings["source_authority_or_no_change_disposition_candidate_after_blocked_execution_operator_review_digest"]},
-        "source_candidate_summary": {"commit": bindings["source_candidate_commit"], "digest": bindings["source_authority_or_no_change_disposition_candidate_after_blocked_execution_digest"]},
+        "source_approval_summary": {"artifact_kind": bindings["source_approval_artifact_kind"],
+                                    "status": bindings["source_approval_status"],
+                                    "scope": bindings["source_approval_scope"],
+                                    "commit": bindings["source_approval_commit"], "digest": bindings["source_approval_digest"]},
+        "source_operator_review_summary": {"commit": bindings["source_operator_review_commit"], "digest": bindings["source_operator_review_digest"]},
+        "source_candidate_summary": {"commit": bindings["source_candidate_commit"], "digest": bindings["source_candidate_digest"]},
         "source_failure_diagnosis_summary": {"commit": bindings["source_failure_diagnosis_commit"], "digest": bindings["source_remediation_execution_after_plan_results_review_failure_diagnosis_digest"]},
         "source_blocked_execution_summary": {"commit": bindings["source_blocked_execution_commit"], "reason": bindings["source_blocked_reason"], "manifest_digest": bindings["source_blocked_manifest_digest"]},
         "source_plan_results_review_summary": {
@@ -729,7 +822,13 @@ def _assemble_candidate() -> dict[str, Any]:
         "proposed_follow_on_packages": deepcopy(list(PROPOSED_PACKAGES)),
         "recommended_follow_on_package": RECOMMENDED_PACKAGE,
         "recommendation_status": "RECOMMENDED_FOR_OPERATOR_REVIEW_NOT_SELECTED",
-        "recommendation_reason": "The reviewed plan identified 30 missing authority items across four sections, acquired no authority, and identified no safe source-authority-bound change. A governed source-authority acquisition candidate is the safest next path before remediation, no-change disposition, diagnostics, retry, or main merge.",
+        "recommendation_reason": RECOMMENDATION_REASON,
+        "recommended_package": {
+            "package_id": RECOMMENDED_PACKAGE,
+            "status": "RECOMMENDED_FOR_OPERATOR_REVIEW_NOT_SELECTED",
+            "reason": RECOMMENDATION_REASON,
+            "selected": False,
+        },
         "future_requirements": [{"requirement_id": item, "status": FUTURE_REQUIREMENT_STATUS, "execution_status": "NOT_EXECUTED"} for item in FUTURE_REQUIREMENT_IDS],
         "future_plan": list(FUTURE_PLAN), "future_plan_status": "PLANNED_NOT_EXECUTED",
         "planned_outputs": [{"output_id": item, "status": PLANNED_OUTPUT_STATUS} for item in PLANNED_OUTPUT_IDS],
@@ -809,8 +908,8 @@ def build_marketflow_repository_integration_branch_retry_failure_remediation_exe
         "Source Approval": candidate["source_approval_summary"], "Source Operator Review": candidate["source_operator_review_summary"],
         "Source Candidate": candidate["source_candidate_summary"], "Source Failure Diagnosis": candidate["source_failure_diagnosis_summary"],
         "Source Blocked Execution": candidate["source_blocked_execution_summary"], "Blocked Reason": candidate["source_blocked_reason"],
-        "Failure Classification": {"primary": candidate["source_blocked_reason"], "secondary": ["REVIEWED_WORKSTREAMS_ARE_PLANNING_EVIDENCE_NOT_CHANGE_AUTHORITY", "PRIORITY_1_FOCUSED_VALIDATION_ALREADY_PASSING_IN_CURRENT_ROOT_CONTEXT", "NO_RETAINED_CHANGE_RECORDS_AVAILABLE_FOR_REMEDIATION_SUCCESS", "DETACHED_RETRY_FAILURE_REMAINS_AUTHORITATIVE_AND_UNREMEDIATED"]},
-        "Source Remediation Execution Approval": {"commit": candidate["source_remediation_execution_approval_after_plan_results_review_commit"], "digest": candidate["source_remediation_execution_approval_after_plan_results_review_digest"]},
+        "Failure Classification": {"primary": candidate["primary_failure_class"], "secondary": candidate["secondary_failure_classes"]},
+        "Source Remediation Execution Approval": {"commit": candidate["source_remediation_execution_approval_after_plan_results_review_commit"], "digest": candidate["source_remediation_execution_approval_after_plan_results_review_digest"], "historical_selected_package": candidate["historical_selected_remediation_execution_package"]},
         "Source Plan Results Review": candidate["source_plan_results_review_summary"], "Source Plan Execution": candidate["source_plan_execution_summary"],
         "Source Method Results Review": candidate["source_method_results_review_summary"], "Source Method Execution": candidate["source_method_execution_summary"],
         "Source Diagnostic Results Review": candidate["source_diagnostic_results_review_summary"], "Source Controlled Recapture": candidate["source_controlled_recapture_summary"],
@@ -826,7 +925,7 @@ def build_marketflow_repository_integration_branch_retry_failure_remediation_exe
         "Alternate Diagnostic Input Review Summary": candidate["alternate_diagnostic_input_review_summary"],
         "Retry Basis Requirements Review Summary": candidate["retry_basis_requirements_review_summary"],
         "Candidate Philosophy": candidate["candidate_philosophy"], "Proposed Follow-On Packages": candidate["proposed_follow_on_packages"],
-        "Recommended Package": {"package": candidate["recommended_follow_on_package"], "status": candidate["recommendation_status"], "reason": candidate["recommendation_reason"]},
+        "Recommended Package": candidate["recommended_package"],
         "Future Requirements": candidate["future_requirements"], "Future Plan": {"status": candidate["future_plan_status"], "steps": candidate["future_plan"]},
         "Planned Outputs": candidate["planned_outputs"], "Non-Goals": candidate["non_goals"], "Next Chain": candidate["next_chain"],
         "Next Gates": candidate["next_gates"], "Risk Controls": candidate["risk_controls"],

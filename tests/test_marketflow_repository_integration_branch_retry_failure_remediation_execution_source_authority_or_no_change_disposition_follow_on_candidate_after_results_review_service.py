@@ -54,6 +54,20 @@ def test_source_results_review_identity_and_digests_are_bound() -> None:
     assert candidate["source_results_review_manifest_digest"] == service.SOURCE_RESULTS_REVIEW_MANIFEST_DIGEST
 
 
+def test_current_source_approval_and_candidate_chain_aliases_are_exact() -> None:
+    candidate = _build()
+    assert candidate["source_approval_artifact_kind"] == service.source.source.source.ARTIFACT_KIND
+    assert candidate["source_approval_status"] == service.source.source.source.APPROVAL_STATUS
+    assert candidate["source_approval_scope"] == service.source.source.source.APPROVAL_SCOPE
+    assert candidate["source_approval_commit"] == service.source.source.SOURCE_APPROVAL_COMMIT
+    assert candidate["source_approval_digest"] == service.source.source.SOURCE_APPROVAL_DIGEST
+    assert candidate["source_operator_review_digest"] == "8c3715141f8a52643dd7262406dce003a4868db279d66b74164c7b0c9d7baf51"
+    assert candidate["source_candidate_digest"] == "bae832a665e9a1d389a2955536401c87b2032ad773c5de799f9ee90958cb324c"
+    assert candidate["historical_selected_remediation_execution_package"] == service.HISTORICAL_SELECTED_REMEDIATION_EXECUTION_PACKAGE
+    assert candidate["primary_failure_class"] == service.PRIMARY_FAILURE_CLASS
+    assert candidate["secondary_failure_classes"] == list(service.SECONDARY_FAILURE_CLASSES)
+
+
 @pytest.mark.parametrize(
     "field",
     [
@@ -101,6 +115,28 @@ def test_retry_priority_diagnostic_family_and_workstream_facts_are_bound() -> No
     assert all(item["direct_change_authorized"] is False for item in candidate["reviewed_workstreams"])
 
 
+def test_retry_priority_and_diagnostic_top_level_bindings_are_complete() -> None:
+    candidate = _build()
+    assert candidate["retry_execution_branch"] == "feature/marketflow-repository-integration-branch-retry-execution-v1"
+    assert candidate["retry_execution_commit"] == "ab178b65c69f0274b0abbf9c20df102d35e78d34"
+    assert candidate["retry_pytest_working_directory"].endswith("marketflow_worktrees\\integration-terminal-evidence-stack-validation-v1")
+    assert [candidate[f"retry_pytest_{name}_count"] for name in ("passed", "failed", "error", "skipped")] == [24877, 1292, 112, 7]
+    assert candidate["retry_pytest_first_result_authoritative"] is True
+    assert candidate["retry_pytest_passed"] is False
+    assert candidate["retry_pytest_failed"] is True
+    assert candidate["priority_1_total_nodeids"] == 612
+    assert candidate["top_10_count_sum"] == 1069
+    assert candidate["module_summary_module_count"] == 29
+    assert candidate["failed_or_errored_nodeids_count"] == 1404
+    assert candidate["priority1_post_change_validation_duration_seconds"] == "41.88"
+    assert candidate["priority1_post_change_stdout_byte_count"] == 832
+    assert candidate["source_duration_seconds"] == "21.584361"
+    assert candidate["source_combined_output_byte_count"] == 1231380
+    assert candidate["source_stdout_excerpt_truncated"] is True
+    assert candidate["source_stderr_excerpt_truncated"] is False
+    assert candidate["source_redaction_checked"] is True
+
+
 def test_current_and_historical_workstream_review_digests_remain_distinguishable() -> None:
     candidate = _build()
     assert candidate["source_workstream_mapping_review_digest"] == service.SOURCE_WORKSTREAM_MAPPING_REVIEW_DIGEST
@@ -139,6 +175,13 @@ def test_source_authority_acquisition_candidate_is_recommended_but_not_selected(
     candidate = _build()
     assert candidate["recommended_follow_on_package"] == service.RECOMMENDED_PACKAGE
     assert candidate["recommendation_status"] == "RECOMMENDED_FOR_OPERATOR_REVIEW_NOT_SELECTED"
+    assert candidate["recommendation_reason"] == service.RECOMMENDATION_REASON
+    assert candidate["recommended_package"] == {
+        "package_id": service.RECOMMENDED_PACKAGE,
+        "status": "RECOMMENDED_FOR_OPERATOR_REVIEW_NOT_SELECTED",
+        "reason": service.RECOMMENDATION_REASON,
+        "selected": False,
+    }
     assert candidate["recommended_package_selected"] is False
     assert candidate["follow_on_package_selected"] is False
     assert candidate["ready_for_follow_on_approval"] is False
@@ -200,6 +243,9 @@ def test_validator_accepts_valid_candidate() -> None:
         "source_authority_enrichment_plan_digest", "source_missing_authority_inventory_digest",
         "source_workstream_authority_mapping_digest", "source_execution_manifest_digest",
         "selected_source_authority_or_no_change_disposition_package", "source_approval_digest",
+        "source_approval_artifact_kind", "source_approval_status", "source_approval_scope",
+        "source_operator_review_digest", "source_candidate_digest",
+        "historical_selected_remediation_execution_package", "primary_failure_class",
         "source_authority_or_no_change_disposition_candidate_after_blocked_execution_operator_review_digest",
         "source_authority_or_no_change_disposition_candidate_after_blocked_execution_digest",
         "source_remediation_execution_after_plan_results_review_failure_diagnosis_digest",
@@ -217,7 +263,8 @@ def test_validator_accepts_valid_candidate() -> None:
         "missing_authority_inventory_item_count", "missing_authority_items_status", "workstream_mapping_count",
         "workstream_mapping_status", "no_change_disposition_input_count", "alternate_diagnostic_input_count",
         "retry_basis_requirement_count", "source_outputs_generated_count", "review_outputs_generated_count",
-        "recommended_follow_on_package", "recommendation_status", "future_plan_status", "recommended_next_task",
+        "recommended_follow_on_package", "recommendation_status", "recommendation_reason",
+        "future_plan_status", "recommended_next_task",
         service.CANDIDATE_DIGEST_KEY,
     ],
 )
@@ -259,6 +306,7 @@ def test_validator_rejects_open_boundary(field: str) -> None:
         "workstream_authority_mapping_review_summary", "source_evidence_requirements_review_summary",
         "no_change_disposition_input_review_summary", "alternate_diagnostic_input_review_summary",
         "retry_basis_requirements_review_summary", "candidate_philosophy", "proposed_follow_on_packages",
+        "recommended_package", "secondary_failure_classes",
         "future_requirements", "future_plan", "planned_outputs", "non_goals", "next_chain", "next_gates",
         "risk_controls", "checklist", "summary",
     ],
@@ -283,6 +331,13 @@ def test_builder_rejects_changed_source_results_review() -> None:
     source_review[service.source.RESULTS_REVIEW_DIGEST_KEY] = "changed"
     with pytest.raises(service.MarketFlowRepositoryIntegrationBranchRetryFailureFollowOnCandidateError):
         service.build_marketflow_repository_integration_branch_retry_failure_remediation_execution_source_authority_or_no_change_disposition_follow_on_candidate_after_results_review_v1(source_results_review=source_review)
+
+
+def test_builder_accepts_the_offline_source_results_review_artifact() -> None:
+    source_review = service.source.build_marketflow_repository_integration_branch_retry_failure_remediation_execution_source_authority_or_no_change_disposition_results_review_after_blocked_execution_v1()
+    candidate = service.build_marketflow_repository_integration_branch_retry_failure_remediation_execution_source_authority_or_no_change_disposition_follow_on_candidate_after_results_review_v1(source_results_review=source_review)
+    assert candidate["source_results_review_digest"] == service.SOURCE_RESULTS_REVIEW_DIGEST
+    assert candidate["source_approval_artifact_kind"] == service.source.source.source.ARTIFACT_KIND
 
 
 def test_markdown_includes_every_required_section() -> None:
