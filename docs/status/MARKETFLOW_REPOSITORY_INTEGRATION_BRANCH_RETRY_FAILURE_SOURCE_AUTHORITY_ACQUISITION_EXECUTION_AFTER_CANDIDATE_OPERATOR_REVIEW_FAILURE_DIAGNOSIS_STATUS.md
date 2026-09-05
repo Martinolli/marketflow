@@ -1,5 +1,13 @@
 # MarketFlow Repository Integration Branch Retry Failure Source Authority Acquisition Execution After Candidate Operator Review Failure Diagnosis v1
 
+## Downstream Evidence-Package Preparation Candidate
+
+The operator source-authority evidence-package preparation candidate is implemented on its dedicated downstream branch. This diagnosis remains source evidence, and the blocked reason remains `NO_OPERATOR_SOURCE_AUTHORITY_EVIDENCE_PACKAGE_PROVIDED`.
+
+The downstream candidate defines future evidence-package preparation options only. It recommends an operator-fillable evidence-package template package without selecting, approving, authorizing, or executing it. No evidence package was created, supplied, validated, or bound.
+
+No source authority, source-authority evidence, external evidence, concrete authority, safe change, no-change disposition, alternate diagnostic, remediation, retry candidate, or main-merge readiness was created. No production code, existing test, expected digest, or patch changed; no pytest, retry, cache, receipt/output/log/environment parsing, source-owner contact, provider/data/runtime/trading action occurred in the candidate service.
+
 Artifact: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_SOURCE_AUTHORITY_ACQUISITION_EXECUTION_AFTER_CANDIDATE_OPERATOR_REVIEW_FAILURE_DIAGNOSIS_V1`
 
 Status: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_SOURCE_AUTHORITY_ACQUISITION_EXECUTION_AFTER_CANDIDATE_OPERATOR_REVIEW_FAILURE_DIAGNOSIS_READY`
