@@ -1,8 +1,16 @@
-# MarketFlow Repository Integration Branch Retry Failure Operator Completion Inputs Preparation or Supply Execution Reattempt Candidate After Payload Supply Mechanism Results Review v1
+# MarketFlow Repository Integration Branch Retry Failure Operator Completion Inputs Preparation or Supply Execution Reattempt Candidate Operator Review After Payload Supply Mechanism Results Review v1
 
-## Candidate Disposition
+## Operator Review Disposition
 
-`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_READY_FOR_OPERATOR_REVIEW` within `REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_ONLY_NOT_APPROVAL_NOT_EXECUTION_NOT_INPUT_PREPARATION_NOT_INPUT_SUPPLY_NOT_OPERATOR_PAYLOAD_CREATION_NOT_EVIDENCE_PACKAGE_COMPLETION_NOT_COMPLETION_REATTEMPT_NOT_SOURCE_AUTHORITY_ACQUISITION_NOT_EVIDENCE_ACQUISITION_NOT_NO_CHANGE_DISPOSITION_NOT_ALTERNATE_DIAGNOSTIC_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN`. Candidate `fb53926335ea4644ae9661baf0b8d5b0a1ccb7ae45d8a7e1a484647e79a180a9`; manifest `1f155a0d9248ce9852448c9e8b9e98681e4710fb26b4f47dca6d902461a125ed`.
+`MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_OPERATOR_REVIEW_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_READY` within `REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_OPERATOR_REVIEW_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_ONLY_NOT_APPROVAL_NOT_EXECUTION_NOT_INPUT_PREPARATION_NOT_INPUT_SUPPLY_NOT_OPERATOR_PAYLOAD_CREATION_NOT_EVIDENCE_PACKAGE_COMPLETION_NOT_COMPLETION_REATTEMPT_NOT_SOURCE_AUTHORITY_ACQUISITION_NOT_EVIDENCE_ACQUISITION_NOT_NO_CHANGE_DISPOSITION_NOT_ALTERNATE_DIAGNOSTIC_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN`. Review `a38d0fd287c2b957975d1413a072a8f283980accdf9041b7892a5c700143d59b`; manifest `0f64e6b33940b704494c4dd4b8be2f0b82e7ff7f55fb58b975eb618f06e46952`.
+
+## Source Candidate
+
+Commit `20c12ba459ee0a9a11cc24101414263906e9943f`; artifact `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_V1`; checklist 265/265 PASS.
+
+## Candidate Digest Surface
+
+Candidate `fb53926335ea4644ae9661baf0b8d5b0a1ccb7ae45d8a7e1a484647e79a180a9`; packages `33883288a805f630456f8ec8b4007fc428219302285d58522dc7ac67c2d7ff36`; requirements `ab2e79bbd467a44c0c0549fc61d3e9cbd9f66cde5169fcab07bcb5d27e46ad29`; contract `e55050c1581135eac9ffe0234755c64f3794f97e4d97f1ecdfaa531d27144579`; binding `d683e7be9e915ce453396dae55d7f1e2a202119839964a840424c8b5ef994bdc`; manifest `1f155a0d9248ce9852448c9e8b9e98681e4710fb26b4f47dca6d902461a125ed`.
 
 ## Source Results Review
 
@@ -26,42 +34,42 @@ Execution `e91075b6e70592c63b83b7614f1445d7ec2af7129a0675a0fc51031b5759ccb7`; me
 
 ## Payload Supply Mechanism Review
 
-The reviewed mechanism has four workstream/scope sections and thirteen distinct review sections; it was not regenerated.
+Four scope sections, 13 distinct review sections, and 30 templates remain bound without regeneration.
 
 ## Operator Payload Submission Schema Review
 
-14 header fields, 21 evidence-item fields, and MA-001 through MA-030 remain reviewed with no actual payload values.
+14 header fields, 21 item fields, and MA-001 through MA-030 remain reviewed with no actual payload.
 
 ## Allowed Values and Secret Screening Review
 
-Four workstreams, 13 artifact types, 12 classifications, and 13 secret indicators remain bound for future use only.
+13 artifact types, 12 classifications, and 13 secret indicators remain future-only boundaries.
 
 ## Workstream Supply Plan Review
 
-Four segments of 8, 8, 7, and 7 items remain reviewed; zero items are supplied.
+Four segments of 8, 8, 7, and 7 remain reviewed with zero supplied items.
 
 ## Future Explicit Payload Requirement
 
-Any future reattempt requires explicit non-secret operator payload, operator review, separate approval, and later results review.
+Explicit non-secret payload and separate approval remain mandatory before any reattempt.
 
-## Package Options
+## Package Options Review
 
-1. `PACKAGE_CREATE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_FROM_REVIEWED_MECHANISM_WITH_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD: RECOMMENDED_FOR_OPERATOR_REVIEW_NOT_SELECTED`
-2. `PACKAGE_HOLD_PENDING_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD: AVAILABLE_NOT_SELECTED`
-3. `PACKAGE_CREATE_OPERATOR_PAYLOAD_READINESS_CHECKLIST_ONLY: AVAILABLE_NOT_SELECTED`
-4. `PACKAGE_CREATE_PAYLOAD_SHAPE_VALIDATION_PLAN_ONLY: AVAILABLE_NOT_SELECTED`
-5. `PACKAGE_CREATE_SECRET_SCREENING_DRY_RUN_PLAN_ONLY: AVAILABLE_NOT_SELECTED`
-6. `PACKAGE_SEGMENT_REATTEMPT_BY_WORKSTREAM_WITH_EXPLICIT_PAYLOAD_ONLY: AVAILABLE_NOT_SELECTED`
-7. `PACKAGE_REQUEST_OPERATOR_PAYLOAD_REVIEW_BEFORE_REATTEMPT_ONLY: AVAILABLE_NOT_SELECTED`
-8. `PACKAGE_RERUN_INPUT_PREPARATION_WITHOUT_OPERATOR_PAYLOAD: BLOCKED_NOT_ALLOWED`
-9. `PACKAGE_USE_TEMPLATES_OR_PLACEHOLDERS_AS_OPERATOR_PAYLOAD: BLOCKED_NOT_ALLOWED`
-10. `PACKAGE_DERIVE_OPERATOR_PAYLOAD_FROM_DIGESTS_DIAGNOSTICS_CACHE_LOGS_ENV_OR_EXTERNAL_DOCUMENTS: BLOCKED_NOT_ALLOWED`
-11. `PACKAGE_COMPLETE_EVIDENCE_PACKAGE_OR_ACQUIRE_SOURCE_AUTHORITY_FROM_MECHANISM_ONLY: BLOCKED_NOT_ALLOWED`
-12. `PACKAGE_REMEDIATE_RETRY_OR_MAIN_MERGE_FROM_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW: BLOCKED_NOT_ALLOWED`
+1. `PACKAGE_CREATE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_FROM_REVIEWED_MECHANISM_WITH_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD: REVIEWED_RECOMMENDED_FOR_OPERATOR_ASSESSMENT_NOT_SELECTED`
+2. `PACKAGE_HOLD_PENDING_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD: REVIEWED_AVAILABLE_NOT_SELECTED`
+3. `PACKAGE_CREATE_OPERATOR_PAYLOAD_READINESS_CHECKLIST_ONLY: REVIEWED_AVAILABLE_NOT_SELECTED`
+4. `PACKAGE_CREATE_PAYLOAD_SHAPE_VALIDATION_PLAN_ONLY: REVIEWED_AVAILABLE_NOT_SELECTED`
+5. `PACKAGE_CREATE_SECRET_SCREENING_DRY_RUN_PLAN_ONLY: REVIEWED_AVAILABLE_NOT_SELECTED`
+6. `PACKAGE_SEGMENT_REATTEMPT_BY_WORKSTREAM_WITH_EXPLICIT_PAYLOAD_ONLY: REVIEWED_AVAILABLE_NOT_SELECTED`
+7. `PACKAGE_REQUEST_OPERATOR_PAYLOAD_REVIEW_BEFORE_REATTEMPT_ONLY: REVIEWED_AVAILABLE_NOT_SELECTED`
+8. `PACKAGE_RERUN_INPUT_PREPARATION_WITHOUT_OPERATOR_PAYLOAD: REVIEWED_BLOCKED_NOT_ALLOWED`
+9. `PACKAGE_USE_TEMPLATES_OR_PLACEHOLDERS_AS_OPERATOR_PAYLOAD: REVIEWED_BLOCKED_NOT_ALLOWED`
+10. `PACKAGE_DERIVE_OPERATOR_PAYLOAD_FROM_DIGESTS_DIAGNOSTICS_CACHE_LOGS_ENV_OR_EXTERNAL_DOCUMENTS: REVIEWED_BLOCKED_NOT_ALLOWED`
+11. `PACKAGE_COMPLETE_EVIDENCE_PACKAGE_OR_ACQUIRE_SOURCE_AUTHORITY_FROM_MECHANISM_ONLY: REVIEWED_BLOCKED_NOT_ALLOWED`
+12. `PACKAGE_REMEDIATE_RETRY_OR_MAIN_MERGE_FROM_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW: REVIEWED_BLOCKED_NOT_ALLOWED`
 
-## Recommended Package
+## Recommended Package Review
 
-`PACKAGE_CREATE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_FROM_REVIEWED_MECHANISM_WITH_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD` is recommended for operator review and remains unselected, unapproved, unauthorized, and unexecuted.
+`PACKAGE_CREATE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_FROM_REVIEWED_MECHANISM_WITH_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD` is reviewed but unselected, unapproved, unauthorized, and unexecuted.
 
 ## Source Approval
 
@@ -70,10 +78,6 @@ Commit `9c97a344e2a0e6f193804570c4a2ee8a3820e7f3` and digest `5f2d5ed4737b266d22
 ## Source Operator Review
 
 Commit `fc6d9d00ed95c19f0bf679cbf39b2f5acadcdb35` and digest `1843d4563bdb729714a145e2756329088ad35b9f45096ea0d917e89651b2b266` remain bound.
-
-## Source Candidate
-
-Commit `052b9f9002ba774361ebc099eea52be6cdbc7e62` and digest `f895767f7e54d97bbcf9ef7f44562f974505f6f32ebab2e66257e4d28c2dbd1a` remain bound.
 
 ## Source Failure Diagnosis
 
@@ -89,21 +93,23 @@ Commit `3cb60e016592480f2f23d977952ee5fd4ca3fd21` remains blocked.
 
 ## Primary Failure Class
 
-`NO_OPERATOR_SOURCE_AUTHORITY_EVIDENCE_PACKAGE_COMPLETION_INPUTS_PROVIDED`.
+`NO_OPERATOR_COMPLETION_INPUTS_PROVIDED_FOR_PREPARATION_OR_SUPPLY_EXECUTION`.
 
 ## Secondary Failure Classes
 
-1. `COMPLETION_EXECUTION_CORRECTLY_FAILS_CLOSED_WITHOUT_OPERATOR_COMPLETION_INPUTS`
-2. `COMPLETION_APPROVAL_IS_NOT_OPERATOR_COMPLETION_INPUTS`
-3. `REVIEWED_TEMPLATE_IS_NOT_COMPLETED_OPERATOR_EVIDENCE_PACKAGE`
-4. `TEMPLATE_PLACEHOLDERS_CANNOT_BE_CONVERTED_TO_EVIDENCE`
-5. `TEST_ONLY_SYNTHETIC_SUCCESS_PATH_IS_NOT_REPOSITORY_EVIDENCE`
-6. `SOURCE_AUTHORITY_ACQUISITION_REMAINS_BLOCKED_UNTIL_REVIEWED_COMPLETED_PACKAGE_EXISTS`
-7. `DETACHED_RETRY_FAILURE_REMAINS_AUTHORITATIVE_AND_UNREMEDIATED`
+1. `EXECUTION_CORRECTLY_FAILS_CLOSED_WITHOUT_EXPLICIT_OPERATOR_COMPLETION_INPUTS`
+2. `APPROVAL_IS_NOT_OPERATOR_COMPLETION_INPUTS`
+3. `REVIEWED_CANDIDATE_AND_INPUT_CONTRACT_ARE_NOT_SUPPLIED_INPUTS`
+4. `TEMPLATE_PLACEHOLDERS_ARE_NOT_OPERATOR_COMPLETION_INPUTS`
+5. `DIAGNOSTIC_OUTPUT_DIGESTS_CACHE_LOGS_ENV_AND_EXTERNAL_DOCUMENTS_ARE_NOT_INPUT_SOURCES`
+6. `SYNTHETIC_SUCCESS_PATH_IS_TEST_ONLY_AND_NOT_REPOSITORY_EVIDENCE`
+7. `COMPLETION_REATTEMPT_REQUIRES_REVIEWED_EXPLICIT_NON_SECRET_OPERATOR_INPUTS`
+8. `SOURCE_AUTHORITY_ACQUISITION_REMAINS_BLOCKED_UNTIL_REVIEWED_COMPLETED_PACKAGE_EXISTS`
+9. `DETACHED_RETRY_FAILURE_REMAINS_AUTHORITATIVE_AND_UNREMEDIATED`
 
 ## Historical Completion Template Acquisition Chains
 
-All committed approval, completion, template, and acquisition identities and digests remain source evidence only.
+All committed completion, template, and acquisition identities and digests remain source evidence only.
 
 ## Follow-On and Enrichment Chain
 
@@ -115,7 +121,7 @@ Remains blocked; no disposition, alternate diagnostic, or remediation was create
 
 ## Plan Method Diagnostic Recovery Chain
 
-All committed plan, method, diagnostic, recapture, receipt, and recovery digests remain bound without rerun.
+All committed plan, method, diagnostic, recapture, receipt, recovery, grouping, and inventory digests remain bound.
 
 ## Durable Receipt
 
@@ -139,7 +145,7 @@ All committed plan, method, diagnostic, recapture, receipt, and recovery digests
 
 ## Diagnostic Capture Evidence Summary
 
-Exit 1, byte counts, and hashes remain diagnostic metadata only; output was not analyzed.
+Exit 1, byte counts, and hashes remain diagnostic-only metadata; output was not analyzed.
 
 ## Reviewed Observable Families
 
@@ -157,7 +163,7 @@ Exit 1, byte counts, and hashes remain diagnostic metadata only; output was not 
 
 ## Reviewed Template Structure
 
-Exactly 30 empty mapped rows remain reviewed source evidence, not actual payload or authority.
+Exactly 30 empty rows remain reviewed source evidence rather than payload or authority.
 
 ## Actual Payload Absence
 
@@ -165,7 +171,7 @@ No operator payload or operator completion input exists.
 
 ## Actual Evidence Absence
 
-No prepared input, evidence item, completed evidence package, or acquired authority exists.
+No prepared input, evidence item, completed package, or acquired authority exists.
 
 ## Actual Coverage Zero
 
@@ -181,49 +187,47 @@ All prescribed and enumerated count labels remain distinct and unreconciled.
 
 ## Unsupported Claims Boundary
 
-No root cause, retry success, predictive usefulness, profitability, runtime, broker, trading, or main readiness is claimed.
+No approval, root cause, retry success, predictive usefulness, profitability, runtime, broker, trading, or main readiness is claimed.
 
 ## Recommendation
 
-`PROCEED_ONLY_TO_SEPARATELY_INVOKED_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_OPERATOR_REVIEW_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW`. Next task: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_OPERATOR_REVIEW_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_V1`.
+`PROCEED_ONLY_TO_SEPARATELY_INVOKED_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_APPROVAL_AFTER_CANDIDATE_OPERATOR_REVIEW_IF_OPERATOR_SELECTS_RECOMMENDED_PACKAGE`. Next task, only if selected: `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_APPROVAL_AFTER_CANDIDATE_OPERATOR_REVIEW_V1_IF_SELECTED`.
 
 ## Next Chain
 
-1. `Operator Completion Inputs Preparation or Supply Execution Reattempt Candidate Operator Review After Payload Supply Mechanism Results Review v1.`
-2. `Operator Completion Inputs Preparation or Supply Execution Reattempt Approval v1, if selected.`
-3. `Operator Completion Inputs Preparation or Supply Execution Reattempt v1, only with explicit non-secret operator payload.`
-4. `Operator Completion Inputs Preparation or Supply Results Review v1, only if explicit non-secret inputs are prepared or supplied.`
-5. `Operator Source Authority Evidence Package Completion Execution Reattempt v1, only if reviewed explicit non-secret inputs exist and reattempt is separately approved.`
-6. `Operator Source Authority Evidence Package Completion Results Review v1, only if a completed package exists.`
-7. `Source Authority Acquisition Execution Reattempt with Reviewed Completed Evidence Package v1, only if separately approved.`
-8. `Source Authority Acquisition Results Review v1, only if evidence is bound.`
-9. `A conditional disposition, diagnostic, remediation, retry-criteria, or hold candidate only if reviewed acquired evidence supports it.`
-10. `New Integration Branch Retry Candidate v1, only after reviewed and approved basis exists.`
-11. `New Integration Branch Retry Approval v1.`
-12. `New Integration Branch Retry Execution v1.`
-13. `New Integration Branch Retry Results Review v1.`
-14. `Main Merge Approval only if the new retry results review passes.`
+1. `Operator Completion Inputs Preparation or Supply Execution Reattempt Approval After Candidate Operator Review v1, if selected.`
+2. `Operator Completion Inputs Preparation or Supply Execution Reattempt v1, only with explicit non-secret payload and separate approval.`
+3. `Operator Completion Inputs Preparation or Supply Results Review v1, only if explicit non-secret inputs are prepared or supplied.`
+4. `Operator Source Authority Evidence Package Completion Execution Reattempt v1, only if reviewed inputs exist and reattempt is separately approved.`
+5. `Operator Source Authority Evidence Package Completion Results Review v1, only if a completed package exists.`
+6. `Source Authority Acquisition Execution Reattempt with Reviewed Completed Evidence Package v1, only if separately approved.`
+7. `Source Authority Acquisition Results Review v1, only if evidence is bound.`
+8. `A conditional disposition, diagnostic, remediation, retry-criteria, or hold candidate only if reviewed acquired evidence supports it.`
+9. `New Integration Branch Retry Candidate v1, only after reviewed and approved basis exists.`
+10. `New Integration Branch Retry Approval v1.`
+11. `New Integration Branch Retry Execution v1.`
+12. `New Integration Branch Retry Results Review v1.`
+13. `Main Merge Approval only if the new retry results review passes.`
 
 ## Next Gates
 
-1. `operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_operator_review`
-2. `operator_completion_inputs_preparation_or_supply_execution_reattempt_approval_if_selected`
-3. `operator_completion_inputs_preparation_or_supply_execution_reattempt_with_explicit_non_secret_payload_if_approved`
-4. `operator_completion_inputs_preparation_or_supply_results_review_if_prepared_inputs_exist`
-5. `operator_source_authority_evidence_package_completion_execution_reattempt_if_reviewed_inputs_exist_and_approved`
-6. `operator_source_authority_evidence_package_completion_results_review_if_completed_package_exists`
-7. `source_authority_acquisition_execution_reattempt_with_reviewed_completed_evidence_package_if_approved`
-8. `source_authority_acquisition_results_review_if_evidence_bound`
-9. `no_change_disposition_candidate_if_supported_by_reviewed_acquired_evidence`
-10. `alternate_diagnostic_candidate_if_supported_by_reviewed_acquired_evidence`
-11. `remediation_reentry_candidate_if_supported_by_reviewed_acquired_evidence`
-12. `no_change_retry_criteria_candidate_if_supported_by_reviewed_acquired_evidence`
-13. `hold_disposition_if_supported`
-14. `new_integration_branch_retry_candidate_after_reviewed_basis`
-15. `new_integration_branch_retry_approval_if_selected`
-16. `new_integration_branch_retry_execution_if_approved`
-17. `new_integration_branch_retry_results_review`
-18. `main_merge_approval_if_new_retry_passes`
+1. `operator_completion_inputs_preparation_or_supply_execution_reattempt_approval_if_selected`
+2. `operator_completion_inputs_preparation_or_supply_execution_reattempt_with_explicit_non_secret_payload_if_approved`
+3. `operator_completion_inputs_preparation_or_supply_results_review_if_prepared_inputs_exist`
+4. `operator_source_authority_evidence_package_completion_execution_reattempt_if_reviewed_inputs_exist_and_approved`
+5. `operator_source_authority_evidence_package_completion_results_review_if_completed_package_exists`
+6. `source_authority_acquisition_execution_reattempt_with_reviewed_completed_evidence_package_if_approved`
+7. `source_authority_acquisition_results_review_if_evidence_bound`
+8. `no_change_disposition_candidate_if_supported_by_reviewed_acquired_evidence`
+9. `alternate_diagnostic_candidate_if_supported_by_reviewed_acquired_evidence`
+10. `remediation_reentry_candidate_if_supported_by_reviewed_acquired_evidence`
+11. `no_change_retry_criteria_candidate_if_supported_by_reviewed_acquired_evidence`
+12. `hold_disposition_if_supported`
+13. `new_integration_branch_retry_candidate_after_reviewed_basis`
+14. `new_integration_branch_retry_approval_if_selected`
+15. `new_integration_branch_retry_execution_if_approved`
+16. `new_integration_branch_retry_results_review`
+17. `main_merge_approval_if_new_retry_passes`
 
 ## Risk Controls
 
@@ -692,25 +696,122 @@ No root cause, retry success, predictive usefulness, profitability, runtime, bro
 463. `separate_approval_required_before_reattempt_execution`
 464. `reattempt_results_review_required_before_completion_use`
 465. `source_authority_acquisition_requires_separate_approval`
+466. `operator_review_does_not_execute_package`
+467. `operator_review_does_not_create_operator_payload`
+468. `operator_review_does_not_prepare_inputs`
+469. `operator_review_does_not_supply_inputs`
+470. `operator_review_does_not_provide_inputs`
+471. `operator_review_does_not_shape_validate_actual_payload`
+472. `operator_review_does_not_secret_screen_actual_payload`
+473. `operator_review_does_not_validate_inputs_as_evidence`
+474. `operator_review_does_not_bind_inputs_as_evidence`
+475. `operator_review_does_not_create_prepared_inputs`
+476. `operator_review_does_not_create_reattempt`
+477. `operator_review_does_not_perform_reattempt`
+478. `operator_review_does_not_create_results_review`
+479. `operator_review_does_not_create_completed_evidence_package`
+480. `operator_review_does_not_create_evidence_package`
+481. `operator_review_does_not_fill_actual_evidence_items`
+482. `operator_review_does_not_validate_evidence`
+483. `operator_review_does_not_bind_evidence`
+484. `operator_review_does_not_accept_evidence_as_source_authority`
+485. `operator_review_does_not_infer_inputs_from_mechanism`
+486. `operator_review_does_not_infer_inputs_from_template`
+487. `operator_review_does_not_infer_inputs_from_placeholders`
+488. `operator_review_does_not_infer_inputs_from_diagnostic_output`
+489. `operator_review_does_not_infer_inputs_from_digests`
+490. `operator_review_does_not_read_cache_for_inputs`
+491. `operator_review_does_not_parse_logs_for_inputs`
+492. `operator_review_does_not_inspect_env_for_inputs`
+493. `operator_review_does_not_read_external_documents_for_inputs`
+494. `operator_review_does_not_call_providers_for_inputs`
+495. `operator_review_does_not_contact_source_owners_for_inputs`
+496. `operator_review_does_not_acquire_source_authority`
+497. `operator_review_does_not_acquire_source_authority_evidence`
+498. `operator_review_does_not_acquire_external_evidence`
+499. `operator_review_does_not_create_source_authority_acquisition_execution`
+500. `operator_review_does_not_retry_source_authority_acquisition`
+501. `operator_review_does_not_create_no_change_disposition`
+502. `operator_review_does_not_execute_alternate_diagnostics`
+503. `operator_review_does_not_execute_remediation`
+504. `operator_review_does_not_modify_production_code`
+505. `operator_review_does_not_modify_existing_tests`
+506. `operator_review_does_not_update_expected_digests`
+507. `operator_review_does_not_generate_patch`
+508. `operator_review_does_not_apply_patch`
+509. `operator_review_does_not_run_pytest`
+510. `operator_review_does_not_run_full_pytest`
+511. `operator_review_does_not_rerun_priority1_validation`
+512. `operator_review_does_not_rerun_retry`
+513. `operator_review_does_not_rerun_detached_retry`
+514. `operator_review_does_not_parse_durable_receipt`
+515. `operator_review_does_not_analyze_diagnostic_output`
+516. `operator_review_does_not_rerun_source_execution`
+517. `operator_review_does_not_regenerate_payload_supply_mechanism`
+518. `operator_review_does_not_rerun_source_authority_enrichment`
+519. `operator_review_does_not_rerun_follow_on_execution`
+520. `operator_review_does_not_rerun_plan_execution`
+521. `operator_review_does_not_regenerate_targeted_plan`
+522. `operator_review_does_not_rerun_method_execution`
+523. `operator_review_does_not_rerun_controlled_recapture`
+524. `operator_review_does_not_rerun_template_execution`
+525. `operator_review_does_not_rerun_completion_execution`
+526. `operator_review_does_not_rerun_input_preparation_execution`
+527. `operator_review_does_not_run_diagnostic_command`
+528. `operator_review_does_not_read_pytest_cache`
+529. `operator_review_does_not_modify_pytest_cache`
+530. `operator_review_does_not_commit_pytest_cache`
+531. `operator_review_does_not_commit_marketflow_outputs`
+532. `operator_review_does_not_parse_terminal_logs`
+533. `operator_review_does_not_parse_operator_logs`
+534. `operator_review_does_not_inspect_env`
+535. `operator_review_does_not_contact_source_owners`
+536. `operator_review_does_not_read_external_documents`
+537. `operator_review_does_not_reconstruct_prior_lost_values`
+538. `operator_review_does_not_reconstruct_full_streams`
+539. `operator_review_does_not_classify_modules_again`
+540. `operator_review_does_not_classify_full_retry_failures`
+541. `operator_review_does_not_classify_full_retry_errors`
+542. `operator_review_does_not_claim_failure_error_separation`
+543. `operator_review_does_not_identify_authoritative_first_failure`
+544. `operator_review_does_not_identify_authoritative_first_error`
+545. `operator_review_does_not_claim_traceback_root_cause`
+546. `operator_review_does_not_claim_root_cause`
+547. `operator_review_does_not_claim_retry_success`
+548. `operator_review_does_not_claim_main_merge_readiness`
+549. `operator_review_does_not_create_retry_candidate`
+550. `operator_review_does_not_create_retry_approval`
+551. `operator_review_does_not_create_retry_execution`
+552. `operator_review_does_not_create_retry_results_review`
+553. `operator_review_does_not_create_main_merge_approval`
+554. `operator_review_does_not_push_main`
+555. `operator_review_does_not_push_integration_branch`
+556. `operator_review_does_not_delete_integration_branch`
+557. `operator_review_does_not_delete_worktree`
+558. `operator_review_does_not_force_push`
+559. `operator_review_does_not_modify_tags`
+560. `operator_review_does_not_regenerate_evidence`
+561. `operator_review_does_not_call_providers`
+562. `operator_review_does_not_acquire_market_data`
+563. `operator_review_does_not_generate_dataset`
+564. `operator_review_does_not_recompute_metrics`
+565. `operator_review_does_not_train_models`
+566. `operator_review_does_not_score_strategy`
+567. `operator_review_does_not_generate_trade_recommendations`
+568. `operator_review_does_not_accept_predictive_usefulness`
+569. `operator_review_does_not_accept_profitability`
+570. `operator_review_does_not_authorize_runtime`
+571. `operator_review_does_not_authorize_broker_execution`
+572. `operator_review_is_not_approval`
 
 ## Authority Boundaries
 
-Candidate only; every package-selection, execution, evidence, acquisition, remediation, retry, merge, runtime, broker, and trading gate remains closed.
+Operator review only; package selection, approval, execution, evidence, acquisition, remediation, retry, merge, runtime, broker, and trading gates remain closed.
 
 ## Checklist Summary
 
-265/265 PASS; blockers=0.
+404/404 PASS; blockers=0.
 
 ## Guardrails
 
-Committed constants and validated injection only; no builders, source reads, subprocesses, pytest, cache, receipt, logs, environment, providers, source owners, market data, models, runtime, broker, or trading actions.
-
-## Subsequent Operator Review
-
-The digest-bound operator review is implemented. This candidate remains the candidate-only source evidence and remains ready for operator review; its source results review remains bound, its source execution was not rerun, and its payload-supply mechanism was not regenerated.
-
-The review assesses future reattempt options only. The recommended package requires explicit non-secret operator payload and remains unselected, unapproved, unauthorized, and unexecuted. No operator payload was created; no completion inputs were prepared, supplied, provided, validated, bound, or generated for results review; no reattempt was created or performed; no evidence package was created or completed; and no actual evidence item was filled. Actual coverage remains 0/30, with every missing-authority item `MISSING_NOT_ACQUIRED`.
-
-No source authority, source-authority evidence, external evidence, concrete authority, safe source-authority-bound change, no-change disposition, alternate diagnostic, remediation, retry candidate, or main-merge readiness was created. Count-label distinctions remain preserved. The operator review performed no production-code or existing-test change, expected-digest update, governance patch generation or application, internal pytest, retry, cache read, receipt/output/log/environment parsing, source-owner contact, provider or data action, runtime action, or trading action.
-
-The only optional next step is a separately invoked `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_APPROVAL_AFTER_CANDIDATE_OPERATOR_REVIEW_V1_IF_SELECTED`, and only if the operator selects the recommended package.
+Committed constants and validated injection only; no builders, source reads, subprocesses, pytest, cache, receipt, logs, environment, providers, source owners, data, models, runtime, broker, or trading actions.
