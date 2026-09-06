@@ -511,7 +511,7 @@ COUNTS = {
     "operator_review_enumerated_risk_control_count": 132,
 }
 
-RISK_CONTROLS = tuple("""approval_does_not_execute_package
+_APPROVAL_SPECIFIC_RISK_CONTROLS = tuple("""approval_does_not_execute_package
 approval_does_not_create_payload_supply_mechanism
 approval_does_not_create_operator_payload
 approval_does_not_prepare_inputs
@@ -637,6 +637,23 @@ preserve_staged_frozen_evidence
 preserve_terminal_archive_evidence
 preserve_published_governance_tags
 preserve_meta_limitation""".splitlines())
+
+# Carry every source-review control forward.  The three source-review controls
+# about selection/approval/authorization remain historical source facts because
+# this approval deliberately changes those three states; every other source
+# control is promoted to the approval actor.  Ordered de-duplication retains the
+# approval-specific vocabulary above while ensuring no source control is lost.
+_CARRIED_SOURCE_REVIEW_CONTROLS = tuple(
+    item
+    if item in {
+        "operator_review_does_not_select_package",
+        "operator_review_does_not_approve_package",
+        "operator_review_does_not_authorize_package",
+    }
+    else item.replace("operator_review_does_not_", "approval_does_not_", 1)
+    for item in source.RISK_CONTROLS
+)
+RISK_CONTROLS = tuple(dict.fromkeys((*_APPROVAL_SPECIFIC_RISK_CONTROLS, *_CARRIED_SOURCE_REVIEW_CONTROLS)))
 
 
 def _check(check_id: str, actual: bool) -> dict[str, Any]:
