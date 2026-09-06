@@ -349,3 +349,13 @@ Completion, validation, binding, acquisition, disposition, remediation, retry, r
 ## Guardrails
 
 Offline dictionary-only diagnosis; no source builders, files, subprocesses, pytest, caches, logs, environment, receipts, providers, external documents, or runtime outputs are accessed.
+
+## Operator Completion Inputs Preparation or Supply Candidate Follow-On
+
+The candidate is implemented for future operator review only. It defines twelve future preparation or supply options and recommends `PACKAGE_PREPARE_OR_SUPPLY_NON_SECRET_OPERATOR_COMPLETION_INPUTS_FOR_REVIEWED_TEMPLATE` without selecting, approving, authorizing, or executing it.
+
+The source failure diagnosis remains authoritative. No operator input was prepared, supplied, provided, validated, or bound; no completed evidence package or actual evidence item was created; coverage remains 0/30 with every item `MISSING_NOT_ACQUIRED`.
+
+The candidate creates no source authority, acquisition execution, disposition, alternate diagnostic, remediation, retry, main-merge readiness, provider/data action, runtime authority, broker authority, or trading authority. Count-label distinctions remain preserved.
+
+The next separately governed step is `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_CANDIDATE_OPERATOR_REVIEW_AFTER_BLOCKED_COMPLETION_EXECUTION_V1`.
