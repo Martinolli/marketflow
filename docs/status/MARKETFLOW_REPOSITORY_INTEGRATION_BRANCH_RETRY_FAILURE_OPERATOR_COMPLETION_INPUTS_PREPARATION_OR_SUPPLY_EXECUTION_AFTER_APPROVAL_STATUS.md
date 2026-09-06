@@ -344,3 +344,11 @@ Only the explicit-input execution gate exists. Actual evidence, authority, remed
 ## Guardrails
 
 Committed constants and injected dictionaries only. No source builders, files, subprocesses, pytest, caches, receipts, logs, environment, providers, source-owner contact, evidence, acquisition, or runtime actions.
+
+## Follow-On Failure Diagnosis
+
+The failure diagnosis is implemented. It binds this blocked execution as source evidence and preserves `NO_OPERATOR_COMPLETION_INPUTS_PROVIDED_FOR_PREPARATION_OR_SUPPLY_EXECUTION` as the primary failure class. The diagnosis confirms that approval was not operator input, no explicit non-secret `operator_completion_inputs` payload was supplied, and this execution correctly failed closed.
+
+No inputs were prepared, supplied, provided, shape-validated, secret-screened, evidence-validated, or evidence-bound. No prepared inputs were generated for results review; no evidence package was completed, created, supplied, validated, bound, or accepted; and no actual evidence item was filled. Success, prepared-input, and success-manifest digests remain absent. Actual coverage remains 0/30 and all 30 rows remain `MISSING_NOT_ACQUIRED`.
+
+The diagnosis keeps the synthetic success path test-only and creates no source authority, evidence, external evidence, concrete authority, safe change, no-change disposition, alternate diagnostic, remediation, retry candidate, or main-merge readiness. It performs no execution rerun, production-code or existing-test remediation, expected-digest update, patch generation/application, internal pytest, retry, cache/receipt/output/log/environment parsing, source-owner contact, provider/data/runtime/trading action, or count-label reconciliation.
