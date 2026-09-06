@@ -568,3 +568,13 @@ Only candidate operator review is ready; approval, execution, completion, acquis
 ## Guardrails
 
 Offline deterministic dictionaries only; no source builders, files, subprocesses, pytest, cache, receipts, output streams, logs, environment, external documents, source owners, providers, market data, models, runtime, broker, or trading systems are accessed.
+
+## Candidate Operator Review
+
+The separately governed operator review is implemented. This candidate remains its source evidence and is reviewed only as a future reentry or payload-supply decision surface.
+
+The review recommends `PACKAGE_DEFINE_OPERATOR_COMPLETION_INPUT_PAYLOAD_SUPPLY_MECHANISM_FROM_APPROVED_CONTRACT_ONLY` for possible future selection, but the package remains unselected, unapproved, unauthorized, and unexecuted. No payload mechanism, operator payload, completion input, prepared input, completed evidence package, or actual evidence item was created, supplied, validated, or bound.
+
+Actual coverage remains 0/30, all 30 items remain `MISSING_NOT_ACQUIRED`, and source success and prepared-input digests remain absent. No source authority, evidence, external evidence, concrete authority, safe change, disposition, alternate diagnostic, remediation, retry readiness, or main-merge readiness was created. Count-label distinctions remain unchanged. Optional separate approval is required before any execution.
+
+The review made no production-code or existing-test change, updated no expected digest, generated or applied no patch, parsed no durable receipt, diagnostic output, cache, log, or environment value, contacted no source owner, read no external document, ran no pytest from service code, attempted no retry, and performed no provider, data, runtime, broker, or trading action.
