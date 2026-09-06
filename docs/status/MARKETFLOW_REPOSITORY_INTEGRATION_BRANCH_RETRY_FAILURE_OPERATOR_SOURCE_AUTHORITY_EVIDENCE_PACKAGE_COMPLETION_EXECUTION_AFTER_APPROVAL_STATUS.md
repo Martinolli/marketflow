@@ -280,3 +280,13 @@ Evidence validation/binding/acceptance and every acquisition, disposition, remed
 ## Guardrails
 
 Offline dictionary-only execution; no source builders, file reads, subprocesses, pytest, cache/log/environment/receipt inspection, provider calls, source-owner contact, or runtime output writes.
+
+## Completion Execution Failure Diagnosis Follow-On
+
+The separately scoped completion-execution failure diagnosis is implemented. This blocked completion execution remains source evidence, and the diagnosis confirms its fail-closed result was correct because no operator completion inputs were supplied: `NO_OPERATOR_SOURCE_AUTHORITY_EVIDENCE_PACKAGE_COMPLETION_INPUTS_PROVIDED`.
+
+Approval is not operator input. The reviewed template is not actual evidence, source authority, acquired evidence, or acquisition success. The injected synthetic success path remains test-only and is not repository evidence.
+
+No completed package or evidence package was created, supplied, validated, bound, or accepted; no actual evidence item was filled; actual coverage remains 0/30; and all missing-authority rows remain `MISSING_NOT_ACQUIRED`. No source authority, evidence, external evidence, concrete authority, safe change, disposition, alternate diagnostic, remediation, retry, main-readiness claim, provider/data/runtime/trading action, or protected-branch mutation occurred.
+
+The diagnosis recommends a separately governed operator completion-input preparation or supply candidate.
