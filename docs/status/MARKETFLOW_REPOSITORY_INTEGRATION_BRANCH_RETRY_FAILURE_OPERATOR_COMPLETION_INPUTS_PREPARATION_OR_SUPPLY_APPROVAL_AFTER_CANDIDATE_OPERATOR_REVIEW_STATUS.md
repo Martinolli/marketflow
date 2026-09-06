@@ -487,3 +487,13 @@ Only future input preparation/supply execution is authorized. All present execut
 ## Guardrails
 
 Committed constants and injected dictionaries only. No upstream builders, file reads, subprocesses, pytest, caches, receipts, logs, environment, providers, source-owner contact, inputs, evidence, or runtime actions.
+
+## Follow-On Execution
+
+The approved operator completion-input preparation or supply execution is now implemented. It accepts only explicit non-secret operator completion inputs conforming to the reviewed 30-row contract. The actual execution received no operator inputs and therefore failed closed with `NO_OPERATOR_COMPLETION_INPUTS_PROVIDED_FOR_PREPARATION_OR_SUPPLY_EXECUTION`.
+
+The source approval remains source evidence; it is not operator input. Templates, placeholders, diagnostic output, digests, cache content, logs, environment variables, external documents, provider calls, and source-owner systems were not treated as input sources. No operator inputs were prepared, supplied, provided, shape-validated, secret-screened, validated as evidence, or bound as evidence in the actual blocked path. No completed evidence package was created, and no evidence package was created, supplied, validated, bound, or accepted. No actual evidence item was filled.
+
+Actual coverage remains 0/30 and all 30 missing-authority items remain `MISSING_NOT_ACQUIRED`. The execution establishes no source authority, acquired evidence, external evidence, concrete authority, safe source-authority-bound change, no-change disposition, alternate diagnostic, remediation, retry candidate, or main-merge readiness.
+
+The execution made no remediation code or test change, expected-digest update, or patch generation/application; ran no pytest or retry internally; parsed no durable receipt, diagnostic output, cache, log, or environment variable; contacted no source owner; read no external document; and performed no provider, data, runtime, broker, or trading action. Count-label distinctions remain preserved. The synthetic success path is test-only and is not repository evidence.
