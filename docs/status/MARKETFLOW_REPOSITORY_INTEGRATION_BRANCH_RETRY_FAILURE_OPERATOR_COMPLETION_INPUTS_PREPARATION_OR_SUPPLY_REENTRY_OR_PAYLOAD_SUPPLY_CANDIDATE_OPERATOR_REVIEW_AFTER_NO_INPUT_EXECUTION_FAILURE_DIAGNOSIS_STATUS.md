@@ -578,3 +578,11 @@ Only optional separate approval if selected is ready; all execution and downstre
 ## Guardrails
 
 Offline deterministic dictionaries only; no source builders, files, subprocesses, pytest, cache, receipt, logs, environment, external documents, source owners, providers, data, models, runtime, broker, or trading systems are accessed.
+
+## Approval
+
+The separately governed approval is implemented. This operator review remains the source evidence and continues to record its candidate and package-options review without becoming execution evidence.
+
+The approval selects `PACKAGE_DEFINE_OPERATOR_COMPLETION_INPUT_PAYLOAD_SUPPLY_MECHANISM_FROM_APPROVED_CONTRACT_ONLY` and authorizes only a future, separately invoked mechanism-definition execution. The package is not executed. No payload-supply mechanism, operator payload, completion input, prepared input, completed evidence package, evidence item, source authority, evidence acquisition, safe change, disposition, alternate diagnostic, remediation, retry candidate, or main-merge readiness was created.
+
+Actual coverage remains 0/30, all 30 items remain `MISSING_NOT_ACQUIRED`, and success and prepared-input digests remain absent. No production-strategy or existing-test change, expected-digest update, patch, pytest-in-service, retry, cache read, receipt/output/log/environment parsing, source-owner contact, provider/data/model/runtime/broker/trading action, main or integration push, branch deletion, or tag mutation occurred. Count-label distinctions remain preserved. A future execution is required before any payload-supply mechanism can exist.
