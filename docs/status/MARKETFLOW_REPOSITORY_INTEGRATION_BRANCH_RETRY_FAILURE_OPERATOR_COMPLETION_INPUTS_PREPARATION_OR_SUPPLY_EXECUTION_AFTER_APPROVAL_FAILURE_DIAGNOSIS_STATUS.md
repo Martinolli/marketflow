@@ -377,3 +377,11 @@ Only the separately governed re-entry/payload-supply candidate is ready; every e
 ## Guardrails
 
 Offline dictionary-only diagnosis; no source builders, files, subprocesses, pytest, caches, receipts, logs, environment, providers, external documents, or runtime outputs are accessed.
+
+## Reentry or Payload-Supply Candidate
+
+The separately governed reentry or payload-supply candidate is implemented and ready only for operator review. This diagnosis remains its source evidence, and the blocked reason remains `NO_OPERATOR_COMPLETION_INPUTS_PROVIDED_FOR_PREPARATION_OR_SUPPLY_EXECUTION`.
+
+The candidate defines future choices only and recommends `PACKAGE_DEFINE_OPERATOR_COMPLETION_INPUT_PAYLOAD_SUPPLY_MECHANISM_FROM_APPROVED_CONTRACT_ONLY`. It does not select, approve, authorize, or execute a package; create a payload; prepare, supply, validate, or bind inputs; or create or complete an evidence package. No actual evidence item was filled. Actual coverage remains 0/30, all 30 rows remain `MISSING_NOT_ACQUIRED`, and success and prepared-input digests remain absent.
+
+No source authority, evidence acquisition, external evidence, concrete authority, safe source-authority-bound change, no-change disposition, alternate diagnostic, remediation, retry candidate, or main-merge readiness was created. No production-code semantics, existing tests, expected digests, or patches were changed; the candidate service performs no pytest, retry, cache, receipt, output, log, environment, source-owner, provider, data, model, runtime, broker, or trading action. Historical count-label distinctions remain preserved.
