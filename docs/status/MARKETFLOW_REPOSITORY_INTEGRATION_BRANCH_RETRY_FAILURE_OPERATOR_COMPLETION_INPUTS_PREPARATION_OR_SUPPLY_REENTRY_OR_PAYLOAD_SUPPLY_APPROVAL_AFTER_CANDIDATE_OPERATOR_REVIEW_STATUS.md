@@ -396,3 +396,11 @@ Approval only; execution and every downstream evidence, acquisition, remediation
 ## Guardrails
 
 Deterministic committed constants and validated injection only; no source builders, file reads, subprocesses, pytest, cache, logs, environment, external systems, providers, source owners, market data, models, runtime, broker, or trading actions.
+
+## Approved Execution Update
+
+The separately authorized execution has now been implemented. The source approval remains immutable source evidence, while `PACKAGE_DEFINE_OPERATOR_COMPLETION_INPUT_PAYLOAD_SUPPLY_MECHANISM_FROM_APPROVED_CONTRACT_ONLY` has been executed only to define the deterministic governance mechanism.
+
+The execution created the payload-supply mechanism definition, 30-row operator payload submission schema, operator field checklist, allowed-values matrix, secret-screening guidance, four-workstream supply plan, downstream gate policy, and results-review prerequisite. It created no operator payload, prepared or supplied input, completed evidence package, or filled evidence item. Actual coverage remains 0/30 and every row remains `MISSING_NOT_ACQUIRED`.
+
+No source authority, evidence, external evidence, concrete authority, safe change, disposition, alternate diagnostic, remediation, retry candidate, or main-merge readiness was created. No production code or existing test semantics changed; no expected digest, patch, receipt, diagnostic output, cache, log, environment, source-owner, external-document, provider, data, model, runtime, broker, or trading action occurred. A separate execution-results review is required before any further use.
