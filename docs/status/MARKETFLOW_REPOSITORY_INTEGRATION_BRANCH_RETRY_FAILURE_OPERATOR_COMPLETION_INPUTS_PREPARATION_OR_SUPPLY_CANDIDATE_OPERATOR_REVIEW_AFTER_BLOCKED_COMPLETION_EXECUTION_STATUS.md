@@ -553,3 +553,14 @@ Selection, approval, authorization, execution, input handling, evidence completi
 ## Guardrails
 
 Offline committed constants and injected dictionaries only. No upstream builders, file reads, subprocesses, pytest, caches, receipts, logs, environment, providers, documents, source-owner contact, inputs, evidence, or runtime actions.
+
+## Approval Follow-on
+
+- Operator completion inputs preparation or supply approval is implemented.
+- This operator review remains the source evidence for the approval.
+- The approval selects `PACKAGE_PREPARE_OR_SUPPLY_NON_SECRET_OPERATOR_COMPLETION_INPUTS_FOR_REVIEWED_TEMPLATE` and authorizes a future, separately invoked input-preparation or input-supply execution only.
+- The approval does not execute input preparation or input supply and does not prepare, supply, provide, validate, or bind operator completion inputs.
+- The approval does not create a completed evidence package and does not create, supply, validate, bind, or accept evidence.
+- The approval does not acquire source authority, acquire source-authority or external evidence, retry acquisition, create a no-change disposition, run alternate diagnostics, execute remediation, modify production code or existing tests or expected digests, generate or apply patches, run pytest, rerun the retry, read caches, parse the receipt, output, or logs, inspect `.env`, contact source owners, read external documents, push protected branches, accept predictive usefulness or profitability, or authorize runtime or trading.
+- Actual coverage remains 0/30, and all 30 missing-authority items remain `MISSING_NOT_ACQUIRED`.
+- The count-label distinction remains preserved: requirements 67/69/69, non-goals 71/76, source risk controls 104/106, and local approval labels 62/17/34/76/105.
