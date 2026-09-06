@@ -1,0 +1,967 @@
+"""Define a candidate-only input-supply reattempt after mechanism review.
+
+The candidate is deterministic, offline, and governance-only.  It binds the
+committed payload-supply results review and defines future choices without
+selecting, approving, authorizing, or executing any package or reattempt.
+"""
+
+from __future__ import annotations
+
+from copy import deepcopy
+from pathlib import Path
+from typing import Any, Mapping
+
+from marketflow.historical_data.artifacts import semantic_digest
+from marketflow.services import (
+    marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_reentry_or_payload_supply_execution_results_review_after_approval_service
+    as source,
+)
+
+
+ARTIFACT_KIND = "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_V1"
+SCHEMA_VERSION = "marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1"
+CANDIDATE_STATUS = "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_READY_FOR_OPERATOR_REVIEW"
+CANDIDATE_SCOPE = "REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_ONLY_NOT_APPROVAL_NOT_EXECUTION_NOT_INPUT_PREPARATION_NOT_INPUT_SUPPLY_NOT_OPERATOR_PAYLOAD_CREATION_NOT_EVIDENCE_PACKAGE_COMPLETION_NOT_COMPLETION_REATTEMPT_NOT_SOURCE_AUTHORITY_ACQUISITION_NOT_EVIDENCE_ACQUISITION_NOT_NO_CHANGE_DISPOSITION_NOT_ALTERNATE_DIAGNOSTIC_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN"
+GENERATED_OUTPUT_STATUS = "GENERATED_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_ONLY"
+FUTURE_REQUIREMENT_STATUS = "REQUIRED_FOR_FUTURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_AFTER_REVIEWED_PAYLOAD_SUPPLY_MECHANISM"
+RECOMMENDED_PACKAGE_STATUS = "RECOMMENDED_FOR_OPERATOR_REVIEW_NOT_SELECTED"
+AVAILABLE_PACKAGE_STATUS = "AVAILABLE_NOT_SELECTED"
+BLOCKED_PACKAGE_STATUS = "BLOCKED_NOT_ALLOWED"
+RECOMMENDED_NEXT_TASK = "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_OPERATOR_REVIEW_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_V1"
+
+PACKAGE_CREATE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_FROM_REVIEWED_MECHANISM_WITH_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD = "PACKAGE_CREATE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_FROM_REVIEWED_MECHANISM_WITH_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD"
+PACKAGE_HOLD_PENDING_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD = "PACKAGE_HOLD_PENDING_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD"
+PACKAGE_CREATE_OPERATOR_PAYLOAD_READINESS_CHECKLIST_ONLY = "PACKAGE_CREATE_OPERATOR_PAYLOAD_READINESS_CHECKLIST_ONLY"
+PACKAGE_CREATE_PAYLOAD_SHAPE_VALIDATION_PLAN_ONLY = "PACKAGE_CREATE_PAYLOAD_SHAPE_VALIDATION_PLAN_ONLY"
+PACKAGE_CREATE_SECRET_SCREENING_DRY_RUN_PLAN_ONLY = "PACKAGE_CREATE_SECRET_SCREENING_DRY_RUN_PLAN_ONLY"
+PACKAGE_SEGMENT_REATTEMPT_BY_WORKSTREAM_WITH_EXPLICIT_PAYLOAD_ONLY = "PACKAGE_SEGMENT_REATTEMPT_BY_WORKSTREAM_WITH_EXPLICIT_PAYLOAD_ONLY"
+PACKAGE_REQUEST_OPERATOR_PAYLOAD_REVIEW_BEFORE_REATTEMPT_ONLY = "PACKAGE_REQUEST_OPERATOR_PAYLOAD_REVIEW_BEFORE_REATTEMPT_ONLY"
+PACKAGE_RERUN_INPUT_PREPARATION_WITHOUT_OPERATOR_PAYLOAD = "PACKAGE_RERUN_INPUT_PREPARATION_WITHOUT_OPERATOR_PAYLOAD"
+PACKAGE_USE_TEMPLATES_OR_PLACEHOLDERS_AS_OPERATOR_PAYLOAD = "PACKAGE_USE_TEMPLATES_OR_PLACEHOLDERS_AS_OPERATOR_PAYLOAD"
+PACKAGE_DERIVE_OPERATOR_PAYLOAD_FROM_DIGESTS_DIAGNOSTICS_CACHE_LOGS_ENV_OR_EXTERNAL_DOCUMENTS = "PACKAGE_DERIVE_OPERATOR_PAYLOAD_FROM_DIGESTS_DIAGNOSTICS_CACHE_LOGS_ENV_OR_EXTERNAL_DOCUMENTS"
+PACKAGE_COMPLETE_EVIDENCE_PACKAGE_OR_ACQUIRE_SOURCE_AUTHORITY_FROM_MECHANISM_ONLY = "PACKAGE_COMPLETE_EVIDENCE_PACKAGE_OR_ACQUIRE_SOURCE_AUTHORITY_FROM_MECHANISM_ONLY"
+PACKAGE_REMEDIATE_RETRY_OR_MAIN_MERGE_FROM_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW = "PACKAGE_REMEDIATE_RETRY_OR_MAIN_MERGE_FROM_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW"
+RECOMMENDED_PACKAGE = PACKAGE_CREATE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_FROM_REVIEWED_MECHANISM_WITH_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD
+
+SOURCE_RESULTS_REVIEW_COMMIT = "ea82014534ad79480207aa368d008483127a935a"
+SOURCE_RESULTS_REVIEW_DIGEST = "998f551af3ff8831ace04050e518a3ec227d7e3b6e3c7c5dc1006f55654f3ddf"
+SOURCE_PAYLOAD_SUPPLY_MECHANISM_REVIEW_DIGEST = "9cba19df4cfc9cef262ebdf5327048044faeee10fca8ccd09bd8b2fc265745fc"
+SOURCE_OPERATOR_PAYLOAD_SUBMISSION_SCHEMA_REVIEW_DIGEST = "80712a5d90c5a2db1d3edd1b19ae8ce45f4bcc886214e4d1e93c183938f44c21"
+SOURCE_ALLOWED_VALUES_AND_SECRET_SCREENING_REVIEW_DIGEST = "19c8f5e89aecd3c720b891903567533bf44ec1a81979d4c38c63603a5d5bb5f5"
+SOURCE_WORKSTREAM_SUPPLY_PLAN_REVIEW_DIGEST = "9ab3e967198557a13a02bd07fb862bda5b544c9ed901dd8bdcda93f246ea31de"
+SOURCE_BINDING_REVIEW_DIGEST = "03e03b69f6c29b715957f771bd37a8214e627a2e40694552d58b8dc6c92536fb"
+SOURCE_RESULTS_REVIEW_MANIFEST_DIGEST = "4875d967dd31006dd1965abedbf7da757cbc077b5608745b755ee1dbc39c76fd"
+
+CANDIDATE_DIGEST_KEY = "marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_digest"
+PACKAGE_OPTIONS_DIGEST_KEY = "marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_package_options_digest"
+FUTURE_REQUIREMENTS_DIGEST_KEY = "marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_future_requirements_digest"
+FUTURE_CONTRACT_DIGEST_KEY = "marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_future_contract_digest"
+SOURCE_BINDING_DIGEST_KEY = "marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_source_binding_digest"
+MANIFEST_DIGEST_KEY = "marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_manifest_digest"
+
+ARTIFACT_KIND_MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_V1 = ARTIFACT_KIND
+MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_READY_FOR_OPERATOR_REVIEW = CANDIDATE_STATUS
+REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_ONLY_NOT_APPROVAL_NOT_EXECUTION_NOT_INPUT_PREPARATION_NOT_INPUT_SUPPLY_NOT_OPERATOR_PAYLOAD_CREATION_NOT_EVIDENCE_PACKAGE_COMPLETION_NOT_COMPLETION_REATTEMPT_NOT_SOURCE_AUTHORITY_ACQUISITION_NOT_EVIDENCE_ACQUISITION_NOT_NO_CHANGE_DISPOSITION_NOT_ALTERNATE_DIAGNOSTIC_NOT_REMEDIATION_NOT_RETRY_NOT_MAIN = CANDIDATE_SCOPE
+
+SOURCE_RESULTS_REVIEW_BINDINGS = {
+    "source_results_review_commit": SOURCE_RESULTS_REVIEW_COMMIT,
+    "source_results_review_artifact_kind": source.ARTIFACT_KIND,
+    "source_results_review_status": source.RESULTS_REVIEW_STATUS,
+    "source_results_review_scope": source.RESULTS_REVIEW_SCOPE,
+    "source_results_review_digest": SOURCE_RESULTS_REVIEW_DIGEST,
+    "source_payload_supply_mechanism_review_digest": SOURCE_PAYLOAD_SUPPLY_MECHANISM_REVIEW_DIGEST,
+    "source_operator_payload_submission_schema_review_digest": SOURCE_OPERATOR_PAYLOAD_SUBMISSION_SCHEMA_REVIEW_DIGEST,
+    "source_allowed_values_and_secret_screening_review_digest": SOURCE_ALLOWED_VALUES_AND_SECRET_SCREENING_REVIEW_DIGEST,
+    "source_workstream_supply_plan_review_digest": SOURCE_WORKSTREAM_SUPPLY_PLAN_REVIEW_DIGEST,
+    "source_binding_review_digest": SOURCE_BINDING_REVIEW_DIGEST,
+    "source_results_review_manifest_digest": SOURCE_RESULTS_REVIEW_MANIFEST_DIGEST,
+    "source_results_review_checklist_passed_count": 630,
+    "source_results_review_checklist_total_count": 630,
+}
+
+TRUE_FIELDS = tuple("""operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_created
+operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_ready_for_operator_review
+source_results_review_bound
+source_results_review_reviewed
+source_execution_bound
+source_execution_reviewed
+source_execution_not_rerun_verified
+source_mechanism_not_regenerated_verified
+source_payload_supply_mechanism_review_bound
+source_operator_payload_submission_schema_review_bound
+source_allowed_values_and_secret_screening_review_bound
+source_workstream_supply_plan_review_bound
+source_binding_review_bound
+source_manifest_bound
+source_selected_package_bound
+source_selected_package_executed_verified
+source_payload_supply_mechanism_created_verified
+payload_supply_mechanism_reviewed
+operator_payload_submission_schema_reviewed
+operator_payload_field_checklist_reviewed
+allowed_values_matrix_reviewed
+secret_screening_guidance_reviewed
+workstream_segmented_payload_supply_plan_reviewed
+results_review_prerequisite_reviewed
+future_explicit_non_secret_payload_requirement_defined
+future_reattempt_requires_explicit_non_secret_payload
+future_reattempt_requires_operator_review
+future_reattempt_requires_separate_approval
+future_reattempt_requires_results_review_after_execution
+future_contract_requirements_preserved
+package_options_defined
+recommended_package_defined
+supporting_packages_defined
+blocked_packages_defined
+operator_completion_inputs_absence_preserved
+actual_payload_absence_preserved
+evidence_package_absence_preserved
+actual_coverage_zero_bound
+missing_authority_inventory_bound
+missing_authority_items_status_preserved
+source_authority_gap_preserved
+detached_retry_failed_status_preserved
+source_approval_bound
+source_operator_review_bound
+source_candidate_bound
+source_failure_diagnosis_bound
+source_blocked_input_preparation_execution_bound
+source_completion_execution_bound
+source_completion_approval_bound
+source_completion_candidate_operator_review_bound
+source_completion_candidate_bound
+source_template_preparation_results_review_bound
+source_template_preparation_execution_bound
+source_preparation_failure_acquisition_chain_bound
+follow_on_enrichment_historical_digests_bound
+plan_method_diagnostic_recovery_digests_bound
+durable_receipt_path_bound
+durable_receipt_not_parsed
+retry_failure_context_bound
+priority_1_context_bound
+priority1_validation_context_bound
+priority1_validation_not_retry_evidence
+diagnostic_metadata_bound
+observable_families_bound
+reviewed_workstreams_bound
+reviewed_template_structure_bound
+count_label_distinction_preserved
+ready_for_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_operator_review""".split())
+
+FALSE_FIELDS = tuple("""recommended_package_selected
+recommended_package_approved
+recommended_package_authorized
+recommended_package_executed
+any_package_selected
+any_package_approved
+any_package_authorized
+any_package_executed
+operator_completion_inputs_preparation_or_supply_execution_reattempt_created
+operator_completion_inputs_preparation_or_supply_execution_reattempt_approved
+operator_completion_inputs_preparation_or_supply_execution_reattempt_performed
+operator_completion_inputs_preparation_or_supply_results_review_created
+operator_payload_created
+operator_payload_supplied_to_candidate
+operator_payload_validated_in_candidate
+operator_payload_secret_screened_in_candidate
+operator_completion_inputs_supplied_to_candidate
+operator_completion_inputs_prepared
+operator_completion_inputs_supplied
+operator_completion_inputs_provided
+operator_completion_inputs_shape_validated_as_actual_payload
+operator_completion_inputs_secret_screened_as_actual_payload
+operator_completion_inputs_validated_as_evidence
+operator_completion_inputs_bound_as_evidence
+operator_completion_inputs_bound
+operator_completion_inputs_contained_secrets
+prepared_operator_completion_inputs_for_results_review
+operator_source_authority_evidence_package_completion_executed
+operator_source_authority_evidence_package_completed
+operator_source_authority_evidence_package_created
+operator_source_authority_evidence_package_supplied
+operator_source_authority_evidence_package_validated
+operator_source_authority_evidence_package_bound
+operator_source_authority_evidence_package_accepted_as_source_authority
+actual_evidence_items_filled
+actual_evidence_items_supplied
+actual_evidence_items_validated
+actual_evidence_items_bound
+source_authority_acquisition_execution_created
+source_authority_acquisition_execution_performed
+source_authority_acquisition_performed
+source_authority_evidence_acquired
+external_evidence_acquired
+source_authority_evidence_items_bound_for_results_review
+source_authority_evidence_mapping_created
+concrete_source_authority_established
+safe_source_authority_bound_change_identified
+no_change_disposition_performed
+alternate_diagnostic_execution_performed
+remediation_execution_performed
+controlled_plan_derived_remediation_performed
+code_remediation_executed
+evidence_remediation_executed
+production_code_modified
+existing_tests_modified
+expected_digests_updated
+patch_generated
+patch_applied
+pytest_performed_in_candidate
+full_pytest_performed
+priority1_validation_rerun_performed
+retry_rerun_performed
+detached_retry_rerun_performed
+diagnostic_receipt_parsed_in_candidate
+diagnostic_output_analyzed_in_candidate
+source_execution_rerun_performed
+payload_supply_mechanism_regenerated
+source_authority_enrichment_rerun_performed
+follow_on_execution_rerun_performed
+plan_execution_rerun_performed
+targeted_remediation_plan_regenerated_in_candidate
+method_execution_rerun_performed
+controlled_recapture_rerun_performed
+template_execution_rerun_performed
+completion_execution_rerun_performed
+input_preparation_or_supply_execution_rerun_performed
+diagnostic_command_rerun_performed
+cache_read_in_candidate
+cache_modified_in_candidate
+pytest_cache_committed
+marketflow_outputs_committed
+terminal_logs_parsed
+operator_logs_parsed
+env_inspection_performed
+source_owners_contacted
+external_documents_read
+provider_requests_made_in_candidate
+prior_lost_values_reconstructed
+prior_lost_values_inferred
+full_stdout_reconstructed
+full_stderr_reconstructed
+failure_modules_classified
+error_modules_classified
+failure_error_separation_claimed
+first_failure_identified
+first_error_identified
+first_order_claim_made
+traceback_root_cause_claimed
+root_cause_claimed
+retry_success_claimed
+main_merge_readiness_claimed
+new_retry_candidate_created
+retry_approval_created
+new_retry_executed
+new_retry_results_review_created
+main_merge_approval_created
+ready_for_operator_completion_inputs_preparation_or_supply_execution_reattempt
+ready_for_operator_completion_inputs_preparation_or_supply_results_review
+ready_for_operator_source_authority_evidence_package_completion_execution
+ready_for_operator_source_authority_evidence_package_completion_results_review
+ready_for_source_authority_acquisition_execution_retry
+ready_for_source_authority_acquisition_results_review
+ready_for_no_change_disposition_candidate
+ready_for_alternate_diagnostic_candidate
+ready_for_remediation_execution
+ready_for_retry_candidate
+ready_for_main_merge_approval
+integration_execution_successful
+successful_integration_execution_digest_generated
+successful_integration_validation_digest_generated
+integration_branch_pushed
+main_push_performed
+origin_main_modified_by_this_task
+evidence_regenerated
+market_data_acquisition_performed_in_candidate
+dataset_generation_performed_in_candidate
+metric_recomputation_from_raw_rows_performed
+model_training_performed
+strategy_scoring_performed
+trade_recommendations_generated
+actual_payload_values_present""".split())
+
+COUNTS = {
+    "operator_source_authority_evidence_item_count": 0,
+    "operator_source_authority_evidence_item_template_count": 30,
+    "reviewed_template_row_count": 30,
+    "actual_covered_missing_authority_item_count": 0,
+    "actual_uncovered_missing_authority_item_count": 30,
+    "template_mapped_missing_authority_item_count": 30,
+    "mapped_missing_authority_item_count": 30,
+    "completed_operator_evidence_item_count": 0,
+    "operator_completion_input_item_count": 0,
+    "future_operator_completion_input_item_count": 30,
+    "prepared_operator_completion_input_item_count": 0,
+    "payload_supply_mechanism_item_count": 30,
+    "payload_supply_mechanism_section_count": 4,
+    "package_header_schema_field_count": 14,
+    "evidence_item_schema_field_count": 21,
+    "workstream_segment_count": 4,
+    "acquisition_scope_section_count": 4,
+    "acceptable_source_artifact_type_count": 13,
+    "allowed_evidence_classification_count": 12,
+    "secret_screening_indicator_count": 13,
+    "pre_submission_checklist_field_count": 34,
+    "operator_provided_evidence_requirement_count": 10,
+    "evidence_custody_and_digest_requirement_count": 6,
+    "candidate_results_review_requirement_count": 16,
+    "observable_failure_family_count": 4,
+    "total_observable_evidence_items": 188,
+    "priority_1_total_nodeids": 612,
+    "top_10_count_sum": 1069,
+    "failed_or_errored_nodeids_count": 1404,
+    "module_summary_module_count": 29,
+    "package_option_count": 12,
+    "available_package_count": 7,
+    "supporting_package_count": 6,
+    "blocked_package_count": 5,
+    "future_requirement_count": 58,
+    "future_plan_step_count": 14,
+    "planned_output_count": 32,
+    "non_goal_count": 84,
+    "risk_control_count": 118,
+}
+
+FUTURE_REQUIREMENT_IDS = tuple("""source_results_review_must_be_bound
+source_execution_must_be_bound
+source_execution_must_not_be_rerun
+payload_supply_mechanism_must_not_be_regenerated
+source_mechanism_digests_must_be_bound
+source_approval_must_be_bound
+source_operator_review_must_be_bound
+source_candidate_must_be_bound
+source_failure_diagnosis_must_be_bound
+source_blocked_input_execution_must_be_bound
+source_completion_template_acquisition_chains_must_be_bound
+follow_on_enrichment_historical_digests_must_be_bound
+plan_method_diagnostic_recovery_digests_must_be_bound
+durable_receipt_path_must_remain_opaque
+retry_failure_counts_must_be_bound
+priority_1_context_must_be_bound
+priority1_validation_must_remain_non_retry_evidence
+diagnostic_metadata_must_remain_diagnostic_only
+observable_families_must_remain_planning_evidence
+reviewed_workstreams_must_remain_non_authorizing
+reviewed_template_structure_must_be_bound
+actual_coverage_must_remain_zero
+missing_authority_items_must_remain_missing
+future_reattempt_must_require_explicit_operator_payload
+future_payload_must_be_non_secret
+future_payload_must_match_reviewed_package_header_schema
+future_payload_must_include_exactly_30_items
+future_payload_must_map_ma001_to_ma030
+future_payload_must_use_allowed_sections
+future_payload_must_use_allowed_workstreams
+future_payload_must_use_allowed_artifact_types
+future_payload_must_use_allowed_evidence_classifications
+future_payload_must_preserve_specification_or_observation_distinction
+future_payload_must_preserve_expected_or_actual_scope
+future_payload_must_include_source_owner_or_origin
+future_payload_must_include_source_reference
+future_payload_must_include_digest_or_reproducible_provenance
+future_payload_must_include_authority_statement
+future_payload_must_include_no_secret_attestation
+future_payload_must_force_direct_change_false
+future_payload_must_force_remediation_false
+future_payload_must_force_retry_false
+future_payload_must_force_main_merge_false
+future_payload_must_require_results_review_before_use
+future_reattempt_must_be_separately_reviewed
+future_reattempt_must_be_separately_approved
+future_reattempt_execution_must_fail_closed_without_payload
+future_reattempt_execution_must_fail_closed_on_secret_like_payload
+future_reattempt_execution_must_not_validate_inputs_as_evidence
+future_reattempt_execution_must_not_bind_inputs_as_evidence
+future_reattempt_execution_must_not_complete_evidence_package
+future_reattempt_execution_must_not_acquire_source_authority
+future_reattempt_execution_must_not_remediate
+future_reattempt_execution_must_not_retry
+future_reattempt_execution_must_not_merge
+future_results_review_required_after_reattempt
+source_authority_acquisition_requires_reviewed_completed_package
+runtime_and_trading_remain_not_authorized""".split())
+
+FUTURE_PLAN_STEPS = (
+    "Bind source payload-supply mechanism results review.",
+    "Bind the complete committed governance and diagnostic chain.",
+    "Preserve source execution as reviewed and not rerun.",
+    "Preserve mechanism digests and confirm no regeneration.",
+    "Preserve payload, input, package, and authority absence at coverage 0/30.",
+    "Preserve retry failure counts and Priority 1 context as non-retry evidence.",
+    "Preserve observable families and workstreams as planning evidence only.",
+    "Define exactly 12 reattempt package options.",
+    "Recommend the explicit non-secret payload package without selecting it.",
+    "Define future explicit payload requirements from the reviewed mechanism.",
+    "Preserve secret-screening and allowed-value boundaries.",
+    "Preserve no-execution, no-evidence, no-acquisition, no-remediation, no-retry, and no-main boundaries.",
+    "Require operator review and separate approval before any reattempt.",
+    "Require results review after any future reattempt before downstream use.",
+)
+
+OUTPUT_NAMES = tuple("""candidate_manifest
+source_results_review_binding_report
+source_execution_binding_report
+source_execution_digest_review_report
+payload_supply_mechanism_review_binding_report
+operator_payload_submission_schema_review_binding_report
+allowed_values_and_secret_screening_review_binding_report
+workstream_supply_plan_review_binding_report
+source_approval_binding_report
+source_operator_review_binding_report
+source_candidate_binding_report
+source_failure_diagnosis_binding_report
+source_blocked_input_preparation_execution_binding_report
+source_success_digests_absence_report
+source_completion_template_acquisition_chain_binding_report
+follow_on_enrichment_historical_binding_report
+plan_method_diagnostic_recovery_binding_report
+durable_receipt_opaque_reference_report
+retry_failure_context_report
+priority1_validation_disposition_report
+diagnostic_metadata_boundary_report
+reviewed_observable_families_report
+reviewed_workstreams_report
+reviewed_template_structure_report
+actual_payload_absence_report
+actual_evidence_absence_report
+actual_coverage_zero_report
+missing_authority_inventory_report
+count_label_distinction_report
+package_options_report
+recommended_package_report
+future_payload_requirements_report
+future_plan_report
+downstream_gate_preservation_report
+unsupported_claims_boundary_report
+digest_manifest""".split())
+
+NEXT_CHAIN = (
+    "Operator Completion Inputs Preparation or Supply Execution Reattempt Candidate Operator Review After Payload Supply Mechanism Results Review v1.",
+    "Operator Completion Inputs Preparation or Supply Execution Reattempt Approval v1, if selected.",
+    "Operator Completion Inputs Preparation or Supply Execution Reattempt v1, only with explicit non-secret operator payload.",
+    "Operator Completion Inputs Preparation or Supply Results Review v1, only if explicit non-secret inputs are prepared or supplied.",
+    "Operator Source Authority Evidence Package Completion Execution Reattempt v1, only if reviewed explicit non-secret inputs exist and reattempt is separately approved.",
+    "Operator Source Authority Evidence Package Completion Results Review v1, only if a completed package exists.",
+    "Source Authority Acquisition Execution Reattempt with Reviewed Completed Evidence Package v1, only if separately approved.",
+    "Source Authority Acquisition Results Review v1, only if evidence is bound.",
+    "A conditional disposition, diagnostic, remediation, retry-criteria, or hold candidate only if reviewed acquired evidence supports it.",
+    "New Integration Branch Retry Candidate v1, only after reviewed and approved basis exists.",
+    "New Integration Branch Retry Approval v1.",
+    "New Integration Branch Retry Execution v1.",
+    "New Integration Branch Retry Results Review v1.",
+    "Main Merge Approval only if the new retry results review passes.",
+)
+
+NEXT_GATES = tuple("""operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_operator_review
+operator_completion_inputs_preparation_or_supply_execution_reattempt_approval_if_selected
+operator_completion_inputs_preparation_or_supply_execution_reattempt_with_explicit_non_secret_payload_if_approved
+operator_completion_inputs_preparation_or_supply_results_review_if_prepared_inputs_exist
+operator_source_authority_evidence_package_completion_execution_reattempt_if_reviewed_inputs_exist_and_approved
+operator_source_authority_evidence_package_completion_results_review_if_completed_package_exists
+source_authority_acquisition_execution_reattempt_with_reviewed_completed_evidence_package_if_approved
+source_authority_acquisition_results_review_if_evidence_bound
+no_change_disposition_candidate_if_supported_by_reviewed_acquired_evidence
+alternate_diagnostic_candidate_if_supported_by_reviewed_acquired_evidence
+remediation_reentry_candidate_if_supported_by_reviewed_acquired_evidence
+no_change_retry_criteria_candidate_if_supported_by_reviewed_acquired_evidence
+hold_disposition_if_supported
+new_integration_branch_retry_candidate_after_reviewed_basis
+new_integration_branch_retry_approval_if_selected
+new_integration_branch_retry_execution_if_approved
+new_integration_branch_retry_results_review
+main_merge_approval_if_new_retry_passes""".split())
+
+_CANDIDATE_RISK_CONTROLS = tuple("""candidate_does_not_execute_reattempt
+candidate_does_not_select_package
+candidate_does_not_approve_package
+candidate_does_not_authorize_package
+candidate_does_not_create_operator_payload
+candidate_does_not_prepare_inputs
+candidate_does_not_supply_inputs
+candidate_does_not_provide_inputs
+candidate_does_not_shape_validate_actual_payload
+candidate_does_not_secret_screen_actual_payload
+candidate_does_not_validate_inputs_as_evidence
+candidate_does_not_bind_inputs_as_evidence
+candidate_does_not_create_prepared_inputs
+candidate_does_not_create_completed_evidence_package
+candidate_does_not_create_evidence_package
+candidate_does_not_fill_actual_evidence_items
+candidate_does_not_validate_evidence
+candidate_does_not_bind_evidence
+candidate_does_not_accept_evidence_as_source_authority
+candidate_does_not_infer_inputs_from_mechanism
+candidate_does_not_infer_inputs_from_template
+candidate_does_not_infer_inputs_from_placeholders
+candidate_does_not_infer_inputs_from_diagnostic_output
+candidate_does_not_infer_inputs_from_digests
+candidate_does_not_read_cache_for_inputs
+candidate_does_not_parse_logs_for_inputs
+candidate_does_not_inspect_env_for_inputs
+candidate_does_not_read_external_documents_for_inputs
+candidate_does_not_call_providers_for_inputs
+candidate_does_not_contact_source_owners_for_inputs
+candidate_does_not_acquire_source_authority
+candidate_does_not_acquire_source_authority_evidence
+candidate_does_not_acquire_external_evidence
+candidate_does_not_create_source_authority_acquisition_execution
+candidate_does_not_retry_source_authority_acquisition
+candidate_does_not_create_no_change_disposition
+candidate_does_not_execute_alternate_diagnostics
+candidate_does_not_execute_remediation
+candidate_does_not_modify_production_code
+candidate_does_not_modify_existing_tests
+candidate_does_not_update_expected_digests
+candidate_does_not_generate_patch
+candidate_does_not_apply_patch
+candidate_does_not_run_pytest
+candidate_does_not_run_full_pytest
+candidate_does_not_rerun_priority1_validation
+candidate_does_not_rerun_retry
+candidate_does_not_rerun_detached_retry
+candidate_does_not_parse_durable_receipt
+candidate_does_not_analyze_diagnostic_output
+candidate_does_not_rerun_source_execution
+candidate_does_not_regenerate_payload_supply_mechanism
+candidate_does_not_rerun_source_authority_enrichment
+candidate_does_not_rerun_follow_on_execution
+candidate_does_not_rerun_plan_execution
+candidate_does_not_regenerate_targeted_plan
+candidate_does_not_rerun_method_execution
+candidate_does_not_rerun_controlled_recapture
+candidate_does_not_rerun_template_execution
+candidate_does_not_rerun_completion_execution
+candidate_does_not_rerun_input_preparation_execution
+candidate_does_not_run_diagnostic_command
+candidate_does_not_read_pytest_cache
+candidate_does_not_modify_pytest_cache
+candidate_does_not_commit_pytest_cache
+candidate_does_not_commit_marketflow_outputs
+candidate_does_not_parse_terminal_logs
+candidate_does_not_parse_operator_logs
+candidate_does_not_inspect_env
+candidate_does_not_contact_source_owners
+candidate_does_not_read_external_documents
+candidate_does_not_reconstruct_prior_lost_values
+candidate_does_not_reconstruct_full_streams
+candidate_does_not_classify_modules_again
+candidate_does_not_classify_full_retry_failures
+candidate_does_not_classify_full_retry_errors
+candidate_does_not_claim_failure_error_separation
+candidate_does_not_identify_authoritative_first_failure
+candidate_does_not_identify_authoritative_first_error
+candidate_does_not_claim_traceback_root_cause
+candidate_does_not_claim_root_cause
+candidate_does_not_claim_retry_success
+candidate_does_not_claim_main_merge_readiness
+candidate_does_not_create_retry_candidate
+candidate_does_not_create_retry_approval
+candidate_does_not_create_retry_execution
+candidate_does_not_create_retry_results_review
+candidate_does_not_create_main_merge_approval
+candidate_does_not_push_main
+candidate_does_not_push_integration_branch
+candidate_does_not_delete_integration_branch
+candidate_does_not_delete_worktree
+candidate_does_not_force_push
+candidate_does_not_modify_tags
+candidate_does_not_regenerate_evidence
+candidate_does_not_call_providers
+candidate_does_not_acquire_market_data
+candidate_does_not_generate_dataset
+candidate_does_not_recompute_metrics
+candidate_does_not_train_models
+candidate_does_not_score_strategy
+candidate_does_not_generate_trade_recommendations
+candidate_does_not_accept_predictive_usefulness
+candidate_does_not_accept_profitability
+candidate_does_not_authorize_runtime
+candidate_does_not_authorize_broker_execution
+payload_supply_mechanism_results_review_is_not_payload
+payload_supply_mechanism_results_review_is_not_input_preparation
+payload_supply_mechanism_results_review_is_not_evidence_completion
+payload_supply_mechanism_results_review_is_not_source_authority
+explicit_non_secret_payload_required_before_reattempt
+operator_review_required_before_reattempt_approval
+separate_approval_required_before_reattempt_execution
+reattempt_results_review_required_before_completion_use
+completed_package_requires_results_review_before_acquisition_use
+source_authority_acquisition_requires_separate_approval
+acquisition_results_review_required_before_no_change_disposition
+acquisition_results_review_required_before_alternate_diagnostic
+acquisition_results_review_required_before_remediation
+separate_retry_approval_required_before_new_retry
+main_merge_requires_passing_new_retry_results_review
+first_retry_failure_remains_authoritative
+root_regression_not_retry_evidence
+protect_origin_main
+preserve_integration_branch
+preserve_staged_frozen_evidence
+preserve_terminal_archive_evidence
+preserve_published_governance_tags
+preserve_meta_limitation""".split())
+RISK_CONTROLS = tuple(dict.fromkeys((*source.RISK_CONTROLS, *_CANDIDATE_RISK_CONTROLS)))
+
+
+class MarketFlowRepositoryIntegrationBranchRetryFailureOperatorCompletionInputsReattemptCandidateError(ValueError):
+    """Raised when candidate evidence violates the frozen contract."""
+
+
+def _package_options() -> list[dict[str, Any]]:
+    available = (
+        (RECOMMENDED_PACKAGE, RECOMMENDED_PACKAGE_STATUS, None),
+        (PACKAGE_HOLD_PENDING_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD, AVAILABLE_PACKAGE_STATUS, None),
+        (PACKAGE_CREATE_OPERATOR_PAYLOAD_READINESS_CHECKLIST_ONLY, AVAILABLE_PACKAGE_STATUS, None),
+        (PACKAGE_CREATE_PAYLOAD_SHAPE_VALIDATION_PLAN_ONLY, AVAILABLE_PACKAGE_STATUS, None),
+        (PACKAGE_CREATE_SECRET_SCREENING_DRY_RUN_PLAN_ONLY, AVAILABLE_PACKAGE_STATUS, None),
+        (PACKAGE_SEGMENT_REATTEMPT_BY_WORKSTREAM_WITH_EXPLICIT_PAYLOAD_ONLY, AVAILABLE_PACKAGE_STATUS, None),
+        (PACKAGE_REQUEST_OPERATOR_PAYLOAD_REVIEW_BEFORE_REATTEMPT_ONLY, AVAILABLE_PACKAGE_STATUS, None),
+        (PACKAGE_RERUN_INPUT_PREPARATION_WITHOUT_OPERATOR_PAYLOAD, BLOCKED_PACKAGE_STATUS, "The previous execution failed closed because no explicit operator completion inputs were supplied. Rerunning without payload would repeat the blocked condition."),
+        (PACKAGE_USE_TEMPLATES_OR_PLACEHOLDERS_AS_OPERATOR_PAYLOAD, BLOCKED_PACKAGE_STATUS, "Templates and placeholders are not operator payload and cannot be converted into operator completion inputs."),
+        (PACKAGE_DERIVE_OPERATOR_PAYLOAD_FROM_DIGESTS_DIAGNOSTICS_CACHE_LOGS_ENV_OR_EXTERNAL_DOCUMENTS, BLOCKED_PACKAGE_STATUS, "Digests, diagnostic output, cache, logs, environment state, and external documents are not explicit non-secret operator payload."),
+        (PACKAGE_COMPLETE_EVIDENCE_PACKAGE_OR_ACQUIRE_SOURCE_AUTHORITY_FROM_MECHANISM_ONLY, BLOCKED_PACKAGE_STATUS, "A reviewed payload-supply mechanism is not completed evidence, source authority, or acquisition success."),
+        (PACKAGE_REMEDIATE_RETRY_OR_MAIN_MERGE_FROM_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW, BLOCKED_PACKAGE_STATUS, "The mechanism results review does not establish remediation authority, retry readiness, retry success, integration success, or main-merge readiness."),
+    )
+    return [
+        {
+            "package_id": package_id,
+            "candidate_status": status,
+            "blocked_reason": reason,
+            "selected": False,
+            "approved": False,
+            "authorized": False,
+            "executed": False,
+        }
+        for package_id, status, reason in available
+    ]
+
+
+def _source_context() -> dict[str, Any]:
+    context = deepcopy(source.source.source.SOURCE_CONTEXT)
+    renames = {
+        "source_approval_commit": "source_prior_approval_commit",
+        "source_approval_digest": "source_prior_approval_digest",
+        "source_attestation_digest": "source_prior_attestation_digest",
+        "source_execution_commit": "source_blocked_input_preparation_execution_commit",
+        "source_blocked_reason": "source_blocked_input_preparation_execution_reason",
+        "source_blocked_digest": "source_blocked_input_preparation_digest",
+        "source_source_binding_digest": "source_blocked_input_preparation_source_binding_digest",
+        "source_input_absence_digest": "source_blocked_input_preparation_input_absence_digest",
+        "source_coverage_digest": "source_blocked_input_preparation_coverage_digest",
+        "source_blocked_manifest_digest": "source_blocked_input_preparation_manifest_digest",
+        "source_package_options_review_digest": "source_operator_review_package_options_review_digest",
+        "source_future_requirements_review_digest": "source_operator_review_future_requirements_review_digest",
+        "source_future_contract_review_digest": "source_operator_review_future_contract_review_digest",
+        "source_binding_review_digest": "source_operator_review_source_binding_review_digest",
+    }
+    for old, new in renames.items():
+        if old in context:
+            context[new] = context.pop(old)
+    context.update(deepcopy(source.source.SOURCE_APPROVAL_BINDINGS))
+    context["source_approval_selected_package_executed"] = context.pop("source_selected_package_executed")
+    context.update(deepcopy(source.SOURCE_EXECUTION_BINDINGS))
+    return context
+
+
+def _validate_source_results_review(value: Any) -> None:
+    if value is None:
+        return
+    if not isinstance(value, Mapping):
+        raise MarketFlowRepositoryIntegrationBranchRetryFailureOperatorCompletionInputsReattemptCandidateError("source_results_review must be an object")
+    expected = SOURCE_RESULTS_REVIEW_BINDINGS
+    if "artifact_kind" in value:
+        expected = {
+            "artifact_kind": source.ARTIFACT_KIND,
+            "results_review_status": source.RESULTS_REVIEW_STATUS,
+            "results_review_scope": source.RESULTS_REVIEW_SCOPE,
+            source.RESULTS_REVIEW_DIGEST_KEY: SOURCE_RESULTS_REVIEW_DIGEST,
+            source.PAYLOAD_SUPPLY_MECHANISM_REVIEW_DIGEST_KEY: SOURCE_PAYLOAD_SUPPLY_MECHANISM_REVIEW_DIGEST,
+            source.OPERATOR_PAYLOAD_SUBMISSION_SCHEMA_REVIEW_DIGEST_KEY: SOURCE_OPERATOR_PAYLOAD_SUBMISSION_SCHEMA_REVIEW_DIGEST,
+            source.ALLOWED_VALUES_AND_SECRET_SCREENING_REVIEW_DIGEST_KEY: SOURCE_ALLOWED_VALUES_AND_SECRET_SCREENING_REVIEW_DIGEST,
+            source.WORKSTREAM_SUPPLY_PLAN_REVIEW_DIGEST_KEY: SOURCE_WORKSTREAM_SUPPLY_PLAN_REVIEW_DIGEST,
+            source.SOURCE_BINDING_REVIEW_DIGEST_KEY: SOURCE_BINDING_REVIEW_DIGEST,
+            source.MANIFEST_DIGEST_KEY: SOURCE_RESULTS_REVIEW_MANIFEST_DIGEST,
+            "source_selected_package_executed": True,
+            "source_payload_supply_mechanism_created": True,
+            "source_execution_rerun_performed": False,
+            "payload_supply_mechanism_regenerated": False,
+        }
+    elif set(value) != set(SOURCE_RESULTS_REVIEW_BINDINGS):
+        raise MarketFlowRepositoryIntegrationBranchRetryFailureOperatorCompletionInputsReattemptCandidateError("source_results_review keys mismatch")
+    for key, expected_value in expected.items():
+        if value.get(key) != expected_value:
+            raise MarketFlowRepositoryIntegrationBranchRetryFailureOperatorCompletionInputsReattemptCandidateError(f"source_results_review.{key} mismatch")
+
+
+def _digest_without(value: Mapping[str, Any], *excluded: str) -> str:
+    return semantic_digest({key: deepcopy(item) for key, item in value.items() if key not in excluded})
+
+
+def _check(check_id: str, expected: Any, actual: Any, message: str) -> dict[str, Any]:
+    return {
+        "check_id": check_id,
+        "status": "PASS" if actual == expected else "FAIL",
+        "expected": expected,
+        "actual": actual,
+        "severity": "BLOCKER",
+        "message": message,
+    }
+
+
+def _candidate() -> dict[str, Any]:
+    packages = _package_options()
+    requirements = [
+        {"requirement_id": requirement_id, "requirement_status": FUTURE_REQUIREMENT_STATUS, "execution_status": "NOT_EXECUTED"}
+        for requirement_id in FUTURE_REQUIREMENT_IDS
+    ]
+    plan = [
+        {"step": index, "description": description, "status": "PLANNED_NOT_EXECUTED"}
+        for index, description in enumerate(FUTURE_PLAN_STEPS, start=1)
+    ]
+    planned_outputs = [
+        {"planned_output_id": f"planned_output_{index:02d}", "status": "PLANNED_NOT_GENERATED"}
+        for index in range(1, 33)
+    ]
+    candidate: dict[str, Any] = {
+        "artifact_kind": ARTIFACT_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "candidate_status": CANDIDATE_STATUS,
+        "candidate_scope": CANDIDATE_SCOPE,
+        "created_offline": True,
+        "governance_only": True,
+        "candidate_only": True,
+        "candidate_philosophy": "The source results review verified that the payload-supply mechanism was created and reviewed, but no actual operator payload, inputs, evidence, source authority, remediation, retry, or main readiness exists. This candidate defines future governance options for an input-preparation/supply execution reattempt only if explicit non-secret operator payload is available and later selected, reviewed, approved, and executed under separate governance.",
+        "candidate_boundary": "Candidate only. This artifact defines reattempt package options, requirements, future contract checks, and gates without selecting or executing a package or creating payload, inputs, evidence, authority, remediation, retry, merge, runtime, or trading authority.",
+        **_source_context(),
+        **SOURCE_RESULTS_REVIEW_BINDINGS,
+        "source_results_review_checklist": {"passed": 630, "total": 630, "blockers": 0},
+        "source_execution_checklist": {"passed": 515, "total": 515, "blockers": 0},
+        "prepared_operator_completion_inputs_digest": None,
+        "prepared_operator_completion_inputs_manifest_digest": None,
+        "success_execution_digest": None,
+        "source_execution_not_rerun": True,
+        "source_payload_supply_mechanism_not_regenerated": True,
+        "source_mechanism_review_section_names": [
+            "mechanism_identity", "approved_source_contract_binding", "explicit_operator_payload_entry_rules",
+            "package_header_schema", "thirty_item_payload_schema", "allowed_values_matrix",
+            "workstream_segmented_supply_plan", "secret_screening_policy", "pre_submission_operator_checklist",
+            "post_submission_results_review_requirement", "downstream_gate_policy", "unsupported_claims_boundary",
+            "digest_manifest",
+        ],
+        "source_mechanism_review_section_count": 13,
+        "package_header_schema_fields": list(source.source.PACKAGE_HEADER_FIELDS),
+        "evidence_item_schema_fields": list(source.source.EVIDENCE_ITEM_FIELDS),
+        "future_operator_completion_input_item_ids": [f"MA-{index:03d}" for index in range(1, 31)],
+        "workstream_segment_item_counts": [8, 8, 7, 7],
+        "allowed_section_ids": list(source.source.ALLOWED_SECTION_IDS),
+        "allowed_workstream_ids": list(source.source.ALLOWED_WORKSTREAM_IDS),
+        "allowed_artifact_types": list(source.source.ALLOWED_ARTIFACT_TYPES),
+        "allowed_evidence_classifications": list(source.source.ALLOWED_EVIDENCE_CLASSIFICATIONS),
+        "secret_screening_indicators": list(source.source.SECRET_INDICATORS),
+        "observable_failure_families": deepcopy(_source_context()["reviewed_observable_failure_families"]),
+        "package_options": packages,
+        "recommended_package": RECOMMENDED_PACKAGE,
+        "recommended_package_status": RECOMMENDED_PACKAGE_STATUS,
+        "future_requirements": requirements,
+        "future_plan": plan,
+        "planned_outputs": planned_outputs,
+        "missing_authority_items": [{"missing_authority_id": f"MA-{index:03d}", "status": "MISSING_NOT_ACQUIRED"} for index in range(1, 31)],
+        "missing_authority_items_status": "MISSING_NOT_ACQUIRED",
+        "outputs": [{"output_kind": name, "status": GENERATED_OUTPUT_STATUS} for name in OUTPUT_NAMES],
+        "risk_controls": list(RISK_CONTROLS),
+        "next_chain": list(NEXT_CHAIN),
+        "next_gates": list(NEXT_GATES),
+        "recommended_next_task": RECOMMENDED_NEXT_TASK,
+        "recommended_next_task_status": "FUTURE_OPERATOR_REVIEW_NOT_CREATED",
+        "recommended_action": "PROCEED_ONLY_TO_SEPARATELY_INVOKED_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_OPERATOR_REVIEW_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW",
+        "recommendation_reason": "The source results review verified only the payload-supply mechanism. It did not create actual operator payload, inputs, evidence, source authority, remediation, retry readiness, or main-merge readiness. The next safe step is only operator review of this reattempt candidate.",
+        "predictive_usefulness": "not accepted",
+        "profitability": "not accepted",
+        "runtime_use": "NOT_AUTHORIZED",
+        "strategy_use": "NOT_AUTHORIZED",
+        "paper_trading": "NOT_AUTHORIZED",
+        "broker_execution": "NOT_AUTHORIZED",
+        "tracked_marketflow_files": [],
+        "tracked_pytest_cache_files": [],
+    }
+    candidate.update({field: True for field in TRUE_FIELDS})
+    candidate.update({field: False for field in FALSE_FIELDS})
+    candidate.update(COUNTS)
+    candidate[PACKAGE_OPTIONS_DIGEST_KEY] = semantic_digest(packages)
+    candidate[FUTURE_REQUIREMENTS_DIGEST_KEY] = semantic_digest(requirements)
+    candidate[FUTURE_CONTRACT_DIGEST_KEY] = semantic_digest({
+        "recommended_package": RECOMMENDED_PACKAGE,
+        "requirements": requirements,
+        "plan": plan,
+        "next_chain": list(NEXT_CHAIN),
+        "next_gates": list(NEXT_GATES),
+    })
+    candidate[SOURCE_BINDING_DIGEST_KEY] = semantic_digest({
+        "source_results_review": SOURCE_RESULTS_REVIEW_BINDINGS,
+        "source_context": _source_context(),
+    })
+    digest_keys = (CANDIDATE_DIGEST_KEY, MANIFEST_DIGEST_KEY, "checklist", "summary")
+    candidate[CANDIDATE_DIGEST_KEY] = _digest_without(candidate, *digest_keys)
+    candidate[MANIFEST_DIGEST_KEY] = semantic_digest({
+        "artifact_kind": ARTIFACT_KIND,
+        "schema_version": SCHEMA_VERSION,
+        "candidate_status": CANDIDATE_STATUS,
+        "candidate_scope": CANDIDATE_SCOPE,
+        "digests": {key: candidate[key] for key in (CANDIDATE_DIGEST_KEY, PACKAGE_OPTIONS_DIGEST_KEY, FUTURE_REQUIREMENTS_DIGEST_KEY, FUTURE_CONTRACT_DIGEST_KEY, SOURCE_BINDING_DIGEST_KEY)},
+        "outputs": list(OUTPUT_NAMES),
+    })
+
+    checks = [
+        _check("artifact_kind_correct", ARTIFACT_KIND, candidate["artifact_kind"], "Candidate artifact kind is exact."),
+        _check("candidate_status_correct", CANDIDATE_STATUS, candidate["candidate_status"], "Candidate status is exact."),
+        _check("candidate_scope_correct", CANDIDATE_SCOPE, candidate["candidate_scope"], "Candidate scope is exact."),
+    ]
+    checks.extend(_check(f"{field}_true", True, candidate[field], f"{field} remains true.") for field in TRUE_FIELDS)
+    checks.extend(_check(f"{field}_false", False, candidate[field], f"{field} remains false.") for field in FALSE_FIELDS)
+    checks.extend(_check(f"{field}_count", expected, candidate[field], f"{field} remains bound.") for field, expected in COUNTS.items())
+    for field, expected in SOURCE_RESULTS_REVIEW_BINDINGS.items():
+        checks.append(_check(f"{field}_bound", expected, candidate[field], f"{field} remains bound."))
+    checks.extend((
+        _check("workstream_segments_8_8_7_7", [8, 8, 7, 7], candidate["workstream_segment_item_counts"], "Workstream segments remain exact."),
+        _check("future_requirements_defined_not_executed", 58, len(candidate["future_requirements"]), "Exactly 58 future requirements remain unexecuted."),
+        _check("future_plan_defined_not_executed", 14, len(candidate["future_plan"]), "Exactly 14 future steps remain unexecuted."),
+        _check("planned_outputs_not_generated", 32, len(candidate["planned_outputs"]), "Exactly 32 planned outputs remain ungenerated."),
+        _check("package_options_defined", 12, len(candidate["package_options"]), "Exactly 12 package options are defined."),
+        _check("blocked_packages_blocked", 5, sum(item["candidate_status"] == BLOCKED_PACKAGE_STATUS for item in packages), "Exactly five packages remain blocked."),
+        _check("outputs_generated", list(OUTPUT_NAMES), [item["output_kind"] for item in candidate["outputs"]], "Required candidate outputs are generated."),
+        _check("candidate_digest_generated", 64, len(candidate[CANDIDATE_DIGEST_KEY]), "Candidate digest is generated."),
+        _check("manifest_digest_generated", 64, len(candidate[MANIFEST_DIGEST_KEY]), "Manifest digest is generated."),
+        _check("no_tracked_marketflow_files", [], candidate["tracked_marketflow_files"], "No generated MarketFlow files are tracked by the candidate."),
+        _check("no_tracked_pytest_cache_files", [], candidate["tracked_pytest_cache_files"], "No pytest cache files are tracked by the candidate."),
+    ))
+    candidate["checklist"] = checks
+    failed = [item["check_id"] for item in checks if item["status"] != "PASS"]
+    candidate["summary"] = {
+        "passed_checks": len(checks) - len(failed),
+        "total_checks": len(checks),
+        "failed_checks": failed,
+        "blocker_count": len(failed),
+        "package_option_count": len(packages),
+        "future_requirement_count": len(requirements),
+        "future_plan_step_count": len(plan),
+        "planned_output_count": len(planned_outputs),
+        "generated_output_count": len(candidate["outputs"]),
+        "recommended_package": RECOMMENDED_PACKAGE,
+        "recommended_next_task": RECOMMENDED_NEXT_TASK,
+        "ready_for_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_operator_review": True,
+        "ready_for_operator_completion_inputs_preparation_or_supply_execution_reattempt": False,
+        "ready_for_retry_candidate": False,
+        "ready_for_main_merge_approval": False,
+    }
+    return candidate
+
+
+def build_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1(
+    *, source_results_review: dict | None = None,
+) -> dict[str, Any]:
+    _validate_source_results_review(source_results_review)
+    candidate = _candidate()
+    validate_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1(candidate)
+    return candidate
+
+
+def validate_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1(
+    candidate: dict,
+) -> dict:
+    if not isinstance(candidate, dict):
+        raise MarketFlowRepositoryIntegrationBranchRetryFailureOperatorCompletionInputsReattemptCandidateError("candidate must be an object")
+    expected = _candidate()
+    if candidate != expected:
+        differing = sorted(key for key in set(candidate) | set(expected) if candidate.get(key) != expected.get(key))
+        name = differing[0] if differing else "unknown"
+        raise MarketFlowRepositoryIntegrationBranchRetryFailureOperatorCompletionInputsReattemptCandidateError(f"candidate contract mismatch: {name}")
+    if candidate["summary"]["blocker_count"] != 0:
+        raise MarketFlowRepositoryIntegrationBranchRetryFailureOperatorCompletionInputsReattemptCandidateError("candidate checklist contains blockers")
+    return candidate
+
+
+def build_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_markdown_v1(
+    candidate: dict,
+) -> str:
+    validate_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1(candidate)
+    sections: dict[str, Any] = {
+        "Candidate Disposition": f"`{candidate['candidate_status']}` within `{candidate['candidate_scope']}`. Candidate `{candidate[CANDIDATE_DIGEST_KEY]}`; manifest `{candidate[MANIFEST_DIGEST_KEY]}`.",
+        "Source Results Review": f"Commit `{candidate['source_results_review_commit']}`; artifact `{candidate['source_results_review_artifact_kind']}`; checklist 630/630 PASS.",
+        "Results Review Digest Surface": f"Review `{candidate['source_results_review_digest']}`; mechanism `{candidate['source_payload_supply_mechanism_review_digest']}`; schema `{candidate['source_operator_payload_submission_schema_review_digest']}`; allowed/safety `{candidate['source_allowed_values_and_secret_screening_review_digest']}`; workstreams `{candidate['source_workstream_supply_plan_review_digest']}`; binding `{candidate['source_binding_review_digest']}`; manifest `{candidate['source_results_review_manifest_digest']}`.",
+        "Source Execution": f"Commit `{candidate['source_execution_commit']}`; artifact `{candidate['source_execution_artifact_kind']}`; checklist 515/515 PASS; not rerun.",
+        "Execution Digest Surface": f"Execution `{candidate['source_execution_digest']}`; mechanism `{candidate['source_payload_supply_mechanism_digest']}`; schema `{candidate['source_operator_payload_submission_schema_digest']}`; allowed/safety `{candidate['source_allowed_values_and_secret_screening_digest']}`; workstreams `{candidate['source_workstream_supply_plan_digest']}`; binding `{candidate['source_execution_source_binding_digest']}`; manifest `{candidate['source_execution_manifest_digest']}`.",
+        "Selected Source Package": f"`{candidate['source_selected_package']}` was executed only in the source to define the mechanism.",
+        "Payload Supply Mechanism Review": "The reviewed mechanism has four workstream/scope sections and thirteen distinct review sections; it was not regenerated.",
+        "Operator Payload Submission Schema Review": "14 header fields, 21 evidence-item fields, and MA-001 through MA-030 remain reviewed with no actual payload values.",
+        "Allowed Values and Secret Screening Review": "Four workstreams, 13 artifact types, 12 classifications, and 13 secret indicators remain bound for future use only.",
+        "Workstream Supply Plan Review": "Four segments of 8, 8, 7, and 7 items remain reviewed; zero items are supplied.",
+        "Future Explicit Payload Requirement": "Any future reattempt requires explicit non-secret operator payload, operator review, separate approval, and later results review.",
+        "Package Options": [f"{item['package_id']}: {item['candidate_status']}" for item in candidate["package_options"]],
+        "Recommended Package": f"`{candidate['recommended_package']}` is recommended for operator review and remains unselected, unapproved, unauthorized, and unexecuted.",
+        "Source Approval": f"Commit `{candidate['source_approval_commit']}` and digest `{candidate['source_approval_digest']}` remain bound.",
+        "Source Operator Review": f"Commit `{candidate['source_operator_review_commit']}` and digest `{candidate['source_operator_review_digest']}` remain bound.",
+        "Source Candidate": f"Commit `{candidate['source_candidate_commit']}` and digest `{candidate['source_candidate_digest']}` remain bound.",
+        "Source Failure Diagnosis": f"Commit `{candidate['source_failure_diagnosis_commit']}` and digest `{candidate['source_failure_diagnosis_digest']}` remain bound.",
+        "Source Blocked Input Preparation Execution": f"Commit `{candidate['source_blocked_input_preparation_execution_commit']}` remains blocked.",
+        "Blocked Reason": f"`{candidate['source_blocked_input_preparation_execution_reason']}`.",
+        "Primary Failure Class": f"`{candidate['primary_failure_class']}`.",
+        "Secondary Failure Classes": candidate["secondary_failure_classes"],
+        "Historical Completion Template Acquisition Chains": "All committed approval, completion, template, and acquisition identities and digests remain source evidence only.",
+        "Follow-On and Enrichment Chain": "All committed follow-on, enrichment, and historical digests remain bound without execution.",
+        "Historical Blocked Remediation": "Remains blocked; no disposition, alternate diagnostic, or remediation was created.",
+        "Plan Method Diagnostic Recovery Chain": "All committed plan, method, diagnostic, recapture, receipt, and recovery digests remain bound without rerun.",
+        "Durable Receipt": f"`{candidate['source_durable_receipt_path']}` is bound opaquely and was not parsed.",
+        "Retry Failure Context": "24,877 passed / 1,292 failed / 112 errors / 7 skipped remains authoritative retry evidence.",
+        "Priority 1 Target Modules": [f"{item['path']}: {item['failed_or_errored_nodeid_count']}" for item in candidate["priority_1_target_modules"]],
+        "Priority 1 Validation Summary": "675/675 before and after remains current-root non-retry evidence and was not rerun.",
+        "Diagnostic Capture Evidence Summary": "Exit 1, byte counts, and hashes remain diagnostic metadata only; output was not analyzed.",
+        "Reviewed Observable Families": [f"{item['family_id']}: {item['observable_evidence_count']} ({item['confidence']})" for item in candidate["observable_failure_families"]],
+        "Reviewed Workstreams": [f"{item['workstream_id']} <- {item['source_family_id']}" for item in candidate["reviewed_workstreams"]],
+        "Reviewed Template Structure": "Exactly 30 empty mapped rows remain reviewed source evidence, not actual payload or authority.",
+        "Actual Payload Absence": "No operator payload or operator completion input exists.",
+        "Actual Evidence Absence": "No prepared input, evidence item, completed evidence package, or acquired authority exists.",
+        "Actual Coverage Zero": "Coverage remains 0/30; all rows remain `MISSING_NOT_ACQUIRED`.",
+        "Missing Authority Inventory": "MA-001 through MA-030 remain mapped and unacquired.",
+        "Count Label Distinction": "All prescribed and enumerated count labels remain distinct and unreconciled.",
+        "Unsupported Claims Boundary": "No root cause, retry success, predictive usefulness, profitability, runtime, broker, trading, or main readiness is claimed.",
+        "Recommendation": f"`{candidate['recommended_action']}`. Next task: `{candidate['recommended_next_task']}`.",
+        "Next Chain": candidate["next_chain"],
+        "Next Gates": candidate["next_gates"],
+        "Risk Controls": candidate["risk_controls"],
+        "Authority Boundaries": "Candidate only; every package-selection, execution, evidence, acquisition, remediation, retry, merge, runtime, broker, and trading gate remains closed.",
+        "Checklist Summary": f"{candidate['summary']['passed_checks']}/{candidate['summary']['total_checks']} PASS; blockers={candidate['summary']['blocker_count']}.",
+        "Guardrails": "Committed constants and validated injection only; no builders, source reads, subprocesses, pytest, cache, receipt, logs, environment, providers, source owners, market data, models, runtime, broker, or trading actions.",
+    }
+    lines = ["# MarketFlow Repository Integration Branch Retry Failure Operator Completion Inputs Preparation or Supply Execution Reattempt Candidate After Payload Supply Mechanism Results Review v1", ""]
+    for heading, content in sections.items():
+        lines.extend((f"## {heading}", ""))
+        if isinstance(content, list):
+            lines.extend(f"{index}. `{item}`" for index, item in enumerate(content, start=1))
+        else:
+            lines.append(str(content))
+        lines.append("")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def write_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1(
+    output_dir: str | Path,
+    *,
+    source_results_review: dict | None = None,
+) -> dict[str, Any]:
+    candidate = build_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1(source_results_review=source_results_review)
+    destination = Path(output_dir) / "MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_CANDIDATE_AFTER_PAYLOAD_SUPPLY_MECHANISM_RESULTS_REVIEW_STATUS.md"
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    destination.write_text(build_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_markdown_v1(candidate), encoding="utf-8")
+    return candidate
+
+
+__all__ = [
+    "ARTIFACT_KIND", "SCHEMA_VERSION", "CANDIDATE_STATUS", "CANDIDATE_SCOPE", "RECOMMENDED_PACKAGE",
+    "RECOMMENDED_NEXT_TASK", "CANDIDATE_DIGEST_KEY", "PACKAGE_OPTIONS_DIGEST_KEY",
+    "FUTURE_REQUIREMENTS_DIGEST_KEY", "FUTURE_CONTRACT_DIGEST_KEY", "SOURCE_BINDING_DIGEST_KEY",
+    "MANIFEST_DIGEST_KEY", "SOURCE_RESULTS_REVIEW_BINDINGS", "RISK_CONTROLS",
+    "build_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1",
+    "validate_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1",
+    "write_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_v1",
+    "build_marketflow_repository_integration_branch_retry_failure_operator_completion_inputs_preparation_or_supply_execution_reattempt_candidate_after_payload_supply_mechanism_results_review_markdown_v1",
+]
