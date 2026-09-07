@@ -815,3 +815,15 @@ Operator review only; package selection, approval, execution, evidence, acquisit
 ## Guardrails
 
 Committed constants and validated injection only; no builders, source reads, subprocesses, pytest, cache, receipt, logs, environment, providers, source owners, data, models, runtime, broker, or trading actions.
+
+## Subsequent Approval
+
+The approval-after-candidate-operator-review artifact is implemented. This operator review remains the bound 404/404 PASS source evidence and remains review-only.
+
+Only `PACKAGE_CREATE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_FROM_REVIEWED_MECHANISM_WITH_EXPLICIT_NON_SECRET_OPERATOR_PAYLOAD` is selected and approved for separately invoked future execution. It is not executed, and explicit non-secret operator payload remains mandatory before that future execution.
+
+No actual payload was created; no input was prepared, supplied, provided, validated, or bound; no prepared inputs or reattempt exist; no evidence package was created or completed; and no actual evidence item was filled. Coverage remains 0/30 and all missing-authority rows remain `MISSING_NOT_ACQUIRED`.
+
+No source authority, evidence, external evidence, concrete authority, safe change, no-change disposition, alternate diagnostic, remediation, retry candidate, or main-merge readiness was created. No production-code, existing-test, expected-digest, or patch change occurred. The approval performed no pytest, retry, cache, receipt/output/log/environment parsing, source-owner contact, provider/data/runtime/trading action, and preserves all count-label distinctions.
+
+The only next step is separately invoked `MARKETFLOW_REPOSITORY_INTEGRATION_BRANCH_RETRY_FAILURE_OPERATOR_COMPLETION_INPUTS_PREPARATION_OR_SUPPLY_EXECUTION_REATTEMPT_AFTER_APPROVAL_V1` with explicit non-secret operator payload.
